@@ -132,7 +132,7 @@
   - Verify debouncing on search input
   - _Requirements: 1.3_
 
-- [ ] 11. Implement Appwrite backend setup documentation
+- [x] 11. Implement Appwrite backend setup documentation
   - Document Appwrite project creation steps
   - Document database and Naats collection schema
   - Document collection permissions configuration
@@ -140,7 +140,7 @@
   - Create example environment variables file
   - _Requirements: 4.2, 4.3, 4.5_
 
-- [ ] 12. Create video ingestion function (Appwrite Function)
+- [x] 12. Create video ingestion function (Appwrite Function)
   - Set up Appwrite Function project structure
   - Implement YouTube channel video fetching logic
   - Extract video metadata (title, URL, thumbnail, duration, youtubeId)

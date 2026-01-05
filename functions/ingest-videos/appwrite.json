@@ -1,0 +1,30 @@
+{
+  "projectId": "",
+  "projectName": "Naat Platform",
+  "functions": [
+    {
+      "$id": "ingest-videos",
+      "name": "Ingest Videos",
+      "runtime": "node-21.0",
+      "execute": [],
+      "events": [],
+      "schedule": "0 2 * * *",
+      "timeout": 300,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/ingest-videos",
+      "variables": {
+        "APPWRITE_ENDPOINT": "https://cloud.appwrite.io/v1",
+        "APPWRITE_API_KEY": "",
+        "APPWRITE_DATABASE_ID": "",
+        "APPWRITE_NAATS_COLLECTION_ID": "",
+        "YOUTUBE_CHANNEL_ID": "",
+        "YOUTUBE_API_KEY": "",
+        "RECITER_NAME": "Unknown Reciter",
+        "RECITER_ID": "default-reciter"
+      }
+    }
+  ]
+}
