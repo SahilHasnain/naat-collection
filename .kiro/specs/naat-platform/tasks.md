@@ -53,8 +53,9 @@
   - Implement clearPosition function
   - _Requirements: 6.1, 6.2, 6.4_
 
-- [ ] 6. Build reusable UI components
-- [ ] 6.1 Create NaatCard component
+- [x] 6. Build reusable UI components
+
+- [x] 6.1 Create NaatCard component
   - Implement component with thumbnail, title, duration, and metadata display
   - Format duration in MM:SS format
   - Add placeholder image for failed thumbnail loads
@@ -62,20 +63,20 @@
   - Apply NativeWind styling for minimalist design
   - _Requirements: 1.1, 1.2, 1.4, 3.1, 3.4, 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 6.2 Create SearchBar component
+- [x] 6.2 Create SearchBar component
   - Implement text input with debouncing
   - Add clear button functionality
   - Apply accessible keyboard handling
   - Style with high contrast for readability
   - _Requirements: 3.5, 5.1, 5.3_
 
-- [ ] 6.3 Create EmptyState component
+- [x] 6.3 Create EmptyState component
   - Implement message display with optional icon
   - Add optional action button
   - Create variants for "no content" and "no search results"
   - _Requirements: 1.5, 5.4_
 
-- [ ] 6.4 Create VideoPlayer component
+- [x] 6.4 Create VideoPlayer component
   - Integrate expo-av for video playback
   - Implement play, pause, and seek controls
   - Add fullscreen toggle functionality
@@ -85,7 +86,7 @@
   - Display loading state during video initialization
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 8.2_
 
-- [ ] 6.5 Create ErrorBoundary component
+- [x] 6.5 Create ErrorBoundary component
   - Implement React error boundary
   - Display user-friendly error messages
   - Add retry mechanism
