@@ -81,15 +81,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   if (error) {
     return (
       <View className="flex-1 items-center justify-center bg-black p-8">
-        <Text className="mb-4 text-center text-base text-white">{error}</Text>
+        <Text className="text-5xl mb-6">⚠️</Text>
+        <Text className="mb-6 text-center text-lg leading-relaxed text-white">
+          {error}
+        </Text>
         <Pressable
           onPress={() => {
             setError(null);
             setIsLoading(true);
           }}
-          className="rounded-lg bg-blue-600 px-6 py-3 active:bg-blue-700"
+          className="rounded-xl bg-primary-600 px-8 py-4 active:bg-primary-700"
         >
-          <Text className="font-semibold text-white">Try Again</Text>
+          <Text className="text-base font-bold text-white">Try Again</Text>
         </Pressable>
       </View>
     );
@@ -104,7 +107,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         resizeMode={ResizeMode.CONTAIN}
         shouldPlay={false}
         onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-        onError={(err) => {
+        onError={() => {
           const errorMessage = "Unable to play video. Please try another naat.";
           setError(errorMessage);
           onError(new Error(errorMessage));
@@ -112,33 +115,47 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       />
 
       {isLoading && (
-        <View className="absolute inset-0 items-center justify-center bg-black/50">
+        <View className="absolute inset-0 items-center justify-center bg-black/70">
           <ActivityIndicator size="large" color="#ffffff" />
-          <Text className="mt-4 text-white">Loading video...</Text>
+          <Text className="mt-4 text-base text-white">Loading video...</Text>
         </View>
       )}
 
       {!isLoading && (
-        <View className="absolute bottom-0 left-0 right-0 bg-black/70 p-4">
-          <View className="flex-row items-center justify-center space-x-4">
+        <View className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
+          <View className="flex-row items-center justify-center gap-6">
             <Pressable
               onPress={handlePlayPause}
-              className="rounded-full bg-white/20 px-8 py-4 active:bg-white/30"
+              className="rounded-full bg-white/25 backdrop-blur-sm px-10 py-5 active:bg-white/35"
+              style={{
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 5,
+              }}
               accessibilityLabel={isPlaying ? "Pause" : "Play"}
               accessibilityRole="button"
             >
-              <Text className="text-xl font-bold text-white">
+              <Text className="text-2xl font-bold text-white">
                 {isPlaying ? "⏸" : "▶"}
               </Text>
             </Pressable>
 
             <Pressable
               onPress={handleFullscreen}
-              className="rounded-full bg-white/20 px-6 py-4 active:bg-white/30"
+              className="rounded-full bg-white/25 backdrop-blur-sm px-6 py-5 active:bg-white/35"
+              style={{
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 5,
+              }}
               accessibilityLabel="Toggle fullscreen"
               accessibilityRole="button"
             >
-              <Text className="text-lg text-white">
+              <Text className="text-xl text-white">
                 {isFullscreen ? "⊡" : "⛶"}
               </Text>
             </Pressable>

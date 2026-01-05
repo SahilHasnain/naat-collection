@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  /* Ensure consistent text rendering */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  /* High contrast text utilities */
+  .text-high-contrast {
+    color: #000000;
+  }
+
+  .text-high-contrast-inverse {
+    color: #ffffff;
+  }
+
+  /* Accessible focus states */
+  .focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+}

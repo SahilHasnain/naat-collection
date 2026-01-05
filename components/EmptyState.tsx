@@ -9,19 +9,28 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   onAction,
 }) => {
   return (
-    <View className="flex-1 items-center justify-center px-8 py-16">
-      {icon && <Text className="mb-4 text-6xl">{icon}</Text>}
-      <Text className="mb-6 text-center text-base text-gray-600">
+    <View className="flex-1 items-center justify-center px-8 py-20">
+      {icon && <Text className="mb-6 text-7xl">{icon}</Text>}
+      <Text className="mb-8 text-center text-lg leading-relaxed text-neutral-600 dark:text-neutral-400 max-w-sm">
         {message}
       </Text>
       {actionLabel && onAction && (
         <Pressable
           onPress={onAction}
-          className="rounded-lg bg-blue-600 px-6 py-3 active:bg-blue-700"
+          className="rounded-xl bg-primary-600 dark:bg-primary-500 px-8 py-4 active:bg-primary-700 dark:active:bg-primary-600 shadow-lg"
+          style={{
+            shadowColor: "#2563eb",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 4,
+          }}
           accessibilityRole="button"
           accessibilityLabel={actionLabel}
         >
-          <Text className="font-semibold text-white">{actionLabel}</Text>
+          <Text className="text-base font-bold text-white tracking-wide">
+            {actionLabel}
+          </Text>
         </Pressable>
       )}
     </View>

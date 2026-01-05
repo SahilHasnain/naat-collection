@@ -16,12 +16,22 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
     return (
       <Pressable
         onPress={onPress}
-        className="mb-4 overflow-hidden rounded-lg bg-white shadow-sm active:opacity-80"
+        className="mb-4 overflow-hidden rounded-xl bg-white dark:bg-neutral-800 shadow-md active:opacity-90 active:scale-[0.98]"
+        style={{
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 3,
+        }}
       >
         <View className="relative">
           {imageError ? (
-            <View className="h-48 w-full items-center justify-center bg-gray-200">
-              <Text className="text-gray-500">No Image</Text>
+            <View className="h-48 w-full items-center justify-center bg-neutral-200 dark:bg-neutral-700">
+              <Text className="text-4xl">🎵</Text>
+              <Text className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+                No Image
+              </Text>
             </View>
           ) : (
             <Image
@@ -33,8 +43,9 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
               transition={200}
             />
           )}
-          <View className="absolute bottom-2 right-2 rounded bg-black/70 px-2 py-1">
-            <Text className="text-xs font-semibold text-white">
+          {/* Duration badge with improved contrast */}
+          <View className="absolute bottom-3 right-3 rounded-md bg-black/80 px-2.5 py-1.5">
+            <Text className="text-xs font-bold text-white tracking-wide">
               {formatDuration(duration)}
             </Text>
           </View>
@@ -42,14 +53,20 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
 
         <View className="p-4">
           <Text
-            className="mb-1 text-base font-semibold text-gray-900"
+            className="mb-2 text-lg font-bold leading-snug text-neutral-900 dark:text-white"
             numberOfLines={2}
           >
             {title}
           </Text>
-          <Text className="text-sm text-gray-600">{reciterName}</Text>
-          <Text className="mt-1 text-xs text-gray-500">
-            {new Date(uploadDate).toLocaleDateString()}
+          <Text className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            {reciterName}
+          </Text>
+          <Text className="mt-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+            {new Date(uploadDate).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}
           </Text>
         </View>
       </Pressable>

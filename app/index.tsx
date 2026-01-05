@@ -87,8 +87,8 @@ export default function HomeScreen() {
     }
 
     return (
-      <View className="py-4">
-        <ActivityIndicator size="small" color="#2563EB" />
+      <View className="py-6">
+        <ActivityIndicator size="small" color="#2563eb" />
       </View>
     );
   };
@@ -97,9 +97,11 @@ export default function HomeScreen() {
   const renderEmptyState = () => {
     if (isLoading && displayData.length === 0) {
       return (
-        <View className="flex-1 items-center justify-center py-16">
-          <ActivityIndicator size="large" color="#2563EB" />
-          <Text className="mt-4 text-gray-600">Loading naats...</Text>
+        <View className="flex-1 items-center justify-center py-20">
+          <ActivityIndicator size="large" color="#2563eb" />
+          <Text className="mt-4 text-base text-neutral-600 dark:text-neutral-400">
+            Loading naats...
+          </Text>
         </View>
       );
     }
@@ -134,9 +136,12 @@ export default function HomeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <View className="bg-white px-4 pb-2 pt-12 shadow-sm">
-        <Text className="mb-4 text-2xl font-bold text-gray-900">Naats</Text>
+    <View className="flex-1 bg-neutral-50 dark:bg-neutral-900">
+      {/* Header with search */}
+      <View className="bg-white dark:bg-neutral-800 px-6 pb-4 pt-safe-top shadow-sm">
+        <Text className="mb-4 text-3xl font-bold tracking-tight text-neutral-900 dark:text-white">
+          Naats
+        </Text>
         <SearchBar
           value={query}
           onChangeText={setQuery}
@@ -161,8 +166,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={false}
             onRefresh={handleRefresh}
-            colors={["#2563EB"]}
-            tintColor="#2563EB"
+            colors={["#2563eb"]}
+            tintColor="#2563eb"
           />
         }
         removeClippedSubviews={true}

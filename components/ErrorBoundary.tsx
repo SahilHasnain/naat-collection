@@ -45,22 +45,31 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       }
 
       return (
-        <View className="flex-1 items-center justify-center bg-gray-50 px-8">
-          <Text className="mb-2 text-2xl">⚠️</Text>
-          <Text className="mb-4 text-center text-lg font-semibold text-gray-900">
+        <View className="flex-1 items-center justify-center bg-neutral-50 dark:bg-neutral-900 px-8">
+          <Text className="mb-4 text-6xl">⚠️</Text>
+          <Text className="mb-3 text-center text-2xl font-bold text-neutral-900 dark:text-white">
             Something went wrong
           </Text>
-          <Text className="mb-6 text-center text-base text-gray-600">
+          <Text className="mb-8 text-center text-base leading-relaxed text-neutral-600 dark:text-neutral-400 max-w-md">
             {this.state.error.message ||
               "An unexpected error occurred. Please try again."}
           </Text>
           <Pressable
             onPress={this.handleRetry}
-            className="rounded-lg bg-blue-600 px-6 py-3 active:bg-blue-700"
+            className="rounded-xl bg-primary-600 dark:bg-primary-500 px-8 py-4 active:bg-primary-700 dark:active:bg-primary-600 shadow-lg"
+            style={{
+              shadowColor: "#2563eb",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 4,
+            }}
             accessibilityRole="button"
             accessibilityLabel="Retry"
           >
-            <Text className="font-semibold text-white">Try Again</Text>
+            <Text className="text-base font-bold text-white tracking-wide">
+              Try Again
+            </Text>
           </Pressable>
         </View>
       );

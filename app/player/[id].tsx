@@ -127,7 +127,7 @@ export default function PlayerScreen() {
       <SafeAreaView className="flex-1 bg-black">
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#ffffff" />
-          <Text className="mt-4 text-white">Loading naat...</Text>
+          <Text className="mt-4 text-base text-white">Loading naat...</Text>
         </View>
       </SafeAreaView>
     );
@@ -154,29 +154,36 @@ export default function PlayerScreen() {
     return (
       <SafeAreaView className="flex-1 bg-black">
         <View className="flex-1 items-center justify-center px-8">
-          <View className="w-full max-w-md rounded-lg bg-gray-900 p-6">
-            <Text className="mb-2 text-center text-xl font-bold text-white">
+          <View className="w-full max-w-md rounded-2xl bg-neutral-900 p-8 border border-neutral-700">
+            <Text className="mb-3 text-center text-2xl font-bold text-white">
               Resume Playback?
             </Text>
-            <Text className="mb-6 text-center text-gray-300">
+            <Text className="mb-8 text-center text-base text-neutral-300">
               You were at {Math.floor((savedPosition || 0) / 60)}:
               {String((savedPosition || 0) % 60).padStart(2, "0")}
             </Text>
 
             <Pressable
               onPress={handleResume}
-              className="mb-3 rounded-lg bg-blue-600 py-4 active:bg-blue-700"
+              className="mb-4 rounded-xl bg-primary-600 py-4 active:bg-primary-700"
+              style={{
+                shadowColor: "#2563eb",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.4,
+                shadowRadius: 8,
+                elevation: 5,
+              }}
             >
-              <Text className="text-center font-semibold text-white">
+              <Text className="text-center text-base font-bold text-white tracking-wide">
                 Resume
               </Text>
             </Pressable>
 
             <Pressable
               onPress={handleStartFromBeginning}
-              className="rounded-lg bg-gray-700 py-4 active:bg-gray-600"
+              className="rounded-xl bg-neutral-700 py-4 active:bg-neutral-600 border border-neutral-600"
             >
-              <Text className="text-center font-semibold text-white">
+              <Text className="text-center text-base font-bold text-white tracking-wide">
                 Start from Beginning
               </Text>
             </Pressable>
@@ -190,25 +197,34 @@ export default function PlayerScreen() {
   return (
     <SafeAreaView className="flex-1 bg-black">
       {/* Header with back button and title */}
-      <View className="bg-black/90 px-4 py-3">
+      <View className="bg-black/95 px-6 py-4 border-b border-neutral-800">
         <View className="flex-row items-center">
           <Pressable
             onPress={handleBack}
-            className="mr-3 rounded-full bg-white/20 p-2 active:bg-white/30"
+            className="mr-4 rounded-full bg-white/20 p-3 active:bg-white/30"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              elevation: 3,
+            }}
             accessibilityLabel="Go back"
             accessibilityRole="button"
           >
-            <Text className="text-xl text-white">←</Text>
+            <Text className="text-xl text-white font-bold">←</Text>
           </Pressable>
 
           <View className="flex-1">
             <Text
-              className="text-lg font-semibold text-white"
+              className="text-lg font-bold text-white leading-snug"
               numberOfLines={1}
             >
               {naat.title}
             </Text>
-            <Text className="text-sm text-gray-300">{naat.reciterName}</Text>
+            <Text className="text-sm text-neutral-400 mt-0.5">
+              {naat.reciterName}
+            </Text>
           </View>
         </View>
       </View>
