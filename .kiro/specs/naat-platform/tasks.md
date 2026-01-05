@@ -92,7 +92,7 @@
   - Add retry mechanism
   - _Requirements: 8.1, 8.2_
 
-- [ ] 7. Implement HomeScreen (app/index.tsx)
+- [x] 7. Implement HomeScreen (app/index.tsx)
   - Integrate useNaats hook for data fetching
   - Integrate useSearch hook for search functionality
   - Implement FlatList with NaatCard components
