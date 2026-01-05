@@ -58,6 +58,15 @@ export default function HomeScreen() {
     }
   };
 
+  // Optimize FlatList performance with getItemLayout
+  // Card height: 192px (image) + 80px (content) + 16px (margin) = 288px
+  const ITEM_HEIGHT = 288;
+  const getItemLayout = (_data: any, index: number) => ({
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  });
+
   // Render individual naat card
   const renderNaatCard = ({ item }: { item: Naat }) => (
     <NaatCard
@@ -139,6 +148,7 @@ export default function HomeScreen() {
         data={displayData}
         renderItem={renderNaatCard}
         keyExtractor={(item) => item.$id}
+        getItemLayout={getItemLayout}
         contentContainerStyle={{
           padding: 16,
           flexGrow: 1,

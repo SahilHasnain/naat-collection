@@ -1,6 +1,7 @@
 import { NaatCardProps } from "@/types";
+import { Image } from "expo-image";
 import React from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 const formatDuration = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
@@ -9,7 +10,7 @@ const formatDuration = (seconds: number): string => {
 };
 
 const NaatCard: React.FC<NaatCardProps> = React.memo(
-  ({ id, title, thumbnail, duration, uploadDate, reciterName, onPress }) => {
+  ({ title, thumbnail, duration, uploadDate, reciterName, onPress }) => {
     const [imageError, setImageError] = React.useState(false);
 
     return (
@@ -26,8 +27,10 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
             <Image
               source={{ uri: thumbnail }}
               className="h-48 w-full"
-              resizeMode="cover"
+              contentFit="cover"
               onError={() => setImageError(true)}
+              cachePolicy="memory-disk"
+              transition={200}
             />
           )}
           <View className="absolute bottom-2 right-2 rounded bg-black/70 px-2 py-1">
