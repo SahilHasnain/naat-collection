@@ -18,7 +18,7 @@ const MAX_RECENT_POSITIONS = 10;
  * Service for managing local storage operations
  * Handles playback position persistence using AsyncStorage
  */
-export class StorageService implements IStorageService {
+export class StorageService implements StorageService {
   /**
    * Save playback position for a specific naat
    * @param naatId - Unique identifier for the naat

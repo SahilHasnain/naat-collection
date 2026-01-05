@@ -29,8 +29,9 @@
   - Add error handling for storage failures
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ] 5. Create custom hooks for data management
-- [ ] 5.1 Implement useNaats hook
+- [x] 5. Create custom hooks for data management
+
+- [x] 5.1 Implement useNaats hook
   - Create state management for naats list, loading, and error states
   - Implement pagination logic with 20 items per page
   - Implement loadMore function for infinite scroll
@@ -38,14 +39,14 @@
   - Add in-memory caching for API responses
   - _Requirements: 1.1, 1.3, 8.1, 8.5_
 
-- [ ] 5.2 Implement useSearch hook
+- [x] 5.2 Implement useSearch hook
   - Create state management for search query and results
   - Implement debounced search with 300ms delay
   - Implement setQuery function with real-time filtering
   - Implement clearSearch function to restore full list
   - _Requirements: 5.1, 5.2, 5.3, 5.5_
 
-- [ ] 5.3 Implement usePlaybackPosition hook
+- [x] 5.3 Implement usePlaybackPosition hook
   - Create hook that accepts naatId parameter
   - Load saved position on mount
   - Implement savePosition function
