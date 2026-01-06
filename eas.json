@@ -1,0 +1,39 @@
+{
+  "cli": {
+    "version": ">= 16.28.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APPWRITE_ENDPOINT": "https://sgp.cloud.appwrite.io/v1",
+        "EXPO_PUBLIC_APPWRITE_PROJECT_ID": "695bb97700213f4ef5dd",
+        "EXPO_PUBLIC_APPWRITE_DATABASE_ID": "695bba86001b50478ed4",
+        "EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID": "695bc8e70038db72df5b"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APPWRITE_ENDPOINT": "https://sgp.cloud.appwrite.io/v1",
+        "EXPO_PUBLIC_APPWRITE_PROJECT_ID": "695bb97700213f4ef5dd",
+        "EXPO_PUBLIC_APPWRITE_DATABASE_ID": "695bba86001b50478ed4",
+        "EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID": "695bc8e70038db72df5b"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_APPWRITE_ENDPOINT": "https://sgp.cloud.appwrite.io/v1",
+        "EXPO_PUBLIC_APPWRITE_PROJECT_ID": "695bb97700213f4ef5dd",
+        "EXPO_PUBLIC_APPWRITE_DATABASE_ID": "695bba86001b50478ed4",
+        "EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID": "695bc8e70038db72df5b"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
