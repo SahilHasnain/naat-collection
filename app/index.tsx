@@ -1,10 +1,10 @@
+import { VideoModal } from "@/components";
 import EmptyState from "@/components/EmptyState";
 import NaatCard from "@/components/NaatCard";
 import SearchBar from "@/components/SearchBar";
 import { useNaats } from "@/hooks/useNaats";
 import { useSearch } from "@/hooks/useSearch";
 import type { Naat } from "@/types";
-import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import {
   ActivityIndicator,
@@ -13,9 +13,12 @@ import {
   Text,
   View,
 } from "react-native";
+import { useState } from "react";
 
 export default function HomeScreen() {
-  const router = useRouter();
+  // Modal state
+  const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // Data fetching hooks
   const { naats, loading, error, hasMore, loadMore, refresh } = useNaats();
@@ -37,13 +40,20 @@ export default function HomeScreen() {
   const displayData: Naat[] = isSearching ? searchResults : naats;
   const isLoading = isSearching ? searchLoading : loading;
 
-  // Handle naat selection and navigation to player
+  // Handle naat selection and open modal
   const handleNaatPress = (naatId: string) => {
-    // Navigate to player screen with naat ID
-    router.push({
-      pathname: "/player/[id]",
-      params: { id: naatId },
-    } as any);
+    const naat = displayData.find((n) => n.$id === naatId);
+    if (naat) {
+      setSelectedNaat(naat);
+      setModalVisible(true);
+    }
+  };
+
+  // Handle modal close
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    // Delay clearing selected naat to allow modal animation to complete
+    setTimeout(() => setSelectedNaat(null), 300);
   };
 
   // Handle pull-to-refresh
@@ -175,6 +185,17 @@ export default function HomeScreen() {
         windowSize={10}
         initialNumToRender={10}
       />
+
+      {/* Video Modal */}
+      {selectedNaat && (
+        <VideoModal
+          visible={modalVisible}
+          onClose={handleCloseModal}
+          videoUrl={selectedNaat.videoUrl}
+          title={selectedNaat.title}
+          reciterName={selectedNaat.reciterName}
+        />
+      )}
     </View>
   );
 }
