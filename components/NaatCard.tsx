@@ -1,4 +1,5 @@
 import { NaatCardProps } from "@/types";
+import { formatRelativeTime } from "@/utils";
 import { Image } from "expo-image";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
@@ -137,11 +138,7 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
               📅
             </Text>
             <Text className="text-xs text-neutral-500 dark:text-neutral-400">
-              {new Date(uploadDate).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })}
+              {formatRelativeTime(uploadDate)}
             </Text>
           </View>
         </View>

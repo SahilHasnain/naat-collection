@@ -17,3 +17,5 @@ export {
   type RetryOptions,
   type TimeoutOptions,
 } from "./errorHandling";
+
+export { formatRelativeTime } from "./dateUtils";
