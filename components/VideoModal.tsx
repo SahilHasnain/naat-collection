@@ -53,16 +53,14 @@ const VideoModal: React.FC<VideoModalProps> = ({
     >
       <StatusBar barStyle="light-content" backgroundColor="rgba(0,0,0,0.95)" />
 
-      {/* Backdrop */}
-      <Pressable
-        className="flex-1 bg-black/95"
-        onPress={onClose}
-        activeOpacity={1}
-      >
-        {/* Modal Content */}
-        <View className="flex-1 justify-center px-4">
-          <Pressable
-            onPress={(e) => e.stopPropagation()}
+      {/* Backdrop with TouchableWithoutFeedback behavior */}
+      <View className="flex-1 bg-black/95">
+        {/* Top backdrop area - tappable to close */}
+        <Pressable className="flex-1" onPress={onClose} />
+
+        {/* Modal Content Container */}
+        <View className="px-4">
+          <View
             className="bg-neutral-900 rounded-2xl overflow-hidden"
             style={{
               shadowColor: "#000",
@@ -126,14 +124,19 @@ const VideoModal: React.FC<VideoModalProps> = ({
                 </View>
               )}
             </View>
-          </Pressable>
+          </View>
 
           {/* Close hint */}
-          <Text className="text-center text-sm text-neutral-500 mt-6">
-            Tap outside to close
-          </Text>
+          <Pressable onPress={onClose}>
+            <Text className="text-center text-sm text-neutral-500 mt-6 mb-4">
+              Tap outside to close
+            </Text>
+          </Pressable>
         </View>
-      </Pressable>
+
+        {/* Bottom backdrop area - tappable to close */}
+        <Pressable className="flex-1" onPress={onClose} />
+      </View>
     </Modal>
   );
 };
