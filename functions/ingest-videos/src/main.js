@@ -22,14 +22,14 @@ import { Client, Databases, ID, Query } from "node-appwrite";
  * @param {string} channelId - YouTube channel ID
  * @param {string} apiKey - YouTube API key
  * @param {number} maxResults - Maximum number of videos to fetch
- * @param {string} publishedAfter - ISO 8601 timestamp to fetch videos after (optional)
+ * @param {string} lastVideoDate - ISO 8601 timestamp of last processed video (optional)
  * @returns {Promise<Array>} Array of video objects
  */
 async function fetchYouTubeVideos(
   channelId,
   apiKey,
   maxResults = 50,
-  publishedAfter = null
+  lastVideoDate = null
 ) {
   const baseUrl = "https://www.googleapis.com/youtube/v3";
 
@@ -54,30 +54,67 @@ async function fetchYouTubeVideos(
     const uploadsPlaylistId =
       channelData.items[0].contentDetails.relatedPlaylists.uploads;
 
-    // Build playlist URL with optional publishedAfter parameter
-    let playlistUrl = `${baseUrl}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=${maxResults}&key=${apiKey}`;
+    // Fetch videos in batches, stopping when we hit the last processed date
+    const allNewVideos = [];
+    let pageToken = null;
+    let shouldContinue = true;
+    const lastVideoTime = lastVideoDate ? new Date(lastVideoDate).getTime() : 0;
 
-    if (publishedAfter) {
-      playlistUrl += `&publishedAfter=${publishedAfter}`;
+    while (shouldContinue && allNewVideos.length < maxResults) {
+      // Build playlist URL with pagination
+      let playlistUrl = `${baseUrl}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=50&key=${apiKey}`;
+
+      if (pageToken) {
+        playlistUrl += `&pageToken=${pageToken}`;
+      }
+
+      // Fetch videos from the uploads playlist
+      const playlistResponse = await fetch(playlistUrl);
+
+      if (!playlistResponse.ok) {
+        throw new Error(
+          `YouTube API error: ${playlistResponse.status} ${playlistResponse.statusText}`
+        );
+      }
+
+      const playlistData = await playlistResponse.json();
+
+      if (!playlistData.items || playlistData.items.length === 0) {
+        break;
+      }
+
+      // Filter videos newer than lastVideoDate
+      for (const item of playlistData.items) {
+        const videoTime = new Date(item.snippet.publishedAt).getTime();
+
+        // Stop if we've reached videos older than our last processed video
+        if (lastVideoTime && videoTime <= lastVideoTime) {
+          shouldContinue = false;
+          break;
+        }
+
+        allNewVideos.push(item);
+
+        // Stop if we've reached maxResults
+        if (allNewVideos.length >= maxResults) {
+          shouldContinue = false;
+          break;
+        }
+      }
+
+      // Check if there are more pages
+      pageToken = playlistData.nextPageToken;
+      if (!pageToken) {
+        shouldContinue = false;
+      }
     }
 
-    // Fetch videos from the uploads playlist
-    const playlistResponse = await fetch(playlistUrl);
-
-    if (!playlistResponse.ok) {
-      throw new Error(
-        `YouTube API error: ${playlistResponse.status} ${playlistResponse.statusText}`
-      );
-    }
-
-    const playlistData = await playlistResponse.json();
-
-    if (!playlistData.items || playlistData.items.length === 0) {
+    if (allNewVideos.length === 0) {
       return [];
     }
 
     // Get video IDs to fetch durations
-    const videoIds = playlistData.items
+    const videoIds = allNewVideos
       .map((item) => item.contentDetails.videoId)
       .join(",");
 
