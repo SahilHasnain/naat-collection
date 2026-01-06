@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "naat-collection",
-    "slug": "naat-collection",
+    "name": "Ubaid Raza",
+    "slug": "ubaid-raza",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "naatcollection",
+    "icon": "./assets/images/icon.jpg",
+    "scheme": "ubaidraza",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -31,7 +31,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/splash-icon.jpg",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
