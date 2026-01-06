@@ -117,10 +117,6 @@ export interface NaatCardProps {
 
 export interface VideoPlayerProps {
   videoUrl: string;
-  initialPosition?: number;
-  onPositionChange: (position: number) => void;
-  onComplete: () => void;
-  onError: (error: Error) => void;
 }
 
 export interface SearchBarProps {
