@@ -217,7 +217,7 @@ async function extractAudioFromRapidAPI(youtubeId, log, logError) {
       audioUrl,
       quality: result.audioQuality || "128kbps",
       title: result.title || null,
-      duration: result.lengthSeconds || null,
+      duration: result.lengthSeconds ? parseInt(result.lengthSeconds, 10) : 0,
     };
   } catch (err) {
     if (err.name === "AbortError") {
