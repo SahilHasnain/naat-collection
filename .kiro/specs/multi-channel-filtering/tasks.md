@@ -71,7 +71,7 @@
   - Export SortOption type
   - _Requirements: 1.1, 3.1_
 
-- [ ] 10. Enhance ingestion script for multiple channels
+- [x] 10. Enhance ingestion script for multiple channels
   - Update script to accept YOUTUBE_CHANNEL_IDS env variable (comma-separated)
   - Maintain backward compatibility with YOUTUBE_CHANNEL_ID
   - Process each channel sequentially in a loop
@@ -80,7 +80,7 @@
   - Add overall summary statistics
   - _Requirements: 4.1, 4.2, 4.3, 4.5_
 
-- [ ] 11. Update Appwrite Function for multiple channels
+- [x] 11. Update Appwrite Function for multiple channels
   - Update functions/ingest-videos/src/main.js with same multi-channel logic
   - Accept YOUTUBE_CHANNEL_IDS environment variable
   - Process channels sequentially

@@ -1,7 +1,7 @@
 /**
  * Appwrite Function: Video Ingestion Service
  *
- * This function fetches naat videos from a YouTube channel and stores them
+ * This function fetches naat videos from YouTube channels and stores them
  * in the Appwrite database. It runs on a scheduled basis (cron job) to keep
  * the content library updated.
  *
@@ -10,9 +10,9 @@
  * - APPWRITE_API_KEY: API key with database write permissions
  * - APPWRITE_DATABASE_ID: Database ID
  * - APPWRITE_NAATS_COLLECTION_ID: Naats collection ID
- * - YOUTUBE_CHANNEL_ID: YouTube channel ID to fetch videos from
+ * - YOUTUBE_CHANNEL_IDS: Comma-separated YouTube channel IDs to fetch videos from
+ * - YOUTUBE_CHANNEL_ID: (Legacy) Single YouTube channel ID (fallback if YOUTUBE_CHANNEL_IDS not set)
  * - YOUTUBE_API_KEY: YouTube Data API v3 key
- * - CHANNEL_NAME: Name of the channel (default: "Unknown Channel")
  */
 
 import { Client, Databases, ID, Query } from "node-appwrite";
@@ -22,15 +22,16 @@ import { Client, Databases, ID, Query } from "node-appwrite";
  * @param {string} channelId - YouTube channel ID
  * @param {string} apiKey - YouTube API key
  * @param {number} maxResults - Maximum number of videos to fetch
- * @returns {Promise<Array>} Array of video objects
+ * @param {Function} log - Logging function
+ * @returns {Promise<Object>} Object containing channelId, channelName, and videos array
  */
-async function fetchYouTubeVideos(channelId, apiKey, maxResults = 5000) {
+async function fetchYouTubeVideos(channelId, apiKey, maxResults = 5000, log) {
   const baseUrl = "https://www.googleapis.com/youtube/v3";
 
   try {
-    // First, get the uploads playlist ID for the channel
+    // First, get the uploads playlist ID and channel name for the channel
     const channelResponse = await fetch(
-      `${baseUrl}/channels?part=contentDetails&id=${channelId}&key=${apiKey}`
+      `${baseUrl}/channels?part=contentDetails,snippet&id=${channelId}&key=${apiKey}`
     );
 
     if (!channelResponse.ok) {
@@ -45,6 +46,7 @@ async function fetchYouTubeVideos(channelId, apiKey, maxResults = 5000) {
       throw new Error(`Channel not found: ${channelId}`);
     }
 
+    const channelName = channelData.items[0].snippet.title;
     const uploadsPlaylistId =
       channelData.items[0].contentDetails.relatedPlaylists.uploads;
 
@@ -84,7 +86,7 @@ async function fetchYouTubeVideos(channelId, apiKey, maxResults = 5000) {
     }
 
     if (allVideoItems.length === 0) {
-      return [];
+      return { channelId, channelName, videos: [] };
     }
 
     const limitedVideoItems = allVideoItems.slice(0, maxResults);
@@ -114,7 +116,7 @@ async function fetchYouTubeVideos(channelId, apiKey, maxResults = 5000) {
     }
 
     // Transform the data into our format
-    return allVideosData.map((video) => ({
+    const videos = allVideosData.map((video) => ({
       youtubeId: video.id,
       title: video.snippet.title,
       videoUrl: `https://www.youtube.com/watch?v=${video.id}`,
@@ -126,6 +128,8 @@ async function fetchYouTubeVideos(channelId, apiKey, maxResults = 5000) {
       uploadDate: video.snippet.publishedAt,
       views: parseInt(video.statistics?.viewCount || "0", 10),
     }));
+
+    return { channelId, channelName, videos };
   } catch (error) {
     throw new Error(`Failed to fetch YouTube videos: ${error.message}`);
   }
@@ -267,75 +271,45 @@ async function updateVideoViews(
 }
 
 /**
- * Main function handler
- * @param {Object} context - Appwrite function context
- * @returns {Object} Response object
+ * Processes videos for a single channel
+ * @param {Databases} databases - Appwrite Databases instance
+ * @param {string} databaseId - Database ID
+ * @param {string} collectionId - Collection ID
+ * @param {Map} existingVideosMap - Map of existing videos
+ * @param {string} channelId - YouTube channel ID
+ * @param {string} youtubeApiKey - YouTube API key
+ * @param {Function} log - Logging function
+ * @param {Function} logError - Error logging function
+ * @returns {Promise<Object>} Channel processing results
  */
-export default async ({ req, res, log, error: logError }) => {
+async function processChannel(
+  databases,
+  databaseId,
+  collectionId,
+  existingVideosMap,
+  channelId,
+  youtubeApiKey,
+  log,
+  logError
+) {
+  log(`Processing channel: ${channelId}`);
+
   try {
-    log("Starting video ingestion process...");
-
-    // Validate environment variables
-    const requiredEnvVars = [
-      "APPWRITE_FUNCTION_PROJECT_ID",
-      "APPWRITE_API_KEY",
-      "APPWRITE_DATABASE_ID",
-      "APPWRITE_NAATS_COLLECTION_ID",
-      "YOUTUBE_CHANNEL_ID",
-      "YOUTUBE_API_KEY",
-    ];
-
-    const missingVars = requiredEnvVars.filter(
-      (varName) => !process.env[varName]
-    );
-
-    if (missingVars.length > 0) {
-      const errorMsg = `Missing required environment variables: ${missingVars.join(", ")}`;
-      logError(errorMsg);
-      return res.json(
-        {
-          success: false,
-          error: errorMsg,
-        },
-        500
-      );
-    }
-
-    // Initialize Appwrite client
-    const client = new Client()
-      .setEndpoint(
-        process.env.APPWRITE_ENDPOINT || "https://cloud.appwrite.io/v1"
-      )
-      .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-      .setKey(process.env.APPWRITE_API_KEY);
-
-    const databases = new Databases(client);
-
-    const databaseId = process.env.APPWRITE_DATABASE_ID;
-    const collectionId = process.env.APPWRITE_NAATS_COLLECTION_ID;
-    const channelId = process.env.YOUTUBE_CHANNEL_ID;
-    const youtubeApiKey = process.env.YOUTUBE_API_KEY;
-    const channelName = process.env.CHANNEL_NAME || "Baghdadi Sound & Video";
-
-    log("Fetching existing videos from database...");
-
-    // Fetch all existing videos once
-    const existingVideosMap = await getAllExistingVideos(
-      databases,
-      databaseId,
-      collectionId
-    );
-
-    log(`Found ${existingVideosMap.size} existing videos in database`);
-    log(`Fetching videos from YouTube channel: ${channelId}`);
-
     // Fetch videos from YouTube
-    const videos = await fetchYouTubeVideos(channelId, youtubeApiKey);
+    const channelData = await fetchYouTubeVideos(
+      channelId,
+      youtubeApiKey,
+      5000,
+      log
+    );
+    const { channelName, videos } = channelData;
 
-    log(`Found ${videos.length} videos on YouTube`);
+    log(`Found ${videos.length} videos for channel: ${channelName}`);
 
     // Process each video
     const results = {
+      channelId,
+      channelName,
       processed: videos.length,
       added: 0,
       updated: 0,
@@ -363,7 +337,6 @@ export default async ({ req, res, log, error: logError }) => {
             );
             results.updated++;
           } else {
-            log(`Unchanged video: ${video.title} (${video.youtubeId})`);
             results.unchanged++;
           }
         } else {
@@ -387,14 +360,139 @@ export default async ({ req, res, log, error: logError }) => {
       }
     }
 
+    return results;
+  } catch (error) {
+    logError(`Error processing channel ${channelId}: ${error.message}`);
+    return {
+      channelId,
+      channelName: "Unknown",
+      processed: 0,
+      added: 0,
+      updated: 0,
+      unchanged: 0,
+      errors: [error.message],
+    };
+  }
+}
+
+/**
+ * Main function handler
+ * @param {Object} context - Appwrite function context
+ * @returns {Object} Response object
+ */
+export default async ({ req, res, log, error: logError }) => {
+  try {
+    log("Starting video ingestion process...");
+
+    // Validate environment variables
+    const requiredEnvVars = [
+      "APPWRITE_FUNCTION_PROJECT_ID",
+      "APPWRITE_API_KEY",
+      "APPWRITE_DATABASE_ID",
+      "APPWRITE_NAATS_COLLECTION_ID",
+      "YOUTUBE_API_KEY",
+    ];
+
+    const missingVars = requiredEnvVars.filter(
+      (varName) => !process.env[varName]
+    );
+
+    if (missingVars.length > 0) {
+      const errorMsg = `Missing required environment variables: ${missingVars.join(", ")}`;
+      logError(errorMsg);
+      return res.json(
+        {
+          success: false,
+          error: errorMsg,
+        },
+        500
+      );
+    }
+
+    // Check for at least one channel ID
+    if (!process.env.YOUTUBE_CHANNEL_IDS && !process.env.YOUTUBE_CHANNEL_ID) {
+      const errorMsg =
+        "Missing required environment variable: YOUTUBE_CHANNEL_IDS or YOUTUBE_CHANNEL_ID";
+      logError(errorMsg);
+      return res.json(
+        {
+          success: false,
+          error: errorMsg,
+        },
+        500
+      );
+    }
+
+    // Initialize Appwrite client
+    const client = new Client()
+      .setEndpoint(
+        process.env.APPWRITE_ENDPOINT || "https://cloud.appwrite.io/v1"
+      )
+      .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
+      .setKey(process.env.APPWRITE_API_KEY);
+
+    const databases = new Databases(client);
+
+    const databaseId = process.env.APPWRITE_DATABASE_ID;
+    const collectionId = process.env.APPWRITE_NAATS_COLLECTION_ID;
+    const youtubeApiKey = process.env.YOUTUBE_API_KEY;
+
+    // Support both YOUTUBE_CHANNEL_IDS (comma-separated) and legacy YOUTUBE_CHANNEL_ID
+    const channelIdsString =
+      process.env.YOUTUBE_CHANNEL_IDS || process.env.YOUTUBE_CHANNEL_ID;
+    const channelIds = channelIdsString
+      .split(",")
+      .map((id) => id.trim())
+      .filter((id) => id);
+
+    log(`Found ${channelIds.length} channel(s) to process`);
+
+    log("Fetching existing videos from database...");
+
+    // Fetch all existing videos once
+    const existingVideosMap = await getAllExistingVideos(
+      databases,
+      databaseId,
+      collectionId
+    );
+
+    log(`Found ${existingVideosMap.size} existing videos in database`);
+
+    // Process each channel sequentially
+    const channelResults = [];
+    for (const channelId of channelIds) {
+      const result = await processChannel(
+        databases,
+        databaseId,
+        collectionId,
+        existingVideosMap,
+        channelId,
+        youtubeApiKey,
+        log,
+        logError
+      );
+      channelResults.push(result);
+    }
+
+    // Calculate overall statistics
+    const overallResults = {
+      channelsProcessed: channelResults.length,
+      totalProcessed: channelResults.reduce((sum, r) => sum + r.processed, 0),
+      totalAdded: channelResults.reduce((sum, r) => sum + r.added, 0),
+      totalUpdated: channelResults.reduce((sum, r) => sum + r.updated, 0),
+      totalUnchanged: channelResults.reduce((sum, r) => sum + r.unchanged, 0),
+      totalErrors: channelResults.reduce((sum, r) => sum + r.errors.length, 0),
+    };
+
     log("Video ingestion completed");
     log(
-      `Summary: ${results.added} added, ${results.updated} updated, ${results.unchanged} unchanged, ${results.errors.length} errors`
+      `Overall Summary: ${overallResults.totalAdded} added, ${overallResults.totalUpdated} updated, ${overallResults.totalUnchanged} unchanged, ${overallResults.totalErrors} errors across ${overallResults.channelsProcessed} channel(s)`
     );
 
     return res.json({
       success: true,
-      results: results,
+      overall: overallResults,
+      channels: channelResults,
     });
   } catch (err) {
     const errorMsg = `Fatal error during ingestion: ${err.message}`;

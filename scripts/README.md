@@ -60,7 +60,10 @@ EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID=your_naats_collection_id  # Will be aut
 APPWRITE_SECRET_KEY=your_secret_api_key_here
 
 # YouTube Configuration (for ingestion service)
+# Single channel (legacy):
 YOUTUBE_CHANNEL_ID=your_youtube_channel_id_here
+# Multiple channels (comma-separated):
+YOUTUBE_CHANNEL_IDS=channel_id_1,channel_id_2,channel_id_3
 ```
 
 ## Running the Setup Script
@@ -248,9 +251,97 @@ After running this setup script:
    - Create an Appwrite Function to automatically fetch videos from YouTube
    - Configure it to run on a schedule (e.g., daily)
 
+## Video Ingestion
+
+### Single Channel Ingestion
+
+To ingest videos from a single YouTube channel:
+
+```bash
+# Set environment variable
+YOUTUBE_CHANNEL_ID=UCxxxxxxxxxxxxx
+
+# Run ingestion script
+node scripts/ingest-videos.js
+```
+
+### Multiple Channel Ingestion
+
+To ingest videos from multiple YouTube channels:
+
+```bash
+# Set environment variable (comma-separated channel IDs)
+YOUTUBE_CHANNEL_IDS=UCxxxxxxxxxxxxx,UCyyyyyyyyyyyyy,UCzzzzzzzzzzzzz
+
+# Run ingestion script
+node scripts/ingest-videos.js
+```
+
+The script will:
+
+- Process each channel sequentially
+- Fetch channel name automatically from YouTube API
+- Store correct channelId and channelName for each video
+- Prevent duplicate videos using youtubeId field
+- Report statistics per channel and overall summary
+
+### Ingestion Output
+
+```
+🚀 Starting video ingestion...
+
+✅ Environment variables validated
+✅ Found 3 channel(s) to process
+✅ Appwrite client initialized
+
+📦 Fetching existing videos from database...
+✅ Found 150 existing videos in database
+
+📺 Processing channel: UCxxxxxxxxxxxxx
+   Fetching videos from YouTube...
+   ✅ Found 50 videos for channel: Channel Name 1
+   ✅ Added: Video Title 1 (1234 views)
+   ...
+
+============================================================
+📊 Per-Channel Statistics:
+============================================================
+
+📺 Channel Name 1 (UCxxxxxxxxxxxxx):
+   📹 Total videos: 50
+   ✅ New videos added: 10
+   🔄 Videos updated: 30
+   ⏭️  Videos unchanged: 10
+   ❌ Errors: 0
+
+📺 Channel Name 2 (UCyyyyyyyyyyyyy):
+   📹 Total videos: 75
+   ✅ New videos added: 15
+   🔄 Videos updated: 50
+   ⏭️  Videos unchanged: 10
+   ❌ Errors: 0
+
+============================================================
+📊 Overall Summary:
+============================================================
+   📺 Channels processed: 2
+   📹 Total videos processed: 125
+   ✅ New videos added: 25
+   🔄 Videos updated: 80
+   ⏭️  Videos unchanged: 20
+   ❌ Errors: 0
+
+✨ Ingestion complete!
+```
+
+### Backward Compatibility
+
+The script maintains backward compatibility with the legacy `YOUTUBE_CHANNEL_ID` environment variable. If `YOUTUBE_CHANNEL_IDS` is not set, it will fall back to `YOUTUBE_CHANNEL_ID`.
+
 ## Related Files
 
 - `../config/appwrite.ts` - Appwrite configuration for the mobile app
 - `../services/appwrite.ts` - Appwrite service layer
 - `../.env.local` - Environment variables (not committed to git)
 - `../.env.example` - Example environment variables template
+- `ingest-videos.js` - Video ingestion script with multi-channel support
