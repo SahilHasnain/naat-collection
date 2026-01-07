@@ -40,13 +40,7 @@ function initAppwrite() {
   return new Databases(client);
 }
 
-function toDocumentId(youtubeId) {
-  // Appwrite allows a-z, A-Z, 0-9 and underscore; max 36 chars
-  const sanitized = youtubeId.replace(/[^A-Za-z0-9_]/g, "_");
-  return sanitized.slice(0, 36) || ID.unique();
-}
-
-async function fetchYouTubeVideos(maxResults = 1000) {
+async function fetchYouTubeVideos(maxResults = 5000) {
   const baseUrl = "https://www.googleapis.com/youtube/v3";
 
   try {
@@ -149,12 +143,6 @@ async function fetchYouTubeVideos(maxResults = 1000) {
   }
 }
 
-async function fetchVideoDetails(videoIds) {
-  // This function is no longer needed as we fetch details in fetchYouTubeVideos
-  // Keeping it for backwards compatibility but making it a no-op
-  return {};
-}
-
 function parseDuration(isoDuration) {
   const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
   if (!match) return 0;
@@ -166,22 +154,46 @@ function parseDuration(isoDuration) {
   return hours * 3600 + minutes * 60 + seconds;
 }
 
-async function videoExists(databases, videoId) {
+async function getAllExistingVideos(databases) {
   try {
-    const documentId = toDocumentId(videoId);
-    await databases.getDocument(DATABASE_ID, COLLECTION_ID, documentId);
-    return true;
-  } catch (error) {
-    if (error.code === 404) {
-      return false;
+    const allDocuments = [];
+    let offset = 0;
+    const limit = 5000; // Max per request
+
+    while (true) {
+      const { Query } = require("node-appwrite");
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTION_ID,
+        [Query.limit(limit), Query.offset(offset)]
+      );
+
+      allDocuments.push(...response.documents);
+
+      if (response.documents.length < limit) {
+        break; // No more documents
+      }
+
+      offset += limit;
     }
-    throw error;
+
+    // Create a Map: youtubeId -> {documentId, views}
+    const existingVideosMap = new Map();
+    allDocuments.forEach((doc) => {
+      existingVideosMap.set(doc.youtubeId, {
+        documentId: doc.$id,
+        views: doc.views || 0,
+      });
+    });
+
+    return existingVideosMap;
+  } catch (error) {
+    throw new Error(`Failed to fetch existing videos: ${error.message}`);
   }
 }
 
-async function createVideoDocument(databases, video, videoDetails) {
+async function createVideoDocument(databases, video) {
   const videoId = video.id.videoId;
-  const documentId = toDocumentId(videoId);
   const snippet = video.snippet;
   const contentDetails = video.contentDetails;
   const statistics = video.statistics;
@@ -202,10 +214,20 @@ async function createVideoDocument(databases, video, videoDetails) {
   await databases.createDocument(
     DATABASE_ID,
     COLLECTION_ID,
-    documentId,
+    ID.unique(),
     document
   );
   return document;
+}
+
+async function updateVideoViews(databases, documentId, newViews) {
+  try {
+    await databases.updateDocument(DATABASE_ID, COLLECTION_ID, documentId, {
+      views: newViews,
+    });
+  } catch (error) {
+    throw new Error(`Failed to update video views: ${error.message}`);
+  }
 }
 
 async function ingestVideos() {
@@ -218,37 +240,59 @@ async function ingestVideos() {
     const databases = initAppwrite();
     console.log("✅ Appwrite client initialized");
 
+    console.log("📦 Fetching existing videos from database...");
+    const existingVideosMap = await getAllExistingVideos(databases);
+    console.log(
+      `✅ Found ${existingVideosMap.size} existing videos in database`
+    );
+
     console.log("📺 Fetching videos from YouTube...");
     const videos = await fetchYouTubeVideos();
-    console.log(`✅ Found ${videos.length} videos`);
+    console.log(`✅ Found ${videos.length} videos on YouTube`);
 
     let newCount = 0;
-    let skippedCount = 0;
+    let updatedCount = 0;
+    let unchangedCount = 0;
     let errorCount = 0;
 
     for (const video of videos) {
       const videoId = video.id.videoId;
       const title = video.snippet.title;
+      const newViews = parseInt(video.statistics?.viewCount || "0", 10);
 
       try {
-        const exists = await videoExists(databases, videoId);
+        const existingVideo = existingVideosMap.get(videoId);
 
-        if (exists) {
-          console.log(`⏭️  Skipped: ${title} (already exists)`);
-          skippedCount++;
+        if (existingVideo) {
+          // Video exists - check if views need updating
+          if (existingVideo.views !== newViews) {
+            await updateVideoViews(
+              databases,
+              existingVideo.documentId,
+              newViews
+            );
+            console.log(
+              `🔄 Updated: ${title} (${existingVideo.views} → ${newViews} views)`
+            );
+            updatedCount++;
+          } else {
+            console.log(`⏭️  Unchanged: ${title}`);
+            unchangedCount++;
+          }
         } else {
+          // New video - insert it
           try {
-            await createVideoDocument(databases, video, null);
-            console.log(`✅ Added: ${title}`);
+            await createVideoDocument(databases, video);
+            console.log(`✅ Added: ${title} (${newViews} views)`);
             newCount++;
           } catch (createError) {
-            // Handle duplicate ID error (race condition or concurrent ingestion)
+            // Handle duplicate ID error (race condition)
             if (
               createError.code === 409 ||
               createError.message.includes("already exists")
             ) {
               console.log(`⏭️  Skipped: ${title} (already exists)`);
-              skippedCount++;
+              unchangedCount++;
             } else {
               throw createError;
             }
@@ -262,7 +306,8 @@ async function ingestVideos() {
 
     console.log("\n📊 Ingestion Summary:");
     console.log(`   ✅ New videos added: ${newCount}`);
-    console.log(`   ⏭️  Videos skipped: ${skippedCount}`);
+    console.log(`   🔄 Videos updated: ${updatedCount}`);
+    console.log(`   ⏭️  Videos unchanged: ${unchangedCount}`);
     console.log(`   ❌ Errors: ${errorCount}`);
     console.log("\n✨ Ingestion complete!");
   } catch (error) {

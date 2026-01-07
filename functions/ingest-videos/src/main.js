@@ -24,7 +24,7 @@ import { Client, Databases, ID, Query } from "node-appwrite";
  * @param {number} maxResults - Maximum number of videos to fetch
  * @returns {Promise<Array>} Array of video objects
  */
-async function fetchYouTubeVideos(channelId, apiKey, maxResults = 50) {
+async function fetchYouTubeVideos(channelId, apiKey, maxResults = 5000) {
   const baseUrl = "https://www.googleapis.com/youtube/v3";
 
   try {
@@ -48,43 +48,73 @@ async function fetchYouTubeVideos(channelId, apiKey, maxResults = 50) {
     const uploadsPlaylistId =
       channelData.items[0].contentDetails.relatedPlaylists.uploads;
 
-    // Fetch videos from the uploads playlist
-    const playlistResponse = await fetch(
-      `${baseUrl}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=${maxResults}&key=${apiKey}`
-    );
+    // Fetch videos from the uploads playlist with pagination
+    const allVideoItems = [];
+    let pageToken = null;
+    const perPage = 50; // YouTube API max per request
 
-    if (!playlistResponse.ok) {
-      throw new Error(
-        `YouTube API error: ${playlistResponse.status} ${playlistResponse.statusText}`
-      );
+    while (allVideoItems.length < maxResults) {
+      let playlistUrl = `${baseUrl}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=${perPage}&key=${apiKey}`;
+
+      if (pageToken) {
+        playlistUrl += `&pageToken=${pageToken}`;
+      }
+
+      const playlistResponse = await fetch(playlistUrl);
+
+      if (!playlistResponse.ok) {
+        throw new Error(
+          `YouTube API error: ${playlistResponse.status} ${playlistResponse.statusText}`
+        );
+      }
+
+      const playlistData = await playlistResponse.json();
+
+      if (!playlistData.items || playlistData.items.length === 0) {
+        break;
+      }
+
+      allVideoItems.push(...playlistData.items);
+
+      pageToken = playlistData.nextPageToken;
+
+      if (!pageToken) {
+        break; // No more pages
+      }
     }
 
-    const playlistData = await playlistResponse.json();
-
-    if (!playlistData.items || playlistData.items.length === 0) {
+    if (allVideoItems.length === 0) {
       return [];
     }
 
-    // Get video IDs to fetch durations
-    const videoIds = playlistData.items
-      .map((item) => item.contentDetails.videoId)
-      .join(",");
+    const limitedVideoItems = allVideoItems.slice(0, maxResults);
 
-    // Fetch video details including duration
-    const videosResponse = await fetch(
-      `${baseUrl}/videos?part=contentDetails,snippet,statistics&id=${videoIds}&key=${apiKey}`
-    );
+    // Fetch video details in batches (max 50 IDs per request)
+    const allVideosData = [];
+    const batchSize = 50;
 
-    if (!videosResponse.ok) {
-      throw new Error(
-        `YouTube API error: ${videosResponse.status} ${videosResponse.statusText}`
+    for (let i = 0; i < limitedVideoItems.length; i += batchSize) {
+      const batch = limitedVideoItems.slice(i, i + batchSize);
+      const videoIds = batch
+        .map((item) => item.contentDetails.videoId)
+        .join(",");
+
+      const videosResponse = await fetch(
+        `${baseUrl}/videos?part=contentDetails,snippet,statistics&id=${videoIds}&key=${apiKey}`
       );
+
+      if (!videosResponse.ok) {
+        throw new Error(
+          `YouTube API error: ${videosResponse.status} ${videosResponse.statusText}`
+        );
+      }
+
+      const videosData = await videosResponse.json();
+      allVideosData.push(...videosData.items);
     }
 
-    const videosData = await videosResponse.json();
-
     // Transform the data into our format
-    return videosData.items.map((video) => ({
+    return allVideosData.map((video) => ({
       youtubeId: video.id,
       title: video.snippet.title,
       videoUrl: `https://www.youtube.com/watch?v=${video.id}`,
@@ -121,23 +151,44 @@ function parseDuration(duration) {
 }
 
 /**
- * Checks if a video already exists in the database
+ * Fetches all existing videos from the database
  * @param {Databases} databases - Appwrite Databases instance
  * @param {string} databaseId - Database ID
  * @param {string} collectionId - Collection ID
- * @param {string} youtubeId - YouTube video ID
- * @returns {Promise<boolean>} True if video exists, false otherwise
+ * @returns {Promise<Map>} Map of youtubeId -> {documentId, views}
  */
-async function videoExists(databases, databaseId, collectionId, youtubeId) {
+async function getAllExistingVideos(databases, databaseId, collectionId) {
   try {
-    const result = await databases.listDocuments(databaseId, collectionId, [
-      Query.equal("youtubeId", youtubeId),
-      Query.limit(1),
-    ]);
+    const allDocuments = [];
+    let offset = 0;
+    const limit = 5000;
 
-    return result.documents.length > 0;
+    while (true) {
+      const response = await databases.listDocuments(databaseId, collectionId, [
+        Query.limit(limit),
+        Query.offset(offset),
+      ]);
+
+      allDocuments.push(...response.documents);
+
+      if (response.documents.length < limit) {
+        break;
+      }
+
+      offset += limit;
+    }
+
+    const existingVideosMap = new Map();
+    allDocuments.forEach((doc) => {
+      existingVideosMap.set(doc.youtubeId, {
+        documentId: doc.$id,
+        views: doc.views || 0,
+      });
+    });
+
+    return existingVideosMap;
   } catch (error) {
-    throw new Error(`Failed to check video existence: ${error.message}`);
+    throw new Error(`Failed to fetch existing videos: ${error.message}`);
   }
 }
 
@@ -180,6 +231,38 @@ async function insertVideo(
     return document;
   } catch (error) {
     throw new Error(`Failed to insert video: ${error.message}`);
+  }
+}
+
+/**
+ * Updates the view count for an existing video
+ * @param {Databases} databases - Appwrite Databases instance
+ * @param {string} databaseId - Database ID
+ * @param {string} collectionId - Collection ID
+ * @param {string} documentId - Document ID
+ * @param {number} newViews - New view count
+ * @returns {Promise<Object>} Updated document
+ */
+async function updateVideoViews(
+  databases,
+  databaseId,
+  collectionId,
+  documentId,
+  newViews
+) {
+  try {
+    const document = await databases.updateDocument(
+      databaseId,
+      collectionId,
+      documentId,
+      {
+        views: newViews,
+      }
+    );
+
+    return document;
+  } catch (error) {
+    throw new Error(`Failed to update video views: ${error.message}`);
   }
 }
 
@@ -234,6 +317,16 @@ export default async ({ req, res, log, error: logError }) => {
     const youtubeApiKey = process.env.YOUTUBE_API_KEY;
     const channelName = process.env.CHANNEL_NAME || "Baghdadi Sound & Video";
 
+    log("Fetching existing videos from database...");
+
+    // Fetch all existing videos once
+    const existingVideosMap = await getAllExistingVideos(
+      databases,
+      databaseId,
+      collectionId
+    );
+
+    log(`Found ${existingVideosMap.size} existing videos in database`);
     log(`Fetching videos from YouTube channel: ${channelId}`);
 
     // Fetch videos from YouTube
@@ -245,38 +338,48 @@ export default async ({ req, res, log, error: logError }) => {
     const results = {
       processed: videos.length,
       added: 0,
-      skipped: 0,
+      updated: 0,
+      unchanged: 0,
       errors: [],
     };
 
     for (const video of videos) {
       try {
-        // Check if video already exists
-        const exists = await videoExists(
-          databases,
-          databaseId,
-          collectionId,
-          video.youtubeId
-        );
+        const existingVideo = existingVideosMap.get(video.youtubeId);
 
-        if (exists) {
-          log(`Skipping existing video: ${video.title} (${video.youtubeId})`);
-          results.skipped++;
-          continue;
+        if (existingVideo) {
+          // Video exists - check if views need updating
+          if (existingVideo.views !== video.views) {
+            await updateVideoViews(
+              databases,
+              databaseId,
+              collectionId,
+              existingVideo.documentId,
+              video.views
+            );
+
+            log(
+              `Updated video: ${video.title} (${existingVideo.views} → ${video.views} views)`
+            );
+            results.updated++;
+          } else {
+            log(`Unchanged video: ${video.title} (${video.youtubeId})`);
+            results.unchanged++;
+          }
+        } else {
+          // Insert new video
+          await insertVideo(
+            databases,
+            databaseId,
+            collectionId,
+            video,
+            channelName,
+            channelId
+          );
+
+          log(`Added new video: ${video.title} (${video.youtubeId})`);
+          results.added++;
         }
-
-        // Insert new video
-        await insertVideo(
-          databases,
-          databaseId,
-          collectionId,
-          video,
-          channelName,
-          channelId
-        );
-
-        log(`Added new video: ${video.title} (${video.youtubeId})`);
-        results.added++;
       } catch (err) {
         const errorMsg = `Error processing video ${video.youtubeId}: ${err.message}`;
         logError(errorMsg);
@@ -286,7 +389,7 @@ export default async ({ req, res, log, error: logError }) => {
 
     log("Video ingestion completed");
     log(
-      `Summary: ${results.added} added, ${results.skipped} skipped, ${results.errors.length} errors`
+      `Summary: ${results.added} added, ${results.updated} updated, ${results.unchanged} unchanged, ${results.errors.length} errors`
     );
 
     return res.json({
