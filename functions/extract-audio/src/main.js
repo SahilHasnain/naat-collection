@@ -34,7 +34,7 @@
  */
 
 import { Buffer } from "buffer";
-import { writeFileSync } from "fs";
+import { existsSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import youtubedl from "youtube-dl-exec";
@@ -58,16 +58,20 @@ let cookieFilePath = null;
  */
 function initializeCookies(log) {
   if (cookieFilePath) {
+    log(`Cookies already initialized at: ${cookieFilePath}`);
     return; // Already initialized
   }
 
   const cookiesBase64 = process.env.YOUTUBE_COOKIES;
   if (!cookiesBase64) {
     log(
-      "No YOUTUBE_COOKIES environment variable found - running without cookies"
+      "⚠️ No YOUTUBE_COOKIES environment variable found - running without cookies"
     );
+    log("This will likely trigger YouTube bot detection!");
     return;
   }
+
+  log(`Found YOUTUBE_COOKIES env var (length: ${cookiesBase64.length})`);
 
   try {
     // Decode base64 cookies
@@ -75,13 +79,17 @@ function initializeCookies(log) {
       "utf-8"
     );
 
+    log(`Decoded cookies content (length: ${cookiesContent.length} bytes)`);
+    log(`Cookie content preview: ${cookiesContent.substring(0, 100)}...`);
+
     // Create temporary cookie file
     cookieFilePath = join(tmpdir(), `yt-cookies-${Date.now()}.txt`);
     writeFileSync(cookieFilePath, cookiesContent, "utf-8");
 
-    log(`Initialized cookie file at: ${cookieFilePath}`);
+    log(`✓ Initialized cookie file at: ${cookieFilePath}`);
   } catch (err) {
-    log(`Failed to initialize cookies: ${err.message}`);
+    log(`❌ Failed to initialize cookies: ${err.message}`);
+    log(`Error stack: ${err.stack}`);
     cookieFilePath = null;
   }
 }
@@ -123,7 +131,8 @@ async function extractAudioUrl(youtubeId, log, logError) {
       getUrl: true,
       format: "bestaudio",
       noCheckCertificates: true,
-      noWarnings: true,
+      noWarnings: false, // Enable warnings for debugging
+      verbose: true, // Enable verbose output
       // Add user agent to mimic browser
       userAgent:
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -131,11 +140,21 @@ async function extractAudioUrl(youtubeId, log, logError) {
 
     // Add cookies if available
     if (cookieFilePath) {
-      options.cookies = cookieFilePath;
-      log("Using cookie authentication");
+      // Verify cookie file exists
+      if (existsSync(cookieFilePath)) {
+        options.cookies = cookieFilePath;
+        log(`✓ Using cookie authentication from: ${cookieFilePath}`);
+      } else {
+        log(`❌ Cookie file does not exist at: ${cookieFilePath}`);
+        log("⚠️ Proceeding without cookies - may encounter bot detection");
+      }
     } else {
-      log("No cookies available - may encounter bot detection");
+      log("⚠️ No cookies available - may encounter bot detection");
     }
+
+    log(
+      `Calling youtube-dl-exec with options: ${JSON.stringify({ ...options, cookies: cookieFilePath ? "[REDACTED]" : undefined })}`
+    );
 
     // Execute youtube-dl-exec with timeout
     const result = await Promise.race([
@@ -144,6 +163,8 @@ async function extractAudioUrl(youtubeId, log, logError) {
         setTimeout(() => reject(new Error("TIMEOUT")), EXTRACTION_TIMEOUT_MS)
       ),
     ]);
+
+    log(`youtube-dl-exec returned result type: ${typeof result}`);
 
     // The result should be the direct URL
     const audioUrl =
@@ -175,6 +196,16 @@ async function extractAudioUrl(youtubeId, log, logError) {
       quality,
     };
   } catch (err) {
+    // Log full error details for debugging
+    logError(`❌ Extraction error caught: ${err.message}`);
+    logError(`Error type: ${err.constructor.name}`);
+    logError(`Error stack: ${err.stack}`);
+
+    // Log stderr if available (youtube-dl-exec specific)
+    if (err.stderr) {
+      logError(`youtube-dl-exec stderr: ${err.stderr}`);
+    }
+
     // Handle specific error types
     if (err.message === "TIMEOUT") {
       logError(
@@ -197,6 +228,7 @@ async function extractAudioUrl(youtubeId, log, logError) {
     // Bot detection error
     if (err.message && err.message.includes("Sign in to confirm")) {
       logError(`YouTube bot detection triggered: ${err.message}`);
+      logError(`Cookie file was: ${cookieFilePath || "NOT SET"}`);
       throw {
         code: "BOT_DETECTED",
         message:

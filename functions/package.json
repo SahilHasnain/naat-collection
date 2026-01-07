@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "format": "prettier --write .",
-    "build": "echo 'Build complete'"
+    "build": "echo 'Build complete'",
+    "test:local": "node extract-audio/test-local.js"
   },
   "dependencies": {
     "node-appwrite": "^21.1.0",
