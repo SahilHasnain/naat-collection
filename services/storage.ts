@@ -9,6 +9,7 @@ import { logError, wrapError } from "../utils/errorHandling";
 const STORAGE_KEYS = {
   PLAYBACK_PREFIX: "@naat_playback_",
   RECENT_POSITIONS: "@naat_recent_positions",
+  PLAYBACK_MODE: "@naat_playback_mode",
 } as const;
 
 /**
@@ -208,6 +209,60 @@ export class StorageService implements IStorageService {
         naatId,
       });
       // Don't throw here as this is a secondary operation
+    }
+  }
+
+  /**
+   * Save playback mode preference
+   * @param mode - Playback mode ('video' | 'audio')
+   * @throws AppError if storage operation fails
+   */
+  async savePlaybackMode(mode: "video" | "audio"): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.PLAYBACK_MODE, mode);
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "savePlaybackMode",
+        mode,
+      });
+
+      throw new AppError(
+        "Failed to save playback mode preference.",
+        ErrorCode.STORAGE_ERROR,
+        true
+      );
+    }
+  }
+
+  /**
+   * Load saved playback mode preference
+   * @returns Playback mode ('video' | 'audio'), or null if not found
+   * @throws AppError if storage operation fails
+   */
+  async loadPlaybackMode(): Promise<"video" | "audio" | null> {
+    try {
+      const mode = await AsyncStorage.getItem(STORAGE_KEYS.PLAYBACK_MODE);
+
+      if (!mode) {
+        return null;
+      }
+
+      // Validate the stored value
+      if (mode === "video" || mode === "audio") {
+        return mode;
+      }
+
+      return null;
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "loadPlaybackMode",
+      });
+
+      throw new AppError(
+        "Failed to load playback mode preference.",
+        ErrorCode.STORAGE_ERROR,
+        true
+      );
     }
   }
 }

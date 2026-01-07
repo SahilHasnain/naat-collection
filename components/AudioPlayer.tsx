@@ -17,6 +17,7 @@ export interface AudioPlayerProps {
   thumbnailUrl: string;
   onError: (error: Error) => void;
   onPositionChange?: (position: number) => void;
+  onUrlExpired?: () => void;
 }
 
 interface PlaybackState {
@@ -36,6 +37,22 @@ const formatTime = (millis: number): string => {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 };
 
+// Check if error indicates URL expiration
+const isUrlExpiredError = (error: string): boolean => {
+  const errorLower = error.toLowerCase();
+  // Check for common HTTP error codes and messages that indicate expired URLs
+  return (
+    errorLower.includes("403") ||
+    errorLower.includes("404") ||
+    errorLower.includes("forbidden") ||
+    errorLower.includes("not found") ||
+    errorLower.includes("expired") ||
+    errorLower.includes("invalid url") ||
+    errorLower.includes("network error") ||
+    errorLower.includes("failed to load")
+  );
+};
+
 const AudioPlayer: React.FC<AudioPlayerProps> = ({
   audioUrl,
   title,
@@ -43,6 +60,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   thumbnailUrl,
   onError,
   onPositionChange,
+  onUrlExpired,
 }) => {
   const [playbackState, setPlaybackState] = useState<PlaybackState>({
     position: 0,
@@ -62,6 +80,13 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
       if (!status.isLoaded) {
         if (status.error) {
           const error = new Error(`Playback error: ${status.error}`);
+
+          // Check if this is a URL expiration error
+          if (isUrlExpiredError(status.error) && onUrlExpired) {
+            onUrlExpired();
+            return;
+          }
+
           setPlaybackState((prev) => ({ ...prev, error, isLoading: false }));
           onError(error);
         }
@@ -84,7 +109,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         onPositionChange(status.positionMillis);
       }
     },
-    [onError, onPositionChange]
+    [onError, onPositionChange, onUrlExpired]
   );
 
   // Initialize audio and load the sound
@@ -114,6 +139,13 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
       } catch (error) {
         if (isMounted) {
           const err = error as Error;
+
+          // Check if this is a URL expiration error
+          if (isUrlExpiredError(err.message) && onUrlExpired) {
+            onUrlExpired();
+            return;
+          }
+
           setPlaybackState((prev) => ({
             ...prev,
             isLoading: false,
@@ -132,7 +164,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         soundRef.current.unloadAsync();
       }
     };
-  }, [audioUrl, onError, onPlaybackStatusUpdate]);
+  }, [audioUrl, onError, onPlaybackStatusUpdate, onUrlExpired]);
 
   // Play/pause toggle
   const togglePlayPause = async () => {

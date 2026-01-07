@@ -1,5 +1,6 @@
 import AudioPlayer from "@/components/AudioPlayer";
 import { appwriteService } from "@/services/appwrite";
+import { storageService } from "@/services/storage";
 import { VideoPlayerProps } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as ScreenOrientation from "expo-screen-orientation";
@@ -40,7 +41,9 @@ const VideoModal: React.FC<VideoModalProps> = ({
   const [audioUrl, setAudioUrl] = React.useState<string | null>(null);
   const [audioLoading, setAudioLoading] = React.useState(false);
   const [audioError, setAudioError] = React.useState<Error | null>(null);
-  const [currentPosition, setCurrentPosition] = React.useState(0);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [refreshAttempts, setRefreshAttempts] = React.useState(0);
+  const [refreshFailed, setRefreshFailed] = React.useState(false);
 
   // Extract YouTube video ID from URL
   const getYouTubeId = (url: string): string => {
@@ -56,11 +59,42 @@ const VideoModal: React.FC<VideoModalProps> = ({
   React.useEffect(() => {
     if (visible) {
       setIsLoading(true);
-      // Reset mode to video when modal opens
-      setMode("video");
       setAudioError(null);
+      setRefreshAttempts(0);
+      setRefreshFailed(false);
+
+      // Load saved playback mode preference
+      const loadPreference = async () => {
+        try {
+          const savedMode = await storageService.loadPlaybackMode();
+          // Default to video mode if no preference exists
+          const initialMode = savedMode || "video";
+          setMode(initialMode);
+
+          // If saved mode is audio, fetch audio URL
+          if (initialMode === "audio") {
+            setAudioLoading(true);
+            const ytId = propYoutubeId || getYouTubeId(videoUrl);
+            const response = await appwriteService.getAudioUrl(ytId);
+
+            if (response.success && response.audioUrl) {
+              setAudioUrl(response.audioUrl);
+            } else {
+              // If audio extraction fails, fall back to video mode
+              setMode("video");
+            }
+            setAudioLoading(false);
+          }
+        } catch (_error) {
+          // On error, default to video mode
+          setMode("video");
+          setAudioLoading(false);
+        }
+      };
+
+      loadPreference();
     }
-  }, [visible]);
+  }, [visible, propYoutubeId, videoUrl]);
 
   // Switch between video and audio modes
   const switchMode = async (newMode: "video" | "audio") => {
@@ -78,12 +112,16 @@ const VideoModal: React.FC<VideoModalProps> = ({
         if (response.success && response.audioUrl) {
           setAudioUrl(response.audioUrl);
           setMode(newMode);
+          // Save preference immediately after successful mode change
+          await storageService.savePlaybackMode(newMode);
         } else {
           throw new Error(response.error || "Failed to extract audio URL");
         }
       } else {
         // Switch to video or audio (if URL already exists)
         setMode(newMode);
+        // Save preference immediately after mode change
+        await storageService.savePlaybackMode(newMode);
       }
     } catch (err) {
       const error =
@@ -96,8 +134,62 @@ const VideoModal: React.FC<VideoModalProps> = ({
   };
 
   // Handle position changes from player
-  const handlePositionChange = (position: number) => {
-    setCurrentPosition(position);
+  const handlePositionChange = (_position: number) => {
+    // Position tracking can be implemented here if needed for future features
+  };
+
+  // Refresh audio URL when it expires
+  const refreshAudioUrl = async () => {
+    if (isRefreshing) return; // Prevent multiple simultaneous refreshes
+
+    setIsRefreshing(true);
+    setAudioError(null);
+    setRefreshFailed(false);
+
+    const maxRetries = 2;
+    let attempts = refreshAttempts;
+
+    try {
+      const ytId = propYoutubeId || getYouTubeId(videoUrl);
+      const response = await appwriteService.getAudioUrl(ytId);
+
+      if (response.success && response.audioUrl) {
+        setAudioUrl(response.audioUrl);
+        setRefreshAttempts(0); // Reset attempts on success
+        setRefreshFailed(false);
+        // Position will be preserved by the AudioPlayer component
+      } else {
+        throw new Error(response.error || "Failed to refresh audio URL");
+      }
+    } catch (_err) {
+      attempts += 1;
+      setRefreshAttempts(attempts);
+
+      if (attempts >= maxRetries) {
+        // Max retries reached, mark as failed
+        setRefreshFailed(true);
+        setAudioError(
+          new Error(
+            "Unable to refresh audio after multiple attempts. Please try switching to video mode."
+          )
+        );
+      } else {
+        // Retry after a short delay
+        setTimeout(() => {
+          refreshAudioUrl();
+        }, 2000);
+        return; // Don't set isRefreshing to false yet
+      }
+    } finally {
+      if (refreshAttempts >= maxRetries || refreshFailed) {
+        setIsRefreshing(false);
+      }
+    }
+  };
+
+  // Handle URL expiration from AudioPlayer
+  const handleUrlExpired = () => {
+    refreshAudioUrl();
   };
 
   // Handle audio playback errors
@@ -232,6 +324,14 @@ const VideoModal: React.FC<VideoModalProps> = ({
               </View>
             ) : audioUrl ? (
               <View style={{ height: 500 }}>
+                {isRefreshing && (
+                  <View className="absolute inset-0 z-10 items-center justify-center bg-black/80">
+                    <ActivityIndicator size="large" color="#ffffff" />
+                    <Text className="mt-3 text-sm text-neutral-400">
+                      Refreshing audio...
+                    </Text>
+                  </View>
+                )}
                 <AudioPlayer
                   audioUrl={audioUrl}
                   title={title || ""}
@@ -239,6 +339,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
                   thumbnailUrl={thumbnailUrl || ""}
                   onError={handleAudioError}
                   onPositionChange={handlePositionChange}
+                  onUrlExpired={handleUrlExpired}
                 />
               </View>
             ) : (
@@ -258,14 +359,43 @@ const VideoModal: React.FC<VideoModalProps> = ({
                 <Text className="text-center text-white font-semibold">
                   {audioError.message}
                 </Text>
-                <Pressable
-                  onPress={() => switchMode("video")}
-                  className="mt-2 rounded-lg bg-white p-2"
-                >
-                  <Text className="text-center text-red-500 font-semibold">
-                    Switch to Video
-                  </Text>
-                </Pressable>
+
+                {/* Show different actions based on error type */}
+                <View className="mt-3 flex-row justify-center space-x-2">
+                  {refreshFailed ? (
+                    <>
+                      <Pressable
+                        onPress={() => {
+                          setRefreshFailed(false);
+                          setRefreshAttempts(0);
+                          refreshAudioUrl();
+                        }}
+                        className="flex-1 mr-2 rounded-lg bg-white p-2"
+                      >
+                        <Text className="text-center text-red-500 font-semibold">
+                          Retry
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => switchMode("video")}
+                        className="flex-1 ml-2 rounded-lg bg-white p-2"
+                      >
+                        <Text className="text-center text-red-500 font-semibold">
+                          Switch to Video
+                        </Text>
+                      </Pressable>
+                    </>
+                  ) : (
+                    <Pressable
+                      onPress={() => switchMode("video")}
+                      className="rounded-lg bg-white p-2"
+                    >
+                      <Text className="text-center text-red-500 font-semibold">
+                        Switch to Video
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
               </View>
             )}
           </View>

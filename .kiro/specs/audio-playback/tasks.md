@@ -107,39 +107,39 @@
     - Update UI based on active mode
     - _Requirements: 1.5, 3.1_
 
-- [ ] 6. Implement playback mode preference persistence
-  - [ ] 6.1 Create preference storage utilities
+- [x] 6. Implement playback mode preference persistence
+  - [x] 6.1 Create preference storage utilities
     - Write `savePlaybackMode` function using AsyncStorage
     - Write `loadPlaybackMode` function using AsyncStorage
     - Define storage key constant: `@naat_playback_mode`
     - _Requirements: 6.1, 6.4_
 
-  - [ ] 6.2 Load and apply saved preference on mount
+  - [x] 6.2 Load and apply saved preference on mount
     - Load saved playback mode when player screen mounts
     - Apply saved mode as initial state
     - Default to video mode if no preference exists
     - _Requirements: 6.2, 6.3_
 
-  - [ ] 6.3 Save preference when mode changes
+  - [x] 6.3 Save preference when mode changes
     - Call `savePlaybackMode` whenever user switches modes
     - Update storage immediately on mode change
     - _Requirements: 6.4_
 
-- [ ] 7. Implement audio URL refresh on expiration
-  - [ ] 7.1 Add URL expiration detection
+- [x] 7. Implement audio URL refresh on expiration
+  - [x] 7.1 Add URL expiration detection
     - Monitor audio playback errors in AudioPlayer
     - Detect HTTP 403/404 errors indicating expired URL
     - Emit expiration event to parent component
     - _Requirements: 3.1_
 
-  - [ ] 7.2 Implement automatic URL refresh
+  - [x] 7.2 Implement automatic URL refresh
     - Write `refreshAudioUrl` function in player screen
     - Request fresh audio URL from extraction service
     - Resume playback from last known position
     - Show loading indicator during refresh
     - _Requirements: 3.2, 3.3, 3.4_
 
-  - [ ] 7.3 Handle refresh failures
+  - [x] 7.3 Handle refresh failures
     - Detect if refresh fails after retry
     - Show error message to user
     - Provide option to switch to video mode
