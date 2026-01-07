@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { appwriteService } from "../services/appwrite";
 import type { Naat, UseNaatsReturn } from "../types";
 
@@ -32,11 +32,26 @@ export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
   // Track current offset for pagination
   const offsetRef = useRef<number>(0);
 
-  // In-memory cache to avoid redundant API calls
-  const cacheRef = useRef<Map<number, Naat[]>>(new Map());
+  // In-memory cache to avoid redundant API calls (separate cache per filter)
+  const cacheRef = useRef<Map<string, Map<number, Naat[]>>>(new Map());
 
   // Flag to prevent multiple simultaneous loads
   const isLoadingRef = useRef<boolean>(false);
+
+  // Track current filter to detect changes
+  const currentFilterRef = useRef<FilterOption>(filter);
+
+  // Reset state when filter changes
+  useEffect(() => {
+    if (currentFilterRef.current !== filter) {
+      currentFilterRef.current = filter;
+      offsetRef.current = 0;
+      setNaats([]);
+      setHasMore(true);
+      setError(null);
+      isLoadingRef.current = false;
+    }
+  }, [filter]);
 
   /**
    * Load more naats for infinite scroll
@@ -52,8 +67,14 @@ export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
     setLoading(true);
     setError(null);
 
+    // Get or create cache for current filter
+    if (!cacheRef.current.has(filter)) {
+      cacheRef.current.set(filter, new Map());
+    }
+    const filterCache = cacheRef.current.get(filter)!;
+
     // Check cache first
-    const cachedData = cacheRef.current.get(offsetRef.current);
+    const cachedData = filterCache.get(offsetRef.current);
 
     if (cachedData) {
       // Use cached data
@@ -69,8 +90,8 @@ export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
     appwriteService
       .getNaats(PAGE_SIZE, offsetRef.current, filter)
       .then((newNaats) => {
-        // Cache the results
-        cacheRef.current.set(offsetRef.current, newNaats);
+        // Cache the results for this filter
+        filterCache.set(offsetRef.current, newNaats);
 
         // Update state
         setNaats((prev) => [...prev, ...newNaats]);
@@ -84,7 +105,7 @@ export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
 
         // Try to use cached data as fallback
         const allCachedData: Naat[] = [];
-        cacheRef.current.forEach((cachedNaats) => {
+        filterCache.forEach((cachedNaats) => {
           allCachedData.push(...cachedNaats);
         });
 
@@ -105,7 +126,12 @@ export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
   const refresh = useCallback(async (): Promise<void> => {
     // Reset state
     offsetRef.current = 0;
-    cacheRef.current.clear();
+
+    // Clear cache for current filter only
+    if (cacheRef.current.has(filter)) {
+      cacheRef.current.get(filter)!.clear();
+    }
+
     setNaats([]);
     setHasMore(true);
     setError(null);
@@ -115,8 +141,14 @@ export function useNaats(filter: FilterOption = "latest"): UseNaatsReturn {
     try {
       const freshNaats = await appwriteService.getNaats(PAGE_SIZE, 0, filter);
 
+      // Get or create cache for current filter
+      if (!cacheRef.current.has(filter)) {
+        cacheRef.current.set(filter, new Map());
+      }
+      const filterCache = cacheRef.current.get(filter)!;
+
       // Cache the results
-      cacheRef.current.set(0, freshNaats);
+      filterCache.set(0, freshNaats);
 
       // Update state
       setNaats(freshNaats);

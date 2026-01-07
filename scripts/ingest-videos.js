@@ -199,7 +199,12 @@ async function createVideoDocument(databases, video, videoDetails) {
     views: parseInt(statistics?.viewCount || "0", 10),
   };
 
-  await databases.createDocument(DATABASE_ID, COLLECTION_ID, documentId, document);
+  await databases.createDocument(
+    DATABASE_ID,
+    COLLECTION_ID,
+    documentId,
+    document
+  );
   return document;
 }
 
@@ -238,7 +243,10 @@ async function ingestVideos() {
             newCount++;
           } catch (createError) {
             // Handle duplicate ID error (race condition or concurrent ingestion)
-            if (createError.code === 409 || createError.message.includes('already exists')) {
+            if (
+              createError.code === 409 ||
+              createError.message.includes("already exists")
+            ) {
               console.log(`⏭️  Skipped: ${title} (already exists)`);
               skippedCount++;
             } else {

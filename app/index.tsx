@@ -73,8 +73,6 @@ export default function HomeScreen() {
   // Handle filter change
   const handleFilterChange = (filter: FilterOption) => {
     setSelectedFilter(filter);
-    // Reset and reload data with new filter
-    refresh();
   };
 
   // Handle infinite scroll
