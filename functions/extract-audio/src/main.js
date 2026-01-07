@@ -131,8 +131,7 @@ async function extractAudioUrl(youtubeId, log, logError) {
       getUrl: true,
       format: "bestaudio",
       noCheckCertificates: true,
-      noWarnings: false, // Enable warnings for debugging
-      verbose: true, // Enable verbose output
+      // Don't set noWarnings at all - let it use default
       // Add user agent to mimic browser
       userAgent:
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
