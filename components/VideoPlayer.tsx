@@ -1,3 +1,4 @@
+import { colors } from "@/constants/theme";
 import { VideoPlayerProps } from "@/types";
 import React from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -35,7 +36,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
 
       {isLoading && (
         <View className="absolute inset-0 items-center justify-center bg-black">
-          <ActivityIndicator size="large" color="#ffffff" />
+          <ActivityIndicator size="large" color={colors.text.primary} />
         </View>
       )}
     </View>

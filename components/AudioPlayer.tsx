@@ -1,3 +1,4 @@
+import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { Audio, AVPlaybackStatus } from "expo-av";
@@ -220,7 +221,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   if (playbackState.isLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-black">
-        <ActivityIndicator size="large" color="#ffffff" />
+        <ActivityIndicator size="large" color={colors.text.primary} />
         <Text className="mt-4 text-white">Loading audio...</Text>
       </View>
     );
@@ -229,11 +230,11 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   if (playbackState.error) {
     return (
       <View className="flex-1 items-center justify-center bg-black px-8">
-        <Ionicons name="alert-circle" size={64} color="#ef4444" />
+        <Ionicons name="alert-circle" size={64} color={colors.accent.error} />
         <Text className="mt-4 text-center text-xl font-bold text-white">
           Audio Loading Error
         </Text>
-        <Text className="mt-2 text-center text-base text-gray-400">
+        <Text className="mt-2 text-center text-base text-neutral-400">
           {playbackState.error.message}
         </Text>
       </View>
@@ -258,7 +259,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
           >
             {title}
           </Text>
-          <Text className="mt-2 text-center text-base text-gray-400">
+          <Text className="mt-2 text-center text-base text-neutral-400">
             {channelName}
           </Text>
         </View>
@@ -274,17 +275,17 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
             maximumValue={playbackState.duration}
             value={playbackState.position}
             onSlidingComplete={seekToPosition}
-            minimumTrackTintColor="#1DB954"
-            maximumTrackTintColor="#404040"
-            thumbTintColor="#1DB954"
+            minimumTrackTintColor={colors.accent.primary}
+            maximumTrackTintColor={colors.background.elevated}
+            thumbTintColor={colors.accent.primary}
           />
 
           {/* Time Labels */}
           <View className="flex-row justify-between">
-            <Text className="text-sm text-gray-400">
+            <Text className="text-sm text-neutral-400">
               {formatTime(playbackState.position)}
             </Text>
-            <Text className="text-sm text-gray-400">
+            <Text className="text-sm text-neutral-400">
               {formatTime(playbackState.duration)}
             </Text>
           </View>
@@ -297,7 +298,11 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
               onPress={handleReplay}
               className="h-20 w-20 items-center justify-center rounded-full bg-white"
             >
-              <Ionicons name="reload" size={40} color="#000" />
+              <Ionicons
+                name="reload"
+                size={40}
+                color={colors.background.primary}
+              />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -307,7 +312,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
               <Ionicons
                 name={playbackState.isPlaying ? "pause" : "play"}
                 size={40}
-                color="#000"
+                color={colors.background.primary}
               />
             </TouchableOpacity>
           )}
@@ -315,18 +320,18 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
         {/* Volume Control */}
         <View className="flex-row items-center">
-          <Ionicons name="volume-low" size={24} color="#fff" />
+          <Ionicons name="volume-low" size={24} color={colors.text.primary} />
           <Slider
             style={{ flex: 1, marginHorizontal: 12 }}
             minimumValue={0}
             maximumValue={1}
             value={volume}
             onValueChange={handleVolumeChange}
-            minimumTrackTintColor="#1DB954"
-            maximumTrackTintColor="#404040"
-            thumbTintColor="#1DB954"
+            minimumTrackTintColor={colors.accent.primary}
+            maximumTrackTintColor={colors.background.elevated}
+            thumbTintColor={colors.accent.primary}
           />
-          <Ionicons name="volume-high" size={24} color="#fff" />
+          <Ionicons name="volume-high" size={24} color={colors.text.primary} />
         </View>
       </View>
     </View>

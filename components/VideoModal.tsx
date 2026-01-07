@@ -1,4 +1,5 @@
 import AudioPlayer from "@/components/AudioPlayer";
+import { colors, shadows } from "@/constants/theme";
 import { appwriteService } from "@/services/appwrite";
 import { storageService } from "@/services/storage";
 import { VideoPlayerProps } from "@/types";
@@ -86,7 +87,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
             }
             setAudioLoading(false);
           }
-        } catch (_error) {
+        } catch {
           // On error, default to video mode
           setMode("video");
           setAudioLoading(false);
@@ -162,7 +163,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
       } else {
         throw new Error(response.error || "Failed to refresh audio URL");
       }
-    } catch (_err) {
+    } catch {
       attempts += 1;
       setRefreshAttempts(attempts);
 
@@ -229,7 +230,10 @@ const VideoModal: React.FC<VideoModalProps> = ({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={colors.background.primary}
+      />
 
       {/* Full Height Modal Container */}
       <View className="flex-1 bg-black">
@@ -237,13 +241,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
         <View className="flex-1">
           <View
             className="flex-1 bg-neutral-900 overflow-hidden"
-            style={{
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.5,
-              shadowRadius: 24,
-              elevation: 10,
-            }}
+            style={shadows.lg}
           >
             {/* Header */}
             <SafeAreaView className="bg-neutral-800 border-b border-neutral-700">
@@ -271,7 +269,11 @@ const VideoModal: React.FC<VideoModalProps> = ({
                       accessibilityLabel="Switch to video mode"
                       accessibilityRole="button"
                     >
-                      <Ionicons name="videocam" size={30} color="#ffffff" />
+                      <Ionicons
+                        name="videocam"
+                        size={30}
+                        color={colors.text.primary}
+                      />
                     </Pressable>
                   )}
                 </View>
@@ -297,7 +299,10 @@ const VideoModal: React.FC<VideoModalProps> = ({
 
                 {isLoading && (
                   <View className="absolute inset-0 items-center justify-center bg-black">
-                    <ActivityIndicator size="large" color="#ffffff" />
+                    <ActivityIndicator
+                      size="large"
+                      color={colors.text.primary}
+                    />
                     <Text className="mt-3 text-sm text-neutral-400">
                       Loading video...
                     </Text>
@@ -311,19 +316,18 @@ const VideoModal: React.FC<VideoModalProps> = ({
                     disabled={audioLoading}
                     className="flex-row items-center justify-center rounded-2xl px-6 py-4 active:opacity-80"
                     style={{
-                      backgroundColor: "rgba(29, 185, 84, 0.95)",
-                      shadowColor: "#1DB954",
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.6,
-                      shadowRadius: 12,
-                      elevation: 8,
+                      backgroundColor: colors.accent.primary,
+                      ...shadows.accent,
                     }}
                     accessibilityLabel="Switch to audio mode"
                     accessibilityRole="button"
                   >
                     {audioLoading ? (
                       <>
-                        <ActivityIndicator size="small" color="#ffffff" />
+                        <ActivityIndicator
+                          size="small"
+                          color={colors.text.primary}
+                        />
                         <Text className="ml-3 text-base font-bold text-white">
                           Loading Audio...
                         </Text>
@@ -333,7 +337,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
                         <Ionicons
                           name="musical-notes"
                           size={24}
-                          color="#ffffff"
+                          color={colors.text.primary}
                         />
                         <Text className="ml-3 text-base font-bold text-white">
                           Play as Audio Only
@@ -347,7 +351,10 @@ const VideoModal: React.FC<VideoModalProps> = ({
               <View className="flex-1">
                 {isRefreshing && (
                   <View className="absolute inset-0 z-10 items-center justify-center bg-black/80">
-                    <ActivityIndicator size="large" color="#ffffff" />
+                    <ActivityIndicator
+                      size="large"
+                      color={colors.text.primary}
+                    />
                     <Text className="mt-3 text-sm text-neutral-400">
                       Refreshing audio...
                     </Text>
@@ -366,7 +373,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
             ) : (
               <View className="flex-1 bg-black">
                 <View className="flex-1 items-center justify-center">
-                  <ActivityIndicator size="large" color="#ffffff" />
+                  <ActivityIndicator size="large" color={colors.text.primary} />
                   <Text className="mt-3 text-sm text-neutral-400">
                     Loading audio...
                   </Text>
@@ -376,7 +383,10 @@ const VideoModal: React.FC<VideoModalProps> = ({
 
             {/* Show audio error if present */}
             {audioError && mode === "audio" && (
-              <View className="bg-red-500/90 p-4">
+              <View
+                className="p-4"
+                style={{ backgroundColor: colors.accent.error }}
+              >
                 <Text className="text-center text-white font-semibold">
                   {audioError.message}
                 </Text>
@@ -393,7 +403,10 @@ const VideoModal: React.FC<VideoModalProps> = ({
                         }}
                         className="flex-1 mr-2 rounded-lg bg-white p-2"
                       >
-                        <Text className="text-center text-red-500 font-semibold">
+                        <Text
+                          className="text-center font-semibold"
+                          style={{ color: colors.accent.error }}
+                        >
                           Retry
                         </Text>
                       </Pressable>
@@ -401,7 +414,10 @@ const VideoModal: React.FC<VideoModalProps> = ({
                         onPress={() => switchMode("video")}
                         className="flex-1 ml-2 rounded-lg bg-white p-2"
                       >
-                        <Text className="text-center text-red-500 font-semibold">
+                        <Text
+                          className="text-center font-semibold"
+                          style={{ color: colors.accent.error }}
+                        >
                           Switch to Video
                         </Text>
                       </Pressable>
@@ -411,7 +427,10 @@ const VideoModal: React.FC<VideoModalProps> = ({
                       onPress={() => switchMode("video")}
                       className="rounded-lg bg-white p-2"
                     >
-                      <Text className="text-center text-red-500 font-semibold">
+                      <Text
+                        className="text-center font-semibold"
+                        style={{ color: colors.accent.error }}
+                      >
                         Switch to Video
                       </Text>
                     </Pressable>

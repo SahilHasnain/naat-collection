@@ -1,3 +1,4 @@
+import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Animated, Pressable } from "react-native";
@@ -30,11 +31,16 @@ export default function BackToTopButton({
     >
       <Pressable
         onPress={onPress}
-        className="bg-primary-600 rounded-full w-14 h-14 items-center justify-center shadow-lg active:scale-95 active:opacity-90"
+        className="rounded-full w-14 h-14 items-center justify-center shadow-lg active:scale-95 active:opacity-90"
+        style={{ backgroundColor: colors.accent.secondary }}
         accessibilityLabel="Scroll to top"
         accessibilityRole="button"
       >
-        <Ionicons name="chevron-up-circle" size={46} color="white" />
+        <Ionicons
+          name="chevron-up-circle"
+          size={46}
+          color={colors.text.primary}
+        />
       </Pressable>
     </Animated.View>
   );

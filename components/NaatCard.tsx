@@ -1,3 +1,4 @@
+import { colors, shadows } from "@/constants/theme";
 import { NaatCardProps } from "@/types";
 import { formatRelativeTime, formatViews } from "@/utils";
 import { Image } from "expo-image";
@@ -26,27 +27,23 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
         onPress={onPress}
         onPressIn={() => setIsPressed(true)}
         onPressOut={() => setIsPressed(false)}
-        className="mb-5 overflow-hidden rounded-2xl bg-white dark:bg-neutral-800 shadow-lg"
+        className="mb-5 overflow-hidden rounded-2xl bg-neutral-800 shadow-lg"
         style={{
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.12,
-          shadowRadius: 12,
-          elevation: 5,
+          ...shadows.md,
           transform: [{ scale: isPressed ? 0.97 : 1 }],
           opacity: isPressed ? 0.85 : 1,
         }}
       >
         {/* Thumbnail Section with explicit 16:9 aspect ratio */}
         <View
-          className="relative w-full bg-neutral-100 dark:bg-neutral-900"
+          className="relative w-full bg-neutral-900"
           style={{ height: 200 }}
         >
           {imageError || !thumbnail ? (
-            <View className="h-full w-full items-center justify-center bg-neutral-200 dark:bg-neutral-700">
+            <View className="h-full w-full items-center justify-center bg-neutral-700">
               <View className="items-center">
                 <Text className="text-5xl mb-2">🎵</Text>
-                <Text className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                <Text className="text-sm font-medium text-neutral-400">
                   No Thumbnail
                 </Text>
               </View>
@@ -71,7 +68,7 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
               />
               {/* Loading indicator */}
               {imageLoading && (
-                <View className="absolute inset-0 items-center justify-center bg-neutral-200 dark:bg-neutral-700">
+                <View className="absolute inset-0 items-center justify-center bg-neutral-700">
                   <Text className="text-2xl">⏳</Text>
                 </View>
               )}
@@ -89,7 +86,10 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
           )}
 
           {/* Duration badge - enhanced design */}
-          <View className="absolute bottom-2.5 right-2.5 rounded-lg bg-black/90 px-3 py-1.5">
+          <View
+            className="absolute bottom-2.5 right-2.5 rounded-lg px-3 py-1.5"
+            style={{ backgroundColor: colors.overlay.dark }}
+          >
             <Text className="text-xs font-bold text-white tracking-wider">
               {formatDuration(duration)}
             </Text>
@@ -101,7 +101,10 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
               className="absolute inset-0 items-center justify-center"
               pointerEvents="none"
             >
-              <View className="h-14 w-14 items-center justify-center rounded-full bg-black/30">
+              <View
+                className="h-14 w-14 items-center justify-center rounded-full"
+                style={{ backgroundColor: colors.overlay.light }}
+              >
                 <Text className="text-2xl">▶️</Text>
               </View>
             </View>
@@ -112,7 +115,7 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
         <View className="p-4 space-y-2">
           {/* Title */}
           <Text
-            className="text-base font-bold leading-tight text-neutral-900 dark:text-white"
+            className="text-base font-bold leading-tight text-white"
             numberOfLines={2}
             ellipsizeMode="tail"
           >
@@ -121,11 +124,9 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
 
           {/* Channel name with icon */}
           <View className="flex-row items-center">
-            <Text className="mr-1.5 text-neutral-500 dark:text-neutral-400">
-              👤
-            </Text>
+            <Text className="mr-1.5 text-neutral-400">👤</Text>
             <Text
-              className="flex-1 text-sm font-semibold text-neutral-700 dark:text-neutral-300"
+              className="flex-1 text-sm font-semibold text-neutral-300"
               numberOfLines={1}
             >
               {channelName || "Baghdadi Sound & Video"}
@@ -135,18 +136,14 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
           {/* Upload date and views */}
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center">
-              <Text className="mr-1.5 text-neutral-400 dark:text-neutral-500">
-                📅
-              </Text>
-              <Text className="text-xs text-neutral-500 dark:text-neutral-400">
+              <Text className="mr-1.5 text-neutral-500">📅</Text>
+              <Text className="text-xs text-neutral-400">
                 {formatRelativeTime(uploadDate)}
               </Text>
             </View>
             <View className="flex-row items-center">
-              <Text className="mr-1.5 text-neutral-400 dark:text-neutral-500">
-                👁️
-              </Text>
-              <Text className="text-xs text-neutral-500 dark:text-neutral-400">
+              <Text className="mr-1.5 text-neutral-500">👁️</Text>
+              <Text className="text-xs text-neutral-400">
                 {formatViews(views)} views
               </Text>
             </View>

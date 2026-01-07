@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { colors } from "@/constants/theme";
 
 export default function HomeScreen() {
   // Modal state
@@ -126,7 +127,7 @@ export default function HomeScreen() {
 
     return (
       <View className="py-6">
-        <ActivityIndicator size="small" color="#2563eb" />
+        <ActivityIndicator size="small" color={colors.accent.secondary} />
       </View>
     );
   };
@@ -136,8 +137,8 @@ export default function HomeScreen() {
     if (isLoading && displayData.length === 0) {
       return (
         <View className="items-center justify-center flex-1 py-20">
-          <ActivityIndicator size="large" color="#2563eb" />
-          <Text className="mt-4 text-base text-neutral-600 dark:text-neutral-400">
+          <ActivityIndicator size="large" color={colors.accent.secondary} />
+          <Text className="mt-4 text-base text-neutral-400">
             Loading naats...
           </Text>
         </View>
@@ -174,13 +175,10 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView
-      className="flex-1 bg-neutral-50 dark:bg-neutral-900"
-      edges={["bottom"]}
-    >
+    <SafeAreaView className="flex-1 bg-neutral-900" edges={["bottom"]}>
       <View className="flex-1">
         {/* Sticky Search Bar */}
-        <View className="px-4 pt-safe-top pb-3 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
+        <View className="px-4 pt-safe-top pb-3 bg-neutral-800 border-b border-neutral-700">
           <SearchBar
             value={query}
             onChangeText={setQuery}
@@ -217,8 +215,8 @@ export default function HomeScreen() {
             <RefreshControl
               refreshing={false}
               onRefresh={handleRefresh}
-              colors={["#2563eb"]}
-              tintColor="#2563eb"
+              colors={[colors.accent.secondary]}
+              tintColor={colors.accent.secondary}
             />
           }
           removeClippedSubviews={true}

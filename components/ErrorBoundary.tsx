@@ -1,3 +1,4 @@
+import { colors, shadows } from "@/constants/theme";
 import React, { Component, ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -45,24 +46,21 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       }
 
       return (
-        <View className="flex-1 items-center justify-center bg-neutral-50 dark:bg-neutral-900 px-8">
+        <View className="flex-1 items-center justify-center bg-neutral-900 px-8">
           <Text className="mb-4 text-6xl">⚠️</Text>
-          <Text className="mb-3 text-center text-2xl font-bold text-neutral-900 dark:text-white">
+          <Text className="mb-3 text-center text-2xl font-bold text-white">
             Something went wrong
           </Text>
-          <Text className="mb-8 text-center text-base leading-relaxed text-neutral-600 dark:text-neutral-400 max-w-md">
+          <Text className="mb-8 text-center text-base leading-relaxed text-neutral-400 max-w-md">
             {this.state.error.message ||
               "An unexpected error occurred. Please try again."}
           </Text>
           <Pressable
             onPress={this.handleRetry}
-            className="rounded-xl bg-primary-600 dark:bg-primary-500 px-8 py-4 active:bg-primary-700 dark:active:bg-primary-600 shadow-lg"
+            className="rounded-xl px-8 py-4 shadow-lg"
             style={{
-              shadowColor: "#2563eb",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 4,
+              backgroundColor: colors.accent.secondary,
+              ...shadows.md,
             }}
             accessibilityRole="button"
             accessibilityLabel="Retry"

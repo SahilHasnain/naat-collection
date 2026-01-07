@@ -19,7 +19,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
   ];
 
   return (
-    <View className="bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
+    <View className="bg-neutral-800 border-b border-neutral-700">
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -32,17 +32,13 @@ const FilterBar: React.FC<FilterBarProps> = ({
               key={filter.value}
               onPress={() => onFilterChange(filter.value)}
               className={`mr-3 px-4 py-2 rounded-full flex-row items-center ${
-                isSelected
-                  ? "bg-blue-600 dark:bg-blue-500"
-                  : "bg-neutral-100 dark:bg-neutral-700"
+                isSelected ? "bg-blue-500" : "bg-neutral-700"
               }`}
             >
               <Text className="mr-1.5">{filter.icon}</Text>
               <Text
                 className={`font-semibold text-sm ${
-                  isSelected
-                    ? "text-white"
-                    : "text-neutral-700 dark:text-neutral-300"
+                  isSelected ? "text-white" : "text-neutral-300"
                 }`}
               >
                 {filter.label}
