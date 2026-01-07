@@ -239,6 +239,8 @@ export default function HomeScreen() {
           videoUrl={selectedNaat.videoUrl}
           title={selectedNaat.title}
           channelName={selectedNaat.channelName}
+          thumbnailUrl={selectedNaat.thumbnailUrl}
+          youtubeId={selectedNaat.youtubeId}
         />
       )}
     </SafeAreaView>

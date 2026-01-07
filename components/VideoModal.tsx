@@ -1,4 +1,7 @@
+import AudioPlayer from "@/components/AudioPlayer";
+import { appwriteService } from "@/services/appwrite";
 import { VideoPlayerProps } from "@/types";
+import { Ionicons } from "@expo/vector-icons";
 import * as ScreenOrientation from "expo-screen-orientation";
 import React from "react";
 import {
@@ -16,6 +19,8 @@ interface VideoModalProps extends VideoPlayerProps {
   onClose: () => void;
   title?: string;
   channelName?: string;
+  thumbnailUrl?: string;
+  youtubeId?: string;
 }
 
 const VideoModal: React.FC<VideoModalProps> = ({
@@ -24,9 +29,18 @@ const VideoModal: React.FC<VideoModalProps> = ({
   videoUrl,
   title,
   channelName,
+  thumbnailUrl,
+  youtubeId: propYoutubeId,
 }) => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
+
+  // Playback mode state
+  const [mode, setMode] = React.useState<"video" | "audio">("video");
+  const [audioUrl, setAudioUrl] = React.useState<string | null>(null);
+  const [audioLoading, setAudioLoading] = React.useState(false);
+  const [audioError, setAudioError] = React.useState<Error | null>(null);
+  const [currentPosition, setCurrentPosition] = React.useState(0);
 
   // Extract YouTube video ID from URL
   const getYouTubeId = (url: string): string => {
@@ -42,8 +56,54 @@ const VideoModal: React.FC<VideoModalProps> = ({
   React.useEffect(() => {
     if (visible) {
       setIsLoading(true);
+      // Reset mode to video when modal opens
+      setMode("video");
+      setAudioError(null);
     }
   }, [visible]);
+
+  // Switch between video and audio modes
+  const switchMode = async (newMode: "video" | "audio") => {
+    if (newMode === mode) return;
+
+    try {
+      // If switching to audio mode, fetch audio URL
+      if (newMode === "audio" && !audioUrl) {
+        setAudioLoading(true);
+        setAudioError(null);
+
+        const ytId = propYoutubeId || getYouTubeId(videoUrl);
+        const response = await appwriteService.getAudioUrl(ytId);
+
+        if (response.success && response.audioUrl) {
+          setAudioUrl(response.audioUrl);
+          setMode(newMode);
+        } else {
+          throw new Error(response.error || "Failed to extract audio URL");
+        }
+      } else {
+        // Switch to video or audio (if URL already exists)
+        setMode(newMode);
+      }
+    } catch (err) {
+      const error =
+        err instanceof Error ? err : new Error("Failed to switch mode");
+      setAudioError(error);
+      // Stay in current mode on error
+    } finally {
+      setAudioLoading(false);
+    }
+  };
+
+  // Handle position changes from player
+  const handlePositionChange = (position: number) => {
+    setCurrentPosition(position);
+  };
+
+  // Handle audio playback errors
+  const handleAudioError = (error: Error) => {
+    setAudioError(error);
+  };
 
   // Handle fullscreen changes
   const handleFullscreenChange = async (isFullscreen: boolean) => {
@@ -112,6 +172,27 @@ const VideoModal: React.FC<VideoModalProps> = ({
                   </Text>
                 </View>
 
+                {/* Mode Toggle Button */}
+                <Pressable
+                  onPress={() =>
+                    switchMode(mode === "video" ? "audio" : "video")
+                  }
+                  className="mr-3 rounded-full bg-neutral-700 p-2 active:bg-neutral-600"
+                  accessibilityLabel={`Switch to ${mode === "video" ? "audio" : "video"} mode`}
+                  accessibilityRole="button"
+                  disabled={audioLoading}
+                >
+                  {audioLoading ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Ionicons
+                      name={mode === "video" ? "musical-notes" : "videocam"}
+                      size={20}
+                      color="#ffffff"
+                    />
+                  )}
+                </Pressable>
+
                 <Pressable
                   onPress={onClose}
                   className="rounded-full bg-neutral-700 p-2 active:bg-neutral-600"
@@ -123,31 +204,70 @@ const VideoModal: React.FC<VideoModalProps> = ({
               </View>
             </View>
 
-            {/* Video Player */}
-            <View className="relative bg-black" style={{ height: 250 }}>
-              <YoutubePlayer
-                height={250}
-                videoId={videoId}
-                play={false}
-                onReady={() => setIsLoading(false)}
-                onFullScreenChange={handleFullscreenChange}
-                webViewStyle={{ opacity: isLoading ? 0 : 1 }}
-                initialPlayerParams={{
-                  controls: true,
-                  modestbranding: true,
-                  rel: false,
-                }}
-              />
+            {/* Player - conditionally render based on mode */}
+            {mode === "video" ? (
+              <View className="relative bg-black" style={{ height: 250 }}>
+                <YoutubePlayer
+                  height={250}
+                  videoId={videoId}
+                  play={false}
+                  onReady={() => setIsLoading(false)}
+                  onFullScreenChange={handleFullscreenChange}
+                  webViewStyle={{ opacity: isLoading ? 0 : 1 }}
+                  initialPlayerParams={{
+                    controls: true,
+                    modestbranding: true,
+                    rel: false,
+                  }}
+                />
 
-              {isLoading && (
-                <View className="absolute inset-0 items-center justify-center bg-black">
+                {isLoading && (
+                  <View className="absolute inset-0 items-center justify-center bg-black">
+                    <ActivityIndicator size="large" color="#ffffff" />
+                    <Text className="mt-3 text-sm text-neutral-400">
+                      Loading video...
+                    </Text>
+                  </View>
+                )}
+              </View>
+            ) : audioUrl ? (
+              <View style={{ height: 500 }}>
+                <AudioPlayer
+                  audioUrl={audioUrl}
+                  title={title || ""}
+                  channelName={channelName || "Baghdadi Sound & Video"}
+                  thumbnailUrl={thumbnailUrl || ""}
+                  onError={handleAudioError}
+                  onPositionChange={handlePositionChange}
+                />
+              </View>
+            ) : (
+              <View className="bg-black" style={{ height: 250 }}>
+                <View className="flex-1 items-center justify-center">
                   <ActivityIndicator size="large" color="#ffffff" />
                   <Text className="mt-3 text-sm text-neutral-400">
-                    Loading video...
+                    Loading audio...
                   </Text>
                 </View>
-              )}
-            </View>
+              </View>
+            )}
+
+            {/* Show audio error if present */}
+            {audioError && mode === "audio" && (
+              <View className="bg-red-500/90 p-4">
+                <Text className="text-center text-white font-semibold">
+                  {audioError.message}
+                </Text>
+                <Pressable
+                  onPress={() => switchMode("video")}
+                  className="mt-2 rounded-lg bg-white p-2"
+                >
+                  <Text className="text-center text-red-500 font-semibold">
+                    Switch to Video
+                  </Text>
+                </Pressable>
+              </View>
+            )}
           </View>
 
           {/* Close hint */}

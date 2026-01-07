@@ -48,14 +48,14 @@
     - Handle function execution errors
     - _Requirements: 2.1, 2.4_
 
-- [ ] 4. Create AudioPlayer component
-  - [ ] 4.1 Build AudioPlayer component structure
+- [x] 4. Create AudioPlayer component
+  - [x] 4.1 Build AudioPlayer component structure
     - Create `components/AudioPlayer.tsx` file
     - Define component props interface (audioUrl, title, channelName, thumbnailUrl, callbacks)
     - Set up component state for playback (position, duration, isPlaying, isLoading)
     - _Requirements: 1.5, 5.1_
 
-  - [ ] 4.2 Implement audio playback using expo-av
+  - [x] 4.2 Implement audio playback using expo-av
     - Initialize Audio.Sound instance from expo-av
     - Load audio from URL
     - Implement play/pause functionality
@@ -63,7 +63,7 @@
     - Track playback position and duration
     - _Requirements: 5.1, 5.2, 5.3_
 
-  - [ ] 4.3 Build audio player UI
+  - [x] 4.3 Build audio player UI
     - Create album art/thumbnail display
     - Add play/pause button
     - Create seek bar with current time and duration labels
@@ -71,28 +71,28 @@
     - Style components to match app design
     - _Requirements: 1.5, 5.1, 5.3_
 
-  - [ ] 4.4 Handle playback completion and errors
+  - [x] 4.4 Handle playback completion and errors
     - Detect when audio finishes playing
     - Show completion state with replay option
     - Handle audio loading errors
     - Emit error events to parent component
     - _Requirements: 5.4, 3.1_
 
-- [ ] 5. Enhance player screen with mode switching
-  - [ ] 5.1 Add playback mode state management
+- [x] 5. Enhance player screen with mode switching
+  - [x] 5.1 Add playback mode state management
     - Add mode state ('video' | 'audio') to player screen
     - Add audioUrl state for storing extracted URL
     - Add loading and error states for audio extraction
     - _Requirements: 1.1, 1.2_
 
-  - [ ] 5.2 Implement mode toggle UI
+  - [x] 5.2 Implement mode toggle UI
     - Create toggle button/switch for video/audio modes
     - Position toggle in player header
     - Style toggle to be visible and accessible
     - Add icons for video and audio modes
     - _Requirements: 1.1_
 
-  - [ ] 5.3 Implement mode switching logic
+  - [x] 5.3 Implement mode switching logic
     - Write `switchMode` function to handle mode changes
     - When switching to audio: fetch audio URL, stop video, start audio
     - When switching to video: stop audio, start video
@@ -100,7 +100,7 @@
     - Show loading indicator during audio URL extraction
     - _Requirements: 1.2, 1.3, 1.4_
 
-  - [ ] 5.4 Integrate AudioPlayer component
+  - [x] 5.4 Integrate AudioPlayer component
     - Conditionally render VideoPlayer or AudioPlayer based on mode
     - Pass naat data to AudioPlayer component
     - Handle audio playback errors from AudioPlayer

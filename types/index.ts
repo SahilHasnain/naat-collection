@@ -126,6 +126,15 @@ export interface VideoPlayerProps {
   videoUrl: string;
 }
 
+export interface AudioPlayerProps {
+  audioUrl: string;
+  title: string;
+  channelName: string;
+  thumbnailUrl: string;
+  onError: (error: Error) => void;
+  onPositionChange?: (position: number) => void;
+}
+
 export interface SearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
