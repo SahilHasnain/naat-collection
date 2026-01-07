@@ -1,7 +1,7 @@
 /**
  * Appwrite Function: Audio Extraction Service
  *
- * This function extracts direct audio stream URLs from YouTube videos using yt-dlp.
+ * This function extracts direct audio stream URLs from YouTube videos using youtube-dl-exec.
  * It provides on-demand audio URL extraction with in-memory caching to reduce
  * redundant extractions and improve performance.
  *
@@ -31,6 +31,8 @@
  *   "code": "string"
  * }
  */
+
+import youtubedl from "youtube-dl-exec";
 
 // In-memory cache for audio URLs
 const audioUrlCache = new Map();
