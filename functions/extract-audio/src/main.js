@@ -9,6 +9,7 @@
  * - APPWRITE_FUNCTION_PROJECT_ID: Appwrite project ID (auto-provided)
  * - APPWRITE_ENDPOINT: Appwrite API endpoint (default: https://cloud.appwrite.io/v1)
  * - CACHE_TTL_HOURS: Cache time-to-live in hours (default: 5)
+ * - YOUTUBE_COOKIES: Base64-encoded Netscape cookies.txt content (optional but recommended)
  *
  * Request Body:
  * {
@@ -32,6 +33,10 @@
  * }
  */
 
+import { Buffer } from "buffer";
+import { writeFileSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import youtubedl from "youtube-dl-exec";
 
 // In-memory cache for audio URLs
@@ -42,7 +47,48 @@ const CACHE_TTL_MS =
   (parseInt(process.env.CACHE_TTL_HOURS) || 5) * 60 * 60 * 1000;
 
 // Extraction timeout in milliseconds
-const EXTRACTION_TIMEOUT_MS = 10000;
+const EXTRACTION_TIMEOUT_MS = 15000; // Increased to 15s for cookie-based requests
+
+// Cookie file path (temporary)
+let cookieFilePath = null;
+
+/**
+ * Initializes cookie file from environment variable
+ * @param {Function} log - Logging function
+ */
+function initializeCookies(log) {
+  if (cookieFilePath) {
+    return; // Already initialized
+  }
+
+  const cookiesBase64 = process.env.YOUTUBE_COOKIES;
+  if (!cookiesBase64) {
+    log(
+      "No YOUTUBE_COOKIES environment variable found - running without cookies"
+    );
+    return;
+  }
+
+  try {
+    // Decode base64 cookies
+    const cookiesContent = Buffer.from(cookiesBase64, "base64").toString(
+      "utf-8"
+    );
+
+    // Create temporary cookie file
+    cookieFilePath = join(tmpdir(), `yt-cookies-${Date.now()}.txt`);
+    writeFileSync(cookieFilePath, cookiesContent, "utf-8");
+
+    log(`Initialized cookie file at: ${cookieFilePath}`);
+  } catch (err) {
+    log(`Failed to initialize cookies: ${err.message}`);
+    cookieFilePath = null;
+  }
+}
+
+/**
+ * Cleans up cookie file
+ */
 
 /**
  * Validates YouTube video ID format
@@ -72,14 +118,28 @@ async function extractAudioUrl(youtubeId, log, logError) {
   log(`Extracting audio URL for: ${youtubeUrl}`);
 
   try {
+    // Build youtube-dl-exec options
+    const options = {
+      getUrl: true,
+      format: "bestaudio",
+      noCheckCertificates: true,
+      noWarnings: true,
+      // Add user agent to mimic browser
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    };
+
+    // Add cookies if available
+    if (cookieFilePath) {
+      options.cookies = cookieFilePath;
+      log("Using cookie authentication");
+    } else {
+      log("No cookies available - may encounter bot detection");
+    }
+
     // Execute youtube-dl-exec with timeout
     const result = await Promise.race([
-      youtubedl(youtubeUrl, {
-        getUrl: true,
-        format: "bestaudio",
-        noCheckCertificates: true,
-        noWarnings: true,
-      }),
+      youtubedl(youtubeUrl, options),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error("TIMEOUT")), EXTRACTION_TIMEOUT_MS)
       ),
@@ -131,6 +191,16 @@ async function extractAudioUrl(youtubeId, log, logError) {
       throw {
         code: "YTDLP_NOT_FOUND",
         message: "youtube-dl-exec is not available or failed to initialize",
+      };
+    }
+
+    // Bot detection error
+    if (err.message && err.message.includes("Sign in to confirm")) {
+      logError(`YouTube bot detection triggered: ${err.message}`);
+      throw {
+        code: "BOT_DETECTED",
+        message:
+          "YouTube bot detection triggered. Please configure YOUTUBE_COOKIES environment variable.",
       };
     }
 
@@ -249,6 +319,9 @@ async function getAudioUrl(youtubeId, log, logError) {
 export default async ({ req, res, log, error: logError }) => {
   try {
     log("Audio extraction request received");
+
+    // Initialize cookies on first request
+    initializeCookies(log);
 
     // Parse request body
     let requestBody;
