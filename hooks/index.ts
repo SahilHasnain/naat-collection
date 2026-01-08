@@ -6,6 +6,8 @@
  */
 
 export { useChannels } from "./useChannels";
+export { useDownloads } from "./useDownloads";
+export type { UseDownloadsReturn } from "./useDownloads";
 export { useNaats } from "./useNaats";
 export { usePlaybackPosition } from "./usePlaybackPosition";
 export { useSearch } from "./useSearch";

@@ -1,4 +1,6 @@
 // Core data models
+import { DownloadMetadata } from "../services/audioDownload";
+
 export interface Naat {
   $id: string;
   title: string;
@@ -17,6 +19,13 @@ export interface Naat {
 
 // Sort option type for filtering naats
 export type SortOption = "latest" | "popular" | "oldest";
+
+// Sort option type for downloads
+export type DownloadSortOption =
+  | "date-desc"
+  | "date-asc"
+  | "title-asc"
+  | "title-desc";
 
 export interface Channel {
   id: string; // YouTube channel ID
@@ -117,6 +126,16 @@ export interface UsePlaybackPositionReturn {
   clearPosition: () => void;
 }
 
+export interface UseDownloadsReturn {
+  downloads: DownloadMetadata[];
+  loading: boolean;
+  error: Error | null;
+  totalSize: number;
+  refresh: () => Promise<void>;
+  deleteAudio: (audioId: string) => Promise<void>;
+  clearAll: () => Promise<void>;
+}
+
 // Service interfaces
 export interface IAppwriteService {
   getNaats(
@@ -174,6 +193,24 @@ export interface EmptyStateProps {
   icon?: string;
   actionLabel?: string;
   onAction?: () => void;
+}
+
+export interface DownloadedAudioCardProps {
+  audio: DownloadMetadata;
+  onPress: () => void;
+  onDelete: () => void;
+}
+
+export interface DownloadedAudioModalProps {
+  visible: boolean;
+  onClose: () => void;
+  audio: DownloadMetadata;
+}
+
+export interface DownloadsHeaderProps {
+  totalSize: number;
+  downloadCount: number;
+  onClearAll?: () => void;
 }
 
 // Ingestion service types (for Appwrite Functions)
