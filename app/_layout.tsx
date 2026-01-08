@@ -1,12 +1,27 @@
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
+import * as Sentry from "@sentry/react-native";
 import { Tabs } from "expo-router";
 import React from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import "../global.css";
 
-export default function RootLayout() {
+// Initialize Sentry
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  debug: __DEV__,
+  tracesSampleRate: 1.0,
+  integrations: [Sentry.reactNativeTracingIntegration()],
+  beforeSend(event) {
+    if (__DEV__) {
+      console.log("📤 Sentry Event:", event);
+    }
+    return event;
+  },
+});
+
+function RootLayout() {
   const insets = useSafeAreaInsets();
 
   return (
@@ -52,3 +67,5 @@ export default function RootLayout() {
     </ErrorBoundary>
   );
 }
+
+export default Sentry.wrap(RootLayout);

@@ -7,7 +7,7 @@
     "icon": "./assets/images/android-icon-foreground.png",
     "scheme": "ubaidraza",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true
     },
@@ -34,6 +34,13 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#000000"
+        }
+      ],
+      [
+        "@sentry/react-native",
+        {
+          "organization": "sahil-hasnain",
+          "project": "ubaid-raza-naats"
         }
       ]
     ],

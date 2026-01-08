@@ -5,6 +5,7 @@
  * including fetching naats, searching, and error handling with timeouts.
  */
 
+import * as Sentry from "@sentry/react-native";
 import { Client, Databases, Query } from "appwrite";
 import { appwriteConfig, validateAppwriteConfig } from "../config/appwrite";
 import {
@@ -53,7 +54,22 @@ export class AppwriteService implements IAppwriteService {
         .setProject(appwriteConfig.projectId);
 
       this.isInitialized = true;
-    } catch {
+
+      // Log successful initialization to Sentry
+      Sentry.addBreadcrumb({
+        category: "appwrite",
+        message: "Appwrite client initialized",
+        level: "info",
+      });
+    } catch (error) {
+      // Capture initialization errors in Sentry
+      Sentry.captureException(error, {
+        tags: {
+          component: "appwrite",
+          action: "initialize",
+        },
+      });
+
       throw new AppError(
         "Failed to initialize Appwrite client. Please check your configuration.",
         ErrorCode.API_ERROR,
@@ -123,7 +139,25 @@ export class AppwriteService implements IAppwriteService {
 
       return response.documents as unknown as Naat[];
     } catch (error) {
-      logError(wrapError(error, ErrorCode.NETWORK_ERROR), {
+      const wrappedError = wrapError(error, ErrorCode.NETWORK_ERROR);
+
+      // Send to Sentry with context
+      Sentry.captureException(wrappedError, {
+        tags: {
+          component: "appwrite",
+          action: "getNaats",
+        },
+        contexts: {
+          request: {
+            limit,
+            offset,
+            sortBy,
+            channelId: channelId || "all",
+          },
+        },
+      });
+
+      logError(wrappedError, {
         context: "getNaats",
         limit,
         offset,
