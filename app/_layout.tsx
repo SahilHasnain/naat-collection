@@ -10,15 +10,9 @@ import "../global.css";
 // Initialize Sentry
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  debug: __DEV__,
+  debug: false, // Disabled for cleaner console in development
   tracesSampleRate: 1.0,
   integrations: [Sentry.reactNativeTracingIntegration()],
-  beforeSend(event) {
-    if (__DEV__) {
-      console.log("📤 Sentry Event:", event);
-    }
-    return event;
-  },
 });
 
 function RootLayout() {
@@ -36,7 +30,7 @@ function RootLayout() {
             borderTopColor: colors.background.elevated,
             borderTopWidth: 1,
             height: 60 + insets.bottom,
-            paddingBottom: insets.bottom,
+            paddingBottom: insets.bottom + 8,
             paddingTop: 8,
           },
           tabBarLabelStyle: {

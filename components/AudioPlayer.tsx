@@ -9,6 +9,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 
 export interface AudioPlayerProps {
@@ -20,6 +21,13 @@ export interface AudioPlayerProps {
   onPositionChange?: (position: number) => void;
   autoPlay?: boolean; // Auto-start playback when loaded
   isLocalFile?: boolean; // Indicates if audioUrl is a local file path
+  // Download controls
+  isDownloaded?: boolean;
+  isDownloading?: boolean;
+  downloadProgress?: number;
+  onDownload?: () => void;
+  onDeleteDownload?: () => void;
+  canDownload?: boolean;
 }
 
 interface PlaybackState {
@@ -48,6 +56,12 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   onPositionChange,
   autoPlay = false,
   isLocalFile = false,
+  isDownloaded = false,
+  isDownloading = false,
+  downloadProgress = 0,
+  onDownload,
+  onDeleteDownload,
+  canDownload = false,
 }) => {
   const [playbackState, setPlaybackState] = useState<PlaybackState>({
     position: 0,
@@ -303,8 +317,9 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
           </View>
         </View>
 
-        {/* Play/Pause Button */}
-        <View className="mb-6 items-center">
+        {/* Play/Pause Button with Download Controls */}
+        <View className="mb-6 flex-row items-center justify-center gap-6">
+          {/* Play/Pause Button - Left */}
           {playbackState.hasCompleted ? (
             <TouchableOpacity
               onPress={handleReplay}
@@ -327,6 +342,61 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 color={colors.background.primary}
               />
             </TouchableOpacity>
+          )}
+
+          {/* Download/Delete Button - Right */}
+          {canDownload && (
+            <View>
+              {isDownloading ? (
+                <View className="h-16 w-16 items-center justify-center">
+                  <ActivityIndicator
+                    size="large"
+                    color={colors.accent.primary}
+                  />
+                  <Text className="mt-1 text-xs text-neutral-400">
+                    {Math.round(downloadProgress * 100)}%
+                  </Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (isDownloaded) {
+                      // Show confirmation alert before deleting
+                      Alert.alert(
+                        "Delete Download",
+                        "Are you sure you want to delete this downloaded audio?",
+                        [
+                          {
+                            text: "Cancel",
+                            style: "cancel",
+                          },
+                          {
+                            text: "Delete",
+                            style: "destructive",
+                            onPress: onDeleteDownload,
+                          },
+                        ]
+                      );
+                    } else {
+                      onDownload?.();
+                    }
+                  }}
+                  className={`h-16 w-16 items-center justify-center rounded-full ${
+                    isDownloaded ? "bg-green-600" : "bg-neutral-700"
+                  }`}
+                  accessibilityLabel={
+                    isDownloaded ? "Delete download" : "Download for offline"
+                  }
+                  accessibilityRole="button"
+                >
+                  <Ionicons
+                    name={isDownloaded ? "checkmark-circle" : "download"}
+                    size={28}
+                    color="white"
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
           )}
         </View>
 

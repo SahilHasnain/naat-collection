@@ -549,61 +549,13 @@ const VideoModal: React.FC<VideoModalProps> = ({
                   onPositionChange={handlePositionChange}
                   autoPlay={true}
                   isLocalFile={isLocalFile}
+                  isDownloaded={isDownloaded}
+                  isDownloading={isDownloading}
+                  downloadProgress={downloadProgress}
+                  onDownload={handleDownload}
+                  onDeleteDownload={handleDeleteDownload}
+                  canDownload={!!propAudioId}
                 />
-
-                {/* Download Controls */}
-                <View className="px-6 py-4 bg-neutral-800 border-t border-neutral-700">
-                  {isDownloading ? (
-                    <View className="items-center">
-                      <View className="w-full mb-2">
-                        <View className="h-2 bg-neutral-700 rounded-full overflow-hidden">
-                          <View
-                            className="h-full bg-green-500"
-                            style={{ width: `${downloadProgress * 100}%` }}
-                          />
-                        </View>
-                      </View>
-                      <Text className="text-sm text-neutral-400">
-                        Downloading... {Math.round(downloadProgress * 100)}%
-                      </Text>
-                    </View>
-                  ) : isDownloaded ? (
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-row items-center">
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={24}
-                          color="#10b981"
-                        />
-                        <Text className="ml-2 text-sm text-neutral-300">
-                          Downloaded • Playing from device
-                        </Text>
-                      </View>
-                      <Pressable
-                        onPress={handleDeleteDownload}
-                        className="rounded-lg bg-red-600 px-4 py-2 active:opacity-80"
-                      >
-                        <Text className="text-sm font-semibold text-white">
-                          Delete
-                        </Text>
-                      </Pressable>
-                    </View>
-                  ) : (
-                    <Pressable
-                      onPress={handleDownload}
-                      disabled={!propAudioId}
-                      className="flex-row items-center justify-center rounded-lg bg-green-600 px-6 py-3 active:opacity-80"
-                      style={{
-                        opacity: !propAudioId ? 0.5 : 1,
-                      }}
-                    >
-                      <Ionicons name="download" size={20} color="white" />
-                      <Text className="ml-2 text-base font-semibold text-white">
-                        Download for Offline
-                      </Text>
-                    </Pressable>
-                  )}
-                </View>
               </View>
             ) : (
               <View className="flex-1 bg-black">
