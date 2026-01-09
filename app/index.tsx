@@ -193,15 +193,6 @@ export default function HomeScreen() {
   return (
     <View className="flex-1 bg-neutral-900">
       <View className="flex-1">
-        {/* Sticky Search Bar */}
-        <View className="px-4 pt-safe-top pb-3 bg-neutral-800 border-b border-neutral-700">
-          <SearchBar
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search naats..."
-          />
-        </View>
-
         {/* Scrollable Content */}
         <FlatList
           ref={flatListRef}
@@ -214,20 +205,31 @@ export default function HomeScreen() {
             paddingBottom: 50,
           }}
           ListHeaderComponent={
-            !isSearching ? (
-              <>
-                <ChannelFilterBar
-                  channels={channels}
-                  selectedChannelId={selectedChannelId}
-                  onChannelChange={handleChannelChange}
-                  loading={channelsLoading}
+            <>
+              {/* Search Bar */}
+              <View className="px-4 pt-safe-top pb-3 bg-neutral-800 border-b border-neutral-700">
+                <SearchBar
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder="Search naats..."
                 />
-                <SortFilterBar
-                  selectedFilter={selectedFilter}
-                  onFilterChange={handleFilterChange}
-                />
-              </>
-            ) : null
+              </View>
+
+              {!isSearching ? (
+                <>
+                  <ChannelFilterBar
+                    channels={channels}
+                    selectedChannelId={selectedChannelId}
+                    onChannelChange={handleChannelChange}
+                    loading={channelsLoading}
+                  />
+                  <SortFilterBar
+                    selectedFilter={selectedFilter}
+                    onFilterChange={handleFilterChange}
+                  />
+                </>
+              ) : null}
+            </>
           }
           ListEmptyComponent={renderEmptyState}
           ListFooterComponent={renderFooter}

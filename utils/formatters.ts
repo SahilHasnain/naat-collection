@@ -44,7 +44,7 @@ export function formatFileSize(bytes: number): string {
 }
 
 /**
- * Format download date as relative time (e.g., "Downloaded 2 days ago")
+ * Format download date as relative time (e.g., "just now", "2 days ago")
  */
 export function formatDownloadDate(timestamp: number): string {
   // Check cache first (with 1-minute granularity to avoid stale data)
@@ -67,19 +67,19 @@ export function formatDownloadDate(timestamp: number): string {
   let result: string;
 
   if (seconds < 60) {
-    result = "Downloaded just now";
+    result = "just now";
   } else if (minutes < 60) {
-    result = `Downloaded ${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
+    result = `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
   } else if (hours < 24) {
-    result = `Downloaded ${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+    result = `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
   } else if (days < 7) {
-    result = `Downloaded ${days} ${days === 1 ? "day" : "days"} ago`;
+    result = `${days} ${days === 1 ? "day" : "days"} ago`;
   } else if (weeks < 4) {
-    result = `Downloaded ${weeks} ${weeks === 1 ? "week" : "weeks"} ago`;
+    result = `${weeks} ${weeks === 1 ? "week" : "weeks"} ago`;
   } else if (months < 12) {
-    result = `Downloaded ${months} ${months === 1 ? "month" : "months"} ago`;
+    result = `${months} ${months === 1 ? "month" : "months"} ago`;
   } else {
-    result = `Downloaded ${years} ${years === 1 ? "year" : "years"} ago`;
+    result = `${years} ${years === 1 ? "year" : "years"} ago`;
   }
 
   // Cache the result
