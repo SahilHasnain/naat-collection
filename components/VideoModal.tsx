@@ -221,34 +221,22 @@ const VideoModal: React.FC<VideoModalProps> = ({
     setAudioError(error);
   };
 
-  // Check if audio is downloaded
-  const checkDownloadStatus = async () => {
-    if (!propAudioId) return;
-
-    try {
-      const downloaded = await audioDownloadService.isDownloaded(propAudioId);
-      setIsDownloaded(downloaded);
-
-      // If downloaded, use local file
-      if (downloaded) {
-        const localPath = audioDownloadService.getLocalPath(propAudioId);
-        setAudioUrl(localPath);
-        setIsLocalFile(true);
-      }
-    } catch (error) {
-      console.error("Failed to check download status:", error);
-    }
-  };
-
   // Download audio
   const handleDownload = async () => {
     if (!propAudioId || !audioUrl || isLocalFile) return;
+
+    // Show download started alert
+    Alert.alert(
+      "Download Started",
+      "Audio is downloading in the background. You can continue listening.",
+      [{ text: "OK" }]
+    );
 
     try {
       setIsDownloading(true);
       setDownloadProgress(0);
 
-      const localPath = await audioDownloadService.downloadAudio(
+      await audioDownloadService.downloadAudio(
         propAudioId,
         audioUrl,
         propYoutubeId || "",
@@ -259,15 +247,17 @@ const VideoModal: React.FC<VideoModalProps> = ({
       );
 
       setIsDownloaded(true);
-      setAudioUrl(localPath);
-      setIsLocalFile(true);
+
+      // Show success notification
+      Alert.alert(
+        "Download Complete",
+        "Audio downloaded successfully and ready for offline playback.",
+        [{ text: "OK" }]
+      );
     } catch (error) {
       console.error("Download failed:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Download failed";
-      setAudioError(
-        error instanceof Error ? error : new Error("Download failed")
-      );
 
       Alert.alert("Download Failed", errorMessage, [{ text: "OK" }]);
     } finally {
@@ -356,11 +346,6 @@ const VideoModal: React.FC<VideoModalProps> = ({
         // Ignore errors
       }
     }
-  };
-
-  // Toggle play/pause
-  const togglePlayPause = () => {
-    setVideoPlaying(!videoPlaying);
   };
 
   return (
@@ -547,7 +532,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
                   thumbnailUrl={thumbnailUrl || ""}
                   onError={handleAudioError}
                   onPositionChange={handlePositionChange}
-                  autoPlay={true}
+                  autoPlay={!isDownloading}
                   isLocalFile={isLocalFile}
                   isDownloaded={isDownloaded}
                   isDownloading={isDownloading}

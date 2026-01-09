@@ -5,11 +5,11 @@ import { Audio, AVPlaybackStatus } from "expo-av";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Text,
   TouchableOpacity,
   View,
-  Alert,
 } from "react-native";
 
 export interface AudioPlayerProps {
@@ -37,6 +37,7 @@ interface PlaybackState {
   isLoading: boolean;
   hasCompleted: boolean;
   error: Error | null;
+  isAudioReady: boolean;
 }
 
 // Format milliseconds to MM:SS
@@ -70,6 +71,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     isLoading: true,
     hasCompleted: false,
     error: null,
+    isAudioReady: false,
   });
   const [volume, setVolume] = useState(1.0);
 
@@ -115,7 +117,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   // Initialize audio and load the sound
   useEffect(() => {
     let isMounted = true;
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     const loadAudio = async () => {
       try {
@@ -144,11 +146,20 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         const { sound } = (await Promise.race([
           Audio.Sound.createAsync(
             { uri: audioUrl },
-            { shouldPlay: autoPlay, volume: 1.0 },
+            { shouldPlay: false, volume: 1.0 },
             onPlaybackStatusUpdate
           ),
           timeoutPromise,
         ])) as { sound: Audio.Sound };
+
+        // Only start playing after audio is fully loaded if autoPlay is true
+        if (autoPlay && isMounted) {
+          try {
+            await sound.playAsync();
+          } catch (error) {
+            console.error("[AudioPlayer] Error auto-playing:", error);
+          }
+        }
 
         // Clear timeout if successful
         clearTimeout(timeoutId);
@@ -157,7 +168,11 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
         if (isMounted) {
           soundRef.current = sound;
-          setPlaybackState((prev) => ({ ...prev, isLoading: false }));
+          setPlaybackState((prev) => ({
+            ...prev,
+            isLoading: false,
+            isAudioReady: true,
+          }));
         }
       } catch (error) {
         clearTimeout(timeoutId);
@@ -191,11 +206,11 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         soundRef.current.unloadAsync();
       }
     };
-  }, [audioUrl, onError, onPlaybackStatusUpdate]);
+  }, [audioUrl, autoPlay, onError, onPlaybackStatusUpdate]);
 
   // Play/pause toggle
   const togglePlayPause = async () => {
-    if (!soundRef.current) return;
+    if (!soundRef.current || !playbackState.isAudioReady) return;
 
     try {
       if (playbackState.isPlaying) {
@@ -346,57 +361,64 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
           {/* Download/Delete Button - Right */}
           {canDownload && (
-            <View>
-              {isDownloading ? (
-                <View className="h-16 w-16 items-center justify-center">
-                  <ActivityIndicator
-                    size="large"
-                    color={colors.accent.primary}
-                  />
-                  <Text className="mt-1 text-xs text-neutral-400">
-                    {Math.round(downloadProgress * 100)}%
-                  </Text>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  onPress={() => {
-                    if (isDownloaded) {
-                      // Show confirmation alert before deleting
-                      Alert.alert(
-                        "Delete Download",
-                        "Are you sure you want to delete this downloaded audio?",
-                        [
-                          {
-                            text: "Cancel",
-                            style: "cancel",
-                          },
-                          {
-                            text: "Delete",
-                            style: "destructive",
-                            onPress: onDeleteDownload,
-                          },
-                        ]
-                      );
-                    } else {
-                      onDownload?.();
-                    }
-                  }}
-                  className={`h-16 w-16 items-center justify-center rounded-full ${
-                    isDownloaded ? "bg-green-600" : "bg-neutral-700"
-                  }`}
-                  accessibilityLabel={
-                    isDownloaded ? "Delete download" : "Download for offline"
-                  }
-                  accessibilityRole="button"
-                >
-                  <Ionicons
-                    name={isDownloaded ? "checkmark-circle" : "download"}
-                    size={28}
-                    color="white"
-                  />
-                </TouchableOpacity>
-              )}
-            </View>
+            <TouchableOpacity
+              onPress={() => {
+                if (isDownloaded) {
+                  // Show confirmation alert before deleting
+                  Alert.alert(
+                    "Delete Download",
+                    "Are you sure you want to delete this downloaded audio?",
+                    [
+                      {
+                        text: "Cancel",
+                        style: "cancel",
+                      },
+                      {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: onDeleteDownload,
+                      },
+                    ]
+                  );
+                } else if (isDownloading) {
+                  // Show downloading status
+                  Alert.alert(
+                    "Download in Progress",
+                    `Downloading... ${Math.round(downloadProgress * 100)}%`,
+                    [{ text: "OK" }]
+                  );
+                } else {
+                  onDownload?.();
+                }
+              }}
+              className={`h-16 w-16 items-center justify-center rounded-full ${
+                isDownloaded
+                  ? "bg-green-600"
+                  : isDownloading
+                    ? "bg-blue-600"
+                    : "bg-neutral-700"
+              }`}
+              accessibilityLabel={
+                isDownloaded
+                  ? "Delete download"
+                  : isDownloading
+                    ? "Downloading"
+                    : "Download for offline"
+              }
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name={
+                  isDownloaded
+                    ? "checkmark-circle"
+                    : isDownloading
+                      ? "hourglass"
+                      : "download"
+                }
+                size={28}
+                color="white"
+              />
+            </TouchableOpacity>
           )}
         </View>
 

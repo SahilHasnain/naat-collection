@@ -110,12 +110,20 @@ class AudioDownloadService {
       {},
       (downloadProgress) => {
         if (onProgress) {
+          // Safely calculate progress to prevent negative or extreme values
+          const totalBytes = downloadProgress.totalBytesExpectedToWrite || 0;
+          const bytesWritten = downloadProgress.totalBytesWritten || 0;
+
+          // Ensure progress is between 0 and 1
+          let progressValue = 0;
+          if (totalBytes > 0 && bytesWritten >= 0) {
+            progressValue = Math.min(Math.max(bytesWritten / totalBytes, 0), 1);
+          }
+
           const progress: DownloadProgress = {
-            totalBytes: downloadProgress.totalBytesExpectedToWrite,
-            bytesWritten: downloadProgress.totalBytesWritten,
-            progress:
-              downloadProgress.totalBytesWritten /
-              downloadProgress.totalBytesExpectedToWrite,
+            totalBytes,
+            bytesWritten,
+            progress: progressValue,
           };
           onProgress(progress);
         }
