@@ -1,107 +1,43 @@
-import { colors } from "@/constants/theme";
+import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { DownloadedAudioModalProps } from "@/types";
-import { showErrorToast } from "@/utils/toast";
-import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
-import { Modal, StatusBar, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import AudioPlayer from "./AudioPlayer";
+import React, { useEffect } from "react";
 
 const DownloadedAudioModal: React.FC<DownloadedAudioModalProps> = ({
   visible,
   onClose,
   audio,
 }) => {
-  const [error, setError] = useState<Error | null>(null);
+  const { loadAndPlay } = useAudioPlayer();
 
-  // Generate thumbnail URL from YouTube ID
-  const thumbnailUrl = `https://img.youtube.com/vi/${audio.youtubeId}/maxresdefault.jpg`;
+  // When modal becomes visible, load and play the audio via AudioContext
+  useEffect(() => {
+    if (visible && audio) {
+      const loadAudio = async () => {
+        // Generate thumbnail URL from YouTube ID
+        const thumbnailUrl = `https://img.youtube.com/vi/${audio.youtubeId}/maxresdefault.jpg`;
 
-  // Handle audio player errors
-  const handleError = (err: Error) => {
-    console.error("[DownloadedAudioModal] Audio error:", err);
-    setError(err);
-    showErrorToast("Unable to play audio file");
-  };
+        const audioMetadata: AudioMetadata = {
+          audioUrl: audio.localUri,
+          title: audio.title,
+          channelName: "Downloaded Audio",
+          thumbnailUrl,
+          isLocalFile: true,
+          audioId: audio.audioId,
+          youtubeId: audio.youtubeId,
+        };
 
-  // Reset state when modal opens
-  React.useEffect(() => {
-    if (visible) {
-      setError(null);
+        await loadAndPlay(audioMetadata);
+
+        // Close modal immediately - audio will play via MiniPlayer
+        onClose();
+      };
+
+      loadAudio();
     }
-  }, [visible]);
+  }, [visible, audio, loadAndPlay, onClose]);
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      transparent={false}
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor={colors.background.primary}
-      />
-
-      {/* Full Height Modal Container */}
-      <SafeAreaView edges={["bottom"]} className="flex-1 bg-black">
-        {/* Modal Content Container */}
-        <View className="flex-1">
-          <View className="flex-1 bg-neutral-900 overflow-hidden">
-            {/* Header without Close Button */}
-            <SafeAreaView
-              edges={["top"]}
-              className="bg-neutral-800 border-b border-neutral-700"
-            >
-              <View className="px-5 py-4">
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-1">
-                    <Text className="text-base font-bold text-white leading-tight">
-                      {audio.title}
-                    </Text>
-                    <Text className="text-sm text-neutral-400 mt-1">
-                      Downloaded Audio
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </SafeAreaView>
-
-            {/* Audio Player or Error State */}
-            {error ? (
-              <View className="flex-1 items-center justify-center px-8 bg-black">
-                <Ionicons
-                  name="alert-circle"
-                  size={64}
-                  color={colors.accent.error}
-                />
-                <Text className="mt-4 text-center text-xl font-bold text-white">
-                  Playback Error
-                </Text>
-                <Text className="mt-2 text-center text-base text-neutral-400">
-                  {error.message ||
-                    "Unable to play this audio file. It may be corrupted or deleted."}
-                </Text>
-              </View>
-            ) : (
-              <View className="flex-1">
-                <AudioPlayer
-                  audioUrl={audio.localUri}
-                  title={audio.title}
-                  channelName="Downloaded Audio"
-                  thumbnailUrl={thumbnailUrl}
-                  onError={handleError}
-                  autoPlay={true}
-                  isLocalFile={true}
-                />
-              </View>
-            )}
-          </View>
-        </View>
-      </SafeAreaView>
-    </Modal>
-  );
+  // This component doesn't render anything - it just triggers audio playback
+  return null;
 };
 
 export default DownloadedAudioModal;
