@@ -7,7 +7,7 @@
     "icon": "./assets/images/android-icon-foreground.png",
     "scheme": "ubaidraza",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
