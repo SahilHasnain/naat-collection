@@ -6,13 +6,20 @@ import EmptyState from "@/components/EmptyState";
 import SearchBar from "@/components/SearchBar";
 import { SkeletonDownloadCard } from "@/components/SkeletonLoader";
 import { colors } from "@/constants/theme";
+import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { useDownloads } from "@/hooks/useDownloads";
 import { DownloadMetadata } from "@/services/audioDownload";
 import { filterDownloadsByQuery, sortDownloads } from "@/utils/formatters";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -40,6 +47,9 @@ export default function DownloadsScreen() {
     deleteAudio,
     clearAll,
   } = useDownloads();
+
+  // Audio player context
+  const { loadAndPlay, setAutoplayCallback } = useAudioPlayer();
 
   // Modal state
   const [selectedAudio, setSelectedAudio] = useState<DownloadMetadata | null>(
@@ -76,6 +86,45 @@ export default function DownloadsScreen() {
     let filtered = filterDownloadsByQuery(downloads, debouncedQuery);
     return sortDownloads(filtered, sortBy, sortOrder);
   }, [downloads, debouncedQuery, sortBy, sortOrder]);
+
+  // Set up autoplay callback for downloads
+  useEffect(() => {
+    const handleAutoplay = async () => {
+      if (downloads.length === 0) {
+        console.log("[Autoplay] No downloads available for autoplay");
+        return;
+      }
+
+      // Pick a random download
+      const randomIndex = Math.floor(Math.random() * downloads.length);
+      const randomDownload = downloads[randomIndex];
+
+      console.log("[Autoplay] Playing random download:", randomDownload.title);
+
+      // Generate thumbnail URL from YouTube ID
+      const thumbnailUrl = `https://img.youtube.com/vi/${randomDownload.youtubeId}/maxresdefault.jpg`;
+
+      const audioMetadata: AudioMetadata = {
+        audioUrl: randomDownload.localUri,
+        title: randomDownload.title,
+        channelName: "Downloaded Audio",
+        thumbnailUrl,
+        isLocalFile: true,
+        audioId: randomDownload.audioId,
+        youtubeId: randomDownload.youtubeId,
+      };
+
+      await loadAndPlay(audioMetadata);
+    };
+
+    // Register the callback
+    setAutoplayCallback(handleAutoplay);
+
+    // Cleanup
+    return () => {
+      setAutoplayCallback(null);
+    };
+  }, [downloads, loadAndPlay, setAutoplayCallback]);
 
   // Handle audio selection
   const handleAudioPress = useCallback((audio: DownloadMetadata) => {
@@ -235,7 +284,7 @@ export default function DownloadsScreen() {
   }, []);
 
   // Optimize FlatList performance with getItemLayout
-  const ITEM_HEIGHT = 136; // Card height + margin
+  const ITEM_HEIGHT = 140; // Card height + margin (136 + 4)
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
       length: ITEM_HEIGHT,
@@ -251,7 +300,7 @@ export default function DownloadsScreen() {
       const isDeleting = deletingIds.has(item.audioId);
 
       return (
-        <View className="px-4">
+        <View className="px-4 mb-4">
           <View className="relative">
             <DownloadedAudioCard
               audio={item}
@@ -385,13 +434,10 @@ export default function DownloadsScreen() {
     );
   };
 
-  return (
-    <SafeAreaView className="flex-1 bg-neutral-900" edges={["top"]}>
-      <View
-        className="flex-1"
-        accessible={false}
-        accessibilityLabel="Downloads screen"
-      >
+  // Render list header with all fixed components
+  const renderListHeader = () => {
+    return (
+      <View>
         {/* Header with storage info */}
         <DownloadsHeader
           totalSize={totalSize}
@@ -412,17 +458,28 @@ export default function DownloadsScreen() {
 
         {/* Sort Filter Bar */}
         {renderSortBar()}
+      </View>
+    );
+  };
 
-        {/* Downloads List */}
+  return (
+    <SafeAreaView className="flex-1 bg-neutral-900" edges={["top"]}>
+      <View
+        className="flex-1"
+        accessible={false}
+        accessibilityLabel="Downloads screen"
+      >
+        {/* Downloads List with Header */}
         <FlatList
           ref={flatListRef}
           data={displayData}
           renderItem={renderDownloadCard}
           keyExtractor={(item) => item.audioId}
           getItemLayout={getItemLayout}
+          ListHeaderComponent={renderListHeader}
           contentContainerStyle={{
             flexGrow: 1,
-            paddingTop: 16,
+            paddingTop: 0,
             paddingBottom: 50,
           }}
           ListEmptyComponent={renderEmptyState}
@@ -442,6 +499,7 @@ export default function DownloadsScreen() {
           windowSize={10}
           initialNumToRender={10}
           accessibilityLabel={`${displayData.length} downloaded audio ${displayData.length === 1 ? "file" : "files"}`}
+          stickyHeaderIndices={[]}
         />
 
         {/* Back to Top Button */}

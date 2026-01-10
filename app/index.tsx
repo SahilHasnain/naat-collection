@@ -40,7 +40,7 @@ export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   // Audio player context
-  const { loadAndPlay } = useAudioPlayer();
+  const { loadAndPlay, setAutoplayCallback } = useAudioPlayer();
 
   // Data fetching hooks
   const {
@@ -69,6 +69,36 @@ export default function HomeScreen() {
   const isSearching = query.trim().length > 0;
   const displayData: Naat[] = isSearching ? searchResults : naats;
   const isLoading = isSearching ? searchLoading : loading;
+
+  // Set up autoplay callback
+  useEffect(() => {
+    const handleAutoplay = async () => {
+      // Get all available naats (not just displayed ones)
+      const availableNaats = displayData.filter((naat) => naat.audioId);
+
+      if (availableNaats.length === 0) {
+        console.log("[Autoplay] No naats available for autoplay");
+        return;
+      }
+
+      // Pick a random naat
+      const randomIndex = Math.floor(Math.random() * availableNaats.length);
+      const randomNaat = availableNaats[randomIndex];
+
+      console.log("[Autoplay] Playing random naat:", randomNaat.title);
+
+      // Load the random naat
+      await loadAudioDirectly(randomNaat);
+    };
+
+    // Register the callback
+    setAutoplayCallback(handleAutoplay);
+
+    // Cleanup
+    return () => {
+      setAutoplayCallback(null);
+    };
+  }, [displayData, setAutoplayCallback]);
 
   // Handle naat selection - check preference and open accordingly
   const handleNaatPress = async (naatId: string) => {

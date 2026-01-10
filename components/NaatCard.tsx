@@ -14,7 +14,6 @@ const formatDuration = (seconds: number): string => {
 const NaatCard: React.FC<NaatCardProps> = React.memo(
   ({ title, thumbnail, duration, uploadDate, channelName, views, onPress }) => {
     const [imageError, setImageError] = React.useState(false);
-    const [isPressed, setIsPressed] = React.useState(false);
     const [imageLoading, setImageLoading] = React.useState(true);
 
     // Debug: Log thumbnail URL
@@ -25,14 +24,11 @@ const NaatCard: React.FC<NaatCardProps> = React.memo(
     return (
       <Pressable
         onPress={onPress}
-        onPressIn={() => setIsPressed(true)}
-        onPressOut={() => setIsPressed(false)}
         className="mb-5 overflow-hidden rounded-2xl bg-neutral-800 shadow-lg"
-        style={{
+        style={({ pressed }) => ({
           ...shadows.md,
-          transform: [{ scale: isPressed ? 0.97 : 1 }],
-          opacity: isPressed ? 0.85 : 1,
-        }}
+          opacity: pressed ? 0.7 : 1,
+        })}
       >
         {/* Thumbnail Section with explicit 16:9 aspect ratio */}
         <View

@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio, AVPlaybackStatus } from "expo-av";
 import React, {
   createContext,
@@ -27,6 +28,8 @@ interface AudioContextType {
   duration: number;
   volume: number;
   error: Error | null;
+  isRepeatEnabled: boolean;
+  isAutoplayEnabled: boolean;
 
   // Actions
   loadAndPlay: (audio: AudioMetadata) => Promise<void>;
@@ -36,9 +39,15 @@ interface AudioContextType {
   setVolume: (volume: number) => Promise<void>;
   stop: () => Promise<void>;
   togglePlayPause: () => Promise<void>;
+  toggleRepeat: () => Promise<void>;
+  toggleAutoplay: () => Promise<void>;
+  setAutoplayCallback: (callback: (() => Promise<void>) | null) => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
+
+const REPEAT_KEY = "@audio_repeat_enabled";
+const AUTOPLAY_KEY = "@audio_autoplay_enabled";
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -50,8 +59,45 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(1.0);
   const [error, setError] = useState<Error | null>(null);
+  const [isRepeatEnabled, setIsRepeatEnabled] = useState(false);
+  const [isAutoplayEnabled, setIsAutoplayEnabled] = useState(false);
 
   const soundRef = useRef<Audio.Sound | null>(null);
+  const autoplayCallbackRef = useRef<(() => Promise<void>) | null>(null);
+  const isRepeatEnabledRef = useRef(false);
+  const isAutoplayEnabledRef = useRef(false);
+
+  // Sync refs with state
+  useEffect(() => {
+    isRepeatEnabledRef.current = isRepeatEnabled;
+  }, [isRepeatEnabled]);
+
+  useEffect(() => {
+    isAutoplayEnabledRef.current = isAutoplayEnabled;
+  }, [isAutoplayEnabled]);
+
+  // Load saved preferences
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const [repeatValue, autoplayValue] = await Promise.all([
+          AsyncStorage.getItem(REPEAT_KEY),
+          AsyncStorage.getItem(AUTOPLAY_KEY),
+        ]);
+
+        if (repeatValue !== null) {
+          setIsRepeatEnabled(repeatValue === "true");
+        }
+        if (autoplayValue !== null) {
+          setIsAutoplayEnabled(autoplayValue === "true");
+        }
+      } catch (err) {
+        console.error("[AudioContext] Error loading preferences:", err);
+      }
+    };
+
+    loadPreferences();
+  }, []);
 
   // Configure audio session for background playback
   useEffect(() => {
@@ -91,8 +137,31 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Handle playback completion
     if (status.didJustFinish) {
+      console.log("[AudioContext] Track finished");
       setIsPlaying(false);
-      setPosition(0);
+
+      // Use refs to get current values (not stale closure values)
+      const repeatEnabled = isRepeatEnabledRef.current;
+      const autoplayEnabled = isAutoplayEnabledRef.current;
+
+      console.log(
+        "[AudioContext] Repeat enabled:",
+        repeatEnabled,
+        "Autoplay enabled:",
+        autoplayEnabled
+      );
+
+      // Handle repeat
+      if (repeatEnabled && soundRef.current) {
+        console.log("[AudioContext] Repeating track");
+        soundRef.current.replayAsync();
+      } else if (autoplayEnabled && autoplayCallbackRef.current) {
+        // Handle autoplay - play random track
+        console.log("[AudioContext] Autoplay triggered");
+        autoplayCallbackRef.current();
+      } else {
+        setPosition(0);
+      }
     }
   }, []);
 
@@ -214,6 +283,38 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
   }, []);
 
+  // Toggle repeat
+  const toggleRepeat = useCallback(async () => {
+    const newValue = !isRepeatEnabled;
+    setIsRepeatEnabled(newValue);
+    try {
+      await AsyncStorage.setItem(REPEAT_KEY, String(newValue));
+      console.log("[AudioContext] Repeat toggled:", newValue);
+    } catch (err) {
+      console.error("[AudioContext] Error saving repeat preference:", err);
+    }
+  }, [isRepeatEnabled]);
+
+  // Toggle autoplay
+  const toggleAutoplay = useCallback(async () => {
+    const newValue = !isAutoplayEnabled;
+    setIsAutoplayEnabled(newValue);
+    try {
+      await AsyncStorage.setItem(AUTOPLAY_KEY, String(newValue));
+      console.log("[AudioContext] Autoplay toggled:", newValue);
+    } catch (err) {
+      console.error("[AudioContext] Error saving autoplay preference:", err);
+    }
+  }, [isAutoplayEnabled]);
+
+  // Set autoplay callback (to be called from screen with access to data)
+  const setAutoplayCallback = useCallback(
+    (callback: (() => Promise<void>) | null) => {
+      autoplayCallbackRef.current = callback;
+    },
+    []
+  );
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -231,6 +332,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     duration,
     volume,
     error,
+    isRepeatEnabled,
+    isAutoplayEnabled,
     loadAndPlay,
     play,
     pause,
@@ -238,6 +341,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     setVolume,
     stop,
     togglePlayPause,
+    toggleRepeat,
+    toggleAutoplay,
+    setAutoplayCallback,
   };
 
   return (
