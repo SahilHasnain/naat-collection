@@ -16,7 +16,8 @@ interface MiniPlayerProps {
 }
 
 const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
-  const { currentAudio, isPlaying, togglePlayPause, stop } = useAudioPlayer();
+  const { currentAudio, isPlaying, togglePlayPause, stop, position, duration } =
+    useAudioPlayer();
 
   // Animation for slide up/down
   const slideAnim = useRef(new Animated.Value(100)).current;
@@ -43,6 +44,9 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
 
   if (!currentAudio) return null;
 
+  // Calculate progress percentage
+  const progress = duration > 0 ? (position / duration) * 100 : 0;
+
   return (
     <Animated.View
       style={{
@@ -61,6 +65,14 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
         accessibilityRole="button"
         accessibilityLabel={`Now playing: ${currentAudio.title}. Double tap to expand player.`}
       >
+        {/* Progress Bar */}
+        <View className="absolute top-0 left-0 right-0 h-0.5 bg-neutral-700">
+          <View
+            className="h-full"
+            style={{ width: `${progress}%`, backgroundColor: colors.accent.primary }}
+          />
+        </View>
+
         <View className="flex-row items-center h-full px-3">
           {/* Thumbnail */}
           <View
