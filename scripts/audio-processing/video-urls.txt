@@ -1,0 +1,8 @@
+# Naat Video URLs for Batch Processing
+# Add one YouTube URL per line
+# Lines starting with # are ignored
+
+# Example:
+# https://youtu.be/mgONEN7IqE8
+# https://youtu.be/VIDEO_ID_2
+# https://youtu.be/VIDEO_ID_3

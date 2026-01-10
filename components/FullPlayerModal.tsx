@@ -185,7 +185,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
             <View className="flex-1 items-center justify-center px-8">
               <Image
                 source={{ uri: currentAudio.thumbnailUrl }}
-                style={{ width: 320, height: 240 }}
+                style={{ width: 320, height: 320 }}
                 className="rounded-2xl"
                 contentFit="cover"
                 cachePolicy="memory-disk"

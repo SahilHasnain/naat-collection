@@ -200,6 +200,51 @@ async function processNaat(naat, index, total) {
 }
 
 /**
+ * Fetch all naats without audioId using pagination
+ */
+async function fetchAllNaatsWithoutAudio(userLimit = null) {
+  const BATCH_SIZE = 100;
+  let allNaats = [];
+  let offset = 0;
+  let hasMore = true;
+
+  console.log("📥 Fetching naats from database in batches...");
+
+  while (hasMore) {
+    const queries = [
+      Query.isNull("audioId"),
+      Query.limit(BATCH_SIZE),
+      Query.offset(offset),
+    ];
+
+    const response = await databases.listDocuments(
+      DATABASE_ID,
+      NAATS_COLLECTION_ID,
+      queries
+    );
+
+    const batch = response.documents;
+    allNaats.push(...batch);
+
+    console.log(
+      `  Fetched batch: ${batch.length} naats (total: ${allNaats.length})`
+    );
+
+    // Check if we should continue
+    hasMore = batch.length === BATCH_SIZE;
+    offset += BATCH_SIZE;
+
+    // If user specified a limit, stop when we reach it
+    if (userLimit && allNaats.length >= userLimit) {
+      allNaats = allNaats.slice(0, userLimit);
+      hasMore = false;
+    }
+  }
+
+  return allNaats;
+}
+
+/**
  * Main function
  */
 async function main() {
@@ -218,22 +263,8 @@ async function main() {
   // Ensure temp directory exists
   ensureTempDir();
 
-  // Build query - only fetch naats without audioId
-  const queries = [Query.isNull("audioId")];
-
-  if (limit) {
-    queries.push(Query.limit(limit));
-  }
-
-  // Fetch naats
-  console.log("📥 Fetching naats from database...");
-  const response = await databases.listDocuments(
-    DATABASE_ID,
-    NAATS_COLLECTION_ID,
-    queries
-  );
-
-  const naats = response.documents;
+  // Fetch all naats without audio using pagination
+  const naats = await fetchAllNaatsWithoutAudio(limit);
   console.log(`✓ Found ${naats.length} naats without audio\n`);
 
   if (naats.length === 0) {
