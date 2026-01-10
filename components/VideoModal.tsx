@@ -1,5 +1,6 @@
 import { colors, shadows } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
+import { useVideoPlayer } from "@/contexts/VideoContext";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
@@ -46,10 +47,20 @@ const VideoModal: React.FC<VideoModalProps> = ({
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const [audioLoading, setAudioLoading] = React.useState(false);
 
-  // Get audio player context
+  // Get contexts
   const { loadAndPlay } = useAudioPlayer();
+  const {
+    loadVideo,
+    clearVideo,
+    setPlaying,
+    setPosition: setContextPosition,
+    setDuration: setContextDuration,
+    handleVideoEnd,
+    isRepeatEnabled,
+    toggleRepeat,
+  } = useVideoPlayer();
 
-  // Video playback state
+  // Local video playback state (for UI)
   const [videoPlaying, setVideoPlaying] = React.useState(false);
   const [videoDuration, setVideoDuration] = React.useState(0);
   const [videoPosition, setVideoPosition] = React.useState(0);
@@ -80,15 +91,41 @@ const VideoModal: React.FC<VideoModalProps> = ({
       setVideoDuration(0);
       setVideoPlaying(false);
 
+      // Load video into context
+      if (title && channelName && thumbnailUrl) {
+        loadVideo({
+          videoUrl,
+          videoId: getYouTubeId(videoUrl),
+          title,
+          channelName,
+          thumbnailUrl,
+          youtubeId: propYoutubeId,
+          audioId: propAudioId,
+        });
+      }
+
       // Only save video mode preference if this is NOT a fallback
-      // (i.e., user explicitly chose to open video)
       if (!isFallback) {
         storageService.savePlaybackMode("video").catch((error) => {
           console.error("Failed to save video mode preference:", error);
         });
       }
+    } else {
+      // Clear video from context when modal closes
+      clearVideo();
     }
-  }, [visible, isFallback]);
+  }, [
+    visible,
+    isFallback,
+    videoUrl,
+    title,
+    channelName,
+    thumbnailUrl,
+    propYoutubeId,
+    propAudioId,
+    loadVideo,
+    clearVideo,
+  ]);
 
   // Switch to audio mode - loads audio via AudioContext and closes modal
   const switchToAudio = async () => {
@@ -184,6 +221,8 @@ const VideoModal: React.FC<VideoModalProps> = ({
         try {
           const currentTime = await playerRef.current.getCurrentTime();
           setVideoPosition(currentTime);
+          // Update context position
+          setContextPosition(currentTime);
         } catch {
           // Ignore errors
         }
@@ -191,16 +230,42 @@ const VideoModal: React.FC<VideoModalProps> = ({
     }, 500);
 
     return () => clearInterval(interval);
-  }, [visible]);
+  }, [visible, setContextPosition]);
 
   // Handle video state changes
-  const onStateChange = React.useCallback((state: string) => {
-    if (state === "playing") {
-      setVideoPlaying(true);
-    } else if (state === "paused" || state === "ended") {
-      setVideoPlaying(false);
-    }
-  }, []);
+  const onStateChange = React.useCallback(
+    (state: string) => {
+      if (state === "playing") {
+        setVideoPlaying(true);
+        setPlaying(true);
+      } else if (state === "paused") {
+        setVideoPlaying(false);
+        setPlaying(false);
+      } else if (state === "ended") {
+        setVideoPlaying(false);
+        setPlaying(false);
+
+        // Handle repeat manually
+        if (isRepeatEnabled && playerRef.current) {
+          console.log("[VideoModal] Repeating video");
+          // Seek to start and play again
+          setTimeout(async () => {
+            try {
+              await playerRef.current.seekTo(0, true);
+              setVideoPlaying(true);
+              setPlaying(true);
+            } catch (error) {
+              console.error("[VideoModal] Error repeating video:", error);
+            }
+          }, 100); // Small delay to ensure video is ready
+        } else {
+          // Notify context that video ended (for autoplay)
+          handleVideoEnd();
+        }
+      }
+    },
+    [setPlaying, handleVideoEnd, isRepeatEnabled]
+  );
 
   // Seek to position in video
   const seekToPosition = async (seconds: number) => {
@@ -272,6 +337,8 @@ const VideoModal: React.FC<VideoModalProps> = ({
                         .getDuration()
                         .then((duration: number) => {
                           setVideoDuration(duration);
+                          // Update context duration
+                          setContextDuration(duration);
                         });
                     }
                   }}
@@ -330,6 +397,34 @@ const VideoModal: React.FC<VideoModalProps> = ({
                       {formatTime(videoDuration)}
                     </Text>
                   </View>
+                </View>
+
+                {/* Repeat Button */}
+                <View className="mb-4 flex-row items-center justify-center">
+                  <Pressable
+                    onPress={toggleRepeat}
+                    className="flex-row items-center gap-2 px-4 py-2 rounded-full bg-neutral-800"
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      isRepeatEnabled ? "Repeat enabled" : "Repeat disabled"
+                    }
+                  >
+                    <Ionicons
+                      name="repeat"
+                      size={20}
+                      color={isRepeatEnabled ? colors.accent.primary : "white"}
+                    />
+                    <Text
+                      className="text-sm font-medium"
+                      style={{
+                        color: isRepeatEnabled
+                          ? colors.accent.primary
+                          : "white",
+                      }}
+                    >
+                      Repeat
+                    </Text>
+                  </Pressable>
                 </View>
 
                 {/* Play as Audio Button */}

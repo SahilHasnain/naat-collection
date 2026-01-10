@@ -70,7 +70,7 @@ export default function HomeScreen() {
   const displayData: Naat[] = isSearching ? searchResults : naats;
   const isLoading = isSearching ? searchLoading : loading;
 
-  // Set up autoplay callback
+  // Set up autoplay callback for audio
   useEffect(() => {
     const handleAutoplay = async () => {
       // Get all available naats (not just displayed ones)

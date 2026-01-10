@@ -4,6 +4,7 @@ import MiniPlayer from "@/components/MiniPlayer";
 import VideoModal from "@/components/VideoModal";
 import { colors } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
+import { VideoProvider } from "@/contexts/VideoContext";
 import { storageService } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
 import * as Sentry from "@sentry/react-native";
@@ -155,9 +156,11 @@ function RootLayout() {
   return (
     <SafeAreaProvider>
       <AudioProvider>
-        <ErrorBoundary>
-          <RootLayoutContent />
-        </ErrorBoundary>
+        <VideoProvider>
+          <ErrorBoundary>
+            <RootLayoutContent />
+          </ErrorBoundary>
+        </VideoProvider>
       </AudioProvider>
     </SafeAreaProvider>
   );
