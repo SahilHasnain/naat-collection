@@ -114,7 +114,7 @@ async function downloadAudio(youtubeId, title, ytdlpPath) {
   console.log(`  Downloading: ${title}`);
   console.log(`  YouTube ID: ${youtubeId}`);
 
-  const command = `${ytdlpPath} --extractor-args "youtube:player_client=ios" -f "bestaudio" --extract-audio --audio-format m4a --audio-quality 128K -o "${outputPath}" --no-playlist "https://www.youtube.com/watch?v=${youtubeId}"`;
+  const command = `${ytdlpPath} --js-runtimes node -f "bestaudio[ext=m4a]/bestaudio" --extract-audio --audio-format m4a --audio-quality 128K -o "${outputPath}" --no-playlist "https://www.youtube.com/watch?v=${youtubeId}"`;
 
   try {
     const { stdout, stderr } = await execAsync(command, {
