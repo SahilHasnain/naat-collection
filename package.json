@@ -18,6 +18,7 @@
     "process:naat:qubrid": "node scripts/audio-processing/process-naat-audio-qubrid-v2.js",
     "process:naat:local": "node scripts/audio-processing/process-naat-audio-local-v2.js",
     "upload:audio": "node scripts/utilities/download-audio.js",
+    "termux:upload": "node scripts/utilities/download-audio-termux.js",
     "test": "jest",
     "test:watch": "jest --watch"
   },
