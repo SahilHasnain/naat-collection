@@ -1,23 +1,135 @@
 import { BackToTopButton, VideoModal } from "@/components";
 import EmptyState from "@/components/EmptyState";
 import NaatCard from "@/components/NaatCard";
+import SearchBar from "@/components/SearchBar";
 import { colors } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
-import { useHistory } from "@/hooks/useHistory";
+import { HistoryItem, useHistory } from "@/hooks/useHistory";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
 import type { Naat } from "@/types";
-import { showErrorToast } from "@/utils/toast";
-import React, { useCallback, useRef, useState } from "react";
 import {
+  DateGroup,
+  formatRelativeTime,
+  groupByDate,
+} from "@/utils/dateGrouping";
+import { showErrorToast, showSuccessToast } from "@/utils/toast";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import {
+  AccessibilityInfo,
   ActivityIndicator,
-  FlatList,
+  Alert,
+  Pressable,
   RefreshControl,
+  SectionList,
   Text,
   View,
 } from "react-native";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Section type for grouped history
+interface HistorySection {
+  title: DateGroup;
+  data: HistoryItem[];
+}
+
+// Swipeable card component
+function SwipeableHistoryCard({
+  item,
+  onPress,
+  onDelete,
+}: {
+  item: HistoryItem;
+  onPress: () => void;
+  onDelete: () => void;
+}) {
+  const translateX = useSharedValue(0);
+  const itemHeight = useSharedValue(1);
+
+  const panGesture = Gesture.Pan()
+    .activeOffsetX([-10, 10])
+    .onUpdate((event) => {
+      // Only allow left swipe (negative translation)
+      if (event.translationX < 0) {
+        translateX.value = event.translationX;
+      }
+    })
+    .onEnd((event) => {
+      const shouldDelete = event.translationX < -100;
+
+      if (shouldDelete) {
+        translateX.value = withTiming(-500, { duration: 300 });
+        itemHeight.value = withTiming(0, { duration: 300 }, () => {
+          runOnJS(onDelete)();
+        });
+      } else {
+        translateX.value = withSpring(0);
+      }
+    });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+    height: itemHeight.value === 0 ? 0 : undefined,
+    opacity: itemHeight.value,
+  }));
+
+  const deleteButtonStyle = useAnimatedStyle(() => ({
+    opacity: translateX.value < -20 ? 1 : 0,
+  }));
+
+  return (
+    <View className="relative mb-4">
+      {/* Delete button background */}
+      <Animated.View
+        style={deleteButtonStyle}
+        className="absolute right-4 top-0 bottom-0 justify-center"
+      >
+        <View className="bg-red-500 px-6 rounded-2xl h-full justify-center">
+          <Ionicons name="trash-outline" size={24} color="white" />
+        </View>
+      </Animated.View>
+
+      {/* Swipeable card */}
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={animatedStyle}>
+          <View className="relative">
+            <NaatCard
+              id={item.$id}
+              title={item.title}
+              thumbnail={item.thumbnailUrl}
+              duration={item.duration}
+              uploadDate={item.uploadDate}
+              channelName={item.channelName}
+              views={item.views}
+              onPress={onPress}
+            />
+            {/* Timestamp overlay */}
+            <View className="absolute top-2 right-2 bg-black/70 px-2 py-1 rounded-md">
+              <Text className="text-xs text-neutral-300">
+                {formatRelativeTime(item.watchedAt)}
+              </Text>
+            </View>
+          </View>
+        </Animated.View>
+      </GestureDetector>
+    </View>
+  );
+}
 
 export default function HistoryScreen() {
   // Modal state
@@ -31,13 +143,14 @@ export default function HistoryScreen() {
 
   // Back to top state
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const flatListRef = useRef<FlatList>(null);
+  const sectionListRef = useRef<SectionList<HistoryItem, HistorySection>>(null);
 
   // Audio player context
   const { loadAndPlay } = useAudioPlayer();
 
   // Data fetching hook
-  const { history, loading, error, refresh, clearHistory } = useHistory();
+  const { history, loading, error, refresh, clearHistory, removeFromHistory } =
+    useHistory();
 
   // Debounce search input
   React.useEffect(() => {
@@ -49,7 +162,7 @@ export default function HistoryScreen() {
   }, [searchQuery]);
 
   // Filter history based on search query
-  const displayData = useMemo(() => {
+  const filteredHistory = useMemo(() => {
     if (!debouncedQuery.trim()) {
       return history;
     }
@@ -62,38 +175,29 @@ export default function HistoryScreen() {
     );
   }, [history, debouncedQuery]);
 
-  // Handle naat selection
-  const handleNaatPress = useCallback(
-    async (naatId: string) => {
-      const naat = displayData.find((n) => n.$id === naatId);
-      if (!naat) return;
+  // Group history by date
+  const groupedHistory = useMemo(() => {
+    const groups = groupByDate(filteredHistory);
+    const sections: HistorySection[] = [];
 
-      // Track watch history
-      await storageService.addToWatchHistory(naat.$id);
+    // Convert Map to array in order
+    const order: DateGroup[] = [
+      "Today",
+      "Yesterday",
+      "This Week",
+      "This Month",
+      "Older",
+    ];
 
-      try {
-        // Check saved playback mode preference
-        const savedMode = await storageService.loadPlaybackMode();
-
-        // If user prefers audio mode, load audio directly
-        if (savedMode === "audio") {
-          await loadAudioDirectly(naat);
-        } else {
-          // Default to video mode
-          setIsVideoFallback(false);
-          setSelectedNaat(naat);
-          setModalVisible(true);
-        }
-      } catch (error) {
-        console.error("Error checking playback preference:", error);
-        // Fallback to video mode on error
-        setIsVideoFallback(false);
-        setSelectedNaat(naat);
-        setModalVisible(true);
+    order.forEach((group) => {
+      const items = groups.get(group);
+      if (items && items.length > 0) {
+        sections.push({ title: group, data: items });
       }
-    },
-    [displayData]
-  );
+    });
+
+    return sections;
+  }, [filteredHistory]);
 
   // Load audio directly without opening video modal
   const loadAudioDirectly = useCallback(
@@ -165,12 +269,66 @@ export default function HistoryScreen() {
     [loadAndPlay]
   );
 
+  // Handle naat selection
+  const handleNaatPress = useCallback(
+    async (naatId: string) => {
+      const naat = filteredHistory.find((n) => n.$id === naatId);
+      if (!naat) return;
+
+      // Track watch history
+      await storageService.addToWatchHistory(naat.$id);
+
+      try {
+        // Check saved playback mode preference
+        const savedMode = await storageService.loadPlaybackMode();
+
+        // If user prefers audio mode, load audio directly
+        if (savedMode === "audio") {
+          await loadAudioDirectly(naat);
+        } else {
+          // Default to video mode
+          setIsVideoFallback(false);
+          setSelectedNaat(naat);
+          setModalVisible(true);
+        }
+      } catch (error) {
+        console.error("Error checking playback preference:", error);
+        // Fallback to video mode on error
+        setIsVideoFallback(false);
+        setSelectedNaat(naat);
+        setModalVisible(true);
+      }
+    },
+    [filteredHistory, loadAudioDirectly]
+  );
+
   // Handle modal close
   const handleCloseModal = useCallback(() => {
     setModalVisible(false);
     setIsVideoFallback(false);
     setTimeout(() => setSelectedNaat(null), 300);
   }, []);
+
+  // Handle delete single item
+  const handleDeleteItem = useCallback(
+    async (naatId: string, title: string) => {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      try {
+        await removeFromHistory(naatId);
+        showSuccessToast("Removed from history");
+        AccessibilityInfo.announceForAccessibility(
+          `${title} removed from history`
+        );
+      } catch (err) {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        const errorMessage =
+          err instanceof Error ? err.message : "Unable to remove from history";
+        showErrorToast(errorMessage);
+      }
+    },
+    [removeFromHistory]
+  );
 
   // Handle clear history with confirmation
   const handleClearHistory = useCallback(() => {
@@ -233,37 +391,37 @@ export default function HistoryScreen() {
 
   // Scroll to top
   const scrollToTop = useCallback(() => {
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    sectionListRef.current?.scrollToLocation({
+      sectionIndex: 0,
+      itemIndex: 0,
+      animated: true,
+    });
   }, []);
 
-  // Optimize FlatList performance with getItemLayout
-  const ITEM_HEIGHT = 320;
-  const getItemLayout = useCallback(
-    (_data: any, index: number) => ({
-      length: ITEM_HEIGHT,
-      offset: ITEM_HEIGHT * index,
-      index,
-    }),
+  // Render section header
+  const renderSectionHeader = useCallback(
+    ({ section }: { section: HistorySection }) => (
+      <View className="px-4 py-3 bg-neutral-800">
+        <Text className="text-sm font-semibold text-neutral-400 uppercase">
+          {section.title}
+        </Text>
+      </View>
+    ),
     []
   );
 
   // Render individual naat card
-  const renderNaatCard = useCallback(
-    ({ item }: { item: Naat }) => (
-      <View className="px-4 mb-4">
-        <NaatCard
-          id={item.$id}
-          title={item.title}
-          thumbnail={item.thumbnailUrl}
-          duration={item.duration}
-          uploadDate={item.uploadDate}
-          channelName={item.channelName}
-          views={item.views}
+  const renderHistoryCard = useCallback(
+    ({ item }: { item: HistoryItem }) => (
+      <View className="px-4">
+        <SwipeableHistoryCard
+          item={item}
           onPress={() => handleNaatPress(item.$id)}
+          onDelete={() => handleDeleteItem(item.$id, item.title)}
         />
       </View>
     ),
-    [handleNaatPress]
+    [handleNaatPress, handleDeleteItem]
   );
 
   // Render empty state
@@ -290,7 +448,7 @@ export default function HistoryScreen() {
       );
     }
 
-    if (debouncedQuery && displayData.length === 0) {
+    if (debouncedQuery && filteredHistory.length === 0) {
       return (
         <EmptyState message="No naats found matching your search." icon="🔍" />
       );
@@ -309,100 +467,102 @@ export default function HistoryScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-900" edges={["top"]}>
-      <View className="flex-1">
-        {/* Header */}
-        <View className="px-4 py-4 bg-neutral-800 border-b border-neutral-700">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1">
-              <Text className="text-2xl font-bold text-white">
-                Watch History
-              </Text>
-              {history.length > 0 && (
-                <Text className="mt-1 text-sm text-neutral-400">
-                  {history.length} {history.length === 1 ? "naat" : "naats"}{" "}
-                  watched
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView className="flex-1 bg-neutral-900" edges={["top"]}>
+        <View className="flex-1">
+          {/* Header */}
+          <View className="px-4 py-4 bg-neutral-800 border-b border-neutral-700">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text className="text-2xl font-bold text-white">
+                  Watch History
                 </Text>
+                {history.length > 0 && (
+                  <Text className="mt-1 text-sm text-neutral-400">
+                    {history.length} {history.length === 1 ? "naat" : "naats"}{" "}
+                    watched
+                  </Text>
+                )}
+              </View>
+              {history.length > 0 && (
+                <Pressable
+                  onPress={handleClearHistory}
+                  className="px-4 py-2 bg-red-500/20 rounded-full"
+                  style={{ minHeight: 44 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear all history"
+                  accessibilityHint="Double tap to clear all watch history"
+                >
+                  <View className="flex-row items-center">
+                    <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                    <Text className="ml-2 text-sm font-semibold text-red-500">
+                      Clear
+                    </Text>
+                  </View>
+                </Pressable>
               )}
             </View>
-            {history.length > 0 && (
-              <Pressable
-                onPress={handleClearHistory}
-                className="px-4 py-2 bg-red-500/20 rounded-full"
-                style={{ minHeight: 44 }}
-                accessibilityRole="button"
-                accessibilityLabel="Clear all history"
-                accessibilityHint="Double tap to clear all watch history"
-              >
-                <View className="flex-row items-center">
-                  <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                  <Text className="ml-2 text-sm font-semibold text-red-500">
-                    Clear
-                  </Text>
-                </View>
-              </Pressable>
-            )}
           </View>
+
+          {/* Search Bar */}
+          {history.length > 0 && (
+            <View className="px-4 py-3 bg-neutral-800 border-b border-neutral-700">
+              <SearchBar
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search history..."
+              />
+            </View>
+          )}
+
+          {/* History List */}
+          {groupedHistory.length > 0 ? (
+            <SectionList<HistoryItem, HistorySection>
+              ref={sectionListRef}
+              sections={groupedHistory}
+              renderItem={renderHistoryCard}
+              renderSectionHeader={renderSectionHeader}
+              keyExtractor={(item) => item.$id}
+              contentContainerStyle={{
+                flexGrow: 1,
+                paddingTop: 8,
+                paddingBottom: 50,
+              }}
+              onScroll={handleScroll}
+              scrollEventThrottle={400}
+              refreshControl={
+                <RefreshControl
+                  refreshing={loading && history.length > 0}
+                  onRefresh={refresh}
+                  colors={[colors.accent.secondary]}
+                  tintColor={colors.accent.secondary}
+                />
+              }
+              stickySectionHeadersEnabled={true}
+            />
+          ) : (
+            <View className="flex-1">{renderEmptyState()}</View>
+          )}
+
+          {/* Back to Top Button */}
+          <BackToTopButton visible={showBackToTop} onPress={scrollToTop} />
         </View>
 
-        {/* Search Bar */}
-        {history.length > 0 && (
-          <View className="px-4 py-3 bg-neutral-800 border-b border-neutral-700">
-            <SearchBar
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search history..."
-            />
-          </View>
+        {/* Video Modal */}
+        {selectedNaat && (
+          <VideoModal
+            visible={modalVisible}
+            onClose={handleCloseModal}
+            videoUrl={selectedNaat.videoUrl}
+            title={selectedNaat.title}
+            channelName={selectedNaat.channelName}
+            thumbnailUrl={selectedNaat.thumbnailUrl}
+            youtubeId={selectedNaat.youtubeId}
+            audioId={selectedNaat.audioId}
+            isFallback={isVideoFallback}
+          />
         )}
-
-        {/* History List */}
-        <FlatList
-          ref={flatListRef}
-          data={displayData}
-          renderItem={renderNaatCard}
-          keyExtractor={(item) => item.$id}
-          getItemLayout={getItemLayout}
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingTop: 16,
-            paddingBottom: 50,
-          }}
-          ListEmptyComponent={renderEmptyState}
-          onScroll={handleScroll}
-          scrollEventThrottle={400}
-          refreshControl={
-            <RefreshControl
-              refreshing={loading && history.length > 0}
-              onRefresh={refresh}
-              colors={[colors.accent.secondary]}
-              tintColor={colors.accent.secondary}
-            />
-          }
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          initialNumToRender={10}
-        />
-
-        {/* Back to Top Button */}
-        <BackToTopButton visible={showBackToTop} onPress={scrollToTop} />
-      </View>
-
-      {/* Video Modal */}
-      {selectedNaat && (
-        <VideoModal
-          visible={modalVisible}
-          onClose={handleCloseModal}
-          videoUrl={selectedNaat.videoUrl}
-          title={selectedNaat.title}
-          channelName={selectedNaat.channelName}
-          thumbnailUrl={selectedNaat.thumbnailUrl}
-          youtubeId={selectedNaat.youtubeId}
-          audioId={selectedNaat.audioId}
-          isFallback={isVideoFallback}
-        />
-      )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }

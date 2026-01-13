@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   RECENT_POSITIONS: "@naat_recent_positions",
   PLAYBACK_MODE: "@naat_playback_mode",
   WATCH_HISTORY: "@naat_watch_history",
+  WATCH_HISTORY_TIMESTAMPS: "@naat_watch_history_timestamps",
   FOR_YOU_SESSION: "@naat_for_you_session",
 } as const;
 
@@ -283,20 +284,39 @@ export class StorageService implements IStorageService {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.WATCH_HISTORY);
       let history: string[] = data ? JSON.parse(data) : [];
 
+      // Get timestamps
+      const timestampsData = await AsyncStorage.getItem(
+        STORAGE_KEYS.WATCH_HISTORY_TIMESTAMPS
+      );
+      let timestamps: Record<string, number> = timestampsData
+        ? JSON.parse(timestampsData)
+        : {};
+
       // Remove if already exists (to update timestamp)
       history = history.filter((id) => id !== naatId);
 
       // Add to beginning
       history.unshift(naatId);
 
+      // Update timestamp
+      timestamps[naatId] = Date.now();
+
       // Limit to MAX_WATCH_HISTORY
       if (history.length > MAX_WATCH_HISTORY) {
+        const removed = history.slice(MAX_WATCH_HISTORY);
         history = history.slice(0, MAX_WATCH_HISTORY);
+
+        // Clean up timestamps for removed items
+        removed.forEach((id) => delete timestamps[id]);
       }
 
       await AsyncStorage.setItem(
         STORAGE_KEYS.WATCH_HISTORY,
         JSON.stringify(history)
+      );
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.WATCH_HISTORY_TIMESTAMPS,
+        JSON.stringify(timestamps)
       );
     } catch (error) {
       logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
@@ -324,11 +344,74 @@ export class StorageService implements IStorageService {
   }
 
   /**
+   * Get watch history with timestamps
+   * @returns Record of naat IDs to timestamps
+   */
+  async getWatchHistoryTimestamps(): Promise<Record<string, number>> {
+    try {
+      const data = await AsyncStorage.getItem(
+        STORAGE_KEYS.WATCH_HISTORY_TIMESTAMPS
+      );
+      return data ? JSON.parse(data) : {};
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "getWatchHistoryTimestamps",
+      });
+      return {};
+    }
+  }
+
+  /**
+   * Remove a single item from watch history
+   * @param naatId - Unique identifier for the naat
+   */
+  async removeFromWatchHistory(naatId: string): Promise<void> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.WATCH_HISTORY);
+      let history: string[] = data ? JSON.parse(data) : [];
+
+      // Get timestamps
+      const timestampsData = await AsyncStorage.getItem(
+        STORAGE_KEYS.WATCH_HISTORY_TIMESTAMPS
+      );
+      let timestamps: Record<string, number> = timestampsData
+        ? JSON.parse(timestampsData)
+        : {};
+
+      // Remove from history
+      history = history.filter((id) => id !== naatId);
+
+      // Remove timestamp
+      delete timestamps[naatId];
+
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.WATCH_HISTORY,
+        JSON.stringify(history)
+      );
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.WATCH_HISTORY_TIMESTAMPS,
+        JSON.stringify(timestamps)
+      );
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "removeFromWatchHistory",
+        naatId,
+      });
+      throw new AppError(
+        "Failed to remove from watch history.",
+        ErrorCode.STORAGE_ERROR,
+        true
+      );
+    }
+  }
+
+  /**
    * Clear all watch history
    */
   async clearWatchHistory(): Promise<void> {
     try {
       await AsyncStorage.removeItem(STORAGE_KEYS.WATCH_HISTORY);
+      await AsyncStorage.removeItem(STORAGE_KEYS.WATCH_HISTORY_TIMESTAMPS);
     } catch (error) {
       logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
         context: "clearWatchHistory",

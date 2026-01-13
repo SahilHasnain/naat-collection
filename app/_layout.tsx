@@ -20,6 +20,7 @@ import "../global.css";
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   debug: false, // Disabled for cleaner console in development
+  enabled: !__DEV__, // Disable Sentry in development mode
   tracesSampleRate: 1.0,
   integrations: [Sentry.reactNativeTracingIntegration()],
 });
