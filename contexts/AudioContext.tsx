@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { AppState, AppStateStatus } from "react-native";
 
 export interface AudioMetadata {
   audioUrl: string;
@@ -173,7 +174,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Playback status update handler - using ref pattern for stability
   const onPlaybackStatusUpdateRef =
-    useRef<(status: AVPlaybackStatus) => void>();
+    useRef<(status: AVPlaybackStatus) => void>(undefined);
 
   useEffect(() => {
     onPlaybackStatusUpdateRef.current = (status: AVPlaybackStatus) => {
