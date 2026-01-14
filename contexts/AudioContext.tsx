@@ -1,5 +1,9 @@
+import {
+  resetTrackPlayer,
+  setRepeatMode,
+  setupTrackPlayer,
+} from "@/services/TrackPlayerService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Audio, AVPlaybackStatus } from "expo-av";
 import React, {
   createContext,
   useCallback,
@@ -9,6 +13,14 @@ import React, {
   useState,
 } from "react";
 import { AppState, AppStateStatus } from "react-native";
+import TrackPlayer, {
+  Event,
+  State,
+  Track,
+  usePlaybackState,
+  useProgress,
+  useTrackPlayerEvents,
+} from "react-native-track-player";
 
 export interface AudioMetadata {
   audioUrl: string;
@@ -54,20 +66,26 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [currentAudio, setCurrentAudio] = useState<AudioMetadata | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(1.0);
   const [error, setError] = useState<Error | null>(null);
   const [isRepeatEnabled, setIsRepeatEnabled] = useState(false);
   const [isAutoplayEnabled, setIsAutoplayEnabled] = useState(false);
 
-  const soundRef = useRef<Audio.Sound | null>(null);
+  // Get playback state from TrackPlayer
+  const playbackState = usePlaybackState();
+  const { position, duration } = useProgress();
+
+  // Derive isPlaying from playback state
+  const isPlaying =
+    playbackState.state === State.Playing ||
+    playbackState.state === State.Buffering;
+
   const autoplayCallbackRef = useRef<(() => Promise<void>) | null>(null);
   const isRepeatEnabledRef = useRef(false);
   const isAutoplayEnabledRef = useRef(false);
   const isLoadingRef = useRef(false);
+  const hasInitialized = useRef(false);
 
   // Sync refs with state
   useEffect(() => {
@@ -82,6 +100,23 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     isLoadingRef.current = isLoading;
   }, [isLoading]);
 
+  // Initialize Track Player
+  useEffect(() => {
+    const init = async () => {
+      if (!hasInitialized.current) {
+        const success = await setupTrackPlayer();
+        if (success) {
+          hasInitialized.current = true;
+          console.log("[AudioContext] Track Player ready");
+        } else {
+          console.error("[AudioContext] Track Player initialization failed");
+        }
+      }
+    };
+
+    init();
+  }, []);
+
   // Load saved preferences
   useEffect(() => {
     const loadPreferences = async () => {
@@ -92,7 +127,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
         ]);
 
         if (repeatValue !== null) {
-          setIsRepeatEnabled(repeatValue === "true");
+          const enabled = repeatValue === "true";
+          setIsRepeatEnabled(enabled);
+          await setRepeatMode(enabled);
         }
         if (autoplayValue !== null) {
           setIsAutoplayEnabled(autoplayValue === "true");
@@ -105,61 +142,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     loadPreferences();
   }, []);
 
-  // Configure audio session for background playback
-  useEffect(() => {
-    const configureAudio = async () => {
-      try {
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: true, // Enable background playback
-          shouldDuckAndroid: true,
-          playThroughEarpieceAndroid: false,
-          interruptionModeIOS: 1, // Do not mix with other audio
-          interruptionModeAndroid: 1, // Do not mix with other audio
-        });
-        console.log(
-          "[AudioContext] Audio mode configured for background playback"
-        );
-      } catch (err) {
-        console.error("[AudioContext] Error configuring audio mode:", err);
-      }
-    };
-
-    configureAudio();
-  }, []);
-
-  // Handle app state changes to maintain audio in background
+  // Handle app state changes
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       console.log("[AudioContext] App state changed to:", nextAppState);
-
-      if (nextAppState === "background" || nextAppState === "inactive") {
-        // App going to background - ensure audio continues
-        if (soundRef.current && isPlaying) {
-          try {
-            // Re-configure audio mode to ensure it stays active
-            await Audio.setAudioModeAsync({
-              playsInSilentModeIOS: true,
-              staysActiveInBackground: true,
-              shouldDuckAndroid: true,
-              playThroughEarpieceAndroid: false,
-              interruptionModeIOS: 1,
-              interruptionModeAndroid: 1,
-            });
-            console.log(
-              "[AudioContext] Audio mode re-configured for background"
-            );
-          } catch (err) {
-            console.error(
-              "[AudioContext] Error maintaining background audio:",
-              err
-            );
-          }
-        }
-      } else if (nextAppState === "active") {
-        // App coming to foreground
-        console.log("[AudioContext] App returned to foreground");
-      }
+      // TrackPlayer handles background automatically
     };
 
     const subscription = AppState.addEventListener(
@@ -170,128 +157,90 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       subscription.remove();
     };
-  }, [isPlaying]);
-
-  // Playback status update handler - using ref pattern for stability
-  const onPlaybackStatusUpdateRef =
-    useRef<(status: AVPlaybackStatus) => void>(undefined);
-
-  useEffect(() => {
-    onPlaybackStatusUpdateRef.current = (status: AVPlaybackStatus) => {
-      if (!status.isLoaded) {
-        if (status.error) {
-          console.error("[AudioContext] Playback error:", status.error);
-          setError(new Error(`Playback error: ${status.error}`));
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      setPosition(status.positionMillis || 0);
-      setDuration(status.durationMillis || 0);
-      setIsPlaying(status.isPlaying);
-
-      // Handle playback completion
-      if (status.didJustFinish) {
-        console.log("[AudioContext] Track finished");
-        setIsPlaying(false);
-
-        // Use refs to get current values (not stale closure values)
-        const repeatEnabled = isRepeatEnabledRef.current;
-        const autoplayEnabled = isAutoplayEnabledRef.current;
-
-        console.log(
-          "[AudioContext] Repeat enabled:",
-          repeatEnabled,
-          "Autoplay enabled:",
-          autoplayEnabled
-        );
-
-        // Handle repeat
-        if (repeatEnabled && soundRef.current) {
-          console.log("[AudioContext] Repeating track");
-          soundRef.current.replayAsync();
-        } else if (autoplayEnabled && autoplayCallbackRef.current) {
-          // Handle autoplay - play random track
-          console.log("[AudioContext] Autoplay triggered");
-          autoplayCallbackRef.current();
-        } else {
-          setPosition(0);
-        }
-      }
-    };
-  });
-
-  // Stable callback reference that never changes
-  const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
-    onPlaybackStatusUpdateRef.current?.(status);
   }, []);
 
+  // Handle track player events
+  useTrackPlayerEvents([Event.PlaybackQueueEnded], async (event) => {
+    if (event.type === Event.PlaybackQueueEnded) {
+      console.log("[AudioContext] Track finished");
+
+      // Use refs to get current values
+      const repeatEnabled = isRepeatEnabledRef.current;
+      const autoplayEnabled = isAutoplayEnabledRef.current;
+
+      console.log(
+        "[AudioContext] Repeat enabled:",
+        repeatEnabled,
+        "Autoplay enabled:",
+        autoplayEnabled
+      );
+
+      // Handle repeat
+      if (repeatEnabled) {
+        console.log("[AudioContext] Repeating track");
+        await TrackPlayer.seekTo(0);
+        await TrackPlayer.play();
+      } else if (autoplayEnabled && autoplayCallbackRef.current) {
+        // Handle autoplay - play random track
+        console.log("[AudioContext] Autoplay triggered");
+        autoplayCallbackRef.current();
+      }
+    }
+  });
+
   // Load and play audio
-  const loadAndPlay = useCallback(
-    async (audio: AudioMetadata) => {
-      // Prevent multiple simultaneous loads
-      if (isLoadingRef.current) {
-        console.log("[AudioContext] Already loading audio, ignoring request");
-        return;
-      }
+  const loadAndPlay = useCallback(async (audio: AudioMetadata) => {
+    // Prevent multiple simultaneous loads
+    if (isLoadingRef.current) {
+      console.log("[AudioContext] Already loading audio, ignoring request");
+      return;
+    }
 
-      try {
-        setIsLoading(true);
-        setError(null);
+    try {
+      setIsLoading(true);
+      setError(null);
 
-        console.log("[AudioContext] Loading audio:", audio.title);
+      console.log("[AudioContext] Loading audio:", audio.title);
 
-        // Unload previous sound if exists - CRITICAL: Stop first, then unload
-        if (soundRef.current) {
-          try {
-            console.log("[AudioContext] Stopping and unloading previous sound");
-            await soundRef.current.stopAsync();
-            await soundRef.current.unloadAsync();
-          } catch (err) {
-            console.log("[AudioContext] Error unloading previous sound:", err);
-            // Continue anyway - we want to load the new sound
-          }
-          soundRef.current = null;
-        }
+      // Reset track player (clears queue and stops playback)
+      await resetTrackPlayer();
 
-        // Create new sound with proper configuration for background playback
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: audio.audioUrl },
-          {
-            shouldPlay: true,
-            volume: volume,
-            isLooping: false,
-            isMuted: false,
-            rate: 1.0,
-            shouldCorrectPitch: true,
-          },
-          onPlaybackStatusUpdate
-        );
+      // Create track for TrackPlayer
+      const track: Track = {
+        url: audio.audioUrl,
+        title: audio.title,
+        artist: audio.channelName,
+        artwork: audio.thumbnailUrl,
+      };
 
-        soundRef.current = sound;
-        setCurrentAudio(audio);
-        setIsLoading(false);
-        setIsPlaying(true);
+      // Add track to queue
+      await TrackPlayer.add(track);
 
-        console.log("[AudioContext] Audio loaded and playing");
-      } catch (err) {
-        console.error("[AudioContext] Error loading audio:", err);
-        setError(err as Error);
-        setIsLoading(false);
-        setCurrentAudio(null);
-      }
-    },
-    [volume, onPlaybackStatusUpdate]
-  );
+      // Start playback
+      await TrackPlayer.play();
+
+      setCurrentAudio(audio);
+      setIsLoading(false);
+
+      console.log("[AudioContext] Audio loaded and playing");
+    } catch (err) {
+      console.error("[AudioContext] Error loading audio:", err);
+      setError(err as Error);
+      setIsLoading(false);
+      setCurrentAudio(null);
+    }
+  }, []);
 
   // Play
   const play = useCallback(async () => {
-    if (!soundRef.current) return;
-
     try {
-      await soundRef.current.playAsync();
-      setIsPlaying(true);
+      const state = await TrackPlayer.getPlaybackState();
+      if (state.state === State.Ready || state.state === State.Paused) {
+        await TrackPlayer.play();
+        console.log("[AudioContext] Playback started");
+      } else {
+        console.log("[AudioContext] Cannot play, state:", state.state);
+      }
     } catch (err) {
       console.error("[AudioContext] Error playing:", err);
       setError(err as Error);
@@ -300,11 +249,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Pause
   const pause = useCallback(async () => {
-    if (!soundRef.current) return;
-
     try {
-      await soundRef.current.pauseAsync();
-      setIsPlaying(false);
+      const state = await TrackPlayer.getPlaybackState();
+      if (state.state === State.Playing || state.state === State.Buffering) {
+        await TrackPlayer.pause();
+        console.log("[AudioContext] Playback paused");
+      } else {
+        console.log("[AudioContext] Cannot pause, state:", state.state);
+      }
     } catch (err) {
       console.error("[AudioContext] Error pausing:", err);
       setError(err as Error);
@@ -322,11 +274,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Seek
   const seek = useCallback(async (positionMillis: number) => {
-    if (!soundRef.current) return;
-
     try {
-      await soundRef.current.setPositionAsync(positionMillis);
-      setPosition(positionMillis);
+      const positionSeconds = positionMillis / 1000;
+      await TrackPlayer.seekTo(positionSeconds);
+      console.log("[AudioContext] Seeked to:", positionSeconds, "seconds");
     } catch (err) {
       console.error("[AudioContext] Error seeking:", err);
       setError(err as Error);
@@ -335,33 +286,27 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Set volume
   const setVolume = useCallback(async (newVolume: number) => {
-    setVolumeState(newVolume);
+    // Clamp volume between 0 and 1
+    const clampedVolume = Math.max(0, Math.min(1, newVolume));
+    setVolumeState(clampedVolume);
 
-    if (soundRef.current) {
-      try {
-        await soundRef.current.setVolumeAsync(newVolume);
-      } catch (err) {
-        console.error("[AudioContext] Error setting volume:", err);
-      }
+    try {
+      await TrackPlayer.setVolume(clampedVolume);
+      console.log("[AudioContext] Volume set to:", clampedVolume);
+    } catch (err) {
+      console.error("[AudioContext] Error setting volume:", err);
     }
   }, []);
 
   // Stop and clear
   const stop = useCallback(async () => {
-    if (soundRef.current) {
-      try {
-        await soundRef.current.stopAsync();
-        await soundRef.current.unloadAsync();
-      } catch (err) {
-        console.error("[AudioContext] Error stopping:", err);
-      }
-      soundRef.current = null;
+    try {
+      await resetTrackPlayer();
+    } catch (err) {
+      console.error("[AudioContext] Error stopping:", err);
     }
 
     setCurrentAudio(null);
-    setIsPlaying(false);
-    setPosition(0);
-    setDuration(0);
     setError(null);
     setIsLoading(false);
   }, []);
@@ -372,6 +317,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsRepeatEnabled(newValue);
     try {
       await AsyncStorage.setItem(REPEAT_KEY, String(newValue));
+      await setRepeatMode(newValue);
       console.log("[AudioContext] Repeat toggled:", newValue);
     } catch (err) {
       console.error("[AudioContext] Error saving repeat preference:", err);
@@ -401,9 +347,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
-      }
+      resetTrackPlayer();
     };
   }, []);
 
@@ -411,8 +355,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     currentAudio,
     isPlaying,
     isLoading,
-    position,
-    duration,
+    position: position * 1000, // Convert to milliseconds for compatibility
+    duration: duration * 1000, // Convert to milliseconds for compatibility
     volume,
     error,
     isRepeatEnabled,
