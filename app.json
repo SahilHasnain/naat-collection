@@ -22,7 +22,12 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.sahilhasnain.ubaidraza",
-      "permissions": ["FOREGROUND_SERVICE", "FOREGROUND_SERVICE_MEDIA_PLAYBACK"]
+      "permissions": [
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "WAKE_LOCK",
+        "android.permission.WAKE_LOCK"
+      ]
     },
     "web": {
       "output": "static",
@@ -31,6 +36,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-av",
+        {
+          "microphonePermission": false
+        }
+      ],
       [
         "expo-splash-screen",
         {

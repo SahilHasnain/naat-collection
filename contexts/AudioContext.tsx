@@ -66,6 +66,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   const autoplayCallbackRef = useRef<(() => Promise<void>) | null>(null);
   const isRepeatEnabledRef = useRef(false);
   const isAutoplayEnabledRef = useRef(false);
+  const isLoadingRef = useRef(false);
 
   // Sync refs with state
   useEffect(() => {
@@ -75,6 +76,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     isAutoplayEnabledRef.current = isAutoplayEnabled;
   }, [isAutoplayEnabled]);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
 
   // Load saved preferences
   useEffect(() => {
@@ -108,6 +113,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
           staysActiveInBackground: true, // Enable background playback
           shouldDuckAndroid: true,
           playThroughEarpieceAndroid: false,
+          interruptionModeIOS: 1, // Do not mix with other audio
+          interruptionModeAndroid: 1, // Do not mix with other audio
         });
         console.log(
           "[AudioContext] Audio mode configured for background playback"
@@ -120,70 +127,144 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     configureAudio();
   }, []);
 
-  // Playback status update handler
+  // Handle app state changes to maintain audio in background
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      console.log("[AudioContext] App state changed to:", nextAppState);
+
+      if (nextAppState === "background" || nextAppState === "inactive") {
+        // App going to background - ensure audio continues
+        if (soundRef.current && isPlaying) {
+          try {
+            // Re-configure audio mode to ensure it stays active
+            await Audio.setAudioModeAsync({
+              playsInSilentModeIOS: true,
+              staysActiveInBackground: true,
+              shouldDuckAndroid: true,
+              playThroughEarpieceAndroid: false,
+              interruptionModeIOS: 1,
+              interruptionModeAndroid: 1,
+            });
+            console.log(
+              "[AudioContext] Audio mode re-configured for background"
+            );
+          } catch (err) {
+            console.error(
+              "[AudioContext] Error maintaining background audio:",
+              err
+            );
+          }
+        }
+      } else if (nextAppState === "active") {
+        // App coming to foreground
+        console.log("[AudioContext] App returned to foreground");
+      }
+    };
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isPlaying]);
+
+  // Playback status update handler - using ref pattern for stability
+  const onPlaybackStatusUpdateRef =
+    useRef<(status: AVPlaybackStatus) => void>();
+
+  useEffect(() => {
+    onPlaybackStatusUpdateRef.current = (status: AVPlaybackStatus) => {
+      if (!status.isLoaded) {
+        if (status.error) {
+          console.error("[AudioContext] Playback error:", status.error);
+          setError(new Error(`Playback error: ${status.error}`));
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      setPosition(status.positionMillis || 0);
+      setDuration(status.durationMillis || 0);
+      setIsPlaying(status.isPlaying);
+
+      // Handle playback completion
+      if (status.didJustFinish) {
+        console.log("[AudioContext] Track finished");
+        setIsPlaying(false);
+
+        // Use refs to get current values (not stale closure values)
+        const repeatEnabled = isRepeatEnabledRef.current;
+        const autoplayEnabled = isAutoplayEnabledRef.current;
+
+        console.log(
+          "[AudioContext] Repeat enabled:",
+          repeatEnabled,
+          "Autoplay enabled:",
+          autoplayEnabled
+        );
+
+        // Handle repeat
+        if (repeatEnabled && soundRef.current) {
+          console.log("[AudioContext] Repeating track");
+          soundRef.current.replayAsync();
+        } else if (autoplayEnabled && autoplayCallbackRef.current) {
+          // Handle autoplay - play random track
+          console.log("[AudioContext] Autoplay triggered");
+          autoplayCallbackRef.current();
+        } else {
+          setPosition(0);
+        }
+      }
+    };
+  });
+
+  // Stable callback reference that never changes
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
-    if (!status.isLoaded) {
-      if (status.error) {
-        console.error("[AudioContext] Playback error:", status.error);
-        setError(new Error(`Playback error: ${status.error}`));
-        setIsLoading(false);
-      }
-      return;
-    }
-
-    setPosition(status.positionMillis || 0);
-    setDuration(status.durationMillis || 0);
-    setIsPlaying(status.isPlaying);
-
-    // Handle playback completion
-    if (status.didJustFinish) {
-      console.log("[AudioContext] Track finished");
-      setIsPlaying(false);
-
-      // Use refs to get current values (not stale closure values)
-      const repeatEnabled = isRepeatEnabledRef.current;
-      const autoplayEnabled = isAutoplayEnabledRef.current;
-
-      console.log(
-        "[AudioContext] Repeat enabled:",
-        repeatEnabled,
-        "Autoplay enabled:",
-        autoplayEnabled
-      );
-
-      // Handle repeat
-      if (repeatEnabled && soundRef.current) {
-        console.log("[AudioContext] Repeating track");
-        soundRef.current.replayAsync();
-      } else if (autoplayEnabled && autoplayCallbackRef.current) {
-        // Handle autoplay - play random track
-        console.log("[AudioContext] Autoplay triggered");
-        autoplayCallbackRef.current();
-      } else {
-        setPosition(0);
-      }
-    }
+    onPlaybackStatusUpdateRef.current?.(status);
   }, []);
 
   // Load and play audio
   const loadAndPlay = useCallback(
     async (audio: AudioMetadata) => {
+      // Prevent multiple simultaneous loads
+      if (isLoadingRef.current) {
+        console.log("[AudioContext] Already loading audio, ignoring request");
+        return;
+      }
+
       try {
         setIsLoading(true);
         setError(null);
 
         console.log("[AudioContext] Loading audio:", audio.title);
 
-        // Unload previous sound if exists
+        // Unload previous sound if exists - CRITICAL: Stop first, then unload
         if (soundRef.current) {
-          await soundRef.current.unloadAsync();
+          try {
+            console.log("[AudioContext] Stopping and unloading previous sound");
+            await soundRef.current.stopAsync();
+            await soundRef.current.unloadAsync();
+          } catch (err) {
+            console.log("[AudioContext] Error unloading previous sound:", err);
+            // Continue anyway - we want to load the new sound
+          }
           soundRef.current = null;
         }
 
-        // Create new sound
+        // Create new sound with proper configuration for background playback
         const { sound } = await Audio.Sound.createAsync(
           { uri: audio.audioUrl },
-          { shouldPlay: true, volume: volume },
+          {
+            shouldPlay: true,
+            volume: volume,
+            isLooping: false,
+            isMuted: false,
+            rate: 1.0,
+            shouldCorrectPitch: true,
+          },
           onPlaybackStatusUpdate
         );
 
@@ -270,10 +351,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         await soundRef.current.stopAsync();
         await soundRef.current.unloadAsync();
-        soundRef.current = null;
       } catch (err) {
         console.error("[AudioContext] Error stopping:", err);
       }
+      soundRef.current = null;
     }
 
     setCurrentAudio(null);
@@ -281,6 +362,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     setPosition(0);
     setDuration(0);
     setError(null);
+    setIsLoading(false);
   }, []);
 
   // Toggle repeat
