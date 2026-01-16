@@ -4,6 +4,8 @@
 
 The "For You" feed provides personalized, smart content discovery using a weighted randomization algorithm. Unlike simple random shuffle, it intelligently balances multiple factors to show users fresh, relevant content every time they visit.
 
+**Uses progressive loading: Fast initial results (1000 videos in ~1 second) + background enhancement to eventually process all 3000+ videos!**
+
 ## How It Works
 
 ### Algorithm Factors
@@ -115,9 +117,12 @@ The algorithm scores each naat based on 5 weighted factors:
 
 ### Batch Fetching
 
-- Fetches 100 items instead of 20 for "For You"
-- Provides better dataset for algorithm
-- Still paginated for smooth scrolling
+- Uses progressive loading strategy for optimal performance
+- Initial batch: 1000 videos (~1 second load time)
+- Background fetch: Remaining 2000+ videos (non-blocking)
+- Handles large datasets (3000+ videos) efficiently
+- Still paginated for smooth scrolling (20 per page)
+- Dynamically handles new uploads
 
 ### Caching Strategy
 
