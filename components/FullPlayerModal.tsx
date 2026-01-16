@@ -42,12 +42,10 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     isLoading,
     position,
     duration,
-    volume,
     isRepeatEnabled,
     isAutoplayEnabled,
     togglePlayPause,
     seek,
-    setVolume,
     toggleRepeat,
     toggleAutoplay,
   } = useAudioPlayer();
@@ -134,6 +132,18 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         },
       ]
     );
+  };
+
+  // Seek backward 10 seconds
+  const seekBackward = () => {
+    const newPosition = Math.max(0, position - 10000);
+    seek(newPosition);
+  };
+
+  // Seek forward 10 seconds
+  const seekForward = () => {
+    const newPosition = Math.min(duration, position + 10000);
+    seek(newPosition);
   };
 
   if (!currentAudio) return null;
@@ -234,16 +244,34 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
               {/* Playback Controls Row */}
               <View className="mb-6">
                 {/* Main Controls */}
-                <View className="flex-row items-center justify-center gap-6 mb-4">
-                  {/* Switch to Video Button - Left */}
+                <View className="flex-row items-center justify-center gap-4 mb-4">
+                  {/* Seek Backward 10s */}
+                  <TouchableOpacity
+                    onPress={seekBackward}
+                    className="h-14 w-14 items-center justify-center relative"
+                    accessibilityLabel="Seek backward 10 seconds"
+                    accessibilityRole="button"
+                  >
+                    <Ionicons
+                      name="refresh"
+                      size={32}
+                      color="white"
+                      style={{ transform: [{ scaleX: -1 }] }}
+                    />
+                    <Text className="absolute text-xs font-bold text-white">
+                      10
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Switch to Video Button */}
                   {currentAudio.youtubeId && onSwitchToVideo && (
                     <TouchableOpacity
                       onPress={onSwitchToVideo}
-                      className="h-16 w-16 items-center justify-center rounded-full bg-neutral-700"
+                      className="h-14 w-14 items-center justify-center rounded-full bg-neutral-700"
                       accessibilityLabel="Switch to video mode"
                       accessibilityRole="button"
                     >
-                      <Ionicons name="videocam" size={28} color="white" />
+                      <Ionicons name="videocam" size={24} color="white" />
                     </TouchableOpacity>
                   )}
 
@@ -261,7 +289,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     />
                   </TouchableOpacity>
 
-                  {/* Download/Delete Button - Right */}
+                  {/* Download/Delete Button */}
                   {showDownloadButton && (
                     <TouchableOpacity
                       onPress={() => {
@@ -277,7 +305,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                           handleDownload();
                         }
                       }}
-                      className={`h-16 w-16 items-center justify-center rounded-full ${
+                      className={`h-14 w-14 items-center justify-center rounded-full ${
                         isDownloaded
                           ? "bg-green-600"
                           : isDownloading
@@ -294,16 +322,29 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       accessibilityRole="button"
                     >
                       {isDownloading ? (
-                        <Ionicons name="hourglass" size={28} color="white" />
+                        <Ionicons name="hourglass" size={24} color="white" />
                       ) : (
                         <Ionicons
                           name={isDownloaded ? "checkmark-circle" : "download"}
-                          size={28}
+                          size={24}
                           color="white"
                         />
                       )}
                     </TouchableOpacity>
                   )}
+
+                  {/* Seek Forward 10s */}
+                  <TouchableOpacity
+                    onPress={seekForward}
+                    className="h-14 w-14 items-center justify-center relative"
+                    accessibilityLabel="Seek forward 10 seconds"
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="refresh" size={32} color="white" />
+                    <Text className="absolute text-xs font-bold text-white">
+                      10
+                    </Text>
+                  </TouchableOpacity>
                 </View>
 
                 {/* Repeat and Autoplay Controls */}
@@ -364,30 +405,6 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     </Text>
                   </TouchableOpacity>
                 </View>
-              </View>
-
-              {/* Volume Control */}
-              <View className="flex-row items-center">
-                <Ionicons
-                  name="volume-low"
-                  size={24}
-                  color={colors.text.primary}
-                />
-                <Slider
-                  style={{ flex: 1, marginHorizontal: 12 }}
-                  minimumValue={0}
-                  maximumValue={1}
-                  value={volume}
-                  onValueChange={setVolume}
-                  minimumTrackTintColor={colors.accent.primary}
-                  maximumTrackTintColor={colors.background.elevated}
-                  thumbTintColor={colors.accent.primary}
-                />
-                <Ionicons
-                  name="volume-high"
-                  size={24}
-                  color={colors.text.primary}
-                />
               </View>
             </View>
           </View>

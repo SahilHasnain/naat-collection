@@ -73,8 +73,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     error: null,
     isAudioReady: false,
   });
-  const [volume, setVolume] = useState(1.0);
-
   const soundRef = useRef<Audio.Sound | null>(null);
 
   // Handle playback status updates
@@ -234,18 +232,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     }
   };
 
-  // Handle volume change
-  const handleVolumeChange = async (value: number) => {
-    setVolume(value);
-    if (soundRef.current) {
-      try {
-        await soundRef.current.setVolumeAsync(value);
-      } catch (error) {
-        onError(error as Error);
-      }
-    }
-  };
-
   // Replay audio from beginning
   const handleReplay = async () => {
     if (!soundRef.current) return;
@@ -257,6 +243,21 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     } catch (error) {
       onError(error as Error);
     }
+  };
+
+  // Seek backward 10 seconds
+  const seekBackward = async () => {
+    const newPosition = Math.max(0, playbackState.position - 10000);
+    await seekToPosition(newPosition);
+  };
+
+  // Seek forward 10 seconds
+  const seekForward = async () => {
+    const newPosition = Math.min(
+      playbackState.duration,
+      playbackState.position + 10000
+    );
+    await seekToPosition(newPosition);
   };
 
   if (playbackState.isLoading) {
@@ -334,9 +335,25 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
           </View>
         </View>
 
-        {/* Play/Pause Button with Download Controls */}
-        <View className="mb-6 flex-row items-center justify-center gap-6">
-          {/* Play/Pause Button - Left */}
+        {/* Play/Pause Button with Seek and Download Controls */}
+        <View className="mb-6 flex-row items-center justify-center gap-4">
+          {/* Seek Backward 10s */}
+          <TouchableOpacity
+            onPress={seekBackward}
+            className="h-14 w-14 items-center justify-center relative"
+            accessibilityLabel="Seek backward 10 seconds"
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name="refresh"
+              size={32}
+              color="white"
+              style={{ transform: [{ scaleX: -1 }] }}
+            />
+            <Text className="absolute text-xs font-bold text-white">10</Text>
+          </TouchableOpacity>
+
+          {/* Play/Pause/Replay Button - Center */}
           {playbackState.hasCompleted ? (
             <TouchableOpacity
               onPress={handleReplay}
@@ -361,7 +378,18 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
             </TouchableOpacity>
           )}
 
-          {/* Download/Delete Button - Right */}
+          {/* Seek Forward 10s */}
+          <TouchableOpacity
+            onPress={seekForward}
+            className="h-14 w-14 items-center justify-center relative"
+            accessibilityLabel="Seek forward 10 seconds"
+            accessibilityRole="button"
+          >
+            <Ionicons name="refresh" size={32} color="white" />
+            <Text className="absolute text-xs font-bold text-white">10</Text>
+          </TouchableOpacity>
+
+          {/* Download/Delete Button */}
           {canDownload && (
             <TouchableOpacity
               onPress={() => {
@@ -393,7 +421,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
                   onDownload?.();
                 }
               }}
-              className={`h-16 w-16 items-center justify-center rounded-full ${
+              className={`h-14 w-14 items-center justify-center rounded-full ${
                 isDownloaded
                   ? "bg-green-600"
                   : isDownloading
@@ -417,27 +445,11 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
                       ? "hourglass"
                       : "download"
                 }
-                size={28}
+                size={24}
                 color="white"
               />
             </TouchableOpacity>
           )}
-        </View>
-
-        {/* Volume Control */}
-        <View className="flex-row items-center">
-          <Ionicons name="volume-low" size={24} color={colors.text.primary} />
-          <Slider
-            style={{ flex: 1, marginHorizontal: 12 }}
-            minimumValue={0}
-            maximumValue={1}
-            value={volume}
-            onValueChange={handleVolumeChange}
-            minimumTrackTintColor={colors.accent.primary}
-            maximumTrackTintColor={colors.background.elevated}
-            thumbTintColor={colors.accent.primary}
-          />
-          <Ionicons name="volume-high" size={24} color={colors.text.primary} />
         </View>
       </View>
     </View>
