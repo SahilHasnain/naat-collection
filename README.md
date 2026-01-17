@@ -8,10 +8,10 @@ A cross-platform application for browsing and listening to Islamic naats (devoti
 naat-collection/
 ├── apps/
 │   ├── mobile/          # React Native/Expo mobile app
-│   └── web/             # Next.js web app (coming soon)
+│   └── web/             # Next.js 16 web app
 ├── packages/
-│   ├── shared/          # Shared utilities and types (coming soon)
-│   └── api-client/      # Appwrite API client (coming soon)
+│   ├── shared/          # Shared types, config, utilities
+│   └── api-client/      # Platform-agnostic Appwrite service
 └── docs/                # Documentation
 ```
 
@@ -20,7 +20,7 @@ naat-collection/
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn
+- npm
 - For mobile: Expo CLI, Android Studio or Xcode
 
 ### Installation
@@ -43,15 +43,19 @@ npm run mobile:android
 
 # Run on iOS
 npm run mobile:ios
-
-# Run web version
-npm run mobile:web
 ```
 
-#### Web App (Coming Soon)
+#### Web App
 
 ```bash
+# Start Next.js dev server
 npm run web
+
+# Build for production
+npm run web:build
+
+# Start production server
+npm run web:start
 ```
 
 ## Development
@@ -60,42 +64,84 @@ This is a monorepo managed with npm workspaces. Each app and package can be deve
 
 ### Available Scripts
 
+**Mobile:**
+
 - `npm run mobile` - Start mobile development server
 - `npm run mobile:android` - Run on Android device/emulator
 - `npm run mobile:ios` - Run on iOS simulator
 - `npm run mobile:lint` - Lint mobile app
 - `npm run mobile:test` - Run mobile tests
+
+**Web:**
+
+- `npm run web` - Start web development server
+- `npm run web:build` - Build for production
+- `npm run web:start` - Start production server
+- `npm run web:lint` - Lint web app
+
+**Other:**
+
 - `npm run setup:appwrite` - Set up Appwrite backend
 - `npm run ingest:videos` - Ingest video data
 
 ## Documentation
 
 - [Monorepo Migration Plan](./docs/MONOREPO_MIGRATION_PLAN.md)
+- [Monorepo Complete Summary](./docs/MONOREPO_COMPLETE.md)
 - [Progressive Loading Strategy](./docs/FOR_YOU_PROGRESSIVE_LOADING.md)
+- [Phase 2 Summary](./docs/PHASE_2_SUMMARY.md)
+- [Phase 3 Summary](./docs/PHASE_3_SUMMARY.md)
 
 ## Tech Stack
 
 ### Mobile
 
-- React Native
-- Expo
+- React Native 0.81
+- Expo 54
 - NativeWind (Tailwind CSS)
 - Appwrite (Backend)
 - TypeScript
 
-### Web (Coming Soon)
+### Web
 
-- Next.js 15
+- Next.js 16 (App Router)
 - React 19
-- Tailwind CSS
+- Tailwind CSS 4
 - Appwrite (Backend)
 - TypeScript
+
+### Shared
+
+- TypeScript
+- Appwrite SDK
+- Shared types and utilities
+
+## Features
+
+### Mobile App
+
+- Browse naats by artist
+- Audio playback with controls
+- Search functionality
+- Favorites/bookmarks
+- Offline support
+- Background audio playback
+
+### Web App
+
+- Browse naats with server-side rendering
+- Individual naat detail pages
+- Channel/artist pages
+- Responsive design
+- YouTube video embed
+- Fast performance
 
 ## Contributing
 
 See individual app READMEs for specific development guidelines:
 
 - [Mobile App](./apps/mobile/README.md)
+- [Web App](./apps/web/README.md)
 
 ## License
 

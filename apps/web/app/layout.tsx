@@ -1,3 +1,4 @@
+import { Navigation } from "@/components/Navigation";
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -14,7 +15,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased bg-gray-50">
-        {children}
+        <Navigation />
+        <main>{children}</main>
       </body>
     </html>
   );

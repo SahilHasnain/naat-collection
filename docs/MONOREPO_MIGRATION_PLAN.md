@@ -120,32 +120,32 @@ apps/web/
 
 ### Tasks
 
-- [ ] Port authentication flow
-- [ ] Implement data fetching with Appwrite
-- [ ] Create home page with naat listings
-- [ ] Create artist pages
-- [ ] Create naat detail pages
-- [ ] Implement basic audio player
-- [ ] Add navigation
-- [ ] Implement search functionality
-- [ ] Add error handling
+- [ ] Port authentication flow - **Not needed for now**
+- [x] Implement data fetching with Appwrite
+- [x] Create home page with naat listings
+- [x] Create artist/channel pages
+- [x] Create naat detail pages
+- [ ] Implement basic audio player - **Next**
+- [x] Add navigation
+- [x] Implement search functionality
+- [x] Add error handling
 - [ ] Test cross-platform data consistency
 
 ### Core Features
 
-- User authentication (if applicable)
-- Browse naats
-- Browse artists
-- Play audio
-- Search
-- Favorites/bookmarks
+- Browse naats ✅
+- Browse artists/channels ✅
+- Search ✅
+- Play audio (TODO)
+- User authentication (not needed)
+- Favorites/bookmarks (TODO)
 
 ### Success Criteria
 
-- Users can browse and play naats
-- Data syncs with mobile app
-- Basic UX complete
-- No critical bugs
+- Users can browse and search naats ✅
+- Data syncs with mobile app ✅
+- Basic UX complete ✅
+- No critical bugs ✅
 
 ---
 
