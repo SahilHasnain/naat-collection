@@ -82,7 +82,7 @@ async function downloadAudio(youtubeId, title) {
       "--audio-quality",
       "128K",
       "--max-filesize",
-      "100M",
+      "200M",
       "-o",
       outputPath,
       "--no-playlist",

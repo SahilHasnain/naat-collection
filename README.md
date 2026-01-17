@@ -1,50 +1,102 @@
-# Welcome to your Expo app 👋
+# Naat Collection - Monorepo
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A cross-platform application for browsing and listening to Islamic naats (devotional songs), built with React Native and Next.js.
 
-## Get started
+## Project Structure
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+naat-collection/
+├── apps/
+│   ├── mobile/          # React Native/Expo mobile app
+│   └── web/             # Next.js web app (coming soon)
+├── packages/
+│   ├── shared/          # Shared utilities and types (coming soon)
+│   └── api-client/      # Appwrite API client (coming soon)
+└── docs/                # Documentation
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Getting Started
 
-## Learn more
+### Prerequisites
 
-To learn more about developing your project with Expo, look at the following resources:
+- Node.js 18+
+- npm or yarn
+- For mobile: Expo CLI, Android Studio or Xcode
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Installation
 
-## Join the community
+```bash
+# Install all dependencies
+npm install
+```
 
-Join our community of developers creating universal apps.
+### Running the Apps
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+#### Mobile App
+
+```bash
+# Start Expo dev server
+npm run mobile
+
+# Run on Android
+npm run mobile:android
+
+# Run on iOS
+npm run mobile:ios
+
+# Run web version
+npm run mobile:web
+```
+
+#### Web App (Coming Soon)
+
+```bash
+npm run web
+```
+
+## Development
+
+This is a monorepo managed with npm workspaces. Each app and package can be developed independently while sharing common code.
+
+### Available Scripts
+
+- `npm run mobile` - Start mobile development server
+- `npm run mobile:android` - Run on Android device/emulator
+- `npm run mobile:ios` - Run on iOS simulator
+- `npm run mobile:lint` - Lint mobile app
+- `npm run mobile:test` - Run mobile tests
+- `npm run setup:appwrite` - Set up Appwrite backend
+- `npm run ingest:videos` - Ingest video data
+
+## Documentation
+
+- [Monorepo Migration Plan](./docs/MONOREPO_MIGRATION_PLAN.md)
+- [Progressive Loading Strategy](./docs/FOR_YOU_PROGRESSIVE_LOADING.md)
+
+## Tech Stack
+
+### Mobile
+
+- React Native
+- Expo
+- NativeWind (Tailwind CSS)
+- Appwrite (Backend)
+- TypeScript
+
+### Web (Coming Soon)
+
+- Next.js 15
+- React 19
+- Tailwind CSS
+- Appwrite (Backend)
+- TypeScript
+
+## Contributing
+
+See individual app READMEs for specific development guidelines:
+
+- [Mobile App](./apps/mobile/README.md)
+
+## License
+
+Private project

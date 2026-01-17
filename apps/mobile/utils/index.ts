@@ -3,6 +3,16 @@
  * Exports all utility functions for easy importing
  */
 
+// Re-export shared utilities
+export {
+  formatDownloadDate,
+  formatDuration,
+  formatFileSize,
+  formatRelativeTime,
+  formatViews,
+} from "@naat-collection/shared";
+
+// Mobile-specific utilities
 export {
   DEFAULT_TIMEOUT,
   MAX_RETRY_ATTEMPTS,
@@ -18,10 +28,6 @@ export {
   type TimeoutOptions,
 } from "./errorHandling";
 
-export { formatRelativeTime } from "./dateUtils";
-
-export { formatViews } from "./numberUtils";
-
 export {
   showErrorToast,
   showInfoToast,
@@ -31,9 +37,4 @@ export {
   type ToastType,
 } from "./toast";
 
-export {
-  filterDownloadsByQuery,
-  formatDownloadDate,
-  formatFileSize,
-  sortDownloads,
-} from "./formatters";
+export { filterDownloadsByQuery, sortDownloads } from "./formatters";
