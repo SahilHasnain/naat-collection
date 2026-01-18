@@ -63,9 +63,9 @@ export default function Home() {
             selectedChannelId,
           );
         } else if (selectedSort === "forYou") {
-          // For You mode - fetch larger batch and apply algorithm
+          // For You mode - fetch all naats and apply algorithm
           const allNaats = await appwriteService.getNaats(
-            1000,
+            10000, // Fetch all naats (currently ~3000+)
             0,
             "latest",
             selectedChannelId,

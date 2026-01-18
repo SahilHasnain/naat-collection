@@ -27,7 +27,7 @@ Smart recommendation algorithm with 5 weighted factors:
 ### 3. Page Updates (`app/page.tsx`)
 
 - Default sort changed to "forYou"
-- Fetches 1000 naats for algorithm processing
+- Fetches all naats (limit: 10000) for algorithm processing
 - Applies For You algorithm when selected
 - Falls back to regular sorting for other options
 
@@ -42,7 +42,7 @@ Smart recommendation algorithm with 5 weighted factors:
 ### First Visit
 
 1. User opens web app → sees "For You" feed (default)
-2. Fetches 1000 latest naats
+2. Fetches all naats (~3000+)
 3. Algorithm scores and orders them
 4. Session cached for 1 hour
 
@@ -65,14 +65,16 @@ Smart recommendation algorithm with 5 weighted factors:
 ✅ **Watch History**: Tracks last 100 played naats
 ✅ **Smart Scoring**: 5-factor weighted algorithm
 ✅ **Non-Blocking**: Storage errors don't break the app
-✅ **Progressive Loading**: Fetches 1000 naats efficiently
+✅ **Full Dataset**: Processes all naats for best recommendations
 
 ## Performance
 
-- Initial load: ~1-2 seconds for 1000 naats
-- Algorithm execution: <100ms
+- Initial load: ~2-3 seconds for all naats (~3000+)
+- Algorithm execution: <200ms
 - Session cache: Instant on subsequent loads
 - Watch history: Non-blocking tracking
+
+**Note**: Web version fetches all naats at once for simplicity. Mobile uses progressive loading (1000 initial + background fetch) due to mobile constraints.
 
 ## Testing
 
