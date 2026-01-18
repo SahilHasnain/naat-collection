@@ -8,7 +8,6 @@ import { VideoModal } from "./VideoModal";
 
 export function MiniPlayer() {
   const { state, actions } = useAudioPlayer();
-  const [isVisible, setIsVisible] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
@@ -40,11 +39,7 @@ export function MiniPlayer() {
 
   // Handle close with animation
   const handleClose = () => {
-    setIsVisible(false);
-    // Wait for animation to complete before stopping
-    setTimeout(() => {
-      actions.stop();
-    }, 300);
+    actions.stop();
   };
 
   // Build video URL from youtubeId

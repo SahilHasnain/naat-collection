@@ -1,7 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  /* Color Palette */
+  /* Color Palette 
+   * Usage Guide:
+   * - accent-primary (#1DB954 - Spotify Green): Audio/music related actions, progress bars, selected filters
+   * - blue-600 (#2563eb): Video/UI actions, buttons, hero sections, back-to-top
+   * - neutral-*: Backgrounds, borders, text
+   */
   --color-neutral-900: #171717;
   --color-neutral-800: #262626;
   --color-neutral-700: #404040;
@@ -14,6 +19,9 @@
 
   --color-primary-600: #2563eb;
   --color-primary-700: #1d4ed8;
+  --color-blue-600: #2563eb; /* Alias for primary-600 */
+  --color-blue-800: #1e40af;
+  --color-blue-100: #dbeafe;
   --color-accent-primary: #1db954;
   --color-accent-success: #10b981;
   --color-accent-error: #ef4444;

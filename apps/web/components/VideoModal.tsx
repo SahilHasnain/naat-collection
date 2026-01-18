@@ -200,7 +200,7 @@ export function VideoModal({
       <div className="flex-1 bg-black flex items-center justify-center relative">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-12 h-12 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin" />
+            <div className="w-12 h-12 border-4 border-gray-700 border-t-accent-primary rounded-full animate-spin" />
             <p className="mt-3 text-sm text-neutral-400 absolute top-1/2 mt-16">
               Loading video...
             </p>
@@ -265,7 +265,7 @@ export function VideoModal({
             onClick={() => setIsRepeatEnabled(!isRepeatEnabled)}
             className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors ${
               isRepeatEnabled
-                ? "bg-blue-500 text-white"
+                ? "bg-accent-primary text-white"
                 : "bg-neutral-800 text-white hover:bg-neutral-700"
             }`}
             aria-label={isRepeatEnabled ? "Repeat enabled" : "Repeat disabled"}
@@ -281,7 +281,7 @@ export function VideoModal({
         {onSwitchToAudio && (
           <button
             onClick={onSwitchToAudio}
-            className="w-full flex items-center justify-center gap-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-2xl transition-colors"
+            className="w-full flex items-center justify-center gap-3 bg-accent-primary hover:bg-accent-primary/90 text-white font-bold py-4 px-6 rounded-2xl transition-colors"
             aria-label="Switch to audio mode"
           >
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
+import { appwriteService } from "@/lib/appwrite";
 import type { Naat } from "@naat-collection/shared";
 import { useEffect, useRef, useState } from "react";
 import { NaatCard } from "./NaatCard";
@@ -91,15 +92,22 @@ export function NaatGrid({
     if (!naat) return;
 
     try {
-      await actions.loadAndPlay({
-        audioUrl: naat.videoUrl, // Using videoUrl as audioUrl for now
-        title: naat.title,
-        channelName: naat.channelName,
-        thumbnailUrl: naat.thumbnailUrl,
-        audioId: naat.audioId,
-        youtubeId: naat.youtubeId,
-        isLocalFile: !!naat.audioId,
-      });
+      // Fetch audio URL from storage
+      const response = await appwriteService.getAudioUrl(naat.audioId);
+
+      if (response.success && response.audioUrl) {
+        await actions.loadAndPlay({
+          audioUrl: response.audioUrl,
+          title: naat.title,
+          channelName: naat.channelName,
+          thumbnailUrl: naat.thumbnailUrl,
+          audioId: naat.audioId,
+          youtubeId: naat.youtubeId,
+          isLocalFile: !!naat.audioId,
+        });
+      } else {
+        console.error("Audio not available:", response.error);
+      }
     } catch (error) {
       console.error("Failed to play naat:", error);
       // TODO: Show error toast to user
@@ -120,7 +128,7 @@ export function NaatGrid({
       {/* Loading Spinner */}
       {isLoading && (
         <div className="flex justify-center py-8">
-          <div className="w-10 h-10 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-gray-700 border-t-accent-primary rounded-full animate-spin" />
         </div>
       )}
 

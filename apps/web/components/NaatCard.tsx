@@ -1,6 +1,7 @@
 "use client";
 
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
+import { appwriteService } from "@/lib/appwrite";
 import type { Naat } from "@naat-collection/shared";
 import {
   formatDuration,
@@ -28,17 +29,26 @@ export function NaatCard({ naat, onPlay }: NaatCardProps) {
 
     if (playbackMode === "audio") {
       // User prefers audio-only mode, play directly
-      await actions.loadAndPlay({
-        audioUrl: naat.videoUrl,
-        title: naat.title,
-        channelName: naat.channelName,
-        thumbnailUrl: naat.thumbnailUrl,
-        audioId: naat.audioId,
-        youtubeId: naat.youtubeId,
-      });
+      // Fetch audio URL from storage
+      const response = await appwriteService.getAudioUrl(naat.audioId);
 
-      // Call onPlay callback if provided
-      onPlay?.(naat.$id);
+      if (response.success && response.audioUrl) {
+        await actions.loadAndPlay({
+          audioUrl: response.audioUrl,
+          title: naat.title,
+          channelName: naat.channelName,
+          thumbnailUrl: naat.thumbnailUrl,
+          audioId: naat.audioId,
+          youtubeId: naat.youtubeId,
+        });
+
+        // Call onPlay callback if provided
+        onPlay?.(naat.$id);
+      } else {
+        // Fallback to video mode if audio not available
+        console.log("Audio not available, falling back to video mode");
+        router.push(`/naats/${naat.$id}`);
+      }
     } else {
       // Default to video page (first-time users or video preference)
       router.push(`/naats/${naat.$id}`);

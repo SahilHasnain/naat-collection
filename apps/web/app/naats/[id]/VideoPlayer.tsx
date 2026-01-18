@@ -2,6 +2,7 @@
 
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 import { usePlaybackPreference } from "@/hooks/usePlaybackPreference";
+import { appwriteService } from "@/lib/appwrite";
 import type { Naat } from "@naat-collection/shared";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -27,18 +28,25 @@ export function VideoPlayer({ naat }: VideoPlayerProps) {
     // Save preference
     updatePlaybackMode("audio");
 
-    // Load audio in the audio player
-    await actions.loadAndPlay({
-      audioUrl: naat.videoUrl, // Using video URL as audio source for now
-      title: naat.title,
-      channelName: naat.channelName,
-      thumbnailUrl: naat.thumbnailUrl,
-      audioId: naat.audioId,
-      youtubeId: naat.youtubeId,
-    });
+    // Fetch audio URL from storage
+    const response = await appwriteService.getAudioUrl(naat.audioId);
 
-    // Navigate back to previous page
-    router.back();
+    if (response.success && response.audioUrl) {
+      // Load audio in the audio player
+      await actions.loadAndPlay({
+        audioUrl: response.audioUrl,
+        title: naat.title,
+        channelName: naat.channelName,
+        thumbnailUrl: naat.thumbnailUrl,
+        audioId: naat.audioId,
+        youtubeId: naat.youtubeId,
+      });
+
+      // Navigate back to previous page
+      router.back();
+    } else {
+      console.error("Audio not available:", response.error);
+    }
   };
 
   return (
