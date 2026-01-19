@@ -4,23 +4,36 @@ import { ChannelFilter } from "@/components/ChannelFilter";
 import { NaatGrid } from "@/components/NaatGrid";
 import { SearchBar } from "@/components/SearchBar";
 import { SortFilter, type SortOption } from "@/components/SortFilter";
+import { useNaats } from "@/hooks/useNaats";
 import { appwriteService } from "@/lib/appwrite";
-import { getForYouFeed } from "@/lib/forYouAlgorithm";
 import type { Channel, Naat } from "@naat-collection/shared";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
-  const [naats, setNaats] = useState<Naat[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
     null,
   );
   const [selectedSort, setSelectedSort] = useState<SortOption>("forYou");
-  const [loading, setLoading] = useState(true);
   const [channelsLoading, setChannelsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<Naat[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Use the smart hook for browse mode
+  const {
+    naats: browseNaats,
+    loading: browseLoading,
+    error: browseError,
+    hasMore,
+    loadMore,
+  } = useNaats(selectedChannelId, selectedSort);
+
+  // Ref for infinite scroll
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   // Detect screen size
   useEffect(() => {
@@ -47,53 +60,77 @@ export default function Home() {
     fetchChannels();
   }, []);
 
-  // Fetch naats when filters change
+  // Handle search separately
   useEffect(() => {
-    const fetchNaats = async () => {
-      setLoading(true);
-      setError(null);
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setSearchError(null);
+      return;
+    }
+
+    const fetchSearch = async () => {
+      setSearchLoading(true);
+      setSearchError(null);
 
       try {
-        let naatsData: Naat[];
-
-        if (searchQuery.trim()) {
-          // Search mode
-          naatsData = await appwriteService.searchNaats(
-            searchQuery,
-            selectedChannelId,
-          );
-        } else if (selectedSort === "forYou") {
-          // For You mode - fetch all naats and apply algorithm
-          const allNaats = await appwriteService.getNaats(
-            10000, // Fetch all naats (currently ~3000+)
-            0,
-            "latest",
-            selectedChannelId,
-          );
-          naatsData = await getForYouFeed(allNaats, selectedChannelId);
-        } else {
-          // Browse mode with sort
-          naatsData = await appwriteService.getNaats(
-            20,
-            0,
-            selectedSort,
-            selectedChannelId,
-          );
-        }
-
-        setNaats(naatsData);
+        const results = await appwriteService.searchNaats(
+          searchQuery,
+          selectedChannelId,
+        );
+        setSearchResults(results);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load naats");
-        console.error("Error fetching naats:", err);
+        setSearchError(
+          err instanceof Error ? err.message : "Failed to search naats",
+        );
+        console.error("Error searching naats:", err);
       } finally {
-        setLoading(false);
+        setSearchLoading(false);
       }
     };
 
-    fetchNaats();
-  }, [searchQuery, selectedChannelId, selectedSort]);
+    const debounce = setTimeout(fetchSearch, 300);
+    return () => clearTimeout(debounce);
+  }, [searchQuery, selectedChannelId]);
+
+  // Infinite scroll setup
+  useEffect(() => {
+    if (searchQuery.trim()) return; // Don't use infinite scroll in search mode
+
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !browseLoading) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    if (loadMoreRef.current) {
+      observerRef.current.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [hasMore, browseLoading, loadMore, searchQuery]);
+
+  // Trigger initial load
+  useEffect(() => {
+    if (!searchQuery.trim() && browseNaats.length === 0 && !browseLoading) {
+      loadMore();
+    }
+  }, [searchQuery, browseNaats.length, browseLoading, loadMore]);
 
   const isSearching = searchQuery.trim().length > 0;
+  const displayNaats = isSearching ? searchResults : browseNaats;
+  const loading = isSearching ? searchLoading : browseLoading;
+  const error = isSearching ? searchError : browseError?.message || null;
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -175,11 +212,11 @@ export default function Home() {
             </div>
           )}
 
-          {loading ? (
+          {loading && displayNaats.length === 0 ? (
             <div className="flex items-center justify-center py-20">
               <div className="w-12 h-12 border-4 border-gray-700 border-t-accent-primary rounded-full animate-spin" />
             </div>
-          ) : naats.length === 0 ? (
+          ) : displayNaats.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-gray-400 text-lg">
                 {isSearching
@@ -188,12 +225,30 @@ export default function Home() {
               </p>
             </div>
           ) : (
-            <NaatGrid
-              naats={naats}
-              channelId={selectedChannelId}
-              sortOption={selectedSort}
-              searchQuery={searchQuery}
-            />
+            <>
+              <NaatGrid
+                naats={displayNaats}
+                channelId={selectedChannelId}
+                sortOption={selectedSort}
+                searchQuery={searchQuery}
+              />
+
+              {/* Infinite scroll trigger - only in browse mode */}
+              {!isSearching && (
+                <div ref={loadMoreRef} className="py-8">
+                  {browseLoading && (
+                    <div className="flex items-center justify-center">
+                      <div className="w-8 h-8 border-4 border-gray-700 border-t-accent-primary rounded-full animate-spin" />
+                    </div>
+                  )}
+                  {!hasMore && browseNaats.length > 0 && (
+                    <p className="text-center text-gray-500">
+                      No more naats to load
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
