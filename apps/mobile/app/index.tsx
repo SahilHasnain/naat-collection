@@ -1,4 +1,4 @@
-import { BackToTopButton, VideoModal } from "@/components";
+import { BackToTopButton } from "@/components";
 import ChannelFilterBar from "@/components/ChannelFilterBar";
 import EmptyState from "@/components/EmptyState";
 import NaatCard from "@/components/NaatCard";
@@ -14,6 +14,7 @@ import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
 import type { Naat, SortOption } from "@/types";
 import { showErrorToast } from "@/utils/toast";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -24,15 +25,12 @@ import {
 } from "react-native";
 
 export default function HomeScreen() {
-  // Modal state
-  const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [isVideoFallback, setIsVideoFallback] = useState(false);
+  const router = useRouter();
 
   // Filter state
   const [selectedFilter, setSelectedFilter] = useState<SortOption>("forYou");
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
-    null
+    null,
   );
 
   // Back to top state
@@ -50,7 +48,7 @@ export default function HomeScreen() {
   } = useChannels();
   const { naats, loading, error, hasMore, loadMore, refresh } = useNaats(
     selectedChannelId,
-    selectedFilter
+    selectedFilter,
   );
   const {
     query,
@@ -117,20 +115,38 @@ export default function HomeScreen() {
         if (savedMode === "audio") {
           await loadAudioDirectly(naat);
         } else {
-          // Default to video mode - user explicitly chose video
-          setIsVideoFallback(false);
-          setSelectedNaat(naat);
-          setModalVisible(true);
+          // Default to video mode - navigate to video screen
+          router.push({
+            pathname: "/video",
+            params: {
+              videoUrl: naat.videoUrl,
+              title: naat.title,
+              channelName: naat.channelName,
+              thumbnailUrl: naat.thumbnailUrl,
+              youtubeId: naat.youtubeId,
+              audioId: naat.audioId,
+              isFallback: "false",
+            },
+          });
         }
       } catch (error) {
         console.error("Error checking playback preference:", error);
         // Fallback to video mode on error
-        setIsVideoFallback(false);
-        setSelectedNaat(naat);
-        setModalVisible(true);
+        router.push({
+          pathname: "/video",
+          params: {
+            videoUrl: naat.videoUrl,
+            title: naat.title,
+            channelName: naat.channelName,
+            thumbnailUrl: naat.thumbnailUrl,
+            youtubeId: naat.youtubeId,
+            audioId: naat.audioId,
+            isFallback: "false",
+          },
+        });
       }
     },
-    [displayData, loadAudioDirectly]
+    [displayData, loadAudioDirectly, router],
   );
 
   // Load audio directly without opening video modal
@@ -143,9 +159,18 @@ export default function HomeScreen() {
       if (!naat.audioId) {
         console.log("No audio ID available, falling back to video mode");
         showErrorToast("Audio not available. Playing video instead.");
-        setIsVideoFallback(true); // Mark as fallback
-        setSelectedNaat(naat);
-        setModalVisible(true);
+        router.push({
+          pathname: "/video",
+          params: {
+            videoUrl: naat.videoUrl,
+            title: naat.title,
+            channelName: naat.channelName,
+            thumbnailUrl: naat.thumbnailUrl,
+            youtubeId: naat.youtubeId,
+            audioId: naat.audioId,
+            isFallback: "true",
+          },
+        });
         return;
       }
 
@@ -155,7 +180,7 @@ export default function HomeScreen() {
         let isLocalFile = false;
 
         const downloaded = await audioDownloadService.isDownloaded(
-          naat.audioId
+          naat.audioId,
         );
 
         if (downloaded) {
@@ -172,9 +197,18 @@ export default function HomeScreen() {
             // Fallback to video mode if audio not available
             console.log("Audio not available, falling back to video mode");
             showErrorToast("Audio not available. Playing video instead.");
-            setIsVideoFallback(true); // Mark as fallback
-            setSelectedNaat(naat);
-            setModalVisible(true);
+            router.push({
+              pathname: "/video",
+              params: {
+                videoUrl: naat.videoUrl,
+                title: naat.title,
+                channelName: naat.channelName,
+                thumbnailUrl: naat.thumbnailUrl,
+                youtubeId: naat.youtubeId,
+                audioId: naat.audioId,
+                isFallback: "true",
+              },
+            });
             return;
           }
         }
@@ -195,21 +229,22 @@ export default function HomeScreen() {
         // Fallback to video mode on error
         console.error("Failed to load audio, falling back to video mode:", err);
         showErrorToast("Failed to load audio. Playing video instead.");
-        setIsVideoFallback(true); // Mark as fallback
-        setSelectedNaat(naat);
-        setModalVisible(true);
+        router.push({
+          pathname: "/video",
+          params: {
+            videoUrl: naat.videoUrl,
+            title: naat.title,
+            channelName: naat.channelName,
+            thumbnailUrl: naat.thumbnailUrl,
+            youtubeId: naat.youtubeId,
+            audioId: naat.audioId,
+            isFallback: "true",
+          },
+        });
       }
     },
-    [loadAndPlay]
+    [loadAndPlay, router],
   );
-
-  // Handle modal close
-  const handleCloseModal = () => {
-    setModalVisible(false);
-    setIsVideoFallback(false);
-    // Delay clearing selected naat to allow modal animation to complete
-    setTimeout(() => setSelectedNaat(null), 300);
-  };
 
   // Handle pull-to-refresh
   const handleRefresh = async () => {
@@ -269,7 +304,7 @@ export default function HomeScreen() {
         />
       </View>
     ),
-    [handleNaatPress]
+    [handleNaatPress],
   );
 
   // Render footer loading indicator
@@ -391,21 +426,6 @@ export default function HomeScreen() {
         {/* Back to Top Button */}
         <BackToTopButton visible={showBackToTop} onPress={scrollToTop} />
       </View>
-
-      {/* Video Modal */}
-      {selectedNaat && (
-        <VideoModal
-          visible={modalVisible}
-          onClose={handleCloseModal}
-          videoUrl={selectedNaat.videoUrl}
-          title={selectedNaat.title}
-          channelName={selectedNaat.channelName}
-          thumbnailUrl={selectedNaat.thumbnailUrl}
-          youtubeId={selectedNaat.youtubeId}
-          audioId={selectedNaat.audioId}
-          isFallback={isVideoFallback}
-        />
-      )}
     </View>
   );
 }

@@ -11,5 +11,4 @@ export { default as NaatCard } from "./NaatCard";
 export { default as SearchBar } from "./SearchBar";
 export { SkeletonDownloadCard, SkeletonLoader } from "./SkeletonLoader";
 export { default as SortFilterBar } from "./SortFilterBar";
-export { default as VideoModal } from "./VideoModal";
 export { default as VideoPlayer } from "./VideoPlayer";

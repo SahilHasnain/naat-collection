@@ -1,4 +1,4 @@
-import { BackToTopButton, VideoModal } from "@/components";
+import { BackToTopButton } from "@/components";
 import EmptyState from "@/components/EmptyState";
 import HistoryCard from "@/components/HistoryCard";
 import { colors } from "@/constants/theme";
@@ -12,6 +12,7 @@ import { DateGroup, groupByDate } from "@/utils/dateGrouping";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   AccessibilityInfo,
@@ -123,10 +124,7 @@ function SwipeableHistoryCard({
 }
 
 export default function HistoryScreen() {
-  // Modal state
-  const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [isVideoFallback, setIsVideoFallback] = useState(false);
+  const router = useRouter();
 
   // Back to top state
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -181,9 +179,18 @@ export default function HistoryScreen() {
       if (!naat.audioId) {
         console.log("No audio ID available, falling back to video mode");
         showErrorToast("Audio not available. Playing video instead.");
-        setIsVideoFallback(true);
-        setSelectedNaat(naat);
-        setModalVisible(true);
+        router.push({
+          pathname: "/video",
+          params: {
+            videoUrl: naat.videoUrl,
+            title: naat.title,
+            channelName: naat.channelName,
+            thumbnailUrl: naat.thumbnailUrl,
+            youtubeId: naat.youtubeId,
+            audioId: naat.audioId,
+            isFallback: "true",
+          },
+        });
         return;
       }
 
@@ -193,7 +200,7 @@ export default function HistoryScreen() {
         let isLocalFile = false;
 
         const downloaded = await audioDownloadService.isDownloaded(
-          naat.audioId
+          naat.audioId,
         );
 
         if (downloaded) {
@@ -210,9 +217,18 @@ export default function HistoryScreen() {
             // Fallback to video mode if audio not available
             console.log("Audio not available, falling back to video mode");
             showErrorToast("Audio not available. Playing video instead.");
-            setIsVideoFallback(true);
-            setSelectedNaat(naat);
-            setModalVisible(true);
+            router.push({
+              pathname: "/video",
+              params: {
+                videoUrl: naat.videoUrl,
+                title: naat.title,
+                channelName: naat.channelName,
+                thumbnailUrl: naat.thumbnailUrl,
+                youtubeId: naat.youtubeId,
+                audioId: naat.audioId,
+                isFallback: "true",
+              },
+            });
             return;
           }
         }
@@ -233,12 +249,21 @@ export default function HistoryScreen() {
         // Fallback to video mode on error
         console.error("Failed to load audio, falling back to video mode:", err);
         showErrorToast("Failed to load audio. Playing video instead.");
-        setIsVideoFallback(true);
-        setSelectedNaat(naat);
-        setModalVisible(true);
+        router.push({
+          pathname: "/video",
+          params: {
+            videoUrl: naat.videoUrl,
+            title: naat.title,
+            channelName: naat.channelName,
+            thumbnailUrl: naat.thumbnailUrl,
+            youtubeId: naat.youtubeId,
+            audioId: naat.audioId,
+            isFallback: "true",
+          },
+        });
       }
     },
-    [loadAndPlay]
+    [loadAndPlay, router],
   );
 
   // Handle naat selection
@@ -258,28 +283,39 @@ export default function HistoryScreen() {
         if (savedMode === "audio") {
           await loadAudioDirectly(naat);
         } else {
-          // Default to video mode
-          setIsVideoFallback(false);
-          setSelectedNaat(naat);
-          setModalVisible(true);
+          // Default to video mode - navigate to video screen
+          router.push({
+            pathname: "/video",
+            params: {
+              videoUrl: naat.videoUrl,
+              title: naat.title,
+              channelName: naat.channelName,
+              thumbnailUrl: naat.thumbnailUrl,
+              youtubeId: naat.youtubeId,
+              audioId: naat.audioId,
+              isFallback: "false",
+            },
+          });
         }
       } catch (error) {
         console.error("Error checking playback preference:", error);
         // Fallback to video mode on error
-        setIsVideoFallback(false);
-        setSelectedNaat(naat);
-        setModalVisible(true);
+        router.push({
+          pathname: "/video",
+          params: {
+            videoUrl: naat.videoUrl,
+            title: naat.title,
+            channelName: naat.channelName,
+            thumbnailUrl: naat.thumbnailUrl,
+            youtubeId: naat.youtubeId,
+            audioId: naat.audioId,
+            isFallback: "false",
+          },
+        });
       }
     },
-    [history, loadAudioDirectly]
+    [history, loadAudioDirectly, router],
   );
-
-  // Handle modal close
-  const handleCloseModal = useCallback(() => {
-    setModalVisible(false);
-    setIsVideoFallback(false);
-    setTimeout(() => setSelectedNaat(null), 300);
-  }, []);
 
   // Handle delete single item
   const handleDeleteItem = useCallback(
@@ -290,7 +326,7 @@ export default function HistoryScreen() {
         await removeFromHistory(naatId);
         showSuccessToast("Removed from history");
         AccessibilityInfo.announceForAccessibility(
-          `${title} removed from history`
+          `${title} removed from history`,
         );
       } catch (err) {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -299,7 +335,7 @@ export default function HistoryScreen() {
         showErrorToast(errorMessage);
       }
     },
-    [removeFromHistory]
+    [removeFromHistory],
   );
 
   // Handle clear history with confirmation
@@ -324,24 +360,24 @@ export default function HistoryScreen() {
           onPress: async () => {
             // Heavy haptic for destructive action
             await Haptics.notificationAsync(
-              Haptics.NotificationFeedbackType.Warning
+              Haptics.NotificationFeedbackType.Warning,
             );
 
             try {
               await clearHistory();
               // Success haptic and toast
               await Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success
+                Haptics.NotificationFeedbackType.Success,
               );
               showSuccessToast("Watch history cleared successfully");
               // Announce to screen reader
               AccessibilityInfo.announceForAccessibility(
-                "Watch history cleared successfully"
+                "Watch history cleared successfully",
               );
             } catch (err) {
               // Error haptic and toast
               await Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Error
+                Haptics.NotificationFeedbackType.Error,
               );
               const errorMessage =
                 err instanceof Error
@@ -351,7 +387,7 @@ export default function HistoryScreen() {
             }
           },
         },
-      ]
+      ],
     );
   }, [clearHistory]);
 
@@ -379,7 +415,7 @@ export default function HistoryScreen() {
         </Text>
       </View>
     ),
-    []
+    [],
   );
 
   // Render individual naat card
@@ -393,7 +429,7 @@ export default function HistoryScreen() {
         />
       </View>
     ),
-    [handleNaatPress, handleDeleteItem]
+    [handleNaatPress, handleDeleteItem],
   );
 
   // Handle infinite scroll
@@ -514,21 +550,6 @@ export default function HistoryScreen() {
           {/* Back to Top Button */}
           <BackToTopButton visible={showBackToTop} onPress={scrollToTop} />
         </View>
-
-        {/* Video Modal */}
-        {selectedNaat && (
-          <VideoModal
-            visible={modalVisible}
-            onClose={handleCloseModal}
-            videoUrl={selectedNaat.videoUrl}
-            title={selectedNaat.title}
-            channelName={selectedNaat.channelName}
-            thumbnailUrl={selectedNaat.thumbnailUrl}
-            youtubeId={selectedNaat.youtubeId}
-            audioId={selectedNaat.audioId}
-            isFallback={isVideoFallback}
-          />
-        )}
       </SafeAreaView>
     </GestureHandlerRootView>
   );

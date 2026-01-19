@@ -1,14 +1,13 @@
 import ErrorBoundary from "@/components/ErrorBoundary";
 import FullPlayerModal from "@/components/FullPlayerModal";
 import MiniPlayer from "@/components/MiniPlayer";
-import VideoModal from "@/components/VideoModal";
 import { colors } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
 import { VideoProvider } from "@/contexts/VideoContext";
 import { storageService } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
 import * as Sentry from "@sentry/react-native";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   SafeAreaProvider,
@@ -27,16 +26,8 @@ Sentry.init({
 
 function RootLayoutContent() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
-  const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
-  const [videoData, setVideoData] = useState<{
-    videoUrl: string;
-    title: string;
-    channelName: string;
-    thumbnailUrl: string;
-    youtubeId?: string;
-    audioId?: string;
-  } | null>(null);
   const { currentAudio, stop } = useAudioPlayer();
 
   // Handle switching from audio to video mode
@@ -48,19 +39,19 @@ function RootLayoutContent() {
 
     console.log(
       "[SwitchToVideo] Switching to video mode for:",
-      currentAudio.title
+      currentAudio.title,
     );
 
     // Store video data before stopping audio (which clears currentAudio)
     const videoUrl = `https://www.youtube.com/watch?v=${currentAudio.youtubeId}`;
-    setVideoData({
+    const videoData = {
       videoUrl,
       title: currentAudio.title,
       channelName: currentAudio.channelName,
       thumbnailUrl: currentAudio.thumbnailUrl,
       youtubeId: currentAudio.youtubeId,
       audioId: currentAudio.audioId,
-    });
+    };
 
     // Save video preference
     await storageService.savePlaybackMode("video").catch((error) => {
@@ -75,9 +66,20 @@ function RootLayoutContent() {
 
     // Small delay to ensure smooth transition
     setTimeout(() => {
-      console.log("[SwitchToVideo] Opening video modal");
-      // Open video modal
-      setIsVideoModalVisible(true);
+      console.log("[SwitchToVideo] Navigating to video screen");
+      // Navigate to video screen
+      router.push({
+        pathname: "/video",
+        params: {
+          videoUrl: videoData.videoUrl,
+          title: videoData.title,
+          channelName: videoData.channelName,
+          thumbnailUrl: videoData.thumbnailUrl,
+          youtubeId: videoData.youtubeId,
+          audioId: videoData.audioId,
+          isFallback: "false",
+        },
+      });
     }, 100);
   };
 
@@ -140,24 +142,6 @@ function RootLayoutContent() {
         onClose={() => setIsPlayerExpanded(false)}
         onSwitchToVideo={handleSwitchToVideo}
       />
-
-      {/* Video Modal - for switching from audio to video */}
-      {videoData && (
-        <VideoModal
-          visible={isVideoModalVisible}
-          onClose={() => {
-            setIsVideoModalVisible(false);
-            setVideoData(null);
-          }}
-          videoUrl={videoData.videoUrl}
-          title={videoData.title}
-          channelName={videoData.channelName}
-          thumbnailUrl={videoData.thumbnailUrl}
-          youtubeId={videoData.youtubeId}
-          audioId={videoData.audioId}
-          isFallback={false}
-        />
-      )}
     </>
   );
 }
