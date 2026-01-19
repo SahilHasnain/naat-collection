@@ -80,9 +80,6 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
   // Audio element ref
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Track if we're currently seeking to prevent position updates during seek
-  const isSeekingRef = useRef(false);
-
   // Refs for repeat and autoplay to avoid stale closures
   const isRepeatEnabledRef = useRef(false);
   const isAutoplayEnabledRef = useRef(false);
@@ -136,22 +133,9 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
       setState((prev) => ({ ...prev, isPlaying: false }));
     };
 
-    // Event listener: onSeeking
-    const handleSeeking = () => {
-      isSeekingRef.current = true;
-    };
-
-    // Event listener: onSeeked
-    const handleSeeked = () => {
-      isSeekingRef.current = false;
-      // Update position after seek completes
-      setState((prev) => ({ ...prev, position: audio.currentTime }));
-    };
-
     // Event listener: onTimeUpdate
     const handleTimeUpdate = () => {
-      // Only update position if we're not currently seeking
-      if (!isSeekingRef.current && audio.currentTime !== undefined) {
+      if (audio.currentTime !== undefined) {
         setState((prev) => ({ ...prev, position: audio.currentTime }));
       }
     };
@@ -212,8 +196,6 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
     // Attach event listeners
     audio.addEventListener("play", handlePlay);
     audio.addEventListener("pause", handlePause);
-    audio.addEventListener("seeking", handleSeeking);
-    audio.addEventListener("seeked", handleSeeked);
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("ended", handleEnded);
@@ -223,8 +205,6 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
     return () => {
       audio.removeEventListener("play", handlePlay);
       audio.removeEventListener("pause", handlePause);
-      audio.removeEventListener("seeking", handleSeeking);
-      audio.removeEventListener("seeked", handleSeeked);
       audio.removeEventListener("timeupdate", handleTimeUpdate);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("ended", handleEnded);
