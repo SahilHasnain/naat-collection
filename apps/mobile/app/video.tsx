@@ -81,12 +81,13 @@ export default function VideoScreen() {
 
   const videoId = getYouTubeId(videoUrl);
 
-  // Load video on mount and save video preference
+  // Load video on mount, save video preference, and autoplay
   React.useEffect(() => {
     setIsLoading(true);
     setVideoPosition(0);
     setVideoDuration(0);
-    setVideoPlaying(false);
+    // Start playing immediately (autoplay)
+    setVideoPlaying(true);
 
     // Load video into context
     if (title && channelName && thumbnailUrl) {
