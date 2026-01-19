@@ -323,9 +323,14 @@ export function AudioPlayerProvider({ children }: AudioPlayerProviderProps) {
   const seek = useCallback((position: number) => {
     if (!audioRef.current) return;
 
-    // Only set the audio element's currentTime
-    // The timeupdate event will handle updating the state
-    audioRef.current.currentTime = position;
+    try {
+      // Set the audio element's currentTime
+      audioRef.current.currentTime = position;
+      // Immediately update state for instant UI feedback
+      setState((prev) => ({ ...prev, position }));
+    } catch (error) {
+      console.error("Error seeking:", error);
+    }
   }, []);
 
   // Set volume
