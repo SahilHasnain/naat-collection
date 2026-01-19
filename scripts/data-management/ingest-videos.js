@@ -54,12 +54,12 @@ async function fetchYouTubeVideos(channelId, maxResults = 5000) {
   try {
     // First, get the uploads playlist ID and channel name for the channel
     const channelResponse = await fetch(
-      `${baseUrl}/channels?part=contentDetails,snippet&id=${channelId}&key=${YOUTUBE_API_KEY}`
+      `${baseUrl}/channels?part=contentDetails,snippet&id=${channelId}&key=${YOUTUBE_API_KEY}`,
     );
 
     if (!channelResponse.ok) {
       throw new Error(
-        `YouTube API error: ${channelResponse.status} ${channelResponse.statusText}`
+        `YouTube API error: ${channelResponse.status} ${channelResponse.statusText}`,
       );
     }
 
@@ -89,7 +89,7 @@ async function fetchYouTubeVideos(channelId, maxResults = 5000) {
 
       if (!playlistResponse.ok) {
         throw new Error(
-          `YouTube API error: ${playlistResponse.status} ${playlistResponse.statusText}`
+          `YouTube API error: ${playlistResponse.status} ${playlistResponse.statusText}`,
         );
       }
 
@@ -126,12 +126,12 @@ async function fetchYouTubeVideos(channelId, maxResults = 5000) {
         .join(",");
 
       const videosResponse = await fetch(
-        `${baseUrl}/videos?part=contentDetails,snippet,statistics&id=${videoIds}&key=${YOUTUBE_API_KEY}`
+        `${baseUrl}/videos?part=contentDetails,snippet,statistics&id=${videoIds}&key=${YOUTUBE_API_KEY}`,
       );
 
       if (!videosResponse.ok) {
         throw new Error(
-          `YouTube API error: ${videosResponse.status} ${videosResponse.statusText}`
+          `YouTube API error: ${videosResponse.status} ${videosResponse.statusText}`,
         );
       }
 
@@ -167,6 +167,69 @@ function parseDuration(isoDuration) {
   return hours * 3600 + minutes * 60 + seconds;
 }
 
+/**
+ * Check if a video should be filtered out based on channel and title rules
+ * @param {string} channelName - The channel name
+ * @param {string} title - The video title
+ * @returns {boolean} - true if video should be filtered out (excluded)
+ */
+function shouldFilterVideo(channelName, title) {
+  // Check if this is Baghdadi Sound and Media channel (case-insensitive)
+  const isBaghdadiChannel =
+    channelName.toLowerCase().includes("baghdadi sound") ||
+    (channelName.toLowerCase().includes("baghdadi") &&
+      channelName.toLowerCase().includes("media"));
+
+  if (!isBaghdadiChannel) {
+    return false; // Don't filter videos from other channels
+  }
+
+  // For Baghdadi channel, only include videos with Owais Raza/Qadri in title
+  const titleLower = title.toLowerCase();
+
+  // Common spelling variations for "Owais"
+  const owaisVariations = [
+    "owais",
+    "owias",
+    "owes",
+    "owaiz",
+    "awais",
+    "awaiz",
+    "uwais",
+    "uwaiz",
+  ];
+
+  // Common spelling variations for "Raza"
+  const razaVariations = ["raza", "rza", "rezza", "reza"];
+
+  // Common spelling variations for "Qadri"
+  const qadriVariations = [
+    "qadri",
+    "qadry",
+    "qadiri",
+    "qaadri",
+    "kadri",
+    "kadry",
+  ];
+
+  // Check if title contains any combination of Owais + Raza
+  const hasOwaisRaza = owaisVariations.some((owais) =>
+    razaVariations.some(
+      (raza) => titleLower.includes(owais) && titleLower.includes(raza),
+    ),
+  );
+
+  // Check if title contains any combination of Owais + Qadri
+  const hasOwaisQadri = owaisVariations.some((owais) =>
+    qadriVariations.some(
+      (qadri) => titleLower.includes(owais) && titleLower.includes(qadri),
+    ),
+  );
+
+  // Filter out (return true) if it does NOT contain Owais names
+  return !(hasOwaisRaza || hasOwaisQadri);
+}
+
 async function getAllExistingVideos(databases) {
   try {
     const allDocuments = [];
@@ -178,7 +241,7 @@ async function getAllExistingVideos(databases) {
       const response = await databases.listDocuments(
         DATABASE_ID,
         COLLECTION_ID,
-        [Query.limit(limit), Query.offset(offset)]
+        [Query.limit(limit), Query.offset(offset)],
       );
 
       allDocuments.push(...response.documents);
@@ -228,7 +291,7 @@ async function createVideoDocument(databases, video, channelId, channelName) {
     DATABASE_ID,
     COLLECTION_ID,
     ID.unique(),
-    document
+    document,
   );
   return document;
 }
@@ -251,18 +314,26 @@ async function ingestChannelVideos(databases, existingVideosMap, channelId) {
   const { channelName, videos } = channelData;
 
   console.log(
-    `   ✅ Found ${videos.length} videos for channel: ${channelName}`
+    `   ✅ Found ${videos.length} videos for channel: ${channelName}`,
   );
 
   let newCount = 0;
   let updatedCount = 0;
   let unchangedCount = 0;
   let errorCount = 0;
+  let filteredCount = 0;
 
   for (const video of videos) {
     const videoId = video.id.videoId;
     const title = video.snippet.title;
     const newViews = parseInt(video.statistics?.viewCount || "0", 10);
+
+    // Check if video should be filtered out
+    if (shouldFilterVideo(channelName, title)) {
+      console.log(`   🚫 Filtered: ${title} (non-Owais from Baghdadi)`);
+      filteredCount++;
+      continue;
+    }
 
     try {
       const existingVideo = existingVideosMap.get(videoId);
@@ -272,7 +343,7 @@ async function ingestChannelVideos(databases, existingVideosMap, channelId) {
         if (existingVideo.views !== newViews) {
           await updateVideoViews(databases, existingVideo.documentId, newViews);
           console.log(
-            `   🔄 Updated: ${title} (${existingVideo.views} → ${newViews} views)`
+            `   🔄 Updated: ${title} (${existingVideo.views} → ${newViews} views)`,
           );
           updatedCount++;
         } else {
@@ -311,6 +382,7 @@ async function ingestChannelVideos(databases, existingVideosMap, channelId) {
     updatedCount,
     unchangedCount,
     errorCount,
+    filteredCount,
     totalVideos: videos.length,
   };
 }
@@ -334,7 +406,7 @@ async function ingestVideos() {
     console.log("\n📦 Fetching existing videos from database...");
     const existingVideosMap = await getAllExistingVideos(databases);
     console.log(
-      `✅ Found ${existingVideosMap.size} existing videos in database`
+      `✅ Found ${existingVideosMap.size} existing videos in database`,
     );
 
     // Process each channel sequentially
@@ -344,13 +416,13 @@ async function ingestVideos() {
         const result = await ingestChannelVideos(
           databases,
           existingVideosMap,
-          channelId
+          channelId,
         );
         channelResults.push(result);
       } catch (error) {
         console.error(
           `\n❌ Error processing channel ${channelId}:`,
-          error.message
+          error.message,
         );
         channelResults.push({
           channelId,
@@ -359,6 +431,7 @@ async function ingestVideos() {
           updatedCount: 0,
           unchangedCount: 0,
           errorCount: 0,
+          filteredCount: 0,
           totalVideos: 0,
           error: error.message,
         });
@@ -379,6 +452,7 @@ async function ingestVideos() {
         console.log(`   ✅ New videos added: ${result.newCount}`);
         console.log(`   🔄 Videos updated: ${result.updatedCount}`);
         console.log(`   ⏭️  Videos unchanged: ${result.unchangedCount}`);
+        console.log(`   🚫 Videos filtered: ${result.filteredCount}`);
         console.log(`   ❌ Errors: ${result.errorCount}`);
       }
     }
@@ -387,19 +461,23 @@ async function ingestVideos() {
     const totalNew = channelResults.reduce((sum, r) => sum + r.newCount, 0);
     const totalUpdated = channelResults.reduce(
       (sum, r) => sum + r.updatedCount,
-      0
+      0,
     );
     const totalUnchanged = channelResults.reduce(
       (sum, r) => sum + r.unchangedCount,
-      0
+      0,
     );
     const totalErrors = channelResults.reduce(
       (sum, r) => sum + r.errorCount,
-      0
+      0,
+    );
+    const totalFiltered = channelResults.reduce(
+      (sum, r) => sum + r.filteredCount,
+      0,
     );
     const totalVideos = channelResults.reduce(
       (sum, r) => sum + r.totalVideos,
-      0
+      0,
     );
 
     console.log("\n" + "=".repeat(60));
@@ -410,6 +488,7 @@ async function ingestVideos() {
     console.log(`   ✅ New videos added: ${totalNew}`);
     console.log(`   🔄 Videos updated: ${totalUpdated}`);
     console.log(`   ⏭️  Videos unchanged: ${totalUnchanged}`);
+    console.log(`   🚫 Videos filtered: ${totalFiltered}`);
     console.log(`   ❌ Errors: ${totalErrors}`);
     console.log("\n✨ Ingestion complete!");
   } catch (error) {

@@ -18,9 +18,8 @@
     "web:start": "npm run start --workspace=web",
     "web:lint": "npm run lint --workspace=web",
     "setup:appwrite": "npm run setup:appwrite --workspace=mobile",
-    "ingest:videos": "npm run ingest:videos --workspace=mobile"
-  },
-  "devDependencies": {
-    "typescript": "~5.9.2"
+    "ingest:videos": "npm run ingest:videos --workspace=mobile",
+    "check:non-owais": "node check-non-owais-naats.js",
+    "cleanup:non-owais": "node cleanup-non-owais-naats.js"
   }
 }
