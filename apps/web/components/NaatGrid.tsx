@@ -31,6 +31,49 @@ export function NaatGrid({
     setHasMore(initialNaats.length === 20); // Assume more if we got a full batch
   }, [initialNaats, channelId, sortOption, searchQuery]);
 
+  // Set up autoplay callback
+  useEffect(() => {
+    const handleAutoplay = async () => {
+      if (naats.length === 0) {
+        console.log("[Autoplay] No naats available for autoplay");
+        return;
+      }
+
+      // Pick a random naat
+      const randomIndex = Math.floor(Math.random() * naats.length);
+      const randomNaat = naats[randomIndex];
+
+      console.log("[Autoplay] Playing random naat:", randomNaat.title);
+
+      // Load the random naat
+      try {
+        const response = await appwriteService.getAudioUrl(randomNaat.audioId);
+
+        if (response.success && response.audioUrl) {
+          await actions.loadAndPlay({
+            audioUrl: response.audioUrl,
+            title: randomNaat.title,
+            channelName: randomNaat.channelName,
+            thumbnailUrl: randomNaat.thumbnailUrl,
+            audioId: randomNaat.audioId,
+            youtubeId: randomNaat.youtubeId,
+            isLocalFile: !!randomNaat.audioId,
+          });
+        }
+      } catch (error) {
+        console.error("[Autoplay] Failed to play random naat:", error);
+      }
+    };
+
+    // Register the callback
+    actions.setAutoplayCallback(handleAutoplay);
+
+    // Cleanup
+    return () => {
+      actions.setAutoplayCallback(null);
+    };
+  }, [naats, actions]);
+
   const loadMore = async () => {
     if (isLoading || !hasMore) return;
 
