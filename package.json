@@ -19,7 +19,7 @@
     "web:lint": "npm run lint --workspace=web",
     "setup:appwrite": "npm run setup:appwrite --workspace=mobile",
     "ingest:videos": "npm run ingest:videos --workspace=mobile",
-    "check:non-owais": "node check-non-owais-naats.js",
+    "check:non-owais": "node scripts/data-management/check-non-owais-naats.js",
     "cleanup:non-owais": "node cleanup-non-owais-naats.js"
   }
 }

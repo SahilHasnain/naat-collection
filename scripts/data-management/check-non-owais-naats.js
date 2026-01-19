@@ -7,7 +7,7 @@
 const { Client, Databases, Query } = require("node-appwrite");
 const path = require("path");
 require("dotenv").config({
-  path: path.join(__dirname, "apps", "mobile", ".env.appwrite"),
+  path: path.join(__dirname, "..", "..", "apps", "mobile", ".env.appwrite"),
 });
 
 // Initialize Appwrite client
@@ -48,12 +48,12 @@ async function checkNonOwaisNaats() {
 
     console.log(`\n✅ Total documents fetched: ${allNaats.length}\n`);
 
-    // Filter for "baghdadi sound and media" channel (case-insensitive)
+    // Baghdadi Sound & Video channel ID
+    const BAGHDADI_CHANNEL_ID = "UC-pKQ46ZSMkveYV7nKijWmQ";
+
+    // Filter for Baghdadi Sound & Video channel by channel ID
     const baghdadiNaats = allNaats.filter(
-      (naat) =>
-        naat.channelName?.toLowerCase().includes("baghdadi sound") ||
-        (naat.channelName?.toLowerCase().includes("baghdadi") &&
-          naat.channelName?.toLowerCase().includes("media")),
+      (naat) => naat.channelId === BAGHDADI_CHANNEL_ID,
     );
 
     console.log(

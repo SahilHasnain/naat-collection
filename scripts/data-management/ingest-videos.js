@@ -169,18 +169,16 @@ function parseDuration(isoDuration) {
 
 /**
  * Check if a video should be filtered out based on channel and title rules
- * @param {string} channelName - The channel name
+ * @param {string} channelId - The YouTube channel ID
  * @param {string} title - The video title
  * @returns {boolean} - true if video should be filtered out (excluded)
  */
-function shouldFilterVideo(channelName, title) {
-  // Check if this is Baghdadi Sound and Media channel (case-insensitive)
-  const isBaghdadiChannel =
-    channelName.toLowerCase().includes("baghdadi sound") ||
-    (channelName.toLowerCase().includes("baghdadi") &&
-      channelName.toLowerCase().includes("media"));
+function shouldFilterVideo(channelId, title) {
+  // Baghdadi Sound & Video channel ID
+  const BAGHDADI_CHANNEL_ID = "UC-pKQ46ZSMkveYV7nKijWmQ";
 
-  if (!isBaghdadiChannel) {
+  // Check if this is the Baghdadi channel
+  if (channelId !== BAGHDADI_CHANNEL_ID) {
     return false; // Don't filter videos from other channels
   }
 
@@ -329,7 +327,7 @@ async function ingestChannelVideos(databases, existingVideosMap, channelId) {
     const newViews = parseInt(video.statistics?.viewCount || "0", 10);
 
     // Check if video should be filtered out
-    if (shouldFilterVideo(channelName, title)) {
+    if (shouldFilterVideo(channelId, title)) {
       console.log(`   🚫 Filtered: ${title} (non-Owais from Baghdadi)`);
       filteredCount++;
       continue;

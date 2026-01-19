@@ -70,12 +70,12 @@ async function cleanupNonOwaisNaats() {
 
     console.log(`\n✅ Total documents fetched: ${allNaats.length}\n`);
 
-    // Filter for Baghdadi Sound and Media channel
+    // Baghdadi Sound & Video channel ID
+    const BAGHDADI_CHANNEL_ID = "UC-pKQ46ZSMkveYV7nKijWmQ";
+
+    // Filter for Baghdadi Sound & Video channel by channel ID
     const baghdadiNaats = allNaats.filter(
-      (naat) =>
-        naat.channelName?.toLowerCase().includes("baghdadi sound") ||
-        (naat.channelName?.toLowerCase().includes("baghdadi") &&
-          naat.channelName?.toLowerCase().includes("media")),
+      (naat) => naat.channelId === BAGHDADI_CHANNEL_ID,
     );
 
     console.log(
