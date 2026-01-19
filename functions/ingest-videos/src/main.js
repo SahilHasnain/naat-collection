@@ -31,12 +31,12 @@ async function fetchYouTubeVideos(channelId, apiKey, maxResults = 5000, log) {
   try {
     // First, get the uploads playlist ID and channel name for the channel
     const channelResponse = await fetch(
-      `${baseUrl}/channels?part=contentDetails,snippet&id=${channelId}&key=${apiKey}`
+      `${baseUrl}/channels?part=contentDetails,snippet&id=${channelId}&key=${apiKey}`,
     );
 
     if (!channelResponse.ok) {
       throw new Error(
-        `YouTube API error: ${channelResponse.status} ${channelResponse.statusText}`
+        `YouTube API error: ${channelResponse.status} ${channelResponse.statusText}`,
       );
     }
 
@@ -66,7 +66,7 @@ async function fetchYouTubeVideos(channelId, apiKey, maxResults = 5000, log) {
 
       if (!playlistResponse.ok) {
         throw new Error(
-          `YouTube API error: ${playlistResponse.status} ${playlistResponse.statusText}`
+          `YouTube API error: ${playlistResponse.status} ${playlistResponse.statusText}`,
         );
       }
 
@@ -102,12 +102,12 @@ async function fetchYouTubeVideos(channelId, apiKey, maxResults = 5000, log) {
         .join(",");
 
       const videosResponse = await fetch(
-        `${baseUrl}/videos?part=contentDetails,snippet,statistics&id=${videoIds}&key=${apiKey}`
+        `${baseUrl}/videos?part=contentDetails,snippet,statistics&id=${videoIds}&key=${apiKey}`,
       );
 
       if (!videosResponse.ok) {
         throw new Error(
-          `YouTube API error: ${videosResponse.status} ${videosResponse.statusText}`
+          `YouTube API error: ${videosResponse.status} ${videosResponse.statusText}`,
         );
       }
 
@@ -212,7 +212,7 @@ async function insertVideo(
   collectionId,
   video,
   channelName,
-  channelId
+  channelId,
 ) {
   try {
     const document = await databases.createDocument(
@@ -229,7 +229,7 @@ async function insertVideo(
         channelId: channelId,
         youtubeId: video.youtubeId,
         views: video.views,
-      }
+      },
     );
 
     return document;
@@ -252,7 +252,7 @@ async function updateVideoViews(
   databaseId,
   collectionId,
   documentId,
-  newViews
+  newViews,
 ) {
   try {
     const document = await databases.updateDocument(
@@ -261,13 +261,62 @@ async function updateVideoViews(
       documentId,
       {
         views: newViews,
-      }
+      },
     );
 
     return document;
   } catch (error) {
     throw new Error(`Failed to update video views: ${error.message}`);
   }
+}
+
+/**
+ * Check if a video should be filtered out based on channel and title rules
+ * @param {string} channelId - The YouTube channel ID
+ * @param {string} title - The video title
+ * @returns {boolean} - true if video should be filtered out (excluded)
+ */
+function shouldFilterVideo(channelId, title) {
+  // Baghdadi Sound & Video channel ID
+  const BAGHDADI_CHANNEL_ID = "UC-pKQ46ZSMkveYV7nKijWmQ";
+
+  // Check if this is the Baghdadi channel
+  if (channelId !== BAGHDADI_CHANNEL_ID) {
+    return false; // Don't filter videos from other channels
+  }
+
+  // For Baghdadi channel, only include videos with Owais Raza/Qadri in title
+  const titleLower = title.toLowerCase();
+
+  // Common spelling variations for "Owais"
+  const owaisVariations = [
+    "owais",
+    "owias",
+    "owes",
+    "owaiz",
+    "awais",
+    "awaiz",
+    "uwais",
+    "uwaiz",
+  ];
+
+  // Check if title contains "Owais" (any variation)
+  const hasOwais = owaisVariations.some((owais) => titleLower.includes(owais));
+
+  // Check if title contains "Raza" (exact, no variations)
+  const hasRaza = titleLower.includes("raza");
+
+  // Check if title contains "Qadri" (exact, no variations)
+  const hasQadri = titleLower.includes("qadri");
+
+  // Must match one of these patterns:
+  // 1. Owais + Raza
+  // 2. Owais + Qadri
+  // 3. Owais + Raza + Qadri
+  const isOwaisVideo = hasOwais && (hasRaza || hasQadri);
+
+  // Filter out (return true) if it does NOT match the pattern
+  return !isOwaisVideo;
 }
 
 /**
@@ -290,7 +339,7 @@ async function processChannel(
   channelId,
   youtubeApiKey,
   log,
-  logError
+  logError,
 ) {
   log(`Processing channel: ${channelId}`);
 
@@ -300,7 +349,7 @@ async function processChannel(
       channelId,
       youtubeApiKey,
       5000,
-      log
+      log,
     );
     const { channelName, videos } = channelData;
 
@@ -314,11 +363,19 @@ async function processChannel(
       added: 0,
       updated: 0,
       unchanged: 0,
+      filtered: 0,
       errors: [],
     };
 
     for (const video of videos) {
       try {
+        // Check if video should be filtered out
+        if (shouldFilterVideo(channelId, video.title)) {
+          log(`Filtered: ${video.title} (non-Owais from Baghdadi)`);
+          results.filtered++;
+          continue;
+        }
+
         const existingVideo = existingVideosMap.get(video.youtubeId);
 
         if (existingVideo) {
@@ -329,11 +386,11 @@ async function processChannel(
               databaseId,
               collectionId,
               existingVideo.documentId,
-              video.views
+              video.views,
             );
 
             log(
-              `Updated video: ${video.title} (${existingVideo.views} → ${video.views} views)`
+              `Updated video: ${video.title} (${existingVideo.views} → ${video.views} views)`,
             );
             results.updated++;
           } else {
@@ -347,7 +404,7 @@ async function processChannel(
             collectionId,
             video,
             channelName,
-            channelId
+            channelId,
           );
 
           log(`Added new video: ${video.title} (${video.youtubeId})`);
@@ -394,7 +451,7 @@ export default async ({ req, res, log, error: logError }) => {
     ];
 
     const missingVars = requiredEnvVars.filter(
-      (varName) => !process.env[varName]
+      (varName) => !process.env[varName],
     );
 
     if (missingVars.length > 0) {
@@ -405,7 +462,7 @@ export default async ({ req, res, log, error: logError }) => {
           success: false,
           error: errorMsg,
         },
-        500
+        500,
       );
     }
 
@@ -419,14 +476,14 @@ export default async ({ req, res, log, error: logError }) => {
           success: false,
           error: errorMsg,
         },
-        500
+        500,
       );
     }
 
     // Initialize Appwrite client
     const client = new Client()
       .setEndpoint(
-        process.env.APPWRITE_ENDPOINT || "https://cloud.appwrite.io/v1"
+        process.env.APPWRITE_ENDPOINT || "https://cloud.appwrite.io/v1",
       )
       .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
       .setKey(process.env.APPWRITE_API_KEY);
@@ -453,7 +510,7 @@ export default async ({ req, res, log, error: logError }) => {
     const existingVideosMap = await getAllExistingVideos(
       databases,
       databaseId,
-      collectionId
+      collectionId,
     );
 
     log(`Found ${existingVideosMap.size} existing videos in database`);
@@ -469,7 +526,7 @@ export default async ({ req, res, log, error: logError }) => {
         channelId,
         youtubeApiKey,
         log,
-        logError
+        logError,
       );
       channelResults.push(result);
     }
@@ -481,12 +538,16 @@ export default async ({ req, res, log, error: logError }) => {
       totalAdded: channelResults.reduce((sum, r) => sum + r.added, 0),
       totalUpdated: channelResults.reduce((sum, r) => sum + r.updated, 0),
       totalUnchanged: channelResults.reduce((sum, r) => sum + r.unchanged, 0),
+      totalFiltered: channelResults.reduce(
+        (sum, r) => sum + (r.filtered || 0),
+        0,
+      ),
       totalErrors: channelResults.reduce((sum, r) => sum + r.errors.length, 0),
     };
 
     log("Video ingestion completed");
     log(
-      `Overall Summary: ${overallResults.totalAdded} added, ${overallResults.totalUpdated} updated, ${overallResults.totalUnchanged} unchanged, ${overallResults.totalErrors} errors across ${overallResults.channelsProcessed} channel(s)`
+      `Overall Summary: ${overallResults.totalAdded} added, ${overallResults.totalUpdated} updated, ${overallResults.totalUnchanged} unchanged, ${overallResults.totalFiltered} filtered, ${overallResults.totalErrors} errors across ${overallResults.channelsProcessed} channel(s)`,
     );
 
     return res.json({
@@ -503,7 +564,7 @@ export default async ({ req, res, log, error: logError }) => {
         success: false,
         error: errorMsg,
       },
-      500
+      500,
     );
   }
 };
