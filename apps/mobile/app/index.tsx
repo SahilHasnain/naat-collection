@@ -417,7 +417,7 @@ export default function HomeScreen() {
           ListEmptyComponent={renderEmptyState}
           ListFooterComponent={renderFooter}
           onEndReached={handleEndReached}
-          onEndReachedThreshold={0.5}
+          onEndReachedThreshold={1.5}
           onScroll={handleScroll}
           scrollEventThrottle={400}
           refreshControl={
