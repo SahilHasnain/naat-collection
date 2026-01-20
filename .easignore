@@ -1,8 +1,13 @@
-# Exclude other apps
+# Exclude other apps entirely
 apps/web/
 
-# Exclude root node_modules (workspace will handle dependencies)
-node_modules/
+# Exclude packages not used by mobile
+packages/*/node_modules/
 
-# Scripts not needed for mobile build
+# Root level exclusions
+node_modules/
 scripts/
+*.md
+.git/
+.vscode/
+.idea/
