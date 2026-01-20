@@ -131,6 +131,16 @@ function RootLayoutContent() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="video"
+          options={{
+            title: "Video",
+            href: null,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="play-circle" size={size} color={color} />
+            ),
+          }}
+        />
       </Tabs>
 
       {/* Mini Player - Persistent across all screens */}
