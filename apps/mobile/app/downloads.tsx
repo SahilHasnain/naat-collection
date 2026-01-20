@@ -49,11 +49,11 @@ export default function DownloadsScreen() {
   } = useDownloads();
 
   // Audio player context
-  const { loadAndPlay, setAutoplayCallback } = useAudioPlayer();
+  const { loadAndPlay, setAutoplayCallback, currentAudio } = useAudioPlayer();
 
   // Modal state
   const [selectedAudio, setSelectedAudio] = useState<DownloadMetadata | null>(
-    null
+    null,
   );
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -162,7 +162,7 @@ export default function DownloadsScreen() {
             onPress: async () => {
               // Heavy haptic for destructive action
               await Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success
+                Haptics.NotificationFeedbackType.Success,
               );
 
               // Add to deleting set
@@ -172,17 +172,17 @@ export default function DownloadsScreen() {
                 await deleteAudio(audioId);
                 // Success haptic and toast
                 await Haptics.notificationAsync(
-                  Haptics.NotificationFeedbackType.Success
+                  Haptics.NotificationFeedbackType.Success,
                 );
                 showSuccessToast("Audio deleted successfully");
                 // Announce to screen reader
                 AccessibilityInfo.announceForAccessibility(
-                  "Audio deleted successfully"
+                  "Audio deleted successfully",
                 );
               } catch (err) {
                 // Error haptic and toast
                 await Haptics.notificationAsync(
-                  Haptics.NotificationFeedbackType.Error
+                  Haptics.NotificationFeedbackType.Error,
                 );
                 const errorMessage =
                   err instanceof Error
@@ -199,10 +199,10 @@ export default function DownloadsScreen() {
               }
             },
           },
-        ]
+        ],
       );
     },
-    [deleteAudio]
+    [deleteAudio],
   );
 
   // Handle clear all with confirmation
@@ -227,24 +227,24 @@ export default function DownloadsScreen() {
           onPress: async () => {
             // Heavy haptic for destructive action
             await Haptics.notificationAsync(
-              Haptics.NotificationFeedbackType.Warning
+              Haptics.NotificationFeedbackType.Warning,
             );
 
             try {
               await clearAll();
               // Success haptic and toast
               await Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success
+                Haptics.NotificationFeedbackType.Success,
               );
               showSuccessToast("All downloads cleared successfully");
               // Announce to screen reader
               AccessibilityInfo.announceForAccessibility(
-                "All downloads cleared successfully"
+                "All downloads cleared successfully",
               );
             } catch (err) {
               // Error haptic and toast
               await Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Error
+                Haptics.NotificationFeedbackType.Error,
               );
               const errorMessage =
                 err instanceof Error
@@ -254,7 +254,7 @@ export default function DownloadsScreen() {
             }
           },
         },
-      ]
+      ],
     );
   }, [clearAll]);
 
@@ -291,7 +291,7 @@ export default function DownloadsScreen() {
       offset: ITEM_HEIGHT * index,
       index,
     }),
-    []
+    [],
   );
 
   // Render individual download card
@@ -322,7 +322,7 @@ export default function DownloadsScreen() {
         </View>
       );
     },
-    [handleAudioPress, handleDelete, deletingIds]
+    [handleAudioPress, handleDelete, deletingIds],
   );
 
   // Render empty state
@@ -503,7 +503,11 @@ export default function DownloadsScreen() {
         />
 
         {/* Back to Top Button */}
-        <BackToTopButton visible={showBackToTop} onPress={scrollToTop} />
+        <BackToTopButton
+          visible={showBackToTop}
+          onPress={scrollToTop}
+          miniPlayerVisible={!!currentAudio}
+        />
       </View>
 
       {/* Audio Playback Modal */}

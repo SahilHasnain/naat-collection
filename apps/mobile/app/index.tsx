@@ -38,7 +38,7 @@ export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   // Audio player context
-  const { loadAndPlay, setAutoplayCallback } = useAudioPlayer();
+  const { loadAndPlay, setAutoplayCallback, currentAudio } = useAudioPlayer();
 
   // Data fetching hooks
   const {
@@ -425,7 +425,11 @@ export default function HomeScreen() {
         />
 
         {/* Back to Top Button */}
-        <BackToTopButton visible={showBackToTop} onPress={scrollToTop} />
+        <BackToTopButton
+          visible={showBackToTop}
+          onPress={scrollToTop}
+          miniPlayerVisible={!!currentAudio}
+        />
       </View>
     </View>
   );

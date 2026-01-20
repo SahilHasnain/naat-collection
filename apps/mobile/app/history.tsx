@@ -13,7 +13,7 @@ import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -131,7 +131,7 @@ export default function HistoryScreen() {
   const sectionListRef = useRef<SectionList<HistoryItem, HistorySection>>(null);
 
   // Audio player context
-  const { loadAndPlay } = useAudioPlayer();
+  const { loadAndPlay, currentAudio } = useAudioPlayer();
 
   // Data fetching hook
   const {
@@ -548,7 +548,11 @@ export default function HistoryScreen() {
           )}
 
           {/* Back to Top Button */}
-          <BackToTopButton visible={showBackToTop} onPress={scrollToTop} />
+          <BackToTopButton
+            visible={showBackToTop}
+            onPress={scrollToTop}
+            miniPlayerVisible={!!currentAudio}
+          />
         </View>
       </SafeAreaView>
     </GestureHandlerRootView>

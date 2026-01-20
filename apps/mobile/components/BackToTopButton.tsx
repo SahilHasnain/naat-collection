@@ -6,13 +6,16 @@ import { Animated, Pressable } from "react-native";
 interface BackToTopButtonProps {
   visible: boolean;
   onPress: () => void;
+  miniPlayerVisible?: boolean;
 }
 
 export default function BackToTopButton({
   visible,
   onPress,
+  miniPlayerVisible = false,
 }: BackToTopButtonProps) {
   const opacity = React.useRef(new Animated.Value(0)).current;
+  const translateY = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
     Animated.timing(opacity, {
@@ -22,11 +25,25 @@ export default function BackToTopButton({
     }).start();
   }, [visible, opacity]);
 
+  React.useEffect(() => {
+    // MiniPlayer height is 72px
+    // We want to shift the button up by 72px when miniplayer is visible
+    Animated.spring(translateY, {
+      toValue: miniPlayerVisible ? -72 : 0,
+      useNativeDriver: true,
+      friction: 8,
+      tension: 100,
+    }).start();
+  }, [miniPlayerVisible, translateY]);
+
   if (!visible) return null;
 
   return (
     <Animated.View
-      style={{ opacity }}
+      style={{
+        opacity,
+        transform: [{ translateY }],
+      }}
       className="absolute bottom-6 right-6 z-50"
     >
       <Pressable
