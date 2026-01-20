@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+
+# Other apps in monorepo
+../web/
+
+# Build outputs
+.expo/
+dist/
+build/
+android/
+ios/
+
+# Cache
+.cache/
+.turbo/
+.next/
+
+# Tests
+__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+coverage/
+
+# Documentation
+*.md
+docs/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Scripts (if not needed for build)
+scripts/audio-processing/
+scripts/data-management/
+scripts/utilities/
+
+# Assets that aren't used in production
+*.psd
+*.sketch
+*.fig

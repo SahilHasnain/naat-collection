@@ -1,0 +1,8 @@
+# Exclude other apps
+apps/web/
+
+# Exclude root node_modules (workspace will handle dependencies)
+node_modules/
+
+# Scripts not needed for mobile build
+scripts/
