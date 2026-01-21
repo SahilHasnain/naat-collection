@@ -61,7 +61,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     const checkDownloadStatus = async () => {
       if (currentAudio?.audioId && !currentAudio.isLocalFile) {
         const downloaded = await audioDownloadService.isDownloaded(
-          currentAudio.audioId
+          currentAudio.audioId,
         );
         setIsDownloaded(downloaded);
       } else if (currentAudio?.isLocalFile) {
@@ -90,7 +90,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         currentAudio.title,
         (progress) => {
           setDownloadProgress(progress.progress);
-        }
+        },
       );
 
       setIsDownloaded(true);
@@ -131,7 +131,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -165,22 +165,26 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
       <StatusBar barStyle="light-content" backgroundColor="black" />
 
       <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-black">
-        {/* Header with Close Button */}
-        <View className="px-5 py-4 flex-row items-center justify-between">
-          <TouchableOpacity
-            onPress={onClose}
-            className="h-10 w-10 items-center justify-center"
-            accessibilityRole="button"
-            accessibilityLabel="Close player"
-          >
-            <Ionicons name="chevron-down" size={28} color="white" />
-          </TouchableOpacity>
-
-          <Text className="text-sm text-neutral-400">Now Playing</Text>
+        {/* Header with Video Toggle and Options Button */}
+        <View className="flex-row items-center justify-between px-5 py-4">
+          {/* Switch to Video Button */}
+          {currentAudio.youtubeId && onSwitchToVideo && (
+            <TouchableOpacity
+              onPress={onSwitchToVideo}
+              className="items-center justify-center w-10 h-10"
+              accessibilityRole="button"
+              accessibilityLabel="Switch to video"
+            >
+              <Ionicons name="videocam" size={24} color="white" />
+            </TouchableOpacity>
+          )}
+          {(!currentAudio.youtubeId || !onSwitchToVideo) && (
+            <View className="w-10" />
+          )}
 
           <TouchableOpacity
             onPress={() => setShowOptionsMenu(!showOptionsMenu)}
-            className="h-10 w-10 items-center justify-center"
+            className="items-center justify-center w-10 h-10"
             accessibilityRole="button"
             accessibilityLabel="Options menu"
           >
@@ -202,21 +206,6 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
 
             {/* Menu */}
             <View className="absolute top-16 right-5 bg-neutral-800 rounded-lg shadow-lg z-50 min-w-[200px]">
-              {/* Switch to Video */}
-              {currentAudio.youtubeId && onSwitchToVideo && (
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowOptionsMenu(false);
-                    onSwitchToVideo();
-                  }}
-                  className="flex-row items-center gap-3 px-4 py-3 border-b border-neutral-700"
-                  accessibilityRole="button"
-                >
-                  <Ionicons name="videocam" size={20} color="white" />
-                  <Text className="text-white text-base">Switch to Video</Text>
-                </TouchableOpacity>
-              )}
-
               {/* Download/Delete */}
               {showDownloadButton && (
                 <TouchableOpacity
@@ -228,7 +217,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       Alert.alert(
                         "Download in Progress",
                         `Downloading... ${Math.round(downloadProgress * 100)}%`,
-                        [{ text: "OK" }]
+                        [{ text: "OK" }],
                       );
                     } else {
                       handleDownload();
@@ -254,7 +243,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                           : "white"
                     }
                   />
-                  <Text className="text-white text-base">
+                  <Text className="text-base text-white">
                     {isDownloaded
                       ? "Delete Download"
                       : isDownloading
@@ -316,7 +305,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         )}
 
         {isLoading ? (
-          <View className="flex-1 items-center justify-center">
+          <View className="items-center justify-center flex-1">
             <ActivityIndicator size="large" color={colors.accent.primary} />
             <Text className="mt-4 text-white">
               {currentAudio.isLocalFile
@@ -327,7 +316,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         ) : (
           <View className="flex-1">
             {/* Album Art / Thumbnail */}
-            <View className="flex-1 items-center justify-center px-8">
+            <View className="items-center justify-center flex-1 px-8">
               <Image
                 source={{ uri: currentAudio.thumbnailUrl }}
                 style={{ width: 320, height: 320 }}
@@ -337,14 +326,14 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
               />
 
               {/* Title and Channel */}
-              <View className="mt-8 w-full">
+              <View className="w-full mt-8">
                 <Text
-                  className="text-center text-2xl font-bold text-white"
+                  className="text-2xl font-bold text-center text-white"
                   numberOfLines={2}
                 >
                   {currentAudio.title}
                 </Text>
-                <Text className="mt-2 text-center text-base text-neutral-400">
+                <Text className="mt-2 text-base text-center text-neutral-400">
                   {currentAudio.channelName}
                 </Text>
               </View>
@@ -381,7 +370,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 {/* Seek Backward 10s */}
                 <TouchableOpacity
                   onPress={seekBackward}
-                  className="h-14 w-14 items-center justify-center relative"
+                  className="relative items-center justify-center h-14 w-14"
                   accessibilityLabel="Seek backward 10 seconds"
                   accessibilityRole="button"
                 >
@@ -399,7 +388,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 {/* Play/Pause Button */}
                 <TouchableOpacity
                   onPress={togglePlayPause}
-                  className="h-20 w-20 items-center justify-center rounded-full bg-white"
+                  className="items-center justify-center w-20 h-20 bg-white rounded-full"
                   accessibilityRole="button"
                   accessibilityLabel={isPlaying ? "Pause" : "Play"}
                 >
@@ -413,7 +402,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 {/* Seek Forward 10s */}
                 <TouchableOpacity
                   onPress={seekForward}
-                  className="h-14 w-14 items-center justify-center relative"
+                  className="relative items-center justify-center h-14 w-14"
                   accessibilityLabel="Seek forward 10 seconds"
                   accessibilityRole="button"
                 >
