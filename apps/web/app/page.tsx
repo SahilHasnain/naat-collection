@@ -1,12 +1,14 @@
 "use client";
 
 import { ChannelFilter } from "@/components/ChannelFilter";
+import { DurationFilter } from "@/components/DurationFilter";
 import { NaatGrid } from "@/components/NaatGrid";
 import { SearchBar } from "@/components/SearchBar";
 import { SortFilter, type SortOption } from "@/components/SortFilter";
 import { useNaats } from "@/hooks/useNaats";
 import { appwriteService } from "@/lib/appwrite";
-import type { Channel, Naat } from "@naat-collection/shared";
+import type { Channel, DurationOption, Naat } from "@naat-collection/shared";
+import { filterNaatsByDuration } from "@naat-collection/shared";
 import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
@@ -16,6 +18,8 @@ export default function Home() {
     null,
   );
   const [selectedSort, setSelectedSort] = useState<SortOption>("forYou");
+  const [selectedDuration, setSelectedDuration] =
+    useState<DurationOption>("all");
   const [channelsLoading, setChannelsLoading] = useState(true);
   const [searchResults, setSearchResults] = useState<Naat[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -128,7 +132,9 @@ export default function Home() {
   }, [searchQuery, browseNaats.length, browseLoading, loadMore]);
 
   const isSearching = searchQuery.trim().length > 0;
-  const displayNaats = isSearching ? searchResults : browseNaats;
+  const baseNaats = isSearching ? searchResults : browseNaats;
+  // Apply duration filter
+  const displayNaats = filterNaatsByDuration(baseNaats, selectedDuration);
   const loading = isSearching ? searchLoading : browseLoading;
   const error = isSearching ? searchError : browseError?.message || null;
 
@@ -159,6 +165,11 @@ export default function Home() {
                 onSortChange={setSelectedSort}
                 isMobile={true}
               />
+              <DurationFilter
+                selectedDuration={selectedDuration}
+                onDurationChange={setSelectedDuration}
+                isMobile={true}
+              />
             </>
           )}
         </>
@@ -185,13 +196,20 @@ export default function Home() {
           {!isSearching && (
             <div className="bg-gray-800/95 border-b border-gray-700 py-2 px-6">
               <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-                <ChannelFilter
-                  channels={channels}
-                  selectedChannelId={selectedChannelId}
-                  onChannelChange={setSelectedChannelId}
-                  loading={channelsLoading}
-                  isMobile={false}
-                />
+                <div className="flex items-center gap-4">
+                  <ChannelFilter
+                    channels={channels}
+                    selectedChannelId={selectedChannelId}
+                    onChannelChange={setSelectedChannelId}
+                    loading={channelsLoading}
+                    isMobile={false}
+                  />
+                  <DurationFilter
+                    selectedDuration={selectedDuration}
+                    onDurationChange={setSelectedDuration}
+                    isMobile={false}
+                  />
+                </div>
                 <SortFilter
                   selectedSort={selectedSort}
                   onSortChange={setSelectedSort}

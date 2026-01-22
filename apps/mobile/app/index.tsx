@@ -1,9 +1,8 @@
 import { BackToTopButton } from "@/components";
-import ChannelFilterBar from "@/components/ChannelFilterBar";
 import EmptyState from "@/components/EmptyState";
 import NaatCard from "@/components/NaatCard";
 import SearchBar from "@/components/SearchBar";
-import SortFilterBar from "@/components/SortFilterBar";
+import UnifiedFilterBar from "@/components/UnifiedFilterBar";
 import { colors } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { useChannels } from "@/hooks/useChannels";
@@ -12,8 +11,9 @@ import { useSearch } from "@/hooks/useSearch";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
-import type { Naat, SortOption } from "@/types";
+import type { DurationOption, Naat, SortOption } from "@/types";
 import { showErrorToast } from "@/utils/toast";
+import { filterNaatsByDuration } from "@naat-collection/shared";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -32,6 +32,8 @@ export default function HomeScreen() {
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
     null,
   );
+  const [selectedDuration, setSelectedDuration] =
+    useState<DurationOption>("all");
 
   // Back to top state
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -65,7 +67,9 @@ export default function HomeScreen() {
 
   // Determine which data to display
   const isSearching = query.trim().length > 0;
-  const displayData: Naat[] = isSearching ? searchResults : naats;
+  const baseData: Naat[] = isSearching ? searchResults : naats;
+  // Apply duration filter
+  const displayData: Naat[] = filterNaatsByDuration(baseData, selectedDuration);
   const isLoading = isSearching ? searchLoading : loading;
 
   // Set up autoplay callback for audio
@@ -96,7 +100,7 @@ export default function HomeScreen() {
     return () => {
       setAutoplayCallback(null);
     };
-  }, [displayData, setAutoplayCallback]);
+  }, [displayData, loadAudioDirectly, setAutoplayCallback]);
 
   // Store naats in a ref to avoid recreating callbacks
   const naatsMapRef = React.useRef<Map<string, Naat>>(new Map());
@@ -272,6 +276,11 @@ export default function HomeScreen() {
     setSelectedChannelId(channelId);
   };
 
+  // Handle duration filter change
+  const handleDurationChange = (duration: DurationOption) => {
+    setSelectedDuration(duration);
+  };
+
   // Handle infinite scroll
   const handleEndReached = () => {
     if (!isSearching && hasMore && !loading) {
@@ -389,18 +398,16 @@ export default function HomeScreen() {
               </View>
 
               {!isSearching ? (
-                <>
-                  <ChannelFilterBar
-                    channels={channels}
-                    selectedChannelId={selectedChannelId}
-                    onChannelChange={handleChannelChange}
-                    loading={channelsLoading}
-                  />
-                  <SortFilterBar
-                    selectedFilter={selectedFilter}
-                    onFilterChange={handleFilterChange}
-                  />
-                </>
+                <UnifiedFilterBar
+                  selectedSort={selectedFilter}
+                  onSortChange={handleFilterChange}
+                  channels={channels}
+                  selectedChannelId={selectedChannelId}
+                  onChannelChange={handleChannelChange}
+                  channelsLoading={channelsLoading}
+                  selectedDuration={selectedDuration}
+                  onDurationChange={handleDurationChange}
+                />
               ) : null}
             </>
           }
