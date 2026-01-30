@@ -2,8 +2,8 @@
 
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { VideoModal } from "./VideoModal";
 
 type PlayerSize = "minimized" | "compact" | "expanded";
 
@@ -13,9 +13,9 @@ export function FloatingPlayer() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const playerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // Initialize position (bottom-right corner)
   useEffect(() => {
@@ -96,15 +96,12 @@ export function FloatingPlayer() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Handle switch to video
+  // Handle switch to video - navigate to video page
   const handleSwitchToVideo = useCallback(() => {
-    setIsVideoModalOpen(true);
-  }, []);
-
-  // Handle switch back to audio
-  const handleSwitchToAudio = useCallback(() => {
-    setIsVideoModalOpen(false);
-  }, []);
+    if (state.currentAudio?.youtubeId) {
+      router.push(`/naats/${state.currentAudio.youtubeId}`);
+    }
+  }, [state.currentAudio?.youtubeId, router]);
 
   // Don't render if no audio
   if (!state.currentAudio) {
@@ -114,11 +111,6 @@ export function FloatingPlayer() {
   // Calculate progress percentage
   const progressPercentage =
     state.duration > 0 ? (state.position / state.duration) * 100 : 0;
-
-  // Build video URL from youtubeId
-  const videoUrl = state.currentAudio.youtubeId
-    ? `https://www.youtube.com/watch?v=${state.currentAudio.youtubeId}`
-    : "";
 
   // Minimized view (just a small icon)
   if (size === "minimized") {
@@ -346,18 +338,6 @@ export function FloatingPlayer() {
             </button>
           </div>
         </div>
-
-        {/* Video Modal */}
-        {videoUrl && (
-          <VideoModal
-            isOpen={isVideoModalOpen}
-            onClose={() => setIsVideoModalOpen(false)}
-            videoUrl={videoUrl}
-            title={state.currentAudio.title}
-            channelName={state.currentAudio.channelName}
-            onSwitchToAudio={handleSwitchToAudio}
-          />
-        )}
       </div>
     );
   }
@@ -644,18 +624,6 @@ export function FloatingPlayer() {
           )}
         </div>
       </div>
-
-      {/* Video Modal */}
-      {videoUrl && (
-        <VideoModal
-          isOpen={isVideoModalOpen}
-          onClose={() => setIsVideoModalOpen(false)}
-          videoUrl={videoUrl}
-          title={state.currentAudio.title}
-          channelName={state.currentAudio.channelName}
-          onSwitchToAudio={handleSwitchToAudio}
-        />
-      )}
     </div>
   );
 }
