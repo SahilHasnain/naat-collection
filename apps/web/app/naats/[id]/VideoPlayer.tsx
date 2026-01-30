@@ -1,10 +1,10 @@
 "use client";
 
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
-import { usePlaybackPreference } from "@/hooks/usePlaybackPreference";
 import { appwriteService } from "@/lib/appwrite";
 import type { Naat } from "@naat-collection/shared";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 interface VideoPlayerProps {
   naat: Naat;
@@ -13,15 +13,15 @@ interface VideoPlayerProps {
 export function VideoPlayer({ naat }: VideoPlayerProps) {
   const router = useRouter();
   const { actions } = useAudioPlayer();
-  const { playbackMode, updatePlaybackMode, isLoaded } =
-    usePlaybackPreference();
 
-  // Don't auto-redirect when user explicitly navigates to video page
-  // Only respect audio preference when clicking from cards, not when switching from audio player
+  // Save video preference when component mounts (user chose to watch video)
+  useEffect(() => {
+    localStorage.setItem("playbackMode", "video");
+  }, []);
 
   const handlePlayAsAudio = async () => {
-    // Save preference
-    updatePlaybackMode("audio");
+    // Save audio preference
+    localStorage.setItem("playbackMode", "audio");
 
     // Fetch audio URL from storage
     const response = await appwriteService.getAudioUrl(naat.audioId);

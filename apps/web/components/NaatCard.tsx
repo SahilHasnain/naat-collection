@@ -33,6 +33,9 @@ export function NaatCard({ naat, onPlay }: NaatCardProps) {
       const response = await appwriteService.getAudioUrl(naat.audioId);
 
       if (response.success && response.audioUrl) {
+        // Save audio preference (user chose audio)
+        localStorage.setItem("playbackMode", "audio");
+
         await actions.loadAndPlay({
           audioUrl: response.audioUrl,
           title: naat.title,
@@ -47,10 +50,14 @@ export function NaatCard({ naat, onPlay }: NaatCardProps) {
       } else {
         // Fallback to video mode if audio not available
         console.log("Audio not available, falling back to video mode");
+        // Save video preference
+        localStorage.setItem("playbackMode", "video");
         router.push(`/naats/${naat.youtubeId}`);
       }
     } else {
       // Default to video page (first-time users or video preference)
+      // Save video preference
+      localStorage.setItem("playbackMode", "video");
       router.push(`/naats/${naat.youtubeId}`);
     }
   };
