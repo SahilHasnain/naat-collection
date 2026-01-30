@@ -149,9 +149,9 @@ export function useNaats(
         return;
       }
 
-      // Progressive loading: Start with 1000 videos for fast initial load
+      // Progressive loading: Start with 150 videos for fast initial load
       // Background fetch will get the rest
-      const initialBatchSize = 1000;
+      const initialBatchSize = 150;
 
       appwriteService
         .getNaats(initialBatchSize, 0, "latest", channelId)
@@ -310,8 +310,8 @@ export function useNaats(
 
     try {
       if (filter === "forYou") {
-        // Progressive loading: Start with 1000 videos for fast refresh
-        const initialBatchSize = 1000;
+        // Progressive loading: Start with 150 videos for fast refresh
+        const initialBatchSize = 150;
 
         const initialNaats = await appwriteService.getNaats(
           initialBatchSize,
