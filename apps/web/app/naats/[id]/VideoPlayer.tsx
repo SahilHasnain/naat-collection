@@ -5,7 +5,6 @@ import { usePlaybackPreference } from "@/hooks/usePlaybackPreference";
 import { appwriteService } from "@/lib/appwrite";
 import type { Naat } from "@naat-collection/shared";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 interface VideoPlayerProps {
   naat: Naat;
@@ -17,12 +16,8 @@ export function VideoPlayer({ naat }: VideoPlayerProps) {
   const { playbackMode, updatePlaybackMode, isLoaded } =
     usePlaybackPreference();
 
-  // If user prefers audio mode, switch immediately
-  useEffect(() => {
-    if (isLoaded && playbackMode === "audio") {
-      handlePlayAsAudio();
-    }
-  }, [isLoaded, playbackMode]);
+  // Don't auto-redirect when user explicitly navigates to video page
+  // Only respect audio preference when clicking from cards, not when switching from audio player
 
   const handlePlayAsAudio = async () => {
     // Save preference
@@ -42,8 +37,8 @@ export function VideoPlayer({ naat }: VideoPlayerProps) {
         youtubeId: naat.youtubeId,
       });
 
-      // Navigate back to previous page
-      router.back();
+      // Navigate back to home page
+      router.push("/");
     } else {
       console.error("Audio not available:", response.error);
     }

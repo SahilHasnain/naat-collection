@@ -123,6 +123,33 @@ export class AppwriteService implements IAppwriteService {
   }
 
   /**
+   * Fetches a single naat by its YouTube ID
+   */
+  async getNaatByYoutubeId(youtubeId: string): Promise<Naat | null> {
+    this.initialize();
+
+    try {
+      const response = await this.database.listDocuments(
+        this.config.databaseId,
+        this.config.naatsCollectionId,
+        [Query.equal("youtubeId", youtubeId), Query.limit(1)],
+      );
+
+      if (response.documents.length === 0) {
+        return null;
+      }
+
+      return response.documents[0] as unknown as Naat;
+    } catch (error) {
+      this.onError?.(error as Error, {
+        context: "getNaatByYoutubeId",
+        youtubeId,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Searches for naats matching the provided query string
    */
   async searchNaats(query: string, channelId?: string | null): Promise<Naat[]> {

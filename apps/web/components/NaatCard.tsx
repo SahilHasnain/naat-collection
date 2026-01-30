@@ -47,11 +47,11 @@ export function NaatCard({ naat, onPlay }: NaatCardProps) {
       } else {
         // Fallback to video mode if audio not available
         console.log("Audio not available, falling back to video mode");
-        router.push(`/naats/${naat.$id}`);
+        router.push(`/naats/${naat.youtubeId}`);
       }
     } else {
       // Default to video page (first-time users or video preference)
-      router.push(`/naats/${naat.$id}`);
+      router.push(`/naats/${naat.youtubeId}`);
     }
   };
 

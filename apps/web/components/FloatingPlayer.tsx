@@ -99,9 +99,10 @@ export function FloatingPlayer() {
   // Handle switch to video - navigate to video page
   const handleSwitchToVideo = useCallback(() => {
     if (state.currentAudio?.youtubeId) {
-      router.push(`/naats/${state.currentAudio.youtubeId}`);
+      // Navigate to video page with full page reload to ensure proper navigation
+      window.location.href = `/naats/${state.currentAudio.youtubeId}`;
     }
-  }, [state.currentAudio?.youtubeId, router]);
+  }, [state.currentAudio?.youtubeId]);
 
   // Don't render if no audio
   if (!state.currentAudio) {
