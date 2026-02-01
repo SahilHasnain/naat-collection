@@ -1,4 +1,3 @@
-import { DevScreenSize } from "@/components/DevScreenSize";
 import { ResponsivePlayer } from "@/components/ResponsivePlayer";
 import { AudioPlayerProvider } from "@/contexts/AudioPlayerContext";
 import type { Metadata } from "next";
@@ -20,7 +19,6 @@ export default function RootLayout({
         <AudioPlayerProvider>
           <main>{children}</main>
           <ResponsivePlayer />
-          <DevScreenSize />
         </AudioPlayerProvider>
       </body>
     </html>

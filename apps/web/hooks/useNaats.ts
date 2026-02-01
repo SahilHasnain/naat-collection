@@ -149,9 +149,9 @@ export function useNaats(
         return;
       }
 
-      // Progressive loading: Start with 150 videos for fast initial load
+      // Progressive loading: Start with 40 videos for FAST initial load
       // Background fetch will get the rest
-      const initialBatchSize = 150;
+      const initialBatchSize = 40;
 
       appwriteService
         .getNaats(initialBatchSize, 0, "latest", channelId)
@@ -310,8 +310,8 @@ export function useNaats(
 
     try {
       if (filter === "forYou") {
-        // Progressive loading: Start with 150 videos for fast refresh
-        const initialBatchSize = 150;
+        // Progressive loading: Start with 40 videos for fast refresh
+        const initialBatchSize = 40;
 
         const initialNaats = await appwriteService.getNaats(
           initialBatchSize,
@@ -408,9 +408,9 @@ export function useNaats(
           fetchRemainingInBackground();
         }
       } else {
-        // Standard refresh for other filters
+        // Standard refresh for other filters - use smaller initial batch
         const freshNaats = await appwriteService.getNaats(
-          PAGE_SIZE,
+          20, // Reduced from PAGE_SIZE for faster initial load
           0,
           filter,
           channelId,
