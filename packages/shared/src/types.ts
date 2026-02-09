@@ -23,20 +23,24 @@ export type SortOption = "forYou" | "latest" | "popular" | "oldest";
 export type DurationOption = "all" | "short" | "medium" | "long";
 
 export interface Channel {
-  id: string; // YouTube channel ID
+  id: string; // YouTube channel ID or generated ID for playlists
   name: string; // Channel display name
   isOfficial?: boolean; // Whether channel is official (ingest all videos)
   isOther?: boolean; // Whether channel should appear in "Other" tab
+  type?: "channel" | "playlist"; // Type of source
+  playlistId?: string; // YouTube playlist ID (only for type="playlist")
 }
 
 export interface ChannelDocument {
   $id: string; // Document ID (same as channelId)
-  channelId: string; // YouTube channel ID
+  channelId: string; // YouTube channel ID or generated ID for playlists
   channelName: string;
   naatCount?: number; // Optional: number of naats from this channel
   lastUpdated?: string; // ISO 8601 format
   isOfficial?: boolean; // Whether channel is official (ingest all videos)
   isOther?: boolean; // Whether channel should appear in "Other" tab
+  type?: "channel" | "playlist"; // Type of source (default: "channel")
+  playlistId?: string; // YouTube playlist ID (only for type="playlist")
   createdAt: string;
   updatedAt: string;
 }
