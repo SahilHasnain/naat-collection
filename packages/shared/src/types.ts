@@ -25,6 +25,8 @@ export type DurationOption = "all" | "short" | "medium" | "long";
 export interface Channel {
   id: string; // YouTube channel ID
   name: string; // Channel display name
+  isOfficial?: boolean; // Whether channel is official (ingest all videos)
+  isOther?: boolean; // Whether channel should appear in "Other" tab
 }
 
 export interface ChannelDocument {
@@ -33,6 +35,8 @@ export interface ChannelDocument {
   channelName: string;
   naatCount?: number; // Optional: number of naats from this channel
   lastUpdated?: string; // ISO 8601 format
+  isOfficial?: boolean; // Whether channel is official (ingest all videos)
+  isOther?: boolean; // Whether channel should appear in "Other" tab
   createdAt: string;
   updatedAt: string;
 }

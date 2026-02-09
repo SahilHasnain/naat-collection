@@ -204,6 +204,8 @@ export class AppwriteService implements IAppwriteService {
         return {
           id: channelDoc.channelId,
           name: channelDoc.channelName,
+          isOfficial: channelDoc.isOfficial ?? true,
+          isOther: channelDoc.isOther ?? false,
         };
       });
 
