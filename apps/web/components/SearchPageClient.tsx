@@ -4,35 +4,13 @@ import { NaatGrid } from "@/components/NaatGrid";
 import { SearchBar } from "@/components/SearchBar";
 import { appwriteService } from "@/lib/appwrite";
 import type { Naat } from "@naat-collection/shared";
-import Fuse from "fuse.js";
+import { searchItems } from "@naat-collection/shared";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 interface SearchPageClientProps {
   initialQuery: string;
 }
-
-/**
- * Fuse.js configuration for fuzzy search
- */
-const FUSE_OPTIONS: Fuse.IFuseOptions<Naat> = {
-  keys: [
-    {
-      name: "title",
-      weight: 0.7, // Title is most important
-    },
-    {
-      name: "channelName",
-      weight: 0.3, // Channel name is secondary
-    },
-  ],
-  threshold: 0.3, // 0 = exact match, 1 = match anything (0.3 is good balance)
-  distance: 100, // Maximum distance for fuzzy matching
-  minMatchCharLength: 2, // Minimum characters to start matching
-  includeScore: true, // Include relevance score
-  ignoreLocation: true, // Search anywhere in the string
-  useExtendedSearch: false, // Keep it simple
-};
 
 export function SearchPageClient({ initialQuery }: SearchPageClientProps) {
   const router = useRouter();
@@ -45,15 +23,12 @@ export function SearchPageClient({ initialQuery }: SearchPageClientProps) {
   // Ref to store all naats for client-side search
   const allNaatsRef = useRef<Naat[]>([]);
 
-  // Ref to store Fuse instance
-  const fuseRef = useRef<Fuse<Naat> | null>(null);
-
   // Load all naats once for client-side search
   useEffect(() => {
     const loadNaats = async () => {
       try {
         setIsLoadingData(true);
-        // Fetch a large batch of naats (adjust limit as needed)
+        // Fetch naats from server
         const fetchedNaats = await appwriteService.getNaats(
           5000, // Fetch up to 5000 naats
           0,
@@ -62,8 +37,6 @@ export function SearchPageClient({ initialQuery }: SearchPageClientProps) {
         );
 
         allNaatsRef.current = fetchedNaats;
-        // Initialize Fuse with the naats
-        fuseRef.current = new Fuse(fetchedNaats, FUSE_OPTIONS);
       } catch (err) {
         console.error("Failed to load naats for search:", err);
         setError("Failed to load search data");
@@ -91,21 +64,13 @@ export function SearchPageClient({ initialQuery }: SearchPageClientProps) {
       setError(null);
 
       try {
-        if (!fuseRef.current) {
-          // Fallback: if Fuse not initialized, do simple filter
-          const filtered = allNaatsRef.current.filter((naat) =>
-            naat.title.toLowerCase().includes(query.toLowerCase()),
-          );
-          setNaats(filtered);
-        } else {
-          // Use Fuse.js for fuzzy search
-          const fuseResults = fuseRef.current.search(query);
+        // Use custom search algorithm
+        const searchResults = searchItems(allNaatsRef.current, query, {
+          searchInChannel: true,
+          minScore: 60, // Only show results with all words present
+        });
 
-          // Extract the items from Fuse results (sorted by relevance)
-          const searchResults = fuseResults.map((result) => result.item);
-
-          setNaats(searchResults);
-        }
+        setNaats(searchResults);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Search failed");
         console.error("Error searching naats:", err);

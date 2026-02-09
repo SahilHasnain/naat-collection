@@ -1,4 +1,4 @@
-import Fuse from "fuse.js";
+import { searchItems } from "@naat-collection/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { appwriteService } from "../services/appwrite";
 import type { Naat, UseSearchReturn } from "../types";
@@ -9,40 +9,16 @@ import type { Naat, UseSearchReturn } from "../types";
 const DEBOUNCE_DELAY = 300;
 
 /**
- * Fuse.js configuration for fuzzy search
- */
-const FUSE_OPTIONS: Fuse.IFuseOptions<Naat> = {
-  keys: [
-    {
-      name: "title",
-      weight: 0.7, // Title is most important
-    },
-    {
-      name: "channelName",
-      weight: 0.3, // Channel name is secondary
-    },
-  ],
-  threshold: 0.3, // 0 = exact match, 1 = match anything (0.3 is good balance)
-  distance: 100, // Maximum distance for fuzzy matching
-  minMatchCharLength: 2, // Minimum characters to start matching
-  includeScore: true, // Include relevance score
-  ignoreLocation: true, // Search anywhere in the string
-  useExtendedSearch: false, // Keep it simple
-};
-
-/**
- * Custom hook for searching naats with fuzzy matching
+ * Custom hook for searching naats with custom algorithm
  *
  * Features:
- * - Fuzzy search using Fuse.js (handles typos)
- * - Multi-field search (title + channelName)
+ * - All search words must be present (no partial matches)
+ * - Relevance-based scoring (exact phrase > word order > all words)
+ * - Fast performance (no fuzzy matching overhead)
  * - Debounced search with 300ms delay
  * - Real-time filtering as user types
- * - Relevance-based sorting
- * - Clear search to restore full list
- * - Error handling
- * - Loading states
  * - Channel filtering support
+ * - Ignores small connector words
  *
  * @param channelId - Optional channel ID to filter search results (null = all channels)
  * @returns UseSearchReturn object with search state and control functions
@@ -55,9 +31,6 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
   // Ref to store all naats for client-side search
   const allNaatsRef = useRef<Naat[]>([]);
 
-  // Ref to store Fuse instance
-  const fuseRef = useRef<Fuse<Naat> | null>(null);
-
   // Ref to store the debounce timeout
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -69,7 +42,7 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
    */
   const loadNaats = useCallback(async () => {
     try {
-      // Fetch a large batch of naats (adjust limit as needed)
+      // Fetch naats from server
       const naats = await appwriteService.getNaats(
         5000, // Fetch up to 5000 naats
         0,
@@ -79,8 +52,6 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
 
       if (isMountedRef.current) {
         allNaatsRef.current = naats;
-        // Initialize Fuse with the naats
-        fuseRef.current = new Fuse(naats, FUSE_OPTIONS);
       }
     } catch (error) {
       console.error("Failed to load naats for search:", error);
@@ -88,7 +59,7 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
   }, [channelId]);
 
   /**
-   * Perform the actual search using Fuse.js
+   * Perform the actual search using custom algorithm
    */
   const performSearch = useCallback((searchQuery: string) => {
     if (!searchQuery.trim()) {
@@ -100,21 +71,13 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
     setLoading(true);
 
     try {
-      if (!fuseRef.current) {
-        // Fallback: if Fuse not initialized, do simple filter
-        const filtered = allNaatsRef.current.filter((naat) =>
-          naat.title.toLowerCase().includes(searchQuery.toLowerCase()),
-        );
-        setResults(filtered);
-      } else {
-        // Use Fuse.js for fuzzy search
-        const fuseResults = fuseRef.current.search(searchQuery);
+      // Use custom search algorithm
+      const searchResults = searchItems(allNaatsRef.current, searchQuery, {
+        searchInChannel: true,
+        minScore: 60, // Only show results with all words present
+      });
 
-        // Extract the items from Fuse results (sorted by relevance)
-        const searchResults = fuseResults.map((result) => result.item);
-
-        setResults(searchResults);
-      }
+      setResults(searchResults);
     } catch (error) {
       console.error("Search failed:", error);
       setResults([]);
