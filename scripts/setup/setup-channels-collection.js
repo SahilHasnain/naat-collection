@@ -38,7 +38,7 @@ async function setupChannelsCollection() {
     console.error("  - APPWRITE_DATABASE_ID");
     console.error("\nOptional:");
     console.error(
-      "  - APPWRITE_CHANNELS_COLLECTION_ID (defaults to 'channels')"
+      "  - APPWRITE_CHANNELS_COLLECTION_ID (defaults to 'channels')",
     );
     process.exit(1);
   }
@@ -61,7 +61,7 @@ async function setupChannelsCollection() {
       [
         'read("any")', // Allow anyone to read channels
       ],
-      false // documentSecurity
+      false, // documentSecurity
     );
     console.log(`✅ Collection created: ${collection.$id}\n`);
 
@@ -74,7 +74,7 @@ async function setupChannelsCollection() {
       config.channelsCollectionId,
       "channelId",
       255,
-      true // required
+      true, // required
     );
     console.log("  ✅ channelId (String, 255, Required)");
 
@@ -84,7 +84,7 @@ async function setupChannelsCollection() {
       config.channelsCollectionId,
       "channelName",
       255,
-      true // required
+      true, // required
     );
     console.log("  ✅ channelName (String, 255, Required)");
 
@@ -96,7 +96,7 @@ async function setupChannelsCollection() {
       false, // required
       0, // min
       undefined, // max
-      0 // default
+      0, // default
     );
     console.log("  ✅ naatCount (Integer, Optional, Default: 0)");
 
@@ -105,9 +105,29 @@ async function setupChannelsCollection() {
       config.databaseId,
       config.channelsCollectionId,
       "lastUpdated",
-      false // required
+      false, // required
     );
-    console.log("  ✅ lastUpdated (DateTime, Optional)\n");
+    console.log("  ✅ lastUpdated (DateTime, Optional)");
+
+    // isOfficial (Boolean, Required, Default: true)
+    await databases.createBooleanAttribute(
+      config.databaseId,
+      config.channelsCollectionId,
+      "isOfficial",
+      true, // required
+      true, // default
+    );
+    console.log("  ✅ isOfficial (Boolean, Required, Default: true)");
+
+    // isOther (Boolean, Required, Default: false)
+    await databases.createBooleanAttribute(
+      config.databaseId,
+      config.channelsCollectionId,
+      "isOther",
+      true, // required
+      false, // default
+    );
+    console.log("  ✅ isOther (Boolean, Required, Default: false)\n");
 
     // Wait for attributes to be available
     console.log("⏳ Waiting for attributes to be available (5 seconds)...");
@@ -122,7 +142,7 @@ async function setupChannelsCollection() {
       config.channelsCollectionId,
       "channelId_unique",
       IndexType.Unique,
-      ["channelId"]
+      ["channelId"],
     );
     console.log("  ✅ Unique index on channelId");
 
@@ -133,32 +153,32 @@ async function setupChannelsCollection() {
       "channelName_index",
       IndexType.Key,
       ["channelName"],
-      ["ASC"]
+      ["ASC"],
     );
     console.log("  ✅ Index on channelName (ASC)");
 
     console.log("\n✨ Channels collection setup complete!");
     console.log("\n📝 Next steps:");
     console.log(
-      "  1. Add EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID to your .env file"
+      "  1. Add EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID to your .env file",
     );
     console.log(
-      `     EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID=${config.channelsCollectionId}`
+      `     EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID=${config.channelsCollectionId}`,
     );
     console.log("  2. Run the migration script to populate existing channels:");
     console.log("     node scripts/migrate-channels.js");
     console.log(
-      "  3. Update your ingestion function to maintain the channels collection"
+      "  3. Update your ingestion function to maintain the channels collection",
     );
   } catch (error) {
     console.error("\n❌ Error setting up collection:");
 
     if (error.code === 409) {
       console.error(
-        `Collection '${config.channelsCollectionId}' already exists.`
+        `Collection '${config.channelsCollectionId}' already exists.`,
       );
       console.error(
-        "If you want to recreate it, delete it first from the Appwrite console."
+        "If you want to recreate it, delete it first from the Appwrite console.",
       );
     } else {
       console.error(error.message || error);

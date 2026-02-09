@@ -272,20 +272,17 @@ async function updateVideoViews(
 
 /**
  * Check if a video should be filtered out based on channel and title rules
- * @param {string} channelId - The YouTube channel ID
+ * @param {boolean} isOfficial - Whether the channel is official
  * @param {string} title - The video title
  * @returns {boolean} - true if video should be filtered out (excluded)
  */
-function shouldFilterVideo(channelId, title) {
-  // Baghdadi Sound & Video channel ID
-  const BAGHDADI_CHANNEL_ID = "UC-pKQ46ZSMkveYV7nKijWmQ";
-
-  // Check if this is the Baghdadi channel
-  if (channelId !== BAGHDADI_CHANNEL_ID) {
-    return false; // Don't filter videos from other channels
+function shouldFilterVideo(isOfficial, title) {
+  // If channel is official, don't filter any videos
+  if (isOfficial) {
+    return false;
   }
 
-  // For Baghdadi channel, only include videos with Owais Raza/Qadri in title
+  // For non-official channels, only include videos with Owais Raza/Qadri in title
   const titleLower = title.toLowerCase();
 
   // Common spelling variations for "Owais"
@@ -326,6 +323,7 @@ function shouldFilterVideo(channelId, title) {
  * @param {string} collectionId - Collection ID
  * @param {Map} existingVideosMap - Map of existing videos
  * @param {string} channelId - YouTube channel ID
+ * @param {boolean} isOfficial - Whether the channel is official
  * @param {string} youtubeApiKey - YouTube API key
  * @param {Function} log - Logging function
  * @param {Function} logError - Error logging function
@@ -337,11 +335,14 @@ async function processChannel(
   collectionId,
   existingVideosMap,
   channelId,
+  isOfficial,
   youtubeApiKey,
   log,
   logError,
 ) {
-  log(`Processing channel: ${channelId}`);
+  log(
+    `Processing channel: ${channelId} (${isOfficial ? "Official" : "Non-official"})`,
+  );
 
   try {
     // Fetch videos from YouTube
@@ -359,6 +360,7 @@ async function processChannel(
     const results = {
       channelId,
       channelName,
+      isOfficial,
       processed: videos.length,
       added: 0,
       updated: 0,
@@ -370,8 +372,8 @@ async function processChannel(
     for (const video of videos) {
       try {
         // Check if video should be filtered out
-        if (shouldFilterVideo(channelId, video.title)) {
-          log(`Filtered: ${video.title} (non-Owais from Baghdadi)`);
+        if (shouldFilterVideo(isOfficial, video.title)) {
+          log(`Filtered: ${video.title} (non-Owais from non-official channel)`);
           results.filtered++;
           continue;
         }
@@ -433,6 +435,48 @@ async function processChannel(
 }
 
 /**
+ * Fetches all channels from the database
+ * @param {Databases} databases - Appwrite Databases instance
+ * @param {string} databaseId - Database ID
+ * @param {string} channelsCollectionId - Channels collection ID
+ * @param {Function} log - Logging function
+ * @returns {Promise<Array>} Array of channel objects
+ */
+async function getAllChannels(
+  databases,
+  databaseId,
+  channelsCollectionId,
+  log,
+) {
+  try {
+    const allChannels = [];
+    let offset = 0;
+    const limit = 100;
+
+    while (true) {
+      const response = await databases.listDocuments(
+        databaseId,
+        channelsCollectionId,
+        [Query.limit(limit), Query.offset(offset)],
+      );
+
+      allChannels.push(...response.documents);
+
+      if (response.documents.length < limit) {
+        break;
+      }
+
+      offset += limit;
+    }
+
+    log(`Fetched ${allChannels.length} channels from database`);
+    return allChannels;
+  } catch (error) {
+    throw new Error(`Failed to fetch channels: ${error.message}`);
+  }
+}
+
+/**
  * Main function handler
  * @param {Object} context - Appwrite function context
  * @returns {Object} Response object
@@ -447,6 +491,7 @@ export default async ({ req, res, log, error: logError }) => {
       "APPWRITE_API_KEY",
       "APPWRITE_DATABASE_ID",
       "APPWRITE_NAATS_COLLECTION_ID",
+      "APPWRITE_CHANNELS_COLLECTION_ID",
       "YOUTUBE_API_KEY",
     ];
 
@@ -456,20 +501,6 @@ export default async ({ req, res, log, error: logError }) => {
 
     if (missingVars.length > 0) {
       const errorMsg = `Missing required environment variables: ${missingVars.join(", ")}`;
-      logError(errorMsg);
-      return res.json(
-        {
-          success: false,
-          error: errorMsg,
-        },
-        500,
-      );
-    }
-
-    // Check for at least one channel ID
-    if (!process.env.YOUTUBE_CHANNEL_IDS && !process.env.YOUTUBE_CHANNEL_ID) {
-      const errorMsg =
-        "Missing required environment variable: YOUTUBE_CHANNEL_IDS or YOUTUBE_CHANNEL_ID";
       logError(errorMsg);
       return res.json(
         {
@@ -492,17 +523,32 @@ export default async ({ req, res, log, error: logError }) => {
 
     const databaseId = process.env.APPWRITE_DATABASE_ID;
     const collectionId = process.env.APPWRITE_NAATS_COLLECTION_ID;
+    const channelsCollectionId = process.env.APPWRITE_CHANNELS_COLLECTION_ID;
     const youtubeApiKey = process.env.YOUTUBE_API_KEY;
 
-    // Support both YOUTUBE_CHANNEL_IDS (comma-separated) and legacy YOUTUBE_CHANNEL_ID
-    const channelIdsString =
-      process.env.YOUTUBE_CHANNEL_IDS || process.env.YOUTUBE_CHANNEL_ID;
-    const channelIds = channelIdsString
-      .split(",")
-      .map((id) => id.trim())
-      .filter((id) => id);
+    // Fetch channels from database
+    log("Fetching channels from database...");
+    const channels = await getAllChannels(
+      databases,
+      databaseId,
+      channelsCollectionId,
+      log,
+    );
 
-    log(`Found ${channelIds.length} channel(s) to process`);
+    if (channels.length === 0) {
+      const errorMsg =
+        "No channels found in database. Please add channels first.";
+      logError(errorMsg);
+      return res.json(
+        {
+          success: false,
+          error: errorMsg,
+        },
+        500,
+      );
+    }
+
+    log(`Found ${channels.length} channel(s) to process`);
 
     log("Fetching existing videos from database...");
 
@@ -517,13 +563,14 @@ export default async ({ req, res, log, error: logError }) => {
 
     // Process each channel sequentially
     const channelResults = [];
-    for (const channelId of channelIds) {
+    for (const channel of channels) {
       const result = await processChannel(
         databases,
         databaseId,
         collectionId,
         existingVideosMap,
-        channelId,
+        channel.channelId,
+        channel.isOfficial,
         youtubeApiKey,
         log,
         logError,
