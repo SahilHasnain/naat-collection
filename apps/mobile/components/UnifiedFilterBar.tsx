@@ -53,22 +53,52 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
     { value: "long", label: "> 15 min", icon: "📺" },
   ];
 
-  const sortedChannels = [...channels].sort((a, b) =>
+  // Separate channels into main and "other"
+  const mainChannels = channels.filter((ch) => !ch.isOther);
+  const otherChannels = channels.filter((ch) => ch.isOther);
+
+  // Sort main channels alphabetically by name
+  const sortedMainChannels = [...mainChannels].sort((a, b) =>
     a.name.localeCompare(b.name),
   );
 
+  // Create channel options with "All" first, then main channels, then "Other" if applicable
   const channelOptions = [
-    { id: null, name: "All", icon: "🌐" },
-    ...sortedChannels.map((channel) => ({
+    { id: null, name: "All", icon: "🌐", type: "all" as const },
+    ...sortedMainChannels.map((channel) => ({
       id: channel.id,
       name: channel.name,
       icon: "📺",
+      type: "channel" as const,
     })),
   ];
 
+  // Add "Other" option if there are other channels
+  if (otherChannels.length > 0) {
+    channelOptions.push({
+      id: "other",
+      name: "Other",
+      icon: "📂",
+      type: "other" as const,
+    });
+  }
+
+  // Check if "Other" is selected (when selectedChannelId matches any other channel)
+  const isOtherSelected =
+    selectedChannelId !== null &&
+    otherChannels.some((ch) => ch.id === selectedChannelId);
+
   // Get current selections for display
   const currentSort = sortFilters.find((f) => f.value === selectedSort);
-  const currentChannel = channelOptions.find((c) => c.id === selectedChannelId);
+
+  // Determine current channel display
+  let currentChannel;
+  if (isOtherSelected) {
+    currentChannel = { id: "other", name: "Other", icon: "📂" };
+  } else {
+    currentChannel = channelOptions.find((c) => c.id === selectedChannelId);
+  }
+
   const currentDuration = durationFilters.find(
     (f) => f.value === selectedDuration,
   );
@@ -276,12 +306,24 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               {activeTab === "channel" && (
                 <View className="p-4">
                   {channelOptions.map((option) => {
-                    const isSelected = selectedChannelId === option.id;
+                    const isSelected =
+                      option.type === "other"
+                        ? isOtherSelected
+                        : selectedChannelId === option.id;
+
                     return (
                       <Pressable
                         key={option.id || "all"}
                         onPress={() => {
-                          onChannelChange(option.id);
+                          if (
+                            option.type === "other" &&
+                            otherChannels.length > 0
+                          ) {
+                            // Select the first "other" channel
+                            onChannelChange(otherChannels[0].id);
+                          } else {
+                            onChannelChange(option.id);
+                          }
                           setShowModal(false);
                         }}
                         disabled={channelsLoading}

@@ -1,16 +1,12 @@
 export { default as BackToTopButton } from "./BackToTopButton";
-export { default as ChannelFilterBar } from "./ChannelFilterBar";
 export { default as DownloadedAudioCard } from "./DownloadedAudioCard";
 export { default as DownloadedAudioModal } from "./DownloadedAudioModal";
 export { default as DownloadsHeader } from "./DownloadsHeader";
-export { default as DurationFilterBar } from "./DurationFilterBar";
 export { default as EmptyState } from "./EmptyState";
 export { default as ErrorBoundary } from "./ErrorBoundary";
-export { default as FilterBar } from "./FilterBar";
 export { default as HistoryCard } from "./HistoryCard";
 export { default as NaatCard } from "./NaatCard";
 export { default as SearchBar } from "./SearchBar";
 export { SkeletonDownloadCard, SkeletonLoader } from "./SkeletonLoader";
-export { default as SortFilterBar } from "./SortFilterBar";
 export { default as UnifiedFilterBar } from "./UnifiedFilterBar";
 export { default as VideoPlayer } from "./VideoPlayer";

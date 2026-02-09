@@ -4,12 +4,35 @@ import { NaatGrid } from "@/components/NaatGrid";
 import { SearchBar } from "@/components/SearchBar";
 import { appwriteService } from "@/lib/appwrite";
 import type { Naat } from "@naat-collection/shared";
+import Fuse from "fuse.js";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface SearchPageClientProps {
   initialQuery: string;
 }
+
+/**
+ * Fuse.js configuration for fuzzy search
+ */
+const FUSE_OPTIONS: Fuse.IFuseOptions<Naat> = {
+  keys: [
+    {
+      name: "title",
+      weight: 0.7, // Title is most important
+    },
+    {
+      name: "channelName",
+      weight: 0.3, // Channel name is secondary
+    },
+  ],
+  threshold: 0.3, // 0 = exact match, 1 = match anything (0.3 is good balance)
+  distance: 100, // Maximum distance for fuzzy matching
+  minMatchCharLength: 2, // Minimum characters to start matching
+  includeScore: true, // Include relevance score
+  ignoreLocation: true, // Search anywhere in the string
+  useExtendedSearch: false, // Keep it simple
+};
 
 export function SearchPageClient({ initialQuery }: SearchPageClientProps) {
   const router = useRouter();
@@ -17,21 +40,72 @@ export function SearchPageClient({ initialQuery }: SearchPageClientProps) {
   const [naats, setNaats] = useState<Naat[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // Ref to store all naats for client-side search
+  const allNaatsRef = useRef<Naat[]>([]);
+
+  // Ref to store Fuse instance
+  const fuseRef = useRef<Fuse<Naat> | null>(null);
+
+  // Load all naats once for client-side search
+  useEffect(() => {
+    const loadNaats = async () => {
+      try {
+        setIsLoadingData(true);
+        // Fetch a large batch of naats (adjust limit as needed)
+        const fetchedNaats = await appwriteService.getNaats(
+          5000, // Fetch up to 5000 naats
+          0,
+          "latest",
+          null,
+        );
+
+        allNaatsRef.current = fetchedNaats;
+        // Initialize Fuse with the naats
+        fuseRef.current = new Fuse(fetchedNaats, FUSE_OPTIONS);
+      } catch (err) {
+        console.error("Failed to load naats for search:", err);
+        setError("Failed to load search data");
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    loadNaats();
+  }, []);
 
   useEffect(() => {
-    const searchNaats = async () => {
+    const searchNaats = () => {
       if (!query.trim()) {
         setNaats([]);
         setError(null);
         return;
       }
 
+      if (isLoadingData) {
+        return; // Wait for data to load
+      }
+
       setIsLoading(true);
       setError(null);
 
       try {
-        const results = await appwriteService.searchNaats(query);
-        setNaats(results);
+        if (!fuseRef.current) {
+          // Fallback: if Fuse not initialized, do simple filter
+          const filtered = allNaatsRef.current.filter((naat) =>
+            naat.title.toLowerCase().includes(query.toLowerCase()),
+          );
+          setNaats(filtered);
+        } else {
+          // Use Fuse.js for fuzzy search
+          const fuseResults = fuseRef.current.search(query);
+
+          // Extract the items from Fuse results (sorted by relevance)
+          const searchResults = fuseResults.map((result) => result.item);
+
+          setNaats(searchResults);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Search failed");
         console.error("Error searching naats:", err);
@@ -50,9 +124,10 @@ export function SearchPageClient({ initialQuery }: SearchPageClientProps) {
     }, 300);
 
     return () => clearTimeout(debounceTimer);
-  }, [query, router]);
+  }, [query, router, isLoadingData]);
 
   const isSearching = query.trim().length > 0;
+  const showLoading = isLoading || isLoadingData;
 
   return (
     <div className="max-w-7xl mx-auto py-8">
@@ -67,13 +142,15 @@ export function SearchPageClient({ initialQuery }: SearchPageClientProps) {
         </div>
       )}
 
-      {isLoading && (
+      {showLoading && (
         <div className="text-center py-12 px-4">
-          <p className="text-neutral-400">Searching...</p>
+          <p className="text-neutral-400">
+            {isLoadingData ? "Loading search data..." : "Searching..."}
+          </p>
         </div>
       )}
 
-      {!isLoading && isSearching && (
+      {!showLoading && isSearching && (
         <>
           <div className="mb-6 px-4 sm:px-6 lg:px-8">
             <p className="text-neutral-400">
@@ -98,7 +175,7 @@ export function SearchPageClient({ initialQuery }: SearchPageClientProps) {
         </>
       )}
 
-      {!isSearching && !isLoading && (
+      {!isSearching && !showLoading && (
         <div className="text-center py-12 px-4">
           <svg
             className="mx-auto h-12 w-12 text-neutral-400 mb-4"

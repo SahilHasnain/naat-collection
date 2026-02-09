@@ -1,3 +1,4 @@
+import Fuse from "fuse.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { appwriteService } from "../services/appwrite";
 import type { Naat, UseSearchReturn } from "../types";
@@ -8,11 +9,36 @@ import type { Naat, UseSearchReturn } from "../types";
 const DEBOUNCE_DELAY = 300;
 
 /**
- * Custom hook for searching naats with debouncing
+ * Fuse.js configuration for fuzzy search
+ */
+const FUSE_OPTIONS: Fuse.IFuseOptions<Naat> = {
+  keys: [
+    {
+      name: "title",
+      weight: 0.7, // Title is most important
+    },
+    {
+      name: "channelName",
+      weight: 0.3, // Channel name is secondary
+    },
+  ],
+  threshold: 0.3, // 0 = exact match, 1 = match anything (0.3 is good balance)
+  distance: 100, // Maximum distance for fuzzy matching
+  minMatchCharLength: 2, // Minimum characters to start matching
+  includeScore: true, // Include relevance score
+  ignoreLocation: true, // Search anywhere in the string
+  useExtendedSearch: false, // Keep it simple
+};
+
+/**
+ * Custom hook for searching naats with fuzzy matching
  *
  * Features:
+ * - Fuzzy search using Fuse.js (handles typos)
+ * - Multi-field search (title + channelName)
  * - Debounced search with 300ms delay
  * - Real-time filtering as user types
+ * - Relevance-based sorting
  * - Clear search to restore full list
  * - Error handling
  * - Loading states
@@ -26,6 +52,12 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
   const [results, setResults] = useState<Naat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
+  // Ref to store all naats for client-side search
+  const allNaatsRef = useRef<Naat[]>([]);
+
+  // Ref to store Fuse instance
+  const fuseRef = useRef<Fuse<Naat> | null>(null);
+
   // Ref to store the debounce timeout
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -33,43 +65,65 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
   const isMountedRef = useRef<boolean>(true);
 
   /**
-   * Perform the actual search
+   * Load all naats for client-side search
    */
-  const performSearch = useCallback(
-    async (searchQuery: string) => {
-      if (!searchQuery.trim()) {
-        setResults([]);
-        setLoading(false);
-        return;
+  const loadNaats = useCallback(async () => {
+    try {
+      // Fetch a large batch of naats (adjust limit as needed)
+      const naats = await appwriteService.getNaats(
+        5000, // Fetch up to 5000 naats
+        0,
+        "latest",
+        channelId,
+      );
+
+      if (isMountedRef.current) {
+        allNaatsRef.current = naats;
+        // Initialize Fuse with the naats
+        fuseRef.current = new Fuse(naats, FUSE_OPTIONS);
       }
+    } catch (error) {
+      console.error("Failed to load naats for search:", error);
+    }
+  }, [channelId]);
 
-      setLoading(true);
+  /**
+   * Perform the actual search using Fuse.js
+   */
+  const performSearch = useCallback((searchQuery: string) => {
+    if (!searchQuery.trim()) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
 
-      try {
-        const searchResults = await appwriteService.searchNaats(
-          searchQuery,
-          channelId
+    setLoading(true);
+
+    try {
+      if (!fuseRef.current) {
+        // Fallback: if Fuse not initialized, do simple filter
+        const filtered = allNaatsRef.current.filter((naat) =>
+          naat.title.toLowerCase().includes(searchQuery.toLowerCase()),
         );
+        setResults(filtered);
+      } else {
+        // Use Fuse.js for fuzzy search
+        const fuseResults = fuseRef.current.search(searchQuery);
 
-        // Only update state if component is still mounted
-        if (isMountedRef.current) {
-          setResults(searchResults);
-        }
-      } catch (error) {
-        console.error("Search failed:", error);
+        // Extract the items from Fuse results (sorted by relevance)
+        const searchResults = fuseResults.map((result) => result.item);
 
-        // On error, clear results
-        if (isMountedRef.current) {
-          setResults([]);
-        }
-      } finally {
-        if (isMountedRef.current) {
-          setLoading(false);
-        }
+        setResults(searchResults);
       }
-    },
-    [channelId]
-  );
+    } catch (error) {
+      console.error("Search failed:", error);
+      setResults([]);
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, []);
 
   /**
    * Set search query with debouncing
@@ -99,7 +153,7 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
         performSearch(newQuery);
       }, DEBOUNCE_DELAY);
     },
-    [performSearch]
+    [performSearch],
   );
 
   /**
@@ -118,16 +172,20 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
     setLoading(false);
   }, []);
 
-  // Reset search results when channelId changes
+  // Load naats when component mounts or channelId changes
   useEffect(() => {
-    // If there's an active search query, re-run the search with the new channelId
+    loadNaats();
+  }, [loadNaats]);
+
+  // Re-run search when channelId changes and there's an active query
+  useEffect(() => {
     if (query.trim()) {
-      performSearch(query);
-    } else {
-      // Otherwise just clear results
-      setResults([]);
+      // Reload naats and re-search
+      loadNaats().then(() => {
+        performSearch(query);
+      });
     }
-  }, [channelId, query, performSearch]);
+  }, [channelId]); // Only depend on channelId to avoid infinite loops
 
   // Cleanup on unmount
   useEffect(() => {
