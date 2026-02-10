@@ -18,6 +18,8 @@ export interface AudioMetadata {
   isLocalFile: boolean;
   audioId?: string;
   youtubeId?: string;
+  isLive?: boolean;
+  liveStartPosition?: number;
 }
 
 interface AudioContextType {
@@ -118,7 +120,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
           interruptionModeAndroid: 1, // Do not mix with other audio
         });
         console.log(
-          "[AudioContext] Audio mode configured for background playback"
+          "[AudioContext] Audio mode configured for background playback",
         );
       } catch (err) {
         console.error("[AudioContext] Error configuring audio mode:", err);
@@ -147,12 +149,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
               interruptionModeAndroid: 1,
             });
             console.log(
-              "[AudioContext] Audio mode re-configured for background"
+              "[AudioContext] Audio mode re-configured for background",
             );
           } catch (err) {
             console.error(
               "[AudioContext] Error maintaining background audio:",
-              err
+              err,
             );
           }
         }
@@ -164,7 +166,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const subscription = AppState.addEventListener(
       "change",
-      handleAppStateChange
+      handleAppStateChange,
     );
 
     return () => {
@@ -204,7 +206,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
           "[AudioContext] Repeat enabled:",
           repeatEnabled,
           "Autoplay enabled:",
-          autoplayEnabled
+          autoplayEnabled,
         );
 
         // Handle repeat
@@ -266,11 +268,21 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
             rate: 1.0,
             shouldCorrectPitch: true,
           },
-          onPlaybackStatusUpdate
+          onPlaybackStatusUpdate,
         );
 
         soundRef.current = sound;
         setCurrentAudio(audio);
+
+        // If this is live radio, seek to the correct position
+        if (audio.isLive && audio.liveStartPosition) {
+          console.log(
+            "[AudioContext] Live radio - seeking to position:",
+            audio.liveStartPosition,
+          );
+          await sound.setPositionAsync(audio.liveStartPosition);
+        }
+
         setIsLoading(false);
         setIsPlaying(true);
 
@@ -282,7 +294,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
         setCurrentAudio(null);
       }
     },
-    [volume, onPlaybackStatusUpdate]
+    [volume, onPlaybackStatusUpdate],
   );
 
   // Play
@@ -395,7 +407,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     (callback: (() => Promise<void>) | null) => {
       autoplayCallbackRef.current = callback;
     },
-    []
+    [],
   );
 
   // Cleanup on unmount

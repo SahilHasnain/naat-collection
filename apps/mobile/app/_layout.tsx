@@ -114,6 +114,15 @@ function RootLayoutContent() {
           }}
         />
         <Tabs.Screen
+          name="live"
+          options={{
+            title: "Live",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="radio" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="history"
           options={{
             title: "History",

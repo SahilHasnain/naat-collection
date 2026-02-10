@@ -69,7 +69,10 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
         <View className="absolute top-0 left-0 right-0 h-0.5 bg-neutral-700">
           <View
             className="h-full"
-            style={{ width: `${progress}%`, backgroundColor: colors.accent.primary }}
+            style={{
+              width: `${progress}%`,
+              backgroundColor: colors.accent.primary,
+            }}
           />
         </View>
 
@@ -90,6 +93,15 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
 
           {/* Title and Channel */}
           <View className="flex-1 mr-3">
+            {/* Live Badge */}
+            {currentAudio.isLive && (
+              <View className="flex-row items-center mb-1">
+                <View className="w-2 h-2 bg-red-500 rounded-full mr-1.5" />
+                <Text className="text-red-500 text-xs font-bold uppercase">
+                  Live
+                </Text>
+              </View>
+            )}
             <Text
               className="text-white font-semibold text-sm"
               numberOfLines={1}
