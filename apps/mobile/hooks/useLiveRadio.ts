@@ -4,10 +4,11 @@
  * Hook for managing live radio state and playback
  */
 
+import { appwriteService } from "@/services/appwrite";
 import { liveRadioService } from "@/services/liveRadio";
 import { LiveRadioMetadata, LiveRadioState } from "@/types/live-radio";
 import { Naat } from "@naat-collection/shared";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function useLiveRadio() {
   const [isLoading, setIsLoading] = useState(true);
@@ -17,9 +18,6 @@ export function useLiveRadio() {
   const [upcomingNaats, setUpcomingNaats] = useState<Naat[]>([]);
   const [listenerCount, setListenerCount] = useState<number>(0);
   const [startPosition, setStartPosition] = useState<number>(0);
-
-  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   /**
    * Load the current live radio state
@@ -72,78 +70,68 @@ export function useLiveRadio() {
   }, []);
 
   /**
-   * Check if current naat has ended and reload if needed
-   */
-  const checkForTrackChange = useCallback(async () => {
-    if (!liveState || !currentNaat) return;
-
-    const position = liveRadioService.calculatePlaybackPosition(
-      liveState.startedAt,
-      currentNaat.duration * 1000,
-    );
-
-    // If we've exceeded the duration, the track should have changed
-    if (position >= currentNaat.duration * 1000) {
-      console.log("[useLiveRadio] Track should have changed, reloading...");
-      await loadLiveState();
-    }
-  }, [liveState, currentNaat, loadLiveState]);
-
-  /**
-   * Subscribe to realtime updates
-   */
-  useEffect(() => {
-    // Initial load
-    loadLiveState();
-
-    // Subscribe to changes
-    unsubscribeRef.current = liveRadioService.subscribeToChanges((newState) => {
-      console.log("[useLiveRadio] State updated via realtime");
-      setLiveState(newState);
-      loadLiveState(); // Reload everything when state changes
-    });
-
-    // Check for track changes every 10 seconds
-    checkIntervalRef.current = setInterval(checkForTrackChange, 10000);
-
-    // Cleanup
-    return () => {
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
-      }
-      if (checkIntervalRef.current) {
-        clearInterval(checkIntervalRef.current);
-      }
-    };
-  }, [loadLiveState, checkForTrackChange]);
-
-  /**
    * Get metadata for audio player
    */
-  const getLiveMetadata = useCallback((): LiveRadioMetadata | null => {
-    if (!currentNaat) return null;
+  const getLiveMetadata =
+    useCallback(async (): Promise<LiveRadioMetadata | null> => {
+      if (!currentNaat) return null;
 
-    return {
-      isLive: true,
-      currentNaat: {
-        id: currentNaat.$id,
-        title: currentNaat.title,
-        channelName: currentNaat.channelName,
-        thumbnailUrl: currentNaat.thumbnailUrl,
-        duration: currentNaat.duration,
-        audioUrl: currentNaat.audioUrl,
-        youtubeId: currentNaat.youtubeId,
-      },
-      startPosition,
-      listenerCount,
-    };
-  }, [currentNaat, startPosition, listenerCount]);
+      // Get audio URL from Appwrite service
+      const audioResponse = await appwriteService.getAudioUrl(
+        currentNaat.audioId,
+      );
+
+      if (!audioResponse.success || !audioResponse.audioUrl) {
+        console.error("[useLiveRadio] Failed to get audio URL");
+        return null;
+      }
+
+      return {
+        isLive: true,
+        currentNaat: {
+          id: currentNaat.$id,
+          title: currentNaat.title,
+          channelName: currentNaat.channelName,
+          thumbnailUrl: currentNaat.thumbnailUrl,
+          duration: currentNaat.duration,
+          audioUrl: audioResponse.audioUrl,
+          youtubeId: currentNaat.youtubeId,
+        },
+        startPosition,
+        listenerCount,
+      };
+    }, [currentNaat, startPosition, listenerCount]);
 
   /**
    * Refresh the live state
    */
   const refresh = useCallback(async () => {
     await loadLiveState();
+  }, [loadLiveState]);
+
+  /**
+   * Initialize and subscribe to updates
+   */
+  useEffect(() => {
+    // Initial load
+    loadLiveState();
+
+    // Subscribe to realtime changes
+    const unsubscribe = liveRadioService.subscribeToChanges((newState) => {
+      // Only reload if the track actually changed
+      setLiveState((prevState) => {
+        if (prevState?.currentNaatId !== newState.currentNaatId) {
+          console.log("[useLiveRadio] Track changed, reloading...");
+          loadLiveState();
+        }
+        return newState;
+      });
+    });
+
+    // Cleanup
+    return () => {
+      unsubscribe();
+    };
   }, [loadLiveState]);
 
   return {

@@ -2,16 +2,14 @@
  * Live Radio Service
  *
  * Manages the 24/7 live naat radio feature with synchronized playback
+ * Uses Appwrite SDK for reliable database access
  */
 
 import { appwriteConfig } from "@/config/appwrite";
+import { appwriteService } from "@/services/appwrite";
 import { LiveRadioState } from "@/types/live-radio";
 import { Naat } from "@naat-collection/shared";
-import {
-  Client,
-  Databases,
-  RealtimeResponseEvent,
-} from "react-native-appwrite";
+import { Client, Databases } from "appwrite";
 
 const LIVE_RADIO_COLLECTION_ID = "live_radio";
 const LIVE_RADIO_DOCUMENT_ID = "current_state";
@@ -47,17 +45,11 @@ class LiveRadioService {
   }
 
   /**
-   * Get the current naat details
+   * Get the current naat details using existing appwriteService
    */
   async getCurrentNaat(naatId: string): Promise<Naat | null> {
     try {
-      const response = await this.databases.getDocument(
-        appwriteConfig.databaseId,
-        appwriteConfig.naatsCollectionId,
-        naatId,
-      );
-
-      return response as unknown as Naat;
+      return await appwriteService.getNaatById(naatId);
     } catch (error) {
       console.error("[LiveRadio] Error fetching naat:", error);
       return null;
@@ -84,18 +76,20 @@ class LiveRadioService {
    * Subscribe to live radio state changes using Appwrite Realtime
    */
   subscribeToChanges(callback: (state: LiveRadioState) => void): () => void {
-    const unsubscribe = this.client.subscribe(
-      `databases.${appwriteConfig.databaseId}.collections.${LIVE_RADIO_COLLECTION_ID}.documents`,
-      (response: RealtimeResponseEvent<LiveRadioState>) => {
-        if (
-          response.events.includes(
-            `databases.*.collections.*.documents.${LIVE_RADIO_DOCUMENT_ID}.update`,
-          )
-        ) {
-          callback(response.payload);
-        }
-      },
-    );
+    const channelName = `databases.${appwriteConfig.databaseId}.collections.${LIVE_RADIO_COLLECTION_ID}.documents`;
+
+    const unsubscribe = this.client.subscribe(channelName, (response: any) => {
+      // Check if this is an update event for our document
+      const events = response.events || [];
+      const isUpdate = events.some(
+        (event: string) => event.includes("update") || event.includes("create"),
+      );
+
+      if (isUpdate && response.payload) {
+        console.log("[LiveRadio] Received realtime update");
+        callback(response.payload as LiveRadioState);
+      }
+    });
 
     return () => {
       unsubscribe();
@@ -103,8 +97,7 @@ class LiveRadioService {
   }
 
   /**
-   * Get approximate listener count (users who accessed live radio recently)
-   * This is a simple implementation - can be enhanced with proper analytics
+   * Get approximate listener count
    */
   async getListenerCount(): Promise<number> {
     // For now, return a placeholder
@@ -131,6 +124,29 @@ class LiveRadioService {
     } catch (error) {
       console.error("[LiveRadio] Error fetching playlist:", error);
       return [];
+    }
+  }
+
+  /**
+   * Update the live radio state (for client-side track advancement)
+   */
+  async updateLiveRadioState(data: {
+    currentNaatId: string;
+    startedAt: string;
+    playlist: string[];
+    updatedAt: string;
+  }): Promise<void> {
+    try {
+      await this.databases.updateDocument(
+        appwriteConfig.databaseId,
+        LIVE_RADIO_COLLECTION_ID,
+        LIVE_RADIO_DOCUMENT_ID,
+        data,
+      );
+      console.log("[LiveRadio] State updated successfully");
+    } catch (error) {
+      console.error("[LiveRadio] Error updating state:", error);
+      throw error;
     }
   }
 }

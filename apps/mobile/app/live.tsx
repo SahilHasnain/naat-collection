@@ -40,12 +40,12 @@ export default function LiveScreen() {
   const handlePlayLive = async () => {
     if (!currentNaat) return;
 
-    const metadata = getLiveMetadata();
-    if (!metadata) return;
+    const metadata = await getLiveMetadata();
+    if (!metadata || !metadata.currentNaat) return;
 
     // Load and play with live metadata
     await loadAndPlay({
-      audioUrl: currentNaat.audioUrl,
+      audioUrl: metadata.currentNaat.audioUrl,
       title: currentNaat.title,
       channelName: currentNaat.channelName,
       thumbnailUrl: currentNaat.thumbnailUrl,
