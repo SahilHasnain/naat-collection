@@ -12,7 +12,7 @@ import { VideoProvider } from "@/contexts/VideoContext";
 import { storageService } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
 import * as Sentry from "@sentry/react-native";
-import { Tabs, useRouter } from "expo-router";
+import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useState } from "react";
 import {
   SafeAreaProvider,
@@ -32,10 +32,13 @@ Sentry.init({
 function RootLayoutContent() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const segments = useSegments();
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
-  const [isLivePlayerExpanded, setIsLivePlayerExpanded] = useState(false);
   const { currentAudio, stop } = useAudioPlayer();
   const { isPlaying: isLiveRadioPlaying } = useLiveRadioPlayer();
+
+  // Check if user is currently on the live tab
+  const isOnLiveTab = segments[0] === "live";
 
   // Handle switching from audio to video mode
   const handleSwitchToVideo = async () => {
@@ -164,8 +167,15 @@ function RootLayoutContent() {
         <MiniPlayer onExpand={() => setIsPlayerExpanded(true)} />
       )}
 
-      {/* Live Radio Mini Player - Shows when live radio is playing */}
-      <LiveRadioMiniPlayer onExpand={() => setIsLivePlayerExpanded(true)} />
+      {/* Live Radio Mini Player - Shows when live radio is playing and user is NOT on live tab */}
+      {isLiveRadioPlaying && !isOnLiveTab && (
+        <LiveRadioMiniPlayer
+          onExpand={() => {
+            // Navigate to live tab when miniplayer is tapped
+            router.push("/live");
+          }}
+        />
+      )}
 
       {/* Full Player Modal */}
       <FullPlayerModal
