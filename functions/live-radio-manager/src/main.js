@@ -216,6 +216,16 @@ export default async ({ req, res, log, error }) => {
       playlist = currentState.playlist;
       currentTrackIndex =
         (currentState.currentTrackIndex + 1) % playlist.length;
+
+      // If we've wrapped around to the beginning, generate a fresh playlist
+      if (currentTrackIndex === 0) {
+        log("Playlist completed, generating fresh playlist...");
+        playlist = await generatePlaylist(
+          databases,
+          databaseId,
+          naatsCollectionId,
+        );
+      }
     }
 
     // Update state

@@ -167,29 +167,35 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
       <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-black">
         {/* Header with Video Toggle and Options Button */}
         <View className="flex-row items-center justify-between px-5 py-4">
-          {/* Switch to Video Button */}
-          {currentAudio.youtubeId && onSwitchToVideo && (
+          {/* Switch to Video Button - Hidden for live radio */}
+          {currentAudio.youtubeId &&
+            onSwitchToVideo &&
+            !currentAudio.isLive && (
+              <TouchableOpacity
+                onPress={onSwitchToVideo}
+                className="items-center justify-center w-10 h-10"
+                accessibilityRole="button"
+                accessibilityLabel="Switch to video"
+              >
+                <Ionicons name="videocam" size={24} color="white" />
+              </TouchableOpacity>
+            )}
+          {(!currentAudio.youtubeId ||
+            !onSwitchToVideo ||
+            currentAudio.isLive) && <View className="w-10" />}
+
+          {/* Options Menu Button - Hidden for live radio */}
+          {!currentAudio.isLive && (
             <TouchableOpacity
-              onPress={onSwitchToVideo}
+              onPress={() => setShowOptionsMenu(!showOptionsMenu)}
               className="items-center justify-center w-10 h-10"
               accessibilityRole="button"
-              accessibilityLabel="Switch to video"
+              accessibilityLabel="Options menu"
             >
-              <Ionicons name="videocam" size={24} color="white" />
+              <Ionicons name="ellipsis-vertical" size={24} color="white" />
             </TouchableOpacity>
           )}
-          {(!currentAudio.youtubeId || !onSwitchToVideo) && (
-            <View className="w-10" />
-          )}
-
-          <TouchableOpacity
-            onPress={() => setShowOptionsMenu(!showOptionsMenu)}
-            className="items-center justify-center w-10 h-10"
-            accessibilityRole="button"
-            accessibilityLabel="Options menu"
-          >
-            <Ionicons name="ellipsis-vertical" size={24} color="white" />
-          </TouchableOpacity>
+          {currentAudio.isLive && <View className="w-10" />}
         </View>
 
         {/* Options Menu with Overlay */}
