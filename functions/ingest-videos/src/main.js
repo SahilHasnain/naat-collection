@@ -519,6 +519,13 @@ async function processSource(
 
     for (const video of videos) {
       try {
+        // Filter out videos less than 1 minute (60 seconds)
+        if (video.duration < 60) {
+          log(`Filtered: ${video.title} (duration ${video.duration}s < 60s)`);
+          results.filtered++;
+          continue;
+        }
+
         // Check if video should be filtered out
         if (shouldFilterVideo(isOfficial, video.title)) {
           log(

@@ -24,6 +24,7 @@
     "ingest:videos": "npm run ingest:videos --workspace=mobile",
     "check:non-owais": "node scripts/data-management/check-non-owais-naats.js",
     "cleanup:non-owais": "node cleanup-non-owais-naats.js",
-    "upload:audio": "node scripts/utilities/download-audio.js"
+    "upload:audio": "node scripts/utilities/download-audio.js",
+    "delete:short-videos": "node scripts/data-management/delete-short-videos.js"
   }
 }
