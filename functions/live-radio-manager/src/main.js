@@ -1,15 +1,12 @@
 /**
  * Live Radio Manager Function
  *
- * Manages the 24/7 live naat radio by:
- * 1. Selecting a random naat from the database
- * 2. Updating the live_radio collection with current track
- * 3. Generating a playlist of upcoming tracks
- * 4. Automatically advancing to next track when current one ends
+ * Simplified approach: Manages a rotating playlist
+ * 1. Maintains a fixed playlist of naats
+ * 2. Advances currentTrackIndex when track duration expires
+ * 3. Clients play from beginning (no position sync)
  *
- * This function should be triggered:
- * - Every 5 minutes (to check if track needs to change)
- * - Or manually via API call
+ * This function should be triggered every 3 minutes
  */
 
 import { Client, Databases, Query } from "node-appwrite";
@@ -17,94 +14,44 @@ import { Client, Databases, Query } from "node-appwrite";
 // Constants
 const LIVE_RADIO_COLLECTION_ID = "live_radio";
 const LIVE_RADIO_DOCUMENT_ID = "current_state";
-const PLAYLIST_SIZE = 10; // Number of upcoming tracks to queue
+const PLAYLIST_SIZE = 50; // Fixed rotating playlist
 
 /**
- * Get a random naat from the database
+ * Generate a random playlist of naats
  */
-async function getRandomNaat(
-  databases,
-  databaseId,
-  naatsCollectionId,
-  excludeIds = [],
-) {
-  try {
-    // Get total count
-    const countResponse = await databases.listDocuments(
-      databaseId,
-      naatsCollectionId,
-      [Query.limit(1)],
-    );
+async function generatePlaylist(databases, databaseId, naatsCollectionId) {
+  const playlist = [];
+  const seenIds = new Set();
 
-    if (!countResponse.total || countResponse.total === 0) {
-      throw new Error("No naats found in database");
-    }
+  // Get total count
+  const countResponse = await databases.listDocuments(
+    databaseId,
+    naatsCollectionId,
+    [Query.limit(1)],
+  );
 
-    // Generate random offset
-    const randomOffset = Math.floor(Math.random() * countResponse.total);
+  const totalNaats = countResponse.total;
 
-    // Fetch random naat
+  if (totalNaats === 0) {
+    throw new Error("No naats found in database");
+  }
+
+  // Generate playlist with random naats
+  for (let i = 0; i < PLAYLIST_SIZE && seenIds.size < totalNaats; i++) {
+    const randomOffset = Math.floor(Math.random() * totalNaats);
+
     const response = await databases.listDocuments(
       databaseId,
       naatsCollectionId,
-      [
-        Query.limit(1),
-        Query.offset(randomOffset),
-        Query.select(["$id", "title", "duration", "audioUrl"]),
-      ],
+      [Query.limit(1), Query.offset(randomOffset), Query.select(["$id"])],
     );
 
-    if (response.documents.length === 0) {
-      throw new Error("Failed to fetch random naat");
-    }
-
-    const naat = response.documents[0];
-
-    // If this naat is in exclude list, try again (max 3 attempts)
-    if (
-      excludeIds.includes(naat.$id) &&
-      excludeIds.length < countResponse.total
-    ) {
-      return getRandomNaat(
-        databases,
-        databaseId,
-        naatsCollectionId,
-        excludeIds,
-      );
-    }
-
-    return naat;
-  } catch (error) {
-    console.error("Error getting random naat:", error);
-    throw error;
-  }
-}
-
-/**
- * Generate a playlist of upcoming naats
- */
-async function generatePlaylist(
-  databases,
-  databaseId,
-  naatsCollectionId,
-  currentNaatId,
-) {
-  const playlist = [];
-  const excludeIds = [currentNaatId];
-
-  for (let i = 0; i < PLAYLIST_SIZE; i++) {
-    try {
-      const naat = await getRandomNaat(
-        databases,
-        databaseId,
-        naatsCollectionId,
-        excludeIds,
-      );
-      playlist.push(naat.$id);
-      excludeIds.push(naat.$id);
-    } catch (error) {
-      console.error(`Error generating playlist item ${i}:`, error);
-      break;
+    if (response.documents.length > 0) {
+      const naatId = response.documents[0].$id;
+      if (!seenIds.has(naatId)) {
+        playlist.push(naatId);
+        seenIds.add(naatId);
+      }
     }
   }
 
@@ -112,21 +59,20 @@ async function generatePlaylist(
 }
 
 /**
- * Update the live radio state
+ * Initialize or update the live radio state
  */
 async function updateLiveRadioState(
   databases,
   databaseId,
-  currentNaat,
+  currentTrackIndex,
   playlist,
 ) {
   try {
     const now = new Date().toISOString();
 
     const data = {
-      currentNaatId: currentNaat.$id,
-      startedAt: now,
-      playlist: playlist,
+      currentTrackIndex,
+      playlist,
       updatedAt: now,
     };
 
@@ -162,9 +108,9 @@ async function updateLiveRadioState(
 }
 
 /**
- * Check if current track should be changed
+ * Check if current track should advance to next
  */
-async function shouldChangeTrack(databases, databaseId, naatsCollectionId) {
+async function shouldAdvanceTrack(databases, databaseId, naatsCollectionId) {
   try {
     // Get current state
     const currentState = await databases.getDocument(
@@ -173,28 +119,41 @@ async function shouldChangeTrack(databases, databaseId, naatsCollectionId) {
       LIVE_RADIO_DOCUMENT_ID,
     );
 
-    // Get current naat details
-    const currentNaat = await databases.getDocument(
+    // Get current track from playlist
+    const currentTrackId =
+      currentState.playlist[currentState.currentTrackIndex];
+
+    if (!currentTrackId) {
+      console.log("No current track, needs initialization");
+      return { shouldAdvance: true, needsInit: true };
+    }
+
+    // Get track details
+    const currentTrack = await databases.getDocument(
       databaseId,
       naatsCollectionId,
-      currentState.currentNaatId,
+      currentTrackId,
     );
 
-    // Calculate elapsed time
-    const startTime = new Date(currentState.startedAt).getTime();
+    // Calculate time since last update
+    const lastUpdate = new Date(currentState.updatedAt).getTime();
     const now = Date.now();
-    const elapsed = now - startTime;
-    const duration = currentNaat.duration * 1000; // Convert to milliseconds
+    const elapsed = now - lastUpdate;
+    const duration = currentTrack.duration * 1000; // Convert to milliseconds
 
-    // If elapsed time exceeds duration, change track
-    return elapsed >= duration;
+    // Advance if elapsed time exceeds track duration
+    return {
+      shouldAdvance: elapsed >= duration,
+      needsInit: false,
+      elapsed,
+      duration,
+    };
   } catch (error) {
-    // If state doesn't exist or error occurs, we should initialize
     console.log(
-      "Should change track check failed, will initialize:",
+      "Error checking track status, needs initialization:",
       error.message,
     );
-    return true;
+    return { shouldAdvance: true, needsInit: true };
   }
 }
 
@@ -213,62 +172,83 @@ export default async ({ req, res, log, error }) => {
     const databaseId = process.env.APPWRITE_DATABASE_ID;
     const naatsCollectionId = process.env.APPWRITE_NAATS_COLLECTION_ID;
 
-    log("Checking if track needs to change...");
+    log("Checking if track needs to advance...");
 
-    // Check if we need to change the track
-    const needsChange = await shouldChangeTrack(
+    // Check if we need to advance the track
+    const status = await shouldAdvanceTrack(
       databases,
       databaseId,
       naatsCollectionId,
     );
 
-    if (!needsChange) {
-      log("Current track still playing, no change needed");
+    if (!status.shouldAdvance && !status.needsInit) {
+      log(
+        `Current track still playing (${Math.floor(status.elapsed / 1000)}s / ${Math.floor(status.duration / 1000)}s)`,
+      );
       return res.json({
         success: true,
         message: "Current track still playing",
-        changed: false,
+        advanced: false,
       });
     }
 
-    log("Changing track...");
+    let currentTrackIndex = 0;
+    let playlist = [];
 
-    // Get a random naat
-    const currentNaat = await getRandomNaat(
-      databases,
-      databaseId,
-      naatsCollectionId,
-    );
-    log(`Selected naat: ${currentNaat.title}`);
+    if (status.needsInit) {
+      log("Initializing radio with new playlist...");
+      // Generate new playlist
+      playlist = await generatePlaylist(
+        databases,
+        databaseId,
+        naatsCollectionId,
+      );
+      currentTrackIndex = 0;
+    } else {
+      log("Advancing to next track...");
+      // Get current state and advance
+      const currentState = await databases.getDocument(
+        databaseId,
+        LIVE_RADIO_COLLECTION_ID,
+        LIVE_RADIO_DOCUMENT_ID,
+      );
 
-    // Generate playlist
-    const playlist = await generatePlaylist(
-      databases,
-      databaseId,
-      naatsCollectionId,
-      currentNaat.$id,
-    );
-    log(`Generated playlist with ${playlist.length} tracks`);
+      playlist = currentState.playlist;
+      currentTrackIndex =
+        (currentState.currentTrackIndex + 1) % playlist.length;
+    }
 
-    // Update live radio state
+    // Update state
     const state = await updateLiveRadioState(
       databases,
       databaseId,
-      currentNaat,
+      currentTrackIndex,
       playlist,
+    );
+
+    // Get current track info for response
+    const currentTrackId = playlist[currentTrackIndex];
+    const currentTrack = await databases.getDocument(
+      databaseId,
+      naatsCollectionId,
+      currentTrackId,
+    );
+
+    log(
+      `Now playing: ${currentTrack.title} (${currentTrackIndex + 1}/${playlist.length})`,
     );
 
     return res.json({
       success: true,
-      message: "Live radio updated successfully",
-      changed: true,
-      currentNaat: {
-        id: currentNaat.$id,
-        title: currentNaat.title,
-        duration: currentNaat.duration,
+      message: status.needsInit ? "Radio initialized" : "Track advanced",
+      advanced: true,
+      currentTrack: {
+        id: currentTrack.$id,
+        title: currentTrack.title,
+        duration: currentTrack.duration,
+        index: currentTrackIndex,
       },
       playlistSize: playlist.length,
-      startedAt: state.startedAt,
     });
   } catch (err) {
     error("Error in live radio manager:", err);

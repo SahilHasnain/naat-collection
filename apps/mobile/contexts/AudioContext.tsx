@@ -19,7 +19,6 @@ export interface AudioMetadata {
   audioId?: string;
   youtubeId?: string;
   isLive?: boolean;
-  liveStartPosition?: number;
 }
 
 interface AudioContextType {
@@ -273,16 +272,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 
         soundRef.current = sound;
         setCurrentAudio(audio);
-
-        // If this is live radio, seek to the correct position
-        if (audio.isLive && audio.liveStartPosition) {
-          console.log(
-            "[AudioContext] Live radio - seeking to position:",
-            audio.liveStartPosition,
-          );
-          await sound.setPositionAsync(audio.liveStartPosition);
-        }
-
         setIsLoading(false);
         setIsPlaying(true);
 

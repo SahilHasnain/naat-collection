@@ -37,32 +37,22 @@ async function setupLiveRadioCollection() {
     // Create attributes
     console.log("\nCreating attributes...");
 
-    // currentNaatId - ID of the currently playing naat
-    await databases.createStringAttribute(
+    // currentTrackIndex - Current position in playlist
+    await databases.createIntegerAttribute(
       databaseId,
       "live_radio",
-      "currentNaatId",
-      255,
+      "currentTrackIndex",
       true,
+      0, // min
+      undefined, // max
+      0, // default
     );
-    console.log("✅ Created currentNaatId attribute");
+    console.log("✅ Created currentTrackIndex attribute");
 
     // Wait for attribute to be available
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    // startedAt - When the current naat started playing
-    await databases.createStringAttribute(
-      databaseId,
-      "live_radio",
-      "startedAt",
-      255,
-      true,
-    );
-    console.log("✅ Created startedAt attribute");
-
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // playlist - Array of upcoming naat IDs
+    // playlist - Fixed rotating playlist of naat IDs
     await databases.createStringAttribute(
       databaseId,
       "live_radio",
@@ -89,9 +79,8 @@ async function setupLiveRadioCollection() {
     console.log("\n✅ Live Radio collection setup complete!");
     console.log("\n📝 Next steps:");
     console.log("1. Deploy the live-radio-manager function to Appwrite");
-    console.log("2. Set up a scheduled execution (every 5 minutes)");
-    console.log("3. Run the function manually once to initialize the state");
-    console.log("4. Add LIVE_RADIO_COLLECTION_ID to your .env files");
+    console.log("2. Set up a scheduled execution (every 3 minutes)");
+    console.log("3. Run the function manually once to initialize the playlist");
   } catch (error) {
     console.error("❌ Error setting up Live Radio collection:", error);
     process.exit(1);

@@ -57,19 +57,24 @@ class LiveRadioService {
   }
 
   /**
-   * Calculate the current playback position based on start time
+   * Get current track ID from state
    */
-  calculatePlaybackPosition(startedAt: string, duration: number): number {
-    const startTime = new Date(startedAt).getTime();
-    const now = Date.now();
-    const elapsed = now - startTime;
-
-    // If elapsed time exceeds duration, the naat should have ended
-    if (elapsed >= duration) {
-      return duration; // Return full duration to trigger next track
+  getCurrentTrackId(state: LiveRadioState): string | null {
+    if (!state.playlist || state.playlist.length === 0) {
+      return null;
     }
+    return state.playlist[state.currentTrackIndex] || null;
+  }
 
-    return Math.max(0, elapsed);
+  /**
+   * Get next track ID from state
+   */
+  getNextTrackId(state: LiveRadioState): string | null {
+    if (!state.playlist || state.playlist.length === 0) {
+      return null;
+    }
+    const nextIndex = (state.currentTrackIndex + 1) % state.playlist.length;
+    return state.playlist[nextIndex] || null;
   }
 
   /**
@@ -106,15 +111,20 @@ class LiveRadioService {
   }
 
   /**
-   * Get the next naats in the playlist
+   * Get upcoming naats from playlist
    */
-  async getPlaylist(naatIds: string[]): Promise<Naat[]> {
+  async getUpcomingNaats(
+    state: LiveRadioState,
+    count: number = 5,
+  ): Promise<Naat[]> {
     try {
       const naats: Naat[] = [];
+      const playlistLength = state.playlist.length;
 
-      for (const id of naatIds.slice(0, 5)) {
-        // Get next 5
-        const naat = await this.getCurrentNaat(id);
+      for (let i = 1; i <= count && i < playlistLength; i++) {
+        const index = (state.currentTrackIndex + i) % playlistLength;
+        const naatId = state.playlist[index];
+        const naat = await this.getCurrentNaat(naatId);
         if (naat) {
           naats.push(naat);
         }
@@ -122,31 +132,8 @@ class LiveRadioService {
 
       return naats;
     } catch (error) {
-      console.error("[LiveRadio] Error fetching playlist:", error);
+      console.error("[LiveRadio] Error fetching upcoming naats:", error);
       return [];
-    }
-  }
-
-  /**
-   * Update the live radio state (for client-side track advancement)
-   */
-  async updateLiveRadioState(data: {
-    currentNaatId: string;
-    startedAt: string;
-    playlist: string[];
-    updatedAt: string;
-  }): Promise<void> {
-    try {
-      await this.databases.updateDocument(
-        appwriteConfig.databaseId,
-        LIVE_RADIO_COLLECTION_ID,
-        LIVE_RADIO_DOCUMENT_ID,
-        data,
-      );
-      console.log("[LiveRadio] State updated successfully");
-    } catch (error) {
-      console.error("[LiveRadio] Error updating state:", error);
-      throw error;
     }
   }
 }

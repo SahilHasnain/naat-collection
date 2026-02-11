@@ -17,7 +17,6 @@ export function useLiveRadio() {
   const [currentNaat, setCurrentNaat] = useState<Naat | null>(null);
   const [upcomingNaats, setUpcomingNaats] = useState<Naat[]>([]);
   const [listenerCount, setListenerCount] = useState<number>(0);
-  const [startPosition, setStartPosition] = useState<number>(0);
 
   /**
    * Load the current live radio state
@@ -36,8 +35,14 @@ export function useLiveRadio() {
 
       setLiveState(state);
 
+      // Get current track ID
+      const currentTrackId = liveRadioService.getCurrentTrackId(state);
+      if (!currentTrackId) {
+        throw new Error("No current track in playlist");
+      }
+
       // Get current naat details
-      const naat = await liveRadioService.getCurrentNaat(state.currentNaatId);
+      const naat = await liveRadioService.getCurrentNaat(currentTrackId);
 
       if (!naat) {
         throw new Error("Current naat not found");
@@ -45,17 +50,9 @@ export function useLiveRadio() {
 
       setCurrentNaat(naat);
 
-      // Calculate where in the naat we should start playing
-      const position = liveRadioService.calculatePlaybackPosition(
-        state.startedAt,
-        naat.duration * 1000, // Convert seconds to milliseconds
-      );
-
-      setStartPosition(position);
-
       // Get upcoming naats
-      const playlist = await liveRadioService.getPlaylist(state.playlist);
-      setUpcomingNaats(playlist);
+      const upcoming = await liveRadioService.getUpcomingNaats(state, 5);
+      setUpcomingNaats(upcoming);
 
       // Get listener count
       const count = await liveRadioService.getListenerCount();
@@ -97,10 +94,9 @@ export function useLiveRadio() {
           audioUrl: audioResponse.audioUrl,
           youtubeId: currentNaat.youtubeId,
         },
-        startPosition,
         listenerCount,
       };
-    }, [currentNaat, startPosition, listenerCount]);
+    }, [currentNaat, listenerCount]);
 
   /**
    * Refresh the live state
@@ -118,9 +114,9 @@ export function useLiveRadio() {
 
     // Subscribe to realtime changes
     const unsubscribe = liveRadioService.subscribeToChanges((newState) => {
-      // Only reload if the track actually changed
+      // Only reload if the track index changed
       setLiveState((prevState) => {
-        if (prevState?.currentNaatId !== newState.currentNaatId) {
+        if (prevState?.currentTrackIndex !== newState.currentTrackIndex) {
           console.log("[useLiveRadio] Track changed, reloading...");
           loadLiveState();
         }
@@ -140,7 +136,7 @@ export function useLiveRadio() {
     currentNaat,
     upcomingNaats,
     listenerCount,
-    startPosition,
+    liveState,
     getLiveMetadata,
     refresh,
   };

@@ -25,7 +25,7 @@ export default function LiveScreen() {
     currentNaat,
     upcomingNaats,
     listenerCount,
-    startPosition,
+    liveState,
     getLiveMetadata,
     refresh,
   } = useLiveRadio();
@@ -43,7 +43,7 @@ export default function LiveScreen() {
     const metadata = await getLiveMetadata();
     if (!metadata || !metadata.currentNaat) return;
 
-    // Load and play with live metadata
+    // Load and play from the beginning (no position sync needed)
     await loadAndPlay({
       audioUrl: metadata.currentNaat.audioUrl,
       title: currentNaat.title,
@@ -53,7 +53,6 @@ export default function LiveScreen() {
       audioId: currentNaat.$id,
       youtubeId: currentNaat.youtubeId,
       isLive: true,
-      liveStartPosition: startPosition,
     });
   };
 

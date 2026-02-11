@@ -1,14 +1,13 @@
 /**
  * Live Radio Types
  *
- * Types for the 24/7 live naat radio feature
+ * Simplified radio with shared playlist approach
  */
 
 export interface LiveRadioState {
   $id: string;
-  currentNaatId: string;
-  startedAt: string; // ISO timestamp when current naat started
-  playlist: string[]; // Array of next naat IDs
+  currentTrackIndex: number; // Current position in playlist
+  playlist: string[]; // Fixed rotating playlist of naat IDs
   updatedAt: string;
 }
 
@@ -23,7 +22,6 @@ export interface LiveRadioMetadata {
     audioUrl: string;
     youtubeId?: string;
   } | null;
-  startPosition: number; // Milliseconds into the current naat
   listenerCount?: number;
 }
 

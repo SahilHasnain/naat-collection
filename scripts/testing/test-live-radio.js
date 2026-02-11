@@ -1,7 +1,7 @@
 /**
  * Test Live Radio Feature
  *
- * This script simulates the live radio manager function locally
+ * This script simulates the simplified live radio manager locally
  * Useful for testing before deploying to Appwrite
  */
 
@@ -17,71 +17,13 @@ const databases = new Databases(client);
 const databaseId = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID;
 const naatsCollectionId = process.env.EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID;
 
-async function getRandomNaat(excludeIds = []) {
-  try {
-    // Get total count
-    const countResponse = await databases.listDocuments(
-      databaseId,
-      naatsCollectionId,
-      [Query.limit(1)],
-    );
-
-    if (!countResponse.total || countResponse.total === 0) {
-      throw new Error("No naats found in database");
-    }
-
-    console.log(`📊 Total naats in database: ${countResponse.total}`);
-
-    // Generate random offset
-    const randomOffset = Math.floor(Math.random() * countResponse.total);
-
-    // Fetch random naat
-    const response = await databases.listDocuments(
-      databaseId,
-      naatsCollectionId,
-      [Query.limit(1), Query.offset(randomOffset)],
-    );
-
-    if (response.documents.length === 0) {
-      throw new Error("Failed to fetch random naat");
-    }
-
-    return response.documents[0];
-  } catch (error) {
-    console.error("❌ Error getting random naat:", error);
-    throw error;
-  }
-}
-
-async function generatePlaylist(currentNaatId, size = 10) {
-  const playlist = [];
-  const excludeIds = [currentNaatId];
-
-  console.log(`\n🎵 Generating playlist of ${size} tracks...`);
-
-  for (let i = 0; i < size; i++) {
-    try {
-      const naat = await getRandomNaat(excludeIds);
-      playlist.push(naat.$id);
-      excludeIds.push(naat.$id);
-      console.log(`  ${i + 1}. ${naat.title} (${naat.duration}s)`);
-    } catch (error) {
-      console.error(`❌ Error generating playlist item ${i}:`, error);
-      break;
-    }
-  }
-
-  return playlist;
-}
-
-async function updateLiveRadioState(currentNaat, playlist) {
+async function updateLiveRadioState(currentTrackIndex, playlist) {
   try {
     const now = new Date().toISOString();
 
     const data = {
-      currentNaatId: currentNaat.$id,
-      startedAt: now,
-      playlist: playlist,
+      currentTrackIndex,
+      playlist,
       updatedAt: now,
     };
 
@@ -123,31 +65,68 @@ async function testLiveRadio() {
     console.log("🎵 Testing Live Radio Feature\n");
     console.log("================================\n");
 
-    // Get a random naat
-    console.log("🎲 Selecting random naat...");
-    const currentNaat = await getRandomNaat();
-    console.log(`✅ Selected: ${currentNaat.title}`);
-    console.log(`   Channel: ${currentNaat.channelName}`);
-    console.log(`   Duration: ${currentNaat.duration} seconds`);
+    // Generate a playlist
+    console.log("🎲 Generating playlist...");
+    const playlist = [];
+    const seenIds = new Set();
 
-    // Generate playlist
-    const playlist = await generatePlaylist(currentNaat.$id, 10);
+    const countResponse = await databases.listDocuments(
+      databaseId,
+      naatsCollectionId,
+      [Query.limit(1)],
+    );
+
+    const totalNaats = countResponse.total;
+    const playlistSize = Math.min(50, totalNaats);
+
+    console.log(`📊 Total naats in database: ${totalNaats}`);
+    console.log(`🎵 Creating playlist of ${playlistSize} tracks...\n`);
+
+    for (let i = 0; i < playlistSize; i++) {
+      const randomOffset = Math.floor(Math.random() * totalNaats);
+      const response = await databases.listDocuments(
+        databaseId,
+        naatsCollectionId,
+        [Query.limit(1), Query.offset(randomOffset)],
+      );
+
+      if (response.documents.length > 0) {
+        const naat = response.documents[0];
+        if (!seenIds.has(naat.$id)) {
+          playlist.push(naat.$id);
+          seenIds.add(naat.$id);
+          if (i < 5) {
+            // Show first 5
+            console.log(`  ${i + 1}. ${naat.title} (${naat.duration}s)`);
+          }
+        }
+      }
+    }
+
+    console.log(`  ... and ${playlist.length - 5} more tracks`);
     console.log(`\n✅ Generated playlist with ${playlist.length} tracks`);
 
-    // Update live radio state
-    const state = await updateLiveRadioState(currentNaat, playlist);
+    // Update live radio state (start at index 0)
+    const state = await updateLiveRadioState(0, playlist);
+
+    // Get first track info
+    const firstTrack = await databases.getDocument(
+      databaseId,
+      naatsCollectionId,
+      playlist[0],
+    );
 
     console.log("\n================================");
     console.log("✅ Live Radio Test Complete!\n");
     console.log("📊 Summary:");
-    console.log(`   Current Naat: ${currentNaat.title}`);
-    console.log(`   Started At: ${state.startedAt}`);
-    console.log(`   Playlist Size: ${playlist.length}`);
+    console.log(`   Current Track: ${firstTrack.title}`);
+    console.log(`   Track Index: 0 / ${playlist.length}`);
+    console.log(`   Updated At: ${state.updatedAt}`);
     console.log("\n💡 Next steps:");
     console.log("   1. Open the mobile app");
     console.log('   2. Navigate to the "Live" tab');
     console.log('   3. Tap "Listen Live"');
-    console.log("   4. You should hear the selected naat!");
+    console.log("   4. You should hear the first track!");
   } catch (error) {
     console.error("\n❌ Test failed:", error);
     process.exit(1);
