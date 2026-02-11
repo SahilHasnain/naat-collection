@@ -112,16 +112,10 @@ export function useLiveRadio() {
     // Initial load
     loadLiveState();
 
-    // Subscribe to realtime changes
+    // Subscribe to changes (polling-based)
     const unsubscribe = liveRadioService.subscribeToChanges((newState) => {
-      // Only reload if the track index changed
-      setLiveState((prevState) => {
-        if (prevState?.currentTrackIndex !== newState.currentTrackIndex) {
-          console.log("[useLiveRadio] Track changed, reloading...");
-          loadLiveState();
-        }
-        return newState;
-      });
+      console.log("[useLiveRadio] Track changed, reloading...");
+      loadLiveState();
     });
 
     // Cleanup

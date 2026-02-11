@@ -78,26 +78,33 @@ class LiveRadioService {
   }
 
   /**
-   * Subscribe to live radio state changes using Appwrite Realtime
+   * Subscribe to live radio state changes using polling
+   * (Realtime doesn't work well in React Native due to localStorage issues)
    */
   subscribeToChanges(callback: (state: LiveRadioState) => void): () => void {
-    const channelName = `databases.${appwriteConfig.databaseId}.collections.${LIVE_RADIO_COLLECTION_ID}.documents`;
+    let isActive = true;
+    let lastTrackIndex: number | null = null;
 
-    const unsubscribe = this.client.subscribe(channelName, (response: any) => {
-      // Check if this is an update event for our document
-      const events = response.events || [];
-      const isUpdate = events.some(
-        (event: string) => event.includes("update") || event.includes("create"),
-      );
+    // Poll every 30 seconds to check for changes
+    const pollInterval = setInterval(async () => {
+      if (!isActive) return;
 
-      if (isUpdate && response.payload) {
-        console.log("[LiveRadio] Received realtime update");
-        callback(response.payload as LiveRadioState);
+      try {
+        const state = await this.getCurrentState();
+        if (state && state.currentTrackIndex !== lastTrackIndex) {
+          console.log("[LiveRadio] Track changed via polling");
+          lastTrackIndex = state.currentTrackIndex;
+          callback(state);
+        }
+      } catch (error) {
+        console.error("[LiveRadio] Error polling for changes:", error);
       }
-    });
+    }, 30000); // Poll every 30 seconds
 
+    // Return cleanup function
     return () => {
-      unsubscribe();
+      isActive = false;
+      clearInterval(pollInterval);
     };
   }
 
