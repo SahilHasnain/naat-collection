@@ -32,7 +32,6 @@ yarn-error.*
 
 # local env files
 .env*.local
-.env*
 !.env.example
 
 # typescript
@@ -46,3 +45,4 @@ app-example
 
 temp-audio
 ref/secret.md
+config.bat
