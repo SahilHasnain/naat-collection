@@ -7,13 +7,12 @@
 
 import { AppwriteService as BaseAppwriteService } from "@naat-collection/api-client";
 import type {
-  AppError,
   AudioUrlResponse,
   Channel,
-  ErrorCode,
   IAppwriteService,
   Naat,
 } from "@naat-collection/shared";
+import { AppError, ErrorCode } from "@naat-collection/shared";
 import * as Sentry from "@sentry/react-native";
 import { appwriteConfig, validateAppwriteConfig } from "../config/appwrite";
 import {

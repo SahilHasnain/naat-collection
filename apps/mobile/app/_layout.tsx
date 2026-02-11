@@ -1,8 +1,13 @@
 import ErrorBoundary from "@/components/ErrorBoundary";
 import FullPlayerModal from "@/components/FullPlayerModal";
+import LiveRadioMiniPlayer from "@/components/LiveRadioMiniPlayer";
 import MiniPlayer from "@/components/MiniPlayer";
 import { colors } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
+import {
+  LiveRadioProvider,
+  useLiveRadioPlayer,
+} from "@/contexts/LiveRadioContext";
 import { VideoProvider } from "@/contexts/VideoContext";
 import { storageService } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,7 +33,9 @@ function RootLayoutContent() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
+  const [isLivePlayerExpanded, setIsLivePlayerExpanded] = useState(false);
   const { currentAudio, stop } = useAudioPlayer();
+  const { isPlaying: isLiveRadioPlaying } = useLiveRadioPlayer();
 
   // Handle switching from audio to video mode
   const handleSwitchToVideo = async () => {
@@ -152,8 +159,13 @@ function RootLayoutContent() {
         />
       </Tabs>
 
-      {/* Mini Player - Persistent across all screens */}
-      <MiniPlayer onExpand={() => setIsPlayerExpanded(true)} />
+      {/* Mini Player - Persistent across all screens (only show if not playing live radio) */}
+      {!isLiveRadioPlaying && (
+        <MiniPlayer onExpand={() => setIsPlayerExpanded(true)} />
+      )}
+
+      {/* Live Radio Mini Player - Shows when live radio is playing */}
+      <LiveRadioMiniPlayer onExpand={() => setIsLivePlayerExpanded(true)} />
 
       {/* Full Player Modal */}
       <FullPlayerModal
@@ -161,6 +173,12 @@ function RootLayoutContent() {
         onClose={() => setIsPlayerExpanded(false)}
         onSwitchToVideo={handleSwitchToVideo}
       />
+
+      {/* Live Radio Full Player Modal - TODO: Create this */}
+      {/* <LiveRadioFullPlayerModal
+        visible={isLivePlayerExpanded}
+        onClose={() => setIsLivePlayerExpanded(false)}
+      /> */}
     </>
   );
 }
@@ -169,11 +187,13 @@ function RootLayout() {
   return (
     <SafeAreaProvider>
       <AudioProvider>
-        <VideoProvider>
-          <ErrorBoundary>
-            <RootLayoutContent />
-          </ErrorBoundary>
-        </VideoProvider>
+        <LiveRadioProvider>
+          <VideoProvider>
+            <ErrorBoundary>
+              <RootLayoutContent />
+            </ErrorBoundary>
+          </VideoProvider>
+        </LiveRadioProvider>
       </AudioProvider>
     </SafeAreaProvider>
   );

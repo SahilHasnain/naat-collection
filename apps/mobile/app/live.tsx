@@ -4,10 +4,9 @@
  * 24/7 live naat radio with synchronized playback
  */
 
-import { useAudioPlayer } from "@/contexts/AudioContext";
-import { useLiveRadio } from "@/hooks/useLiveRadio";
+import { useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -25,35 +24,22 @@ export default function LiveScreen() {
     currentNaat,
     upcomingNaats,
     listenerCount,
-    liveState,
-    getLiveMetadata,
+    isPlaying,
+    play,
+    pause,
     refresh,
-  } = useLiveRadio();
+  } = useLiveRadioPlayer();
 
-  const { loadAndPlay, currentAudio, isPlaying, pause } = useAudioPlayer();
-
-  const isPlayingLive = currentAudio?.isLive && isPlaying;
+  // Load initial state
+  useEffect(() => {
+    refresh();
+  }, []);
 
   /**
    * Handle play live radio
    */
   const handlePlayLive = async () => {
-    if (!currentNaat) return;
-
-    const metadata = await getLiveMetadata();
-    if (!metadata || !metadata.currentNaat) return;
-
-    // Load and play from the beginning (no position sync needed)
-    await loadAndPlay({
-      audioUrl: metadata.currentNaat.audioUrl,
-      title: currentNaat.title,
-      channelName: currentNaat.channelName,
-      thumbnailUrl: currentNaat.thumbnailUrl,
-      isLocalFile: false,
-      audioId: currentNaat.$id,
-      youtubeId: currentNaat.youtubeId,
-      isLive: true,
-    });
+    await play();
   };
 
   /**
@@ -156,18 +142,18 @@ export default function LiveScreen() {
 
             {/* Play/Pause Button */}
             <TouchableOpacity
-              onPress={isPlayingLive ? handlePauseLive : handlePlayLive}
+              onPress={isPlaying ? handlePauseLive : handlePlayLive}
               className={`${
-                isPlayingLive ? "bg-gray-700" : "bg-red-500"
+                isPlaying ? "bg-gray-700" : "bg-red-500"
               } py-4 rounded-full flex-row items-center justify-center`}
             >
               <Ionicons
-                name={isPlayingLive ? "pause" : "play"}
+                name={isPlaying ? "pause" : "play"}
                 size={24}
                 color="white"
               />
               <Text className="text-white font-bold text-lg ml-2">
-                {isPlayingLive ? "Pause" : "Listen Live"}
+                {isPlaying ? "Pause" : "Listen Live"}
               </Text>
             </TouchableOpacity>
           </View>

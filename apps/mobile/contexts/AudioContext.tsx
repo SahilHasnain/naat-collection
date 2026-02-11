@@ -18,7 +18,6 @@ export interface AudioMetadata {
   isLocalFile: boolean;
   audioId?: string;
   youtubeId?: string;
-  isLive?: boolean;
 }
 
 interface AudioContextType {

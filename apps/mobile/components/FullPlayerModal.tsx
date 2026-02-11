@@ -167,35 +167,30 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
       <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-black">
         {/* Header with Video Toggle and Options Button */}
         <View className="flex-row items-center justify-between px-5 py-4">
-          {/* Switch to Video Button - Hidden for live radio */}
-          {currentAudio.youtubeId &&
-            onSwitchToVideo &&
-            !currentAudio.isLive && (
-              <TouchableOpacity
-                onPress={onSwitchToVideo}
-                className="items-center justify-center w-10 h-10"
-                accessibilityRole="button"
-                accessibilityLabel="Switch to video"
-              >
-                <Ionicons name="videocam" size={24} color="white" />
-              </TouchableOpacity>
-            )}
-          {(!currentAudio.youtubeId ||
-            !onSwitchToVideo ||
-            currentAudio.isLive) && <View className="w-10" />}
-
-          {/* Options Menu Button - Hidden for live radio */}
-          {!currentAudio.isLive && (
+          {/* Switch to Video Button */}
+          {currentAudio.youtubeId && onSwitchToVideo && (
             <TouchableOpacity
-              onPress={() => setShowOptionsMenu(!showOptionsMenu)}
+              onPress={onSwitchToVideo}
               className="items-center justify-center w-10 h-10"
               accessibilityRole="button"
-              accessibilityLabel="Options menu"
+              accessibilityLabel="Switch to video"
             >
-              <Ionicons name="ellipsis-vertical" size={24} color="white" />
+              <Ionicons name="videocam" size={24} color="white" />
             </TouchableOpacity>
           )}
-          {currentAudio.isLive && <View className="w-10" />}
+          {(!currentAudio.youtubeId || !onSwitchToVideo) && (
+            <View className="w-10" />
+          )}
+
+          {/* Options Menu Button */}
+          <TouchableOpacity
+            onPress={() => setShowOptionsMenu(!showOptionsMenu)}
+            className="items-center justify-center w-10 h-10"
+            accessibilityRole="button"
+            accessibilityLabel="Options menu"
+          >
+            <Ionicons name="ellipsis-vertical" size={24} color="white" />
+          </TouchableOpacity>
         </View>
 
         {/* Options Menu with Overlay */}
@@ -331,15 +326,6 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   contentFit="cover"
                   cachePolicy="memory-disk"
                 />
-                {/* Live Badge Overlay */}
-                {currentAudio.isLive && (
-                  <View className="absolute top-4 left-4 bg-red-500 px-3 py-2 rounded-full flex-row items-center">
-                    <View className="w-2.5 h-2.5 bg-white rounded-full mr-2" />
-                    <Text className="text-white text-sm font-bold uppercase">
-                      Live
-                    </Text>
-                  </View>
-                )}
               </View>
 
               {/* Title and Channel */}
@@ -358,62 +344,49 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
 
             {/* Playback Controls */}
             <View className="px-6 pb-8">
-              {/* Seek Bar - Disabled for live content */}
-              {!currentAudio.isLive && (
-                <View className="mb-4">
-                  <Slider
-                    style={{ width: "100%", height: 40 }}
-                    minimumValue={0}
-                    maximumValue={duration}
-                    value={position}
-                    onSlidingComplete={seek}
-                    minimumTrackTintColor={colors.accent.primary}
-                    maximumTrackTintColor={colors.background.elevated}
-                    thumbTintColor={colors.accent.primary}
-                  />
+              {/* Seek Bar */}
+              <View className="mb-4">
+                <Slider
+                  style={{ width: "100%", height: 40 }}
+                  minimumValue={0}
+                  maximumValue={duration}
+                  value={position}
+                  onSlidingComplete={seek}
+                  minimumTrackTintColor={colors.accent.primary}
+                  maximumTrackTintColor={colors.background.elevated}
+                  thumbTintColor={colors.accent.primary}
+                />
 
-                  {/* Time Labels */}
-                  <View className="flex-row justify-between">
-                    <Text className="text-sm text-neutral-400">
-                      {formatTime(position)}
-                    </Text>
-                    <Text className="text-sm text-neutral-400">
-                      {formatTime(duration)}
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Live indicator message */}
-              {currentAudio.isLive && (
-                <View className="mb-6 items-center">
-                  <Text className="text-neutral-400 text-sm">
-                    You're listening to live radio
+                {/* Time Labels */}
+                <View className="flex-row justify-between">
+                  <Text className="text-sm text-neutral-400">
+                    {formatTime(position)}
+                  </Text>
+                  <Text className="text-sm text-neutral-400">
+                    {formatTime(duration)}
                   </Text>
                 </View>
-              )}
+              </View>
 
-              {/* Main Playback Controls - Clean and Simple */}
+              {/* Main Playback Controls */}
               <View className="flex-row items-center justify-center gap-8">
-                {/* Seek Backward 10s - Hidden for live */}
-                {!currentAudio.isLive && (
-                  <TouchableOpacity
-                    onPress={seekBackward}
-                    className="relative items-center justify-center h-14 w-14"
-                    accessibilityLabel="Seek backward 10 seconds"
-                    accessibilityRole="button"
-                  >
-                    <Ionicons
-                      name="refresh"
-                      size={40}
-                      color="white"
-                      style={{ transform: [{ scaleX: -1 }] }}
-                    />
-                    <Text className="absolute text-xs font-bold text-white">
-                      10
-                    </Text>
-                  </TouchableOpacity>
-                )}
+                {/* Seek Backward 10s */}
+                <TouchableOpacity
+                  onPress={seekBackward}
+                  className="relative items-center justify-center h-14 w-14"
+                  accessibilityLabel="Seek backward 10 seconds"
+                  accessibilityRole="button"
+                >
+                  <Ionicons
+                    name="refresh"
+                    size={40}
+                    color="white"
+                    style={{ transform: [{ scaleX: -1 }] }}
+                  />
+                  <Text className="absolute text-xs font-bold text-white">
+                    10
+                  </Text>
+                </TouchableOpacity>
 
                 {/* Play/Pause Button */}
                 <TouchableOpacity
@@ -429,20 +402,18 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   />
                 </TouchableOpacity>
 
-                {/* Seek Forward 10s - Hidden for live */}
-                {!currentAudio.isLive && (
-                  <TouchableOpacity
-                    onPress={seekForward}
-                    className="relative items-center justify-center h-14 w-14"
-                    accessibilityLabel="Seek forward 10 seconds"
-                    accessibilityRole="button"
-                  >
-                    <Ionicons name="refresh" size={40} color="white" />
-                    <Text className="absolute text-xs font-bold text-white">
-                      10
-                    </Text>
-                  </TouchableOpacity>
-                )}
+                {/* Seek Forward 10s */}
+                <TouchableOpacity
+                  onPress={seekForward}
+                  className="relative items-center justify-center h-14 w-14"
+                  accessibilityLabel="Seek forward 10 seconds"
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="refresh" size={40} color="white" />
+                  <Text className="absolute text-xs font-bold text-white">
+                    10
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
