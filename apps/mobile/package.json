@@ -3,7 +3,7 @@
   "main": "AppEntry.js",
   "version": "1.0.0",
   "scripts": {
-    "start": "expo start",
+    "start": "node api.js && expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
@@ -43,6 +43,7 @@
     "clipboardy": "^5.0.2",
     "expo": "~54.0.31",
     "expo-av": "^16.0.8",
+    "expo-build-properties": "~1.0.10",
     "expo-constants": "~18.0.12",
     "expo-dev-client": "~6.0.20",
     "expo-file-system": "~19.0.21",
