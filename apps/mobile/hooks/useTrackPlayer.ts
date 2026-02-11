@@ -1,24 +1,32 @@
-import { setupPlayer, updateOptions } from "@/services/trackPlayerService";
+import {
+  playbackService,
+  setupPlayer,
+  updateOptions,
+} from "@/services/trackPlayerService";
 import { useEffect, useState } from "react";
 
 // Dynamic import to avoid build-time errors
+let TrackPlayer: any = null;
 let State: any = null;
 let usePlaybackState: any = null;
 
 try {
   const trackPlayerModule = require("react-native-track-player");
+  TrackPlayer = trackPlayerModule.default;
   State = trackPlayerModule.State;
   usePlaybackState = trackPlayerModule.usePlaybackState;
 } catch (error) {
   console.log("[TrackPlayer] Module not available yet");
 }
 
+let isServiceRegistered = false;
+
 export function useTrackPlayer() {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const playbackState = usePlaybackState ? usePlaybackState() : { state: null };
 
   useEffect(() => {
-    if (!State) {
+    if (!State || !TrackPlayer) {
       console.log("[TrackPlayer] Not available, skipping setup");
       return;
     }
@@ -27,6 +35,13 @@ export function useTrackPlayer() {
 
     async function setup() {
       try {
+        // Register playback service once
+        if (!isServiceRegistered) {
+          TrackPlayer.registerPlaybackService(() => playbackService);
+          isServiceRegistered = true;
+          console.log("[TrackPlayer] Playback service registered");
+        }
+
         const isSetup = await setupPlayer();
         if (isSetup && isMounted) {
           await updateOptions();
