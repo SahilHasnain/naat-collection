@@ -11,9 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": [
-          "audio"
-        ]
+        "UIBackgroundModes": ["audio"]
       }
     },
     "android": {
@@ -43,6 +41,12 @@
         "expo-av",
         {
           "microphonePermission": false
+        }
+      ],
+      [
+        "react-native-track-player",
+        {
+          "notificationIcon": "./assets/images/android-icon-foreground.png"
         }
       ],
       [
