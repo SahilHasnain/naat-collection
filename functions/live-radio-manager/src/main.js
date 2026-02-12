@@ -22,18 +22,19 @@ const PLAYLIST_SIZE = 50; // Fixed rotating playlist
 async function generatePlaylist(databases, databaseId, naatsCollectionId) {
   const playlist = [];
   const seenIds = new Set();
+  const MAX_DURATION = 3600; // 1 hour in seconds
 
-  // Get total count
+  // Get total count of naats under 1 hour
   const countResponse = await databases.listDocuments(
     databaseId,
     naatsCollectionId,
-    [Query.limit(1)],
+    [Query.limit(1), Query.lessThanEqual("duration", MAX_DURATION)],
   );
 
   const totalNaats = countResponse.total;
 
   if (totalNaats === 0) {
-    throw new Error("No naats found in database");
+    throw new Error("No naats found in database under 1 hour duration");
   }
 
   // Generate playlist with random naats
@@ -43,7 +44,12 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
     const response = await databases.listDocuments(
       databaseId,
       naatsCollectionId,
-      [Query.limit(1), Query.offset(randomOffset), Query.select(["$id"])],
+      [
+        Query.limit(1),
+        Query.offset(randomOffset),
+        Query.lessThanEqual("duration", MAX_DURATION),
+        Query.select(["$id"]),
+      ],
     );
 
     if (response.documents.length > 0) {
