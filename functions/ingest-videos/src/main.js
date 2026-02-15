@@ -408,38 +408,29 @@ function shouldFilterVideo(isOfficial, title) {
     return false;
   }
 
-  // For non-official channels, only include videos with Owais Raza/Qadri in title
+  // For non-official channels, only include videos with "Owais Qadri" or "Owais Raza Qadri"
   const titleLower = title.toLowerCase();
 
-  // Common spelling variations for "Owais"
-  const owaisVariations = [
-    "owais",
-    "owias",
-    "owes",
-    "owaiz",
-    "awais",
-    "awaiz",
-    "uwais",
-    "uwaiz",
-  ];
+  // Only 'O' starting variations allowed (no 'A' or 'U' variations)
+  // Spelling errors allowed but first letter must be 'O'
+  const owaisVariations = ["owais", "owias", "owes", "owaiz", "ovais", "oveis"];
 
-  // Check if title contains "Owais" (any variation)
+  // Check if title contains "Owais" (O-starting variations only)
   const hasOwais = owaisVariations.some((owais) => titleLower.includes(owais));
 
-  // Check if title contains "Raza" (exact, no variations)
-  const hasRaza = titleLower.includes("raza");
+  // Check if title contains "Qadri" (required - with common spelling variations)
+  const qadriVariations = ["qadri", "qadiri", "qaadri", "qaadiri"];
+  const hasQadri = qadriVariations.some((qadri) => titleLower.includes(qadri));
 
-  // Check if title contains "Qadri" (exact, no variations)
-  const hasQadri = titleLower.includes("qadri");
-
-  // Must match one of these patterns:
-  // 1. Owais + Raza
-  // 2. Owais + Qadri
-  // 3. Owais + Raza + Qadri
-  const isOwaisVideo = hasOwais && (hasRaza || hasQadri);
+  // Must have Owais (O-starting) + Qadri
+  // This filters out:
+  // - "Awais", "Uwais" variations (wrong first letter)
+  // - "Owais Raza" without "Qadri" (other artists like Owais Raza Attari)
+  // - Other artists like "Bilal Owaisi", "Bilal Raza Owaisi"
+  const isOwaisQadriVideo = hasOwais && hasQadri;
 
   // Filter out (return true) if it does NOT match the pattern
-  return !isOwaisVideo;
+  return !isOwaisQadriVideo;
 }
 
 /**
