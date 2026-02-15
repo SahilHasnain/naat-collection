@@ -8,6 +8,10 @@ import {
   LiveRadioProvider,
   useLiveRadioPlayer,
 } from "@/contexts/LiveRadioContext";
+import {
+  PlaybackModeProvider,
+  usePlaybackMode,
+} from "@/contexts/PlaybackModeContext";
 import { VideoProvider } from "@/contexts/VideoContext";
 import { storageService } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
@@ -35,12 +39,8 @@ function RootLayoutContent() {
   const segments = useSegments();
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
   const { currentAudio, stop } = useAudioPlayer();
-  const { isPlaying: liveRadioIsPlaying, currentNaat } = useLiveRadioPlayer();
-
-  // Treat live radio as "playing" only when we actually have
-  // a current live radio track, so regular audio playback
-  // doesn't hide the MiniPlayer.
-  const isLiveRadioPlaying = liveRadioIsPlaying && !!currentNaat;
+  const { currentNaat } = useLiveRadioPlayer();
+  const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
 
   // Check if user is currently on the live tab
   const isOnLiveTab = segments[0] === "live";
@@ -173,13 +173,13 @@ function RootLayoutContent() {
         />
       </Tabs>
 
-      {/* Mini Player - Persistent across all screens (only show if not playing live radio) */}
-      {!isLiveRadioPlaying && (
+      {/* Mini Player - Persistent across all screens (only show when normal audio is active) */}
+      {isNormalAudioActive && currentAudio && (
         <MiniPlayer onExpand={() => setIsPlayerExpanded(true)} />
       )}
 
-      {/* Live Radio Mini Player - Shows when live radio is playing and user is NOT on live tab */}
-      {isLiveRadioPlaying && !isOnLiveTab && (
+      {/* Live Radio Mini Player - Shows when live radio is active and user is NOT on live tab */}
+      {isLiveRadioActive && currentNaat && !isOnLiveTab && (
         <LiveRadioMiniPlayer
           onExpand={() => {
             // Navigate to live tab when miniplayer is tapped
@@ -194,12 +194,6 @@ function RootLayoutContent() {
         onClose={() => setIsPlayerExpanded(false)}
         onSwitchToVideo={handleSwitchToVideo}
       />
-
-      {/* Live Radio Full Player Modal - TODO: Create this */}
-      {/* <LiveRadioFullPlayerModal
-        visible={isLivePlayerExpanded}
-        onClose={() => setIsLivePlayerExpanded(false)}
-      /> */}
     </>
   );
 }
@@ -207,15 +201,17 @@ function RootLayoutContent() {
 function RootLayout() {
   return (
     <SafeAreaProvider>
-      <AudioProvider>
-        <LiveRadioProvider>
-          <VideoProvider>
-            <ErrorBoundary>
-              <RootLayoutContent />
-            </ErrorBoundary>
-          </VideoProvider>
-        </LiveRadioProvider>
-      </AudioProvider>
+      <PlaybackModeProvider>
+        <AudioProvider>
+          <LiveRadioProvider>
+            <VideoProvider>
+              <ErrorBoundary>
+                <RootLayoutContent />
+              </ErrorBoundary>
+            </VideoProvider>
+          </LiveRadioProvider>
+        </AudioProvider>
+      </PlaybackModeProvider>
     </SafeAreaProvider>
   );
 }

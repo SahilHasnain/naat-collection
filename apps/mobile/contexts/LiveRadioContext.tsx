@@ -1,13 +1,6 @@
-/**
- * Live Radio Context
- *
- * Separate context for live radio playback
- * Handles automatic track advancement and server sync
- */
-
+import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { appwriteService } from "@/services/appwrite";
 import { liveRadioService } from "@/services/liveRadio";
-import { setupPlayer } from "@/services/trackPlayerService";
 import { LiveRadioState } from "@/types/live-radio";
 import { Naat } from "@naat-collection/shared";
 import TrackPlayer, {
@@ -47,6 +40,8 @@ const LiveRadioContext = createContext<LiveRadioContextType | undefined>(
 export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const { mode, setMode, isLiveRadioActive, isNormalAudioActive } =
+    usePlaybackMode();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentNaat, setCurrentNaat] = useState<Naat | null>(null);
@@ -76,8 +71,19 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
     initPlayer();
   }, []);
 
-  // Listen to playback state changes
+  // Stop live radio when normal audio becomes active
+  useEffect(() => {
+    if (isNormalAudioActive && isPlaying) {
+      console.log("[LiveRadio] Normal audio active, pausing live radio");
+      setIsPlaying(false);
+      // Don't clear currentNaat - keep the UI visible
+    }
+  }, [isNormalAudioActive, isPlaying]);
+
+  // Listen to playback state changes - only when live radio is active
   useTrackPlayerEvents([Event.PlaybackState], async (event) => {
+    if (!isLiveRadioActive) return;
+
     if (event.type === Event.PlaybackState) {
       const state = event.state;
       setIsPlaying(state === State.Playing);
@@ -85,10 +91,9 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   });
 
-  // Listen to track end events - only advance if live radio is actually playing
+  // Listen to track end events - only when live radio is active
   useTrackPlayerEvents([Event.PlaybackQueueEnded], async () => {
-    // Only handle track end if live radio is currently playing
-    if (!isPlaying || !currentNaat) {
+    if (!isLiveRadioActive) {
       console.log(
         "[LiveRadio] Track finished but live radio not active, ignoring",
       );
@@ -149,6 +154,9 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const { naat } = await loadLiveState();
 
+      // Switch to live radio mode
+      setMode("live");
+
       // Get audio URL
       const audioResponse = await appwriteService.getAudioUrl(naat.audioId);
       if (!audioResponse.success || !audioResponse.audioUrl) {
@@ -176,15 +184,15 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
       setError(err as Error);
       setIsLoading(false);
     }
-  }, [loadLiveState]);
+  }, [loadLiveState, setMode]);
 
   /**
    * Check if server has advanced to next track, or advance locally
    * Only advances if live radio is currently active
    */
   const checkAndAdvanceTrack = useCallback(async () => {
-    // Only advance if live radio is currently playing
-    if (!isPlaying || !currentNaat) {
+    // Only advance if live radio is currently active
+    if (!isLiveRadioActive) {
       console.log("[LiveRadio] Not advancing - live radio is not active");
       return;
     }
@@ -217,7 +225,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.error("[LiveRadio] Error checking track advancement:", err);
     }
-  }, [loadAndPlayCurrentTrack, isPlaying, currentNaat]);
+  }, [loadAndPlayCurrentTrack, isLiveRadioActive]);
 
   /**
    * Poll for track changes every 30 seconds
@@ -276,7 +284,8 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     setIsPlaying(false);
     setCurrentNaat(null);
-  }, []);
+    setMode("none");
+  }, [setMode]);
 
   /**
    * Refresh live state

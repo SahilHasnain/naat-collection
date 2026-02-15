@@ -1,3 +1,4 @@
+import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { setupPlayer } from "@/services/trackPlayerService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import TrackPlayer, {
@@ -59,6 +60,8 @@ const AUTOPLAY_KEY = "@audio_autoplay_enabled";
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const { mode, setMode, isNormalAudioActive, isLiveRadioActive } =
+    usePlaybackMode();
   const [currentAudio, setCurrentAudio] = useState<AudioMetadata | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -136,6 +139,15 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     initPlayer();
   }, []);
 
+  // Stop normal audio when live radio becomes active
+  useEffect(() => {
+    if (isLiveRadioActive && currentAudio) {
+      console.log("[AudioContext] Live radio active, stopping normal audio");
+      setIsPlaying(false);
+      setCurrentAudio(null);
+    }
+  }, [isLiveRadioActive, currentAudio]);
+
   // Use Track Player hooks for progress
   const { position: trackPosition, duration: trackDuration } = useProgress();
 
@@ -144,8 +156,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     setDuration(Math.floor(trackDuration * 1000));
   }, [trackPosition, trackDuration]);
 
-  // Listen to playback state changes
+  // Listen to playback state changes - only when normal audio is active
   useTrackPlayerEvents([Event.PlaybackState], async (event) => {
+    if (!isNormalAudioActive) return;
+
     if (event.type === Event.PlaybackState) {
       const state = event.state;
       console.log("[AudioContext] Playback state changed:", state);
@@ -157,8 +171,15 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   });
 
-  // Listen to track end events
+  // Listen to track end events - only when normal audio is active
   useTrackPlayerEvents([Event.PlaybackQueueEnded], async () => {
+    if (!isNormalAudioActive) {
+      console.log(
+        "[AudioContext] Track finished but normal audio not active, ignoring",
+      );
+      return;
+    }
+
     console.log("[AudioContext] Track finished");
     setIsPlaying(false);
 
@@ -199,6 +220,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 
         console.log("[AudioContext] Loading audio:", audio.title);
 
+        // Switch to normal audio mode
+        setMode("normal");
+
         // Reset queue and add new track
         await TrackPlayer.reset();
         await TrackPlayer.add({
@@ -231,7 +255,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
         setCurrentAudio(null);
       }
     },
-    [volume],
+    [volume, setMode],
   );
 
   // Play
@@ -301,7 +325,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     setDuration(0);
     setError(null);
     setIsLoading(false);
-  }, []);
+    setMode("none");
+  }, [setMode]);
 
   // Toggle repeat
   const toggleRepeat = useCallback(async () => {
