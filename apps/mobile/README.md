@@ -1,90 +1,27 @@
-# Naat Collection - Mobile App
+# Mobile App
 
-React Native/Expo mobile application for browsing and listening to Islamic naats.
+React Native mobile app built with Expo SDK 54.
 
-## Development
+## Audio Player
 
-### Prerequisites
+Uses `@weights-ai/react-native-track-player` for background audio playback with New Architecture support.
 
-- Node.js 18+
-- Expo CLI
-- Android Studio (for Android) or Xcode (for iOS)
+See [Migration Guide](../../docs/MIGRATION.md) for details on the expo-av to react-native-track-player migration.
 
-### Setup
+## Setup
 
 ```bash
-# From the root of the monorepo
 npm install
-
-# Start the development server
-npm run mobile
+npm run android  # or npm run ios
 ```
 
-### Environment Variables
+## Key Files
 
-Create a single `.env` file in this directory with the following:
+- `index.js` - Entry point with TrackPlayer service registration
+- `contexts/AudioContext.tsx` - Global audio player state
+- `contexts/LiveRadioContext.tsx` - Live radio playback
+- `services/trackPlayerService.ts` - TrackPlayer configuration
 
-```env
-EXPO_PUBLIC_APPWRITE_ENDPOINT=your_endpoint
-EXPO_PUBLIC_APPWRITE_PROJECT_ID=your_project_id
-APPWRITE_API_KEY=your_api_key
-```
+## Documentation
 
-### Running
-
-```bash
-# Development server
-npm start
-
-# Android
-npm run android
-
-# iOS
-npm run ios
-
-# Web
-npm run web
-```
-
-### Testing
-
-```bash
-# Run tests
-npm test
-
-# Watch mode
-npm run test:watch
-```
-
-## Project Structure
-
-```
-mobile/
-├── app/              # Expo Router pages
-├── components/       # React components
-├── config/           # Configuration files
-├── constants/        # App constants
-├── contexts/         # React contexts
-├── hooks/            # Custom hooks
-├── services/         # API services
-├── types/            # TypeScript types
-└── utils/            # Utility functions
-```
-
-## Features
-
-- Browse naats by artist
-- Audio playback with controls
-- Search functionality
-- Favorites/bookmarks
-- Offline support
-- Background audio playback
-
-## Tech Stack
-
-- React Native 0.81
-- Expo 54
-- TypeScript
-- NativeWind (Tailwind CSS)
-- Appwrite (Backend)
-- Expo Router (Navigation)
+See [docs folder](../../docs/) for detailed documentation.

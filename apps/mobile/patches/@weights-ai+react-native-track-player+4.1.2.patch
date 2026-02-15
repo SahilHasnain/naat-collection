@@ -1,0 +1,12 @@
+diff --git a/node_modules/@weights-ai/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt b/node_modules/@weights-ai/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
+index 1234567..abcdefg 100644
+--- a/node_modules/@weights-ai/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
++++ b/node_modules/@weights-ai/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
+@@ -100,7 +100,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJava
+         val index = promise.resolve(index)
+         
+         // Return track data with null safety
+-        callback.resolve(Arguments.fromBundle(musicService.tracks[index].originalItem))
++        callback.resolve(Arguments.fromBundle(musicService.tracks[index].originalItem ?: Bundle()))
+     }
+ }

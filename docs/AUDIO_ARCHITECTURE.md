@@ -2,7 +2,7 @@
 
 ## Overview
 
-The app now uses a persistent audio player architecture that allows audio to play in the background across all screens, similar to Spotify or YouTube Music.
+The app uses a persistent audio player architecture powered by `react-native-track-player` that allows audio to play in the background across all screens, similar to Spotify or YouTube Music.
 
 ## Core Components
 
@@ -10,12 +10,16 @@ The app now uses a persistent audio player architecture that allows audio to pla
 
 **Purpose**: Global audio state management and playback control
 
+**Technology**: `@weights-ai/react-native-track-player` (New Architecture compatible fork)
+
 **Features**:
 
-- Single `Audio.Sound` instance shared across the app
-- Background playback enabled (`staysActiveInBackground: true`)
+- TrackPlayer queue system for audio management
+- Background playback with foreground service
+- Lock screen controls and media notifications
 - Manages playback state (play/pause/seek/volume)
 - Persists across navigation
+- Repeat and autoplay functionality
 
 **API**:
 
@@ -25,8 +29,8 @@ The app now uses a persistent audio player architecture that allows audio to pla
   currentAudio: AudioMetadata | null;
   isPlaying: boolean;
   isLoading: boolean;
-  position: number;
-  duration: number;
+  position: number; // milliseconds
+  duration: number; // milliseconds
   volume: number;
   error: Error | null;
 

@@ -7,9 +7,14 @@
 
 import { appwriteService } from "@/services/appwrite";
 import { liveRadioService } from "@/services/liveRadio";
+import { setupPlayer } from "@/services/trackPlayerService";
 import { LiveRadioState } from "@/types/live-radio";
 import { Naat } from "@naat-collection/shared";
-import { Audio, AVPlaybackStatus } from "expo-av";
+import TrackPlayer, {
+  Event,
+  State,
+  useTrackPlayerEvents,
+} from "@weights-ai/react-native-track-player";
 import React, {
   createContext,
   useCallback,
@@ -18,7 +23,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { AppState, AppStateStatus } from "react-native";
 
 interface LiveRadioContextType {
   // State
@@ -51,59 +55,41 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
   const [error, setError] = useState<Error | null>(null);
   const [liveState, setLiveState] = useState<LiveRadioState | null>(null);
 
-  const soundRef = useRef<Audio.Sound | null>(null);
   const currentTrackIndexRef = useRef<number>(-1);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isSetupRef = useRef(false);
 
-  // Configure audio for background playback
+  // Setup Track Player on mount
   useEffect(() => {
-    const configureAudio = async () => {
+    const initPlayer = async () => {
+      if (isSetupRef.current) return;
+
       try {
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: true,
-          shouldDuckAndroid: true,
-          playThroughEarpieceAndroid: false,
-          interruptionModeIOS: 1,
-          interruptionModeAndroid: 1,
-        });
+        await setupPlayer();
+        isSetupRef.current = true;
+        console.log("[LiveRadio] Track Player initialized");
       } catch (err) {
-        console.error("[LiveRadio] Error configuring audio:", err);
+        console.error("[LiveRadio] Error initializing Track Player:", err);
       }
     };
-    configureAudio();
+
+    initPlayer();
   }, []);
 
-  // Handle app state changes
-  useEffect(() => {
-    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-      if (nextAppState === "background" || nextAppState === "inactive") {
-        if (soundRef.current && isPlaying) {
-          try {
-            await Audio.setAudioModeAsync({
-              playsInSilentModeIOS: true,
-              staysActiveInBackground: true,
-              shouldDuckAndroid: true,
-              playThroughEarpieceAndroid: false,
-              interruptionModeIOS: 1,
-              interruptionModeAndroid: 1,
-            });
-          } catch (err) {
-            console.error(
-              "[LiveRadio] Error maintaining background audio:",
-              err,
-            );
-          }
-        }
-      }
-    };
+  // Listen to playback state changes
+  useTrackPlayerEvents([Event.PlaybackState], async (event) => {
+    if (event.type === Event.PlaybackState) {
+      const state = event.state;
+      setIsPlaying(state === State.Playing);
+      setIsLoading(state === State.Buffering || state === State.Loading);
+    }
+  });
 
-    const subscription = AppState.addEventListener(
-      "change",
-      handleAppStateChange,
-    );
-    return () => subscription.remove();
-  }, [isPlaying]);
+  // Listen to track end events
+  useTrackPlayerEvents([Event.PlaybackQueueEnded], async () => {
+    console.log("[LiveRadio] Track finished, checking for next track...");
+    checkAndAdvanceTrack();
+  });
 
   /**
    * Load current live state from server
@@ -162,29 +148,18 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error("Failed to get audio URL");
       }
 
-      // Stop previous sound
-      if (soundRef.current) {
-        try {
-          await soundRef.current.stopAsync();
-          await soundRef.current.unloadAsync();
-        } catch (err) {
-          console.log("[LiveRadio] Error unloading previous sound:", err);
-        }
-        soundRef.current = null;
-      }
+      // Reset queue and add new track
+      await TrackPlayer.reset();
+      await TrackPlayer.add({
+        url: audioResponse.audioUrl,
+        title: naat.title,
+        artist: naat.channelName,
+        artwork: naat.thumbnailUrl,
+      });
 
-      // Create and play new sound
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: audioResponse.audioUrl },
-        {
-          shouldPlay: true,
-          volume: 1.0,
-          isLooping: false,
-        },
-        onPlaybackStatusUpdate,
-      );
+      // Play
+      await TrackPlayer.play();
 
-      soundRef.current = sound;
       setIsPlaying(true);
       setIsLoading(false);
 
@@ -195,27 +170,6 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsLoading(false);
     }
   }, [loadLiveState]);
-
-  /**
-   * Handle playback status updates
-   */
-  const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
-    if (!status.isLoaded) {
-      if (status.error) {
-        console.error("[LiveRadio] Playback error:", status.error);
-        setError(new Error(`Playback error: ${status.error}`));
-      }
-      return;
-    }
-
-    setIsPlaying(status.isPlaying);
-
-    // When track finishes, check for next track
-    if (status.didJustFinish) {
-      console.log("[LiveRadio] Track finished, checking for next track...");
-      checkAndAdvanceTrack();
-    }
-  }, []);
 
   /**
    * Check if server has advanced to next track, or advance locally
@@ -280,9 +234,10 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
    * Play live radio
    */
   const play = useCallback(async () => {
-    if (soundRef.current) {
-      // Resume existing sound
-      await soundRef.current.playAsync();
+    const state = await TrackPlayer.getState();
+    if (state === State.Paused || state === State.Ready) {
+      // Resume existing track
+      await TrackPlayer.play();
     } else {
       // Load and play current track
       await loadAndPlayCurrentTrack();
@@ -293,23 +248,17 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
    * Pause live radio
    */
   const pause = useCallback(async () => {
-    if (soundRef.current) {
-      await soundRef.current.pauseAsync();
-    }
+    await TrackPlayer.pause();
   }, []);
 
   /**
    * Stop live radio
    */
   const stop = useCallback(async () => {
-    if (soundRef.current) {
-      try {
-        await soundRef.current.stopAsync();
-        await soundRef.current.unloadAsync();
-      } catch (err) {
-        console.error("[LiveRadio] Error stopping:", err);
-      }
-      soundRef.current = null;
+    try {
+      await TrackPlayer.reset();
+    } catch (err) {
+      console.error("[LiveRadio] Error stopping:", err);
     }
     setIsPlaying(false);
     setCurrentNaat(null);
@@ -332,9 +281,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
-      }
+      TrackPlayer.reset();
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
