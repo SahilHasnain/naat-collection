@@ -1,6 +1,10 @@
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { appwriteService } from "@/services/appwrite";
 import { liveRadioService } from "@/services/liveRadio";
+import {
+  setupPlayer,
+  updateNotificationCapabilities,
+} from "@/services/trackPlayerService";
 import { LiveRadioState } from "@/types/live-radio";
 import { Naat } from "@naat-collection/shared";
 import TrackPlayer, {
@@ -171,6 +175,9 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
         artist: naat.channelName,
         artwork: naat.thumbnailUrl,
       });
+
+      // Update notification capabilities for live mode (no seek) AFTER adding track
+      await updateNotificationCapabilities(true);
 
       // Play
       await TrackPlayer.play();

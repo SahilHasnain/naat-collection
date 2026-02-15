@@ -1,5 +1,8 @@
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
-import { setupPlayer } from "@/services/trackPlayerService";
+import {
+  setupPlayer,
+  updateNotificationCapabilities,
+} from "@/services/trackPlayerService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import TrackPlayer, {
   Event,
@@ -231,6 +234,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
           artist: audio.channelName,
           artwork: audio.thumbnailUrl,
         });
+
+        // Update notification capabilities for normal mode (with seek) AFTER adding track
+        await updateNotificationCapabilities(false);
 
         // Set volume and repeat mode
         await TrackPlayer.setVolume(volume);
