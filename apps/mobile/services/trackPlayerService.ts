@@ -10,42 +10,17 @@ import TrackPlayer, {
 } from "@weights-ai/react-native-track-player";
 
 export async function PlaybackService() {
-  // Remote Play
-  const handleRemotePlay = async () => {
-    console.log("[TrackPlayer] RemotePlay event");
-    try {
-      await TrackPlayer.play();
-    } catch (error) {
-      console.error("[TrackPlayer] RemotePlay error:", error);
-    }
-  };
+  // Simple, synchronous event handlers
+  TrackPlayer.addEventListener(Event.RemotePlay, () => {
+    TrackPlayer.play();
+  });
 
-  // Remote Pause
-  const handleRemotePause = async () => {
-    console.log("[TrackPlayer] RemotePause event");
-    try {
-      await TrackPlayer.pause();
-    } catch (error) {
-      console.error("[TrackPlayer] RemotePause error:", error);
-    }
-  };
+  TrackPlayer.addEventListener(Event.RemotePause, () => {
+    TrackPlayer.pause();
+  });
 
-  // Register listeners using both enum and raw string event names
-  // to be robust across platform/library differences.
-  TrackPlayer.addEventListener(Event.RemotePlay, handleRemotePlay);
-  TrackPlayer.addEventListener("remote-play" as any, handleRemotePlay);
-
-  TrackPlayer.addEventListener(Event.RemotePause, handleRemotePause);
-  TrackPlayer.addEventListener("remote-pause" as any, handleRemotePause);
-
-  TrackPlayer.addEventListener(Event.RemoteStop, async () => {
-    console.log("[TrackPlayer] RemoteStop event - pausing playback");
-    // Don't reset - just pause so miniplayer stays visible
-    try {
-      await TrackPlayer.pause();
-    } catch (error) {
-      console.error("[TrackPlayer] RemoteStop error:", error);
-    }
+  TrackPlayer.addEventListener(Event.RemoteStop, () => {
+    TrackPlayer.pause();
   });
 
   TrackPlayer.addEventListener(Event.RemoteNext, () => {
@@ -69,11 +44,9 @@ export async function setupPlayer() {
     });
 
     await TrackPlayer.updateOptions({
-      // Which actions the player supports in general
-      capabilities: [Capability.Play, Capability.Pause, Capability.SeekTo],
-      // Which actions show specifically in the Android notification
+      // Only include capabilities you actually want
+      capabilities: [Capability.Play, Capability.Pause],
       notificationCapabilities: [Capability.Play, Capability.Pause],
-      // Which actions show in the compact notification form
       compactCapabilities: [Capability.Play, Capability.Pause],
       android: {
         appKilledPlaybackBehavior: AppKilledPlaybackBehavior.PausePlayback,

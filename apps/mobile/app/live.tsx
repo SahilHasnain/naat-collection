@@ -124,16 +124,14 @@ export default function LiveScreen() {
               className="w-full aspect-square"
               resizeMode="cover"
             />
-            {/* Live Badge Overlay */}
-            <View className="absolute top-4 left-4 bg-red-500 px-3 py-1.5 rounded-full flex-row items-center">
-              <View className="w-2 h-2 bg-white rounded-full mr-2" />
-              <Text className="text-white text-xs font-bold">LIVE</Text>
-            </View>
           </View>
 
           {/* Track Info */}
           <View className="p-6">
-            <Text className="text-white text-xl font-bold mb-2">
+            <Text
+              className="text-white text-xl font-bold mb-2"
+              numberOfLines={2}
+            >
               {currentNaat.title}
             </Text>
             <Text className="text-gray-400 text-base mb-4">
