@@ -85,8 +85,15 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   });
 
-  // Listen to track end events
+  // Listen to track end events - only advance if live radio is actually playing
   useTrackPlayerEvents([Event.PlaybackQueueEnded], async () => {
+    // Only handle track end if live radio is currently playing
+    if (!isPlaying || !currentNaat) {
+      console.log(
+        "[LiveRadio] Track finished but live radio not active, ignoring",
+      );
+      return;
+    }
     console.log("[LiveRadio] Track finished, checking for next track...");
     checkAndAdvanceTrack();
   });
