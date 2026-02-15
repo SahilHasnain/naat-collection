@@ -1,20 +1,30 @@
-import TrackPlayer, {
-  AppKilledPlaybackBehavior,
-  Capability,
-  Event,
-} from "@weights-ai/react-native-track-player";
-
 /**
  * Track Player Service
- * Handles background playback events
+ * Handles playback events for react-native-track-player
  */
+
+import TrackPlayer, { Event } from "@weights-ai/react-native-track-player";
+
 export async function PlaybackService() {
-  TrackPlayer.addEventListener(Event.RemotePlay, () => TrackPlayer.play());
-  TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
-  TrackPlayer.addEventListener(Event.RemoteStop, () => TrackPlayer.stop());
-  TrackPlayer.addEventListener(Event.RemoteSeek, ({ position }) =>
-    TrackPlayer.seekTo(position),
-  );
+  TrackPlayer.addEventListener(Event.RemotePlay, () => {
+    TrackPlayer.play();
+  });
+
+  TrackPlayer.addEventListener(Event.RemotePause, () => {
+    TrackPlayer.pause();
+  });
+
+  TrackPlayer.addEventListener(Event.RemoteStop, () => {
+    TrackPlayer.stop();
+  });
+
+  TrackPlayer.addEventListener(Event.RemoteNext, () => {
+    // Handle next track if needed
+  });
+
+  TrackPlayer.addEventListener(Event.RemotePrevious, () => {
+    // Handle previous track if needed
+  });
 }
 
 /**
@@ -29,22 +39,15 @@ export async function setupPlayer() {
     });
 
     await TrackPlayer.updateOptions({
-      android: {
-        appKilledPlaybackBehavior:
-          AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
-      },
       capabilities: [
-        Capability.Play,
-        Capability.Pause,
-        Capability.Stop,
-        Capability.SeekTo,
-        Capability.Skip,
+        TrackPlayer.CAPABILITY_PLAY,
+        TrackPlayer.CAPABILITY_PAUSE,
+        TrackPlayer.CAPABILITY_STOP,
+        TrackPlayer.CAPABILITY_SEEK_TO,
       ],
-      compactCapabilities: [Capability.Play, Capability.Pause],
-      notificationCapabilities: [
-        Capability.Play,
-        Capability.Pause,
-        Capability.Stop,
+      compactCapabilities: [
+        TrackPlayer.CAPABILITY_PLAY,
+        TrackPlayer.CAPABILITY_PAUSE,
       ],
     });
 

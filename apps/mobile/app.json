@@ -40,12 +40,6 @@
     "plugins": [
       "expo-router",
       [
-        "expo-av",
-        {
-          "microphonePermission": false
-        }
-      ],
-      [
         "expo-splash-screen",
         {
           "image": "./assets/images/android-icon-foreground.png",
@@ -68,7 +62,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "5702ec15-1748-452d-908c-d3d6d96dff67"
+        "projectId": "f5025967-41a5-4d6d-b430-c89bada9c40b"
       }
     }
   }
