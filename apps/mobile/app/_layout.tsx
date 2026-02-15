@@ -35,7 +35,12 @@ function RootLayoutContent() {
   const segments = useSegments();
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
   const { currentAudio, stop } = useAudioPlayer();
-  const { isPlaying: isLiveRadioPlaying } = useLiveRadioPlayer();
+  const { isPlaying: liveRadioIsPlaying, currentNaat } = useLiveRadioPlayer();
+
+  // Treat live radio as "playing" only when we actually have
+  // a current live radio track, so regular audio playback
+  // doesn't hide the MiniPlayer.
+  const isLiveRadioPlaying = liveRadioIsPlaying && !!currentNaat;
 
   // Check if user is currently on the live tab
   const isOnLiveTab = segments[0] === "live";
@@ -158,6 +163,12 @@ function RootLayoutContent() {
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="play-circle" size={size} color={color} />
             ),
+          }}
+        />
+        <Tabs.Screen
+          name="+not-found"
+          options={{
+            href: null,
           }}
         />
       </Tabs>
