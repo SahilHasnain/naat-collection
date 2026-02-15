@@ -180,8 +180,15 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
 
   /**
    * Check if server has advanced to next track, or advance locally
+   * Only advances if live radio is currently active
    */
   const checkAndAdvanceTrack = useCallback(async () => {
+    // Only advance if live radio is currently playing
+    if (!isPlaying || !currentNaat) {
+      console.log("[LiveRadio] Not advancing - live radio is not active");
+      return;
+    }
+
     try {
       const state = await liveRadioService.getCurrentState();
       if (!state) return;
@@ -210,7 +217,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.error("[LiveRadio] Error checking track advancement:", err);
     }
-  }, [loadAndPlayCurrentTrack]);
+  }, [loadAndPlayCurrentTrack, isPlaying, currentNaat]);
 
   /**
    * Poll for track changes every 30 seconds
