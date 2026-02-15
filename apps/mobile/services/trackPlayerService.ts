@@ -3,7 +3,10 @@
  * Handles playback events for react-native-track-player
  */
 
-import TrackPlayer, { Event } from "@weights-ai/react-native-track-player";
+import TrackPlayer, {
+  Capability,
+  Event,
+} from "@weights-ai/react-native-track-player";
 
 export async function PlaybackService() {
   TrackPlayer.addEventListener(Event.RemotePlay, () => {
@@ -14,8 +17,10 @@ export async function PlaybackService() {
     TrackPlayer.pause();
   });
 
-  TrackPlayer.addEventListener(Event.RemoteStop, () => {
-    TrackPlayer.stop();
+  TrackPlayer.addEventListener(Event.RemoteStop, async () => {
+    console.log("[TrackPlayer] RemoteStop event - pausing playback");
+    // Don't reset - just pause so miniplayer stays visible
+    await TrackPlayer.pause();
   });
 
   TrackPlayer.addEventListener(Event.RemoteNext, () => {
@@ -40,15 +45,12 @@ export async function setupPlayer() {
 
     await TrackPlayer.updateOptions({
       capabilities: [
-        TrackPlayer.CAPABILITY_PLAY,
-        TrackPlayer.CAPABILITY_PAUSE,
-        TrackPlayer.CAPABILITY_STOP,
-        TrackPlayer.CAPABILITY_SEEK_TO,
+        Capability.Play,
+        Capability.Pause,
+        Capability.Stop,
+        Capability.SeekTo,
       ],
-      compactCapabilities: [
-        TrackPlayer.CAPABILITY_PLAY,
-        TrackPlayer.CAPABILITY_PAUSE,
-      ],
+      compactCapabilities: [Capability.Play, Capability.Pause],
     });
 
     console.log("[TrackPlayer] Setup complete");

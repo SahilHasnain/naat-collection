@@ -69,6 +69,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isRepeatEnabled, setIsRepeatEnabled] = useState(false);
   const [isAutoplayEnabled, setIsAutoplayEnabled] = useState(false);
 
+  // Debug: Log when currentAudio changes
+  useEffect(() => {
+    console.log(
+      "[AudioContext] currentAudio changed:",
+      currentAudio?.title || "null",
+    );
+  }, [currentAudio]);
+
   const autoplayCallbackRef = useRef<(() => Promise<void>) | null>(null);
   const isRepeatEnabledRef = useRef(false);
   const isAutoplayEnabledRef = useRef(false);
@@ -140,8 +148,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   useTrackPlayerEvents([Event.PlaybackState], async (event) => {
     if (event.type === Event.PlaybackState) {
       const state = event.state;
+      console.log("[AudioContext] Playback state changed:", state);
       setIsPlaying(state === State.Playing);
       setIsLoading(state === State.Buffering || state === State.Loading);
+
+      // Don't clear currentAudio when stopped/paused - keep miniplayer visible
+      // Only clear via explicit stop() call (close button)
     }
   });
 
@@ -202,10 +214,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
           isRepeatEnabledRef.current ? RepeatMode.Track : RepeatMode.Off,
         );
 
+        // Set currentAudio before playing so miniplayer appears immediately
+        setCurrentAudio(audio);
+
         // Play
         await TrackPlayer.play();
 
-        setCurrentAudio(audio);
         setIsLoading(false);
         setIsPlaying(true);
 
@@ -274,6 +288,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Stop and clear
   const stop = useCallback(async () => {
+    console.log("[AudioContext] stop() called");
     try {
       await TrackPlayer.reset();
     } catch (err) {

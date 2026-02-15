@@ -7,6 +7,7 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "patch-package",
     "mobile": "npm run start --workspace=mobile",
     "mobile:android": "npm run android --workspace=mobile",
     "mobile:ios": "npm run ios --workspace=mobile",
@@ -26,5 +27,8 @@
     "cleanup:non-owais": "node cleanup-non-owais-naats.js",
     "upload:audio": "node scripts/utilities/download-audio.js",
     "delete:short-videos": "node scripts/data-management/delete-short-videos.js"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.1"
   }
 }

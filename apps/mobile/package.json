@@ -26,8 +26,7 @@
     "clipboard:pull": "node scripts/utilities/clipboard-sync-simple.js pull",
     "clipboard:watch": "node scripts/utilities/clipboard-sync-simple.js watch",
     "test": "jest",
-    "test:watch": "jest --watch",
-    "postinstall": "patch-package"
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
