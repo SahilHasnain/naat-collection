@@ -26,9 +26,17 @@
     "check:non-owais": "node scripts/data-management/check-non-owais-naats.js",
     "cleanup:non-owais": "node cleanup-non-owais-naats.js",
     "upload:audio": "node scripts/utilities/download-audio.js",
-    "delete:short-videos": "node scripts/data-management/delete-short-videos.js"
+    "delete:short-videos": "node scripts/data-management/delete-short-videos.js",
+    "ai-cut": "node scripts/audio-processing/ai-cut-audio.js",
+    "ai-cut:test": "node scripts/audio-processing/ai-cut-audio.js test",
+    "ai-cut:find": "node scripts/audio-processing/ai-cut-audio.js find",
+    "ai-cut:preview": "node scripts/audio-processing/ai-cut-audio.js preview",
+    "ai-cut:process": "node scripts/audio-processing/ai-cut-audio.js process",
+    "ai-cut:batch": "node scripts/audio-processing/ai-cut-audio.js batch",
+    "ai-cut:random": "node scripts/audio-processing/process-random.js"
   },
   "devDependencies": {
-    "patch-package": "^8.0.1"
+    "patch-package": "^8.0.1",
+    "openai": "^4.77.0"
   }
 }
