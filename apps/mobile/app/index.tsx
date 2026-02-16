@@ -353,7 +353,7 @@ export default function HomeScreen() {
       return (
         <EmptyState
           message="Unable to connect. Please check your internet connection."
-          icon="⚠️"
+          iconName="alert-circle"
           actionLabel="Retry"
           onAction={handleRefresh}
         />
@@ -362,7 +362,10 @@ export default function HomeScreen() {
 
     if (isSearching && displayData.length === 0) {
       return (
-        <EmptyState message="No naats found matching your search." icon="🔍" />
+        <EmptyState
+          message="No naats found matching your search."
+          iconName="search"
+        />
       );
     }
 
@@ -370,7 +373,7 @@ export default function HomeScreen() {
       return (
         <EmptyState
           message="No naats available yet. Check back soon!"
-          icon="🎵"
+          iconName="musical-notes"
         />
       );
     }

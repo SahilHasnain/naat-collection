@@ -1,6 +1,7 @@
 import { colors, shadows } from "@/constants/theme";
 import { NaatCardProps } from "@/types";
 import { formatRelativeTime, formatViews } from "@/utils";
+import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
@@ -37,8 +38,8 @@ const NaatCard: React.FC<NaatCardProps> = ({
         {imageError || !thumbnail ? (
           <View className="h-full w-full items-center justify-center bg-neutral-700">
             <View className="items-center">
-              <Text className="text-5xl mb-2">🎵</Text>
-              <Text className="text-sm font-medium text-neutral-400">
+              <Ionicons name="musical-notes" size={48} color="#737373" />
+              <Text className="text-sm font-medium text-neutral-400 mt-2">
                 No Thumbnail
               </Text>
             </View>
@@ -62,7 +63,7 @@ const NaatCard: React.FC<NaatCardProps> = ({
             {/* Loading indicator */}
             {imageLoading && (
               <View className="absolute inset-0 items-center justify-center bg-neutral-700">
-                <Text className="text-2xl">⏳</Text>
+                <Ionicons name="hourglass" size={32} color="#737373" />
               </View>
             )}
             {/* Gradient overlay for better badge visibility */}
@@ -98,7 +99,7 @@ const NaatCard: React.FC<NaatCardProps> = ({
               className="h-14 w-14 items-center justify-center rounded-full"
               style={{ backgroundColor: colors.overlay.light }}
             >
-              <Text className="text-2xl">▶️</Text>
+              <Ionicons name="play" size={24} color="white" />
             </View>
           </View>
         )}
@@ -117,7 +118,12 @@ const NaatCard: React.FC<NaatCardProps> = ({
 
         {/* Channel name with icon */}
         <View className="flex-row items-center">
-          <Text className="mr-1.5 text-neutral-400">👤</Text>
+          <Ionicons
+            name="person"
+            size={14}
+            color="#a3a3a3"
+            style={{ marginRight: 6 }}
+          />
           <Text
             className="flex-1 text-sm font-semibold text-neutral-300"
             numberOfLines={1}
@@ -129,13 +135,23 @@ const NaatCard: React.FC<NaatCardProps> = ({
         {/* Upload date and views */}
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center">
-            <Text className="mr-1.5 text-neutral-500">📅</Text>
+            <Ionicons
+              name="calendar-outline"
+              size={14}
+              color="#737373"
+              style={{ marginRight: 6 }}
+            />
             <Text className="text-xs text-neutral-400">
               {formatRelativeTime(uploadDate)}
             </Text>
           </View>
           <View className="flex-row items-center">
-            <Text className="mr-1.5 text-neutral-500">👁️</Text>
+            <Ionicons
+              name="eye-outline"
+              size={14}
+              color="#737373"
+              style={{ marginRight: 6 }}
+            />
             <Text className="text-xs text-neutral-400">
               {formatViews(views)} views
             </Text>

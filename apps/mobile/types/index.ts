@@ -100,7 +100,8 @@ export interface SearchBarProps {
 
 export interface EmptyStateProps {
   message: string;
-  icon?: string;
+  icon?: string; // Deprecated: use iconName instead
+  iconName?: keyof typeof import("@expo/vector-icons").Ionicons.glyphMap;
   actionLabel?: string;
   onAction?: () => void;
 }

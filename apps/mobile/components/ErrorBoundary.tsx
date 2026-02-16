@@ -1,4 +1,5 @@
 import { colors, shadows } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
 import React, { Component, ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -47,7 +48,12 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
       return (
         <View className="flex-1 items-center justify-center bg-neutral-900 px-8">
-          <Text className="mb-4 text-6xl">⚠️</Text>
+          <Ionicons
+            name="alert-circle"
+            size={64}
+            color="#ef4444"
+            style={{ marginBottom: 16 }}
+          />
           <Text className="mb-3 text-center text-2xl font-bold text-white">
             Something went wrong
           </Text>

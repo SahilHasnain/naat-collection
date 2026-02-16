@@ -1,7 +1,9 @@
 import { colors } from "@/constants/theme";
 import { SearchBarProps } from "@/types";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
+
 const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChangeText,
@@ -17,7 +19,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
   return (
     <View className="flex-row items-center rounded-lg bg-neutral-700 px-3 py-2 border border-neutral-600">
       {/* Search icon */}
-      <Text className="mr-2 text-base text-neutral-500">🔍</Text>
+      <Ionicons
+        name="search"
+        size={18}
+        color="#737373"
+        style={{ marginRight: 8 }}
+      />
 
       <TextInput
         ref={inputRef}
@@ -40,7 +47,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           accessibilityLabel="Clear search"
           accessibilityRole="button"
         >
-          <Text className="text-xs font-bold text-neutral-200">✕</Text>
+          <Ionicons name="close" size={14} color="#e5e5e5" />
         </Pressable>
       )}
     </View>

@@ -56,9 +56,7 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
             >
               {imageError || !audio.youtubeId ? (
                 <View className="h-full w-full items-center justify-center bg-neutral-700">
-                  <Text className="text-3xl" accessible={false}>
-                    🎵
-                  </Text>
+                  <Ionicons name="musical-notes" size={32} color="#737373" />
                 </View>
               ) : (
                 <Image
@@ -154,7 +152,7 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
         </Pressable>
       </Animated.View>
     );
-  }
+  },
 );
 
 DownloadedAudioCard.displayName = "DownloadedAudioCard";

@@ -36,7 +36,7 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
         <View className="relative w-24 h-24 bg-neutral-900">
           {imageError || !thumbnail ? (
             <View className="h-full w-full items-center justify-center bg-neutral-700">
-              <Text className="text-2xl">🎵</Text>
+              <Ionicons name="musical-notes" size={28} color="#737373" />
             </View>
           ) : (
             <Image
@@ -88,7 +88,7 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
         </View>
       </Pressable>
     );
-  }
+  },
 );
 
 HistoryCard.displayName = "HistoryCard";

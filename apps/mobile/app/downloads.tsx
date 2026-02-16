@@ -343,7 +343,7 @@ export default function DownloadsScreen() {
           message={
             error.message || "Unable to load downloads. Please try again."
           }
-          icon="⚠️"
+          iconName="alert-circle"
           actionLabel="Retry"
           onAction={refresh}
         />
@@ -354,7 +354,7 @@ export default function DownloadsScreen() {
       return (
         <EmptyState
           message="No downloads found matching your search."
-          icon="🔍"
+          iconName="search"
         />
       );
     }
@@ -363,7 +363,7 @@ export default function DownloadsScreen() {
       return (
         <EmptyState
           message="No downloaded audio files yet. Download some naats to listen offline!"
-          icon="📥"
+          iconName="download"
         />
       );
     }
@@ -375,9 +375,13 @@ export default function DownloadsScreen() {
   const renderSortBar = () => {
     if (downloads.length === 0) return null;
 
-    const sortOptions: { value: SortBy; label: string; icon: string }[] = [
-      { value: "date", label: "Date", icon: "📅" },
-      { value: "title", label: "Title", icon: "🔤" },
+    const sortOptions: {
+      value: SortBy;
+      label: string;
+      iconName: keyof typeof Ionicons.glyphMap;
+    }[] = [
+      { value: "date", label: "Date", iconName: "calendar" },
+      { value: "title", label: "Title", iconName: "text" },
     ];
 
     return (
@@ -407,11 +411,13 @@ export default function DownloadsScreen() {
                 accessibilityHint={`Double tap to sort downloads by ${option.label}`}
                 accessibilityState={{ selected: isSelected }}
               >
-                <Text className="mr-1.5" accessible={false}>
-                  {option.icon}
-                </Text>
+                <Ionicons
+                  name={option.iconName}
+                  size={16}
+                  color={isSelected ? "white" : "#d4d4d8"}
+                />
                 <Text
-                  className={`font-semibold text-sm ${
+                  className={`font-semibold text-sm ml-1.5 ${
                     isSelected ? "text-white" : "text-neutral-300"
                   }`}
                   accessible={false}

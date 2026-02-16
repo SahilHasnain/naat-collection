@@ -471,7 +471,7 @@ export default function HistoryScreen() {
       return (
         <EmptyState
           message="Unable to load history. Please try again."
-          icon="⚠️"
+          iconName="alert-circle"
           actionLabel="Retry"
           onAction={refresh}
         />
@@ -482,7 +482,7 @@ export default function HistoryScreen() {
       return (
         <EmptyState
           message="No watch history yet. Start watching some naats!"
-          icon="🕐"
+          iconName="time"
         />
       );
     }
