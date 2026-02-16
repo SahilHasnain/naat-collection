@@ -18,6 +18,7 @@ import {
   getPreferredAudioId,
   hasAudio,
 } from "@naat-collection/shared";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -396,13 +397,30 @@ export default function HomeScreen() {
           }}
           ListHeaderComponent={
             <>
-              {/* Search Bar */}
+              {/* Header with Logo and Search Bar */}
               <View className="px-4 pt-safe-top pb-3 bg-neutral-800 border-b border-neutral-700">
-                <SearchBar
-                  value={query}
-                  onChangeText={setQuery}
-                  placeholder="Search naats..."
-                />
+                <View className="flex-row items-center gap-3">
+                  {/* Logo */}
+                  <View
+                    className="rounded-full overflow-hidden bg-neutral-700"
+                    style={{ width: 40, height: 40 }}
+                  >
+                    <Image
+                      source={require("@/assets/images/android-icon-foreground.png")}
+                      style={{ width: 40, height: 40 }}
+                      contentFit="cover"
+                    />
+                  </View>
+
+                  {/* Search Bar */}
+                  <View className="flex-1">
+                    <SearchBar
+                      value={query}
+                      onChangeText={setQuery}
+                      placeholder="Search naats..."
+                    />
+                  </View>
+                </View>
               </View>
 
               {!isSearching ? (
