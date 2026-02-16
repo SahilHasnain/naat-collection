@@ -51,3 +51,15 @@ export const appwriteService = new AppwriteService({
     // In production, you could send to error tracking service
   },
 });
+
+/**
+ * Direct Appwrite SDK exports for admin operations
+ */
+import { Client, Databases, Storage } from "appwrite";
+
+const client = new Client()
+  .setEndpoint(appwriteConfig.endpoint)
+  .setProject(appwriteConfig.projectId);
+
+export const databases = new Databases(client);
+export const storage = new Storage(client);
