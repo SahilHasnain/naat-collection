@@ -36,7 +36,8 @@
     "ai-cut:random": "node scripts/audio-processing/process-random.js"
   },
   "devDependencies": {
+    "openai": "^4.77.0",
     "patch-package": "^8.0.1",
-    "openai": "^4.77.0"
+    "zod": "^3.25.76"
   }
 }
