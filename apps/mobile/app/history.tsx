@@ -59,27 +59,34 @@ function SwipeableHistoryCard({
   const itemHeight = useSharedValue(1);
   const opacity = useSharedValue(1);
 
+  const handleDelete = useCallback(() => {
+    // Animate out and delete
+    translateX.value = withTiming(-500, { duration: 300 });
+    opacity.value = withTiming(0, { duration: 300 });
+    itemHeight.value = withTiming(0, { duration: 300 }, (finished) => {
+      "worklet";
+      if (finished) {
+        runOnJS(onDelete)();
+      }
+    });
+  }, [onDelete, translateX, opacity, itemHeight]);
+
   const panGesture = Gesture.Pan()
     .activeOffsetX([-10, 10])
     .onUpdate((event) => {
       // Only allow left swipe (negative translation)
       if (event.translationX < 0) {
-        translateX.value = event.translationX;
+        translateX.value = Math.max(event.translationX, -60);
       }
     })
     .onEnd((event) => {
-      const shouldDelete = event.translationX < -100;
+      const shouldRevealDelete = event.translationX < -30;
 
-      if (shouldDelete) {
-        translateX.value = withTiming(-500, { duration: 300 });
-        opacity.value = withTiming(0, { duration: 300 });
-        itemHeight.value = withTiming(0, { duration: 300 }, (finished) => {
-          "worklet";
-          if (finished) {
-            runOnJS(onDelete)();
-          }
-        });
+      if (shouldRevealDelete) {
+        // Snap to reveal delete icon
+        translateX.value = withSpring(-60);
       } else {
+        // Snap back
         translateX.value = withSpring(0);
       }
     });
@@ -96,14 +103,18 @@ function SwipeableHistoryCard({
 
   return (
     <View className="relative mb-3">
-      {/* Delete button background */}
+      {/* Delete icon */}
       <Animated.View
         style={deleteButtonStyle}
-        className="absolute right-4 top-0 bottom-0 justify-center"
+        className="absolute right-6 top-0 bottom-0 justify-center"
       >
-        <View className="bg-red-500 px-4 rounded-xl h-full justify-center">
-          <Ionicons name="trash-outline" size={20} color="white" />
-        </View>
+        <Pressable
+          onPress={handleDelete}
+          className="p-2"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="trash-outline" size={24} color="#ef4444" />
+        </Pressable>
       </Animated.View>
 
       {/* Swipeable card */}
@@ -527,6 +538,7 @@ export default function HistoryScreen() {
           )}
 
           {/* Floating Clear All Button */}
+          {/* Temporarily commented out
           {history.length > 0 && (
             <View className="absolute bottom-6 right-6">
               <Pressable
@@ -548,6 +560,7 @@ export default function HistoryScreen() {
               </Pressable>
             </View>
           )}
+          */}
 
           {/* Back to Top Button */}
           <BackToTopButton

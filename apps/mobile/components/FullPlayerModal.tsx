@@ -135,15 +135,15 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     );
   };
 
-  // Seek backward 10 seconds
+  // Seek backward 15 seconds
   const seekBackward = () => {
-    const newPosition = Math.max(0, position - 10000);
+    const newPosition = Math.max(0, position - 15000);
     seek(newPosition);
   };
 
-  // Seek forward 10 seconds
+  // Seek forward 15 seconds
   const seekForward = () => {
-    const newPosition = Math.min(duration, position + 10000);
+    const newPosition = Math.min(duration, position + 15000);
     seek(newPosition);
   };
 
@@ -370,11 +370,11 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
 
               {/* Main Playback Controls */}
               <View className="flex-row items-center justify-center gap-8">
-                {/* Seek Backward 10s */}
+                {/* Seek Backward 15s */}
                 <TouchableOpacity
                   onPress={seekBackward}
                   className="relative items-center justify-center h-14 w-14"
-                  accessibilityLabel="Seek backward 10 seconds"
+                  accessibilityLabel="Seek backward 15 seconds"
                   accessibilityRole="button"
                 >
                   <Ionicons
@@ -384,7 +384,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     style={{ transform: [{ scaleX: -1 }] }}
                   />
                   <Text className="absolute text-xs font-bold text-white">
-                    10
+                    15
                   </Text>
                 </TouchableOpacity>
 
@@ -402,16 +402,16 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   />
                 </TouchableOpacity>
 
-                {/* Seek Forward 10s */}
+                {/* Seek Forward 15s */}
                 <TouchableOpacity
                   onPress={seekForward}
                   className="relative items-center justify-center h-14 w-14"
-                  accessibilityLabel="Seek forward 10 seconds"
+                  accessibilityLabel="Seek forward 15 seconds"
                   accessibilityRole="button"
                 >
                   <Ionicons name="refresh" size={40} color="white" />
                   <Text className="absolute text-xs font-bold text-white">
-                    10
+                    15
                   </Text>
                 </TouchableOpacity>
               </View>
