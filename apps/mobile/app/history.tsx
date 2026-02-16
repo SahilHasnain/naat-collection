@@ -510,7 +510,7 @@ export default function HistoryScreen() {
             <SectionList<HistoryItem, HistorySection>
               ref={sectionListRef}
               sections={groupedHistory}
-              renderItem={renderHistoryCard}
+              renderItem={renderHistowwwwwryCard}
               renderSectionHeader={renderSectionHeader}
               keyExtractor={(item) => item.$id}
               contentContainerStyle={{

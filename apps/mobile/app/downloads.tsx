@@ -453,7 +453,7 @@ export default function DownloadsScreen() {
 
         {/* Search Bar */}
         {downloads.length > 0 && (
-          <View className="px-4 py-3 bg-neutral-800 border-b border-neutral-700">
+          <View className="px-4 pb-3 bg-neutral-900">
             <SearchBar
               value={searchQuery}
               onChangeText={setSearchQuery}
