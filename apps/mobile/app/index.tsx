@@ -77,98 +77,6 @@ export default function HomeScreen() {
   const displayData: Naat[] = filterNaatsByDuration(baseData, selectedDuration);
   const isLoading = isSearching ? searchLoading : loading;
 
-  // Set up autoplay callback for audio
-  useEffect(() => {
-    const handleAutoplay = async () => {
-      // Get all available naats (not just displayed ones)
-      const availableNaats = displayData.filter((naat) => hasAudio(naat));
-
-      if (availableNaats.length === 0) {
-        console.log("[Autoplay] No naats available for autoplay");
-        return;
-      }
-
-      // Pick a random naat
-      const randomIndex = Math.floor(Math.random() * availableNaats.length);
-      const randomNaat = availableNaats[randomIndex];
-
-      console.log("[Autoplay] Playing random naat:", randomNaat.title);
-
-      // Load the random naat
-      await loadAudioDirectly(randomNaat);
-    };
-
-    // Register the callback
-    setAutoplayCallback(handleAutoplay);
-
-    // Cleanup
-    return () => {
-      setAutoplayCallback(null);
-    };
-  }, [displayData, loadAudioDirectly, setAutoplayCallback]);
-
-  // Store naats in a ref to avoid recreating callbacks
-  const naatsMapRef = React.useRef<Map<string, Naat>>(new Map());
-
-  // Update the map when displayData changes
-  React.useEffect(() => {
-    naatsMapRef.current.clear();
-    displayData.forEach((naat) => {
-      naatsMapRef.current.set(naat.$id, naat);
-    });
-  }, [displayData]);
-
-  // Handle naat selection - check preference and open accordingly
-  const handleNaatPress = React.useCallback(
-    async (naatId: string) => {
-      const naat = naatsMapRef.current.get(naatId);
-      if (!naat) return;
-
-      // Track watch history
-      await storageService.addToWatchHistory(naat.$id);
-
-      try {
-        // Check saved playback mode preference
-        const savedMode = await storageService.loadPlaybackMode();
-
-        // If user prefers audio mode, load audio directly
-        if (savedMode === "audio") {
-          await loadAudioDirectly(naat);
-        } else {
-          // Default to video mode - navigate to video screen
-          router.push({
-            pathname: "/video",
-            params: {
-              videoUrl: naat.videoUrl,
-              title: naat.title,
-              channelName: naat.channelName,
-              thumbnailUrl: naat.thumbnailUrl,
-              youtubeId: naat.youtubeId,
-              audioId: naat.audioId,
-              isFallback: "false",
-            },
-          });
-        }
-      } catch (error) {
-        console.error("Error checking playback preference:", error);
-        // Fallback to video mode on error
-        router.push({
-          pathname: "/video",
-          params: {
-            videoUrl: naat.videoUrl,
-            title: naat.title,
-            channelName: naat.channelName,
-            thumbnailUrl: naat.thumbnailUrl,
-            youtubeId: naat.youtubeId,
-            audioId: naat.audioId,
-            isFallback: "false",
-          },
-        });
-      }
-    },
-    [loadAudioDirectly, router],
-  );
-
   // Load audio directly without opening video modal
   const loadAudioDirectly = React.useCallback(
     async (naat: Naat) => {
@@ -265,6 +173,98 @@ export default function HomeScreen() {
       }
     },
     [loadAndPlay, router],
+  );
+
+  // Set up autoplay callback for audio
+  useEffect(() => {
+    const handleAutoplay = async () => {
+      // Get all available naats (not just displayed ones)
+      const availableNaats = displayData.filter((naat) => hasAudio(naat));
+
+      if (availableNaats.length === 0) {
+        console.log("[Autoplay] No naats available for autoplay");
+        return;
+      }
+
+      // Pick a random naat
+      const randomIndex = Math.floor(Math.random() * availableNaats.length);
+      const randomNaat = availableNaats[randomIndex];
+
+      console.log("[Autoplay] Playing random naat:", randomNaat.title);
+
+      // Load the random naat
+      await loadAudioDirectly(randomNaat);
+    };
+
+    // Register the callback
+    setAutoplayCallback(handleAutoplay);
+
+    // Cleanup
+    return () => {
+      setAutoplayCallback(null);
+    };
+  }, [displayData, loadAudioDirectly, setAutoplayCallback]);
+
+  // Store naats in a ref to avoid recreating callbacks
+  const naatsMapRef = React.useRef<Map<string, Naat>>(new Map());
+
+  // Update the map when displayData changes
+  React.useEffect(() => {
+    naatsMapRef.current.clear();
+    displayData.forEach((naat) => {
+      naatsMapRef.current.set(naat.$id, naat);
+    });
+  }, [displayData]);
+
+  // Handle naat selection - check preference and open accordingly
+  const handleNaatPress = React.useCallback(
+    async (naatId: string) => {
+      const naat = naatsMapRef.current.get(naatId);
+      if (!naat) return;
+
+      // Track watch history
+      await storageService.addToWatchHistory(naat.$id);
+
+      try {
+        // Check saved playback mode preference
+        const savedMode = await storageService.loadPlaybackMode();
+
+        // If user prefers audio mode, load audio directly
+        if (savedMode === "audio") {
+          await loadAudioDirectly(naat);
+        } else {
+          // Default to video mode - navigate to video screen
+          router.push({
+            pathname: "/video",
+            params: {
+              videoUrl: naat.videoUrl,
+              title: naat.title,
+              channelName: naat.channelName,
+              thumbnailUrl: naat.thumbnailUrl,
+              youtubeId: naat.youtubeId,
+              audioId: naat.audioId,
+              isFallback: "false",
+            },
+          });
+        }
+      } catch (error) {
+        console.error("Error checking playback preference:", error);
+        // Fallback to video mode on error
+        router.push({
+          pathname: "/video",
+          params: {
+            videoUrl: naat.videoUrl,
+            title: naat.title,
+            channelName: naat.channelName,
+            thumbnailUrl: naat.thumbnailUrl,
+            youtubeId: naat.youtubeId,
+            audioId: naat.audioId,
+            isFallback: "false",
+          },
+        });
+      }
+    },
+    [loadAudioDirectly, router],
   );
 
   // Handle pull-to-refresh
