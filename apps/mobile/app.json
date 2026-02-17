@@ -11,9 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": [
-          "audio"
-        ]
+        "UIBackgroundModes": ["audio"]
       }
     },
     "android": {
@@ -31,6 +29,13 @@
         "android.permission.WAKE_LOCK",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.owaisrazaqadri",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
     },
     "web": {
       "output": "static",
