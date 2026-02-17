@@ -43,11 +43,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
       {value.length > 0 && (
         <Pressable
           onPress={handleClear}
-          className="ml-2 rounded-full bg-neutral-600 px-2 py-1 active:bg-neutral-500"
+          className="ml-2 rounded-full bg-neutral-600 p-2 active:bg-neutral-500"
           accessibilityLabel="Clear search"
           accessibilityRole="button"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="close" size={14} color="#e5e5e5" />
+          <Ionicons name="close" size={18} color="#e5e5e5" />
         </Pressable>
       )}
     </View>
