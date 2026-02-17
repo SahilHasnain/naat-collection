@@ -15,6 +15,12 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "android": {
+        "package": "com.owaisrazaqadri.dev"
+      },
+      "ios": {
+        "bundleIdentifier": "com.owaisrazaqadri.dev"
+      },
       "env": {
         "EXPO_PUBLIC_APPWRITE_ENDPOINT": "https://sgp.cloud.appwrite.io/v1",
         "EXPO_PUBLIC_APPWRITE_PROJECT_ID": "695bb97700213f4ef5dd",
@@ -27,6 +33,12 @@
     },
     "preview": {
       "distribution": "internal",
+      "android": {
+        "package": "com.owaisrazaqadri.preview"
+      },
+      "ios": {
+        "bundleIdentifier": "com.owaisrazaqadri.preview"
+      },
       "env": {
         "EXPO_PUBLIC_APPWRITE_ENDPOINT": "https://sgp.cloud.appwrite.io/v1",
         "EXPO_PUBLIC_APPWRITE_PROJECT_ID": "695bb97700213f4ef5dd",
