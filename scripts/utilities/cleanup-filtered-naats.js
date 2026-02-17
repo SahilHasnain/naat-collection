@@ -2,7 +2,11 @@
  * Cleanup Filtered Naats
  *
  * This script removes naats that no longer match the new filter criteria
- * and deletes their associated audio files from storage
+ * and deletes their associated audio files from storage.
+ *
+ * Filters applied:
+ * - Videos from non-official channels must contain "Owais Qadri"
+ * - Videos from isOther channels must be less than 20 minutes (1200 seconds)
  */
 
 const { Client, Databases, Storage, Query } = require("node-appwrite");
@@ -22,7 +26,12 @@ const naatsCollectionId = process.env.EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID;
 const audioBucketId = "audio-files"; // Hardcoded bucket ID
 
 // New filter logic (must match ingestion function)
-function shouldFilterOut(title) {
+function shouldFilterOut(title, isOfficial) {
+  // If channel is official, don't filter based on title
+  if (isOfficial) {
+    return false;
+  }
+
   const titleLower = title.toLowerCase();
 
   // Only 'O' starting variations allowed
@@ -41,19 +50,22 @@ function shouldFilterOut(title) {
   return !isOwaisQadriVideo;
 }
 
-async function getAllNaatsFromUnofficialSources() {
+// Check if video should be filtered based on duration for isOther channels
+function shouldFilterByDuration(duration, isOther) {
+  // For isOther channels, filter videos longer than 20 minutes (1200 seconds)
+  if (isOther && duration > 1200) {
+    return true;
+  }
+  return false;
+}
+
+async function getAllNaatsWithChannelInfo() {
   const allNaats = [];
   let offset = 0;
   const limit = 100;
   let hasMore = true;
 
-  console.log("📥 Fetching naats from unofficial sources...\n");
-
-  const unofficialChannels = [
-    "Baghdadi Sound & Video",
-    "Tayyiba Production",
-    "Ubaid e Raza",
-  ];
+  console.log("📥 Fetching all naats from database...\n");
 
   while (hasMore) {
     const response = await databases.listDocuments(
@@ -71,14 +83,41 @@ async function getAllNaatsFromUnofficialSources() {
 
   console.log(`\n✅ Total naats in database: ${allNaats.length}\n`);
 
-  // Filter to only unofficial sources
-  const unofficialNaats = allNaats.filter((naat) =>
-    unofficialChannels.includes(naat.channelName),
+  // Fetch channel information to get isOfficial and isOther flags
+  console.log("📥 Fetching channel information...\n");
+
+  const channelsResponse = await databases.listDocuments(
+    databaseId,
+    process.env.EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID,
+    [Query.limit(5000)],
   );
 
-  console.log(`📊 Naats from unofficial sources: ${unofficialNaats.length}\n`);
+  const channelsMap = new Map();
+  channelsResponse.documents.forEach((channel) => {
+    channelsMap.set(channel.channelId, {
+      isOfficial: channel.isOfficial ?? true,
+      isOther: channel.isOther ?? false,
+      name: channel.channelName,
+    });
+  });
 
-  return unofficialNaats;
+  console.log(`✅ Fetched ${channelsMap.size} channels\n`);
+
+  // Attach channel info to naats
+  const naatsWithChannelInfo = allNaats.map((naat) => {
+    const channelInfo = channelsMap.get(naat.channelId) || {
+      isOfficial: true,
+      isOther: false,
+      name: naat.channelName,
+    };
+    return {
+      ...naat,
+      isOfficial: channelInfo.isOfficial,
+      isOther: channelInfo.isOther,
+    };
+  });
+
+  return naatsWithChannelInfo;
 }
 
 async function deleteAudioFile(audioId, title) {
@@ -123,12 +162,21 @@ async function cleanupFilteredNaats(dryRun = true) {
       console.log("🔴 LIVE MODE - Changes will be permanent!\n");
     }
 
-    const unofficialNaats = await getAllNaatsFromUnofficialSources();
+    const allNaats = await getAllNaatsWithChannelInfo();
 
-    // Find naats to remove
-    const naatsToRemove = unofficialNaats.filter((naat) =>
-      shouldFilterOut(naat.title),
-    );
+    // Find naats to remove based on filters
+    const naatsToRemove = allNaats.filter((naat) => {
+      // Filter by title (for non-official channels)
+      const titleFiltered = shouldFilterOut(naat.title, naat.isOfficial);
+
+      // Filter by duration (for isOther channels)
+      const durationFiltered = shouldFilterByDuration(
+        naat.duration,
+        naat.isOther,
+      );
+
+      return titleFiltered || durationFiltered;
+    });
 
     console.log("================================");
     console.log("📊 CLEANUP SUMMARY\n");
@@ -139,13 +187,34 @@ async function cleanupFilteredNaats(dryRun = true) {
       return;
     }
 
-    // Group by channel
+    // Group by channel and reason
     const byChannel = {};
+    const byReason = {
+      titleFiltered: 0,
+      durationFiltered: 0,
+      both: 0,
+    };
+
     naatsToRemove.forEach((naat) => {
       if (!byChannel[naat.channelName]) {
         byChannel[naat.channelName] = [];
       }
       byChannel[naat.channelName].push(naat);
+
+      // Track reason
+      const titleFiltered = shouldFilterOut(naat.title, naat.isOfficial);
+      const durationFiltered = shouldFilterByDuration(
+        naat.duration,
+        naat.isOther,
+      );
+
+      if (titleFiltered && durationFiltered) {
+        byReason.both++;
+      } else if (titleFiltered) {
+        byReason.titleFiltered++;
+      } else if (durationFiltered) {
+        byReason.durationFiltered++;
+      }
     });
 
     console.log("📋 BREAKDOWN BY CHANNEL:\n");
@@ -153,12 +222,33 @@ async function cleanupFilteredNaats(dryRun = true) {
       console.log(`   ${channel}: ${naats.length} naats`);
     }
 
+    console.log("\n📋 BREAKDOWN BY REASON:\n");
+    console.log(`   Title filtered (non-Owais): ${byReason.titleFiltered}`);
+    console.log(
+      `   Duration filtered (>20 min for isOther): ${byReason.durationFiltered}`,
+    );
+    console.log(`   Both filters: ${byReason.both}`);
+
     console.log("\n================================");
     console.log("📝 NAATS TO BE REMOVED:\n");
 
     naatsToRemove.forEach((naat, index) => {
+      const titleFiltered = shouldFilterOut(naat.title, naat.isOfficial);
+      const durationFiltered = shouldFilterByDuration(
+        naat.duration,
+        naat.isOther,
+      );
+      const reasons = [];
+      if (titleFiltered) reasons.push("non-Owais");
+      if (durationFiltered)
+        reasons.push(`>${Math.floor(naat.duration / 60)}min`);
+
       console.log(`${index + 1}. ${naat.title}`);
       console.log(`   Channel: ${naat.channelName}`);
+      console.log(
+        `   Duration: ${Math.floor(naat.duration / 60)}:${String(naat.duration % 60).padStart(2, "0")}`,
+      );
+      console.log(`   Reason: ${reasons.join(", ")}`);
       console.log(`   ID: ${naat.$id}`);
       console.log(`   Audio ID: ${naat.audioId || "N/A"}`);
       console.log("");

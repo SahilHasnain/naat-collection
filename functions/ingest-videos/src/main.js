@@ -457,11 +457,12 @@ async function processSource(
 ) {
   const sourceType = source.type || "channel";
   const isOfficial = source.isOfficial ?? true;
+  const isOther = source.isOther ?? false;
   const sourceName = source.channelName;
   const sourceId = source.channelId;
 
   log(
-    `Processing ${sourceType}: ${sourceName} (${isOfficial ? "Official" : "Non-official"})`,
+    `Processing ${sourceType}: ${sourceName} (${isOfficial ? "Official" : "Non-official"}${isOther ? ", Other" : ""})`,
   );
 
   try {
@@ -500,6 +501,7 @@ async function processSource(
       sourceName: displayName,
       sourceType,
       isOfficial,
+      isOther,
       processed: videos.length,
       added: 0,
       updated: 0,
@@ -513,6 +515,15 @@ async function processSource(
         // Filter out videos less than 1 minute (60 seconds)
         if (video.duration < 60) {
           log(`Filtered: ${video.title} (duration ${video.duration}s < 60s)`);
+          results.filtered++;
+          continue;
+        }
+
+        // Filter out videos longer than 20 minutes (1200 seconds) for isOther channels
+        if (isOther && video.duration > 1200) {
+          log(
+            `Filtered: ${video.title} (duration ${video.duration}s > 1200s for isOther channel)`,
+          );
           results.filtered++;
           continue;
         }
