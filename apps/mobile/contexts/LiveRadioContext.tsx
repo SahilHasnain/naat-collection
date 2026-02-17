@@ -205,15 +205,57 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
+      setIsLoading(true);
       const state = await liveRadioService.getCurrentState();
-      if (!state) return;
+      if (!state) {
+        setIsLoading(false);
+        return;
+      }
 
       // If server has advanced to next track, load it
       if (state.currentTrackIndex !== currentTrackIndexRef.current) {
         console.log(
           `[LiveRadio] Server advanced from ${currentTrackIndexRef.current} to ${state.currentTrackIndex}`,
         );
-        await loadAndPlayCurrentTrack();
+        currentTrackIndexRef.current = state.currentTrackIndex;
+        setLiveState(state);
+
+        // Get the new track
+        const currentTrackId = liveRadioService.getCurrentTrackId(state);
+        if (!currentTrackId) {
+          throw new Error("No current track in playlist");
+        }
+
+        const naat = await liveRadioService.getCurrentNaat(currentTrackId);
+        if (!naat) {
+          throw new Error("Current naat not found");
+        }
+
+        setCurrentNaat(naat);
+
+        // Get upcoming tracks
+        const upcoming = await liveRadioService.getUpcomingNaats(state, 5);
+        setUpcomingNaats(upcoming);
+
+        // Get audio URL and play
+        const audioResponse = await appwriteService.getAudioUrl(naat.audioId);
+        if (!audioResponse.success || !audioResponse.audioUrl) {
+          throw new Error("Failed to get audio URL");
+        }
+
+        await TrackPlayer.reset();
+        await TrackPlayer.add({
+          url: audioResponse.audioUrl,
+          title: naat.title,
+          artist: naat.channelName,
+          artwork: naat.thumbnailUrl,
+        });
+
+        await updateNotificationCapabilities(true);
+        await TrackPlayer.play();
+
+        console.log("[LiveRadio] Now playing:", naat.title);
+        setIsLoading(false);
       } else {
         // Server hasn't advanced yet, advance locally
         console.log("[LiveRadio] Advancing to next track locally...");
@@ -223,16 +265,55 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
           (currentTrackIndexRef.current + 1) % state.playlist.length;
         currentTrackIndexRef.current = nextIndex;
 
-        // Update local state
-        setLiveState({ ...state, currentTrackIndex: nextIndex });
+        const updatedState = { ...state, currentTrackIndex: nextIndex };
+        setLiveState(updatedState);
 
-        // Load and play next track
-        await loadAndPlayCurrentTrack();
+        // Get the next track
+        const nextTrackId = state.playlist[nextIndex];
+        if (!nextTrackId) {
+          throw new Error("Next track not found in playlist");
+        }
+
+        const naat = await liveRadioService.getCurrentNaat(nextTrackId);
+        if (!naat) {
+          throw new Error("Next naat not found");
+        }
+
+        setCurrentNaat(naat);
+
+        // Get upcoming tracks
+        const upcoming = await liveRadioService.getUpcomingNaats(
+          updatedState,
+          5,
+        );
+        setUpcomingNaats(upcoming);
+
+        // Get audio URL and play
+        const audioResponse = await appwriteService.getAudioUrl(naat.audioId);
+        if (!audioResponse.success || !audioResponse.audioUrl) {
+          throw new Error("Failed to get audio URL");
+        }
+
+        await TrackPlayer.reset();
+        await TrackPlayer.add({
+          url: audioResponse.audioUrl,
+          title: naat.title,
+          artist: naat.channelName,
+          artwork: naat.thumbnailUrl,
+        });
+
+        await updateNotificationCapabilities(true);
+        await TrackPlayer.play();
+
+        console.log("[LiveRadio] Now playing:", naat.title);
+        setIsLoading(false);
       }
     } catch (err) {
       console.error("[LiveRadio] Error checking track advancement:", err);
+      setError(err as Error);
+      setIsLoading(false);
     }
-  }, [loadAndPlayCurrentTrack, isLiveRadioActive]);
+  }, [isLiveRadioActive]);
 
   /**
    * Poll for track changes every 30 seconds
@@ -244,8 +325,8 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const state = await liveRadioService.getCurrentState();
         if (state && state.currentTrackIndex !== currentTrackIndexRef.current) {
-          console.log("[LiveRadio] Track changed via polling");
-          await loadAndPlayCurrentTrack();
+          console.log("[LiveRadio] Track changed via polling, advancing...");
+          await checkAndAdvanceTrack();
         }
       } catch (err) {
         console.error("[LiveRadio] Error polling for changes:", err);
@@ -257,7 +338,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
         clearInterval(pollIntervalRef.current);
       }
     };
-  }, [isPlaying, loadAndPlayCurrentTrack]);
+  }, [isPlaying, checkAndAdvanceTrack]);
 
   /**
    * Play live radio
