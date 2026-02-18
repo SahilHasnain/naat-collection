@@ -15,12 +15,6 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "android": {
-        "package": "com.owaisrazaqadri.dev"
-      },
-      "ios": {
-        "bundleIdentifier": "com.owaisrazaqadri.dev"
-      },
       "env": {
         "EXPO_PUBLIC_APPWRITE_ENDPOINT": "https://sgp.cloud.appwrite.io/v1",
         "EXPO_PUBLIC_APPWRITE_PROJECT_ID": "695bb97700213f4ef5dd",
@@ -28,17 +22,12 @@
         "EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID": "695bc8e70038db72df5b",
         "EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID": "channels",
         "EXPO_PUBLIC_SENTRY_DSN": "https://26f7852901dbe4c65a101e2300db1d8f@o4509954219966464.ingest.de.sentry.io/4510675297501264",
-        "SENTRY_AUTH_TOKEN": "@SENTRY_AUTH_TOKEN"
+        "SENTRY_AUTH_TOKEN": "@SENTRY_AUTH_TOKEN",
+        "APP_VARIANT": "development"
       }
     },
     "preview": {
       "distribution": "internal",
-      "android": {
-        "package": "com.owaisrazaqadri.preview"
-      },
-      "ios": {
-        "bundleIdentifier": "com.owaisrazaqadri.preview"
-      },
       "env": {
         "EXPO_PUBLIC_APPWRITE_ENDPOINT": "https://sgp.cloud.appwrite.io/v1",
         "EXPO_PUBLIC_APPWRITE_PROJECT_ID": "695bb97700213f4ef5dd",
@@ -46,7 +35,8 @@
         "EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID": "695bc8e70038db72df5b",
         "EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID": "channels",
         "EXPO_PUBLIC_SENTRY_DSN": "https://26f7852901dbe4c65a101e2300db1d8f@o4509954219966464.ingest.de.sentry.io/4510675297501264",
-        "SENTRY_AUTH_TOKEN": "@SENTRY_AUTH_TOKEN"
+        "SENTRY_AUTH_TOKEN": "@SENTRY_AUTH_TOKEN",
+        "APP_VARIANT": "preview"
       }
     },
     "production": {
