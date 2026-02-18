@@ -85,10 +85,6 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
               cachePolicy="memory-disk"
               transition={200}
             />
-            {/* Live badge overlay */}
-            <View className="absolute bottom-1 left-1 bg-red-500 px-1.5 py-0.5 rounded">
-              <Text className="text-white text-[10px] font-bold">LIVE</Text>
-            </View>
           </View>
 
           {/* Title and Channel */}
