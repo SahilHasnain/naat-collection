@@ -83,6 +83,7 @@ export default function LiveScreen() {
   return (
     <ScrollView
       className="flex-1 bg-gray-900"
+      showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={isLoading}

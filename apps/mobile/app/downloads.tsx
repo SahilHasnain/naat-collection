@@ -7,6 +7,7 @@ import SearchBar from "@/components/SearchBar";
 import { SkeletonDownloadCard } from "@/components/SkeletonLoader";
 import { colors } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
+import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { useDownloads } from "@/hooks/useDownloads";
 import { DownloadMetadata } from "@/services/audioDownload";
 import { filterDownloadsByQuery, sortDownloads } from "@/utils/formatters";
@@ -50,6 +51,9 @@ export default function DownloadsScreen() {
 
   // Audio player context
   const { loadAndPlay, setAutoplayCallback, currentAudio } = useAudioPlayer();
+
+  // Playback mode context
+  const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
 
   // Modal state
   const [selectedAudio, setSelectedAudio] = useState<DownloadMetadata | null>(
@@ -482,6 +486,7 @@ export default function DownloadsScreen() {
           renderItem={renderDownloadCard}
           keyExtractor={(item) => item.audioId}
           getItemLayout={getItemLayout}
+          showsVerticalScrollIndicator={false}
           ListHeaderComponent={renderListHeader}
           contentContainerStyle={{
             flexGrow: 1,
@@ -512,7 +517,7 @@ export default function DownloadsScreen() {
         <BackToTopButton
           visible={showBackToTop}
           onPress={scrollToTop}
-          miniPlayerVisible={!!currentAudio}
+          miniPlayerVisible={isNormalAudioActive || isLiveRadioActive}
         />
       </View>
 
