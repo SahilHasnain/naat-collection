@@ -5,6 +5,7 @@ import SearchBar from "@/components/SearchBar";
 import UnifiedFilterBar from "@/components/UnifiedFilterBar";
 import { colors } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
+import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { useChannels } from "@/hooks/useChannels";
 import { useNaats } from "@/hooks/useNaats";
 import { useSearch } from "@/hooks/useSearch";
@@ -46,6 +47,9 @@ export default function HomeScreen() {
 
   // Audio player context
   const { loadAndPlay, setAutoplayCallback, currentAudio } = useAudioPlayer();
+
+  // Playback mode context
+  const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
 
   // Data fetching hooks
   const {
@@ -391,6 +395,7 @@ export default function HomeScreen() {
           data={displayData}
           renderItem={renderNaatCard}
           keyExtractor={(item) => item.$id}
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             flexGrow: 1,
             paddingBottom: 50,
@@ -461,7 +466,7 @@ export default function HomeScreen() {
         <BackToTopButton
           visible={showBackToTop}
           onPress={scrollToTop}
-          miniPlayerVisible={!!currentAudio}
+          miniPlayerVisible={isNormalAudioActive || isLiveRadioActive}
         />
       </View>
     </View>

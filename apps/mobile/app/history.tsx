@@ -3,6 +3,7 @@ import EmptyState from "@/components/EmptyState";
 import HistoryCard from "@/components/HistoryCard";
 import { colors } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
+import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { HistoryItem, useHistory } from "@/hooks/useHistory";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
@@ -144,6 +145,9 @@ export default function HistoryScreen() {
 
   // Audio player context
   const { loadAndPlay, currentAudio } = useAudioPlayer();
+
+  // Playback mode context
+  const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
 
   // Data fetching hook
   const {
@@ -513,6 +517,7 @@ export default function HistoryScreen() {
               renderItem={renderHistoryCard}
               renderSectionHeader={renderSectionHeader}
               keyExtractor={(item) => item.$id}
+              showsVerticalScrollIndicator={false}
               contentContainerStyle={{
                 flexGrow: 1,
                 paddingTop: 12,
@@ -566,7 +571,7 @@ export default function HistoryScreen() {
           <BackToTopButton
             visible={showBackToTop}
             onPress={scrollToTop}
-            miniPlayerVisible={!!currentAudio}
+            miniPlayerVisible={isNormalAudioActive || isLiveRadioActive}
           />
         </View>
       </SafeAreaView>

@@ -317,7 +317,10 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               </View>
 
               {/* Content */}
-              <ScrollView className="max-h-96">
+              <ScrollView
+                className="max-h-96"
+                showsVerticalScrollIndicator={false}
+              >
                 {activeTab === "sort" && (
                   <View className="p-4">
                     {sortFilters.map((filter) => {
