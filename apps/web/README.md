@@ -1,107 +1,35 @@
-# Naat Collection - Web App
+# Admin Panel
 
-Next.js 16 web application for browsing and listening to Islamic naats.
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm
-
-### Setup
-
-1. Copy environment variables:
-
-```bash
-cp .env.example .env.local
-```
-
-2. Update `.env.local` with your Appwrite credentials
-
-3. Install dependencies (from monorepo root):
-
-```bash
-npm install
-```
-
-4. Run the development server:
-
-```bash
-# From root
-npm run web
-
-# Or from this directory
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Project Structure
-
-```
-web/
-├── app/              # Next.js App Router pages
-│   ├── layout.tsx    # Root layout
-│   ├── page.tsx      # Home page
-│   └── globals.css   # Global styles
-├── lib/              # Utilities and configurations
-│   └── appwrite.ts   # Appwrite client setup
-└── public/           # Static assets
-```
+Admin-only web application for managing naat audio files.
 
 ## Features
 
-- Browse naats by latest, popular, or oldest
-- Search functionality
-- Filter by channel/artist
-- Audio playback
-- Responsive design
-- Server-side rendering
+- **Manual Audio Cut**: Manually cut explanation parts from naats by specifying timestamps
 
-## Tech Stack
+## Setup
 
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS 4
-- **Backend**: Appwrite (via @naat-collection/api-client)
-- **Shared Code**: @naat-collection/shared
+1. Install dependencies:
 
-## Shared Packages
+   ```bash
+   npm install
+   ```
 
-This app uses shared packages from the monorepo:
+2. Start dev server:
 
-- `@naat-collection/shared` - Types, utilities, config
-- `@naat-collection/api-client` - Appwrite service
+   ```bash
+   npm run dev
+   ```
 
-## Development
+3. Navigate to: `http://localhost:3000`
 
-```bash
-# Development server
-npm run dev
+## Routes
 
-# Build for production
-npm run build
+- `/` - Redirects to admin
+- `/admin` - Redirects to manual-cut
+- `/admin/manual-cut` - Manual audio cutting interface
 
-# Start production server
-npm run start
+## API Routes
 
-# Lint
-npm run lint
-```
-
-## Environment Variables
-
-All environment variables must be prefixed with `NEXT_PUBLIC_` to be accessible in the browser.
-
-See `.env.example` for required variables.
-
-## Deployment
-
-This app can be deployed to:
-
-- Vercel (recommended)
-- Netlify
-- Any Node.js hosting platform
-
-Make sure to set environment variables in your deployment platform.
+- `POST /api/admin/cut-audio` - Cut audio based on timestamps
+- `POST /api/admin/approve-cut` - Approve and save cut audio
+- `DELETE /api/admin/reject-cut` - Reject and delete temp cut audio

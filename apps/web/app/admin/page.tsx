@@ -1,6 +1,14 @@
+import PinProtection from "@/components/admin/PinProtection";
 import { redirect } from "next/navigation";
 
 export default function AdminPage() {
-  // Redirect to processed audio review
-  redirect("/admin/processed-audio");
+  return (
+    <PinProtection>
+      <AdminRedirect />
+    </PinProtection>
+  );
+}
+
+function AdminRedirect() {
+  redirect("/admin/manual-cut");
 }

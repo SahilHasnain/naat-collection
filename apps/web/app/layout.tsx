@@ -1,11 +1,9 @@
-import { ResponsivePlayer } from "@/components/ResponsivePlayer";
-import { AudioPlayerProvider } from "@/contexts/AudioPlayerContext";
 import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Naat Collection - Owais Raza Qadri",
-  description: "Browse and listen Naats recited by Owais Raza Qadri",
+  title: "Admin Panel - Naat Collection",
+  description: "Admin panel for managing naat audio files",
 };
 
 export default function RootLayout({
@@ -16,10 +14,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased bg-gray-900">
-        <AudioPlayerProvider>
-          <main>{children}</main>
-          <ResponsivePlayer />
-        </AudioPlayerProvider>
+        <main>{children}</main>
       </body>
     </html>
   );

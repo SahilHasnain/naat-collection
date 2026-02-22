@@ -22,6 +22,13 @@ const nextConfig = {
 
   // Optimize fonts
   optimizeFonts: true,
+
+  // Exclude native modules from bundling
+  serverExternalPackages: [
+    "@ffmpeg-installer/ffmpeg",
+    "fluent-ffmpeg",
+    "node-appwrite",
+  ],
 };
 
 export default nextConfig;
