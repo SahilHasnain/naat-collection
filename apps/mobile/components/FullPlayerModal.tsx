@@ -44,10 +44,16 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     duration,
     isRepeatEnabled,
     isAutoplayEnabled,
+    abRepeatPointA,
+    abRepeatPointB,
+    isABRepeatActive,
     togglePlayPause,
     seek,
     toggleRepeat,
     toggleAutoplay,
+    setABRepeatPointA,
+    setABRepeatPointB,
+    clearABRepeat,
   } = useAudioPlayer();
 
   // Download state
@@ -55,6 +61,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [isABRepeatMode, setIsABRepeatMode] = useState(false);
 
   // Check if audio is downloaded when currentAudio changes
   useEffect(() => {
@@ -146,6 +153,43 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     const newPosition = Math.min(duration, position + 15000);
     seek(newPosition);
   };
+
+  // A/B Repeat handlers
+  const handleSetPointA = () => {
+    setABRepeatPointA(position);
+    showSuccessToast("Point A set");
+  };
+
+  const handleSetPointB = () => {
+    if (abRepeatPointA === null) {
+      showErrorToast("Please set point A first");
+      return;
+    }
+    if (position <= abRepeatPointA) {
+      showErrorToast("Point B must be after point A");
+      return;
+    }
+    setABRepeatPointB(position);
+    showSuccessToast("Point B set - Loop active");
+  };
+
+  const handleClearABRepeat = () => {
+    clearABRepeat();
+    setIsABRepeatMode(false);
+    showSuccessToast("A/B repeat cleared");
+  };
+
+  const handleToggleABRepeatMode = () => {
+    const newMode = !isABRepeatMode;
+    setIsABRepeatMode(newMode);
+    if (!newMode) {
+      // If turning off mode, clear any set points
+      clearABRepeat();
+    }
+  };
+
+  // Check if both points are set
+  const bothPointsSet = abRepeatPointA !== null && abRepeatPointB !== null;
 
   if (!currentAudio) return null;
 
@@ -284,7 +328,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   toggleAutoplay();
                   setShowOptionsMenu(false);
                 }}
-                className="flex-row items-center gap-3 px-4 py-3"
+                className="flex-row items-center gap-3 px-4 py-3 border-b border-neutral-700"
                 accessibilityRole="button"
               >
                 <Ionicons
@@ -301,6 +345,68 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   Autoplay {isAutoplayEnabled ? "(On)" : "(Off)"}
                 </Text>
               </TouchableOpacity>
+
+              {/* A/B Repeat Mode Toggle - Show when no points are set */}
+              {!bothPointsSet && (
+                <TouchableOpacity
+                  onPress={() => {
+                    handleToggleABRepeatMode();
+                    setShowOptionsMenu(false);
+                  }}
+                  className="flex-row items-center gap-3 px-4 py-3 border-b border-neutral-700"
+                  accessibilityRole="button"
+                >
+                  <Ionicons
+                    name="repeat"
+                    size={20}
+                    color={isABRepeatMode ? colors.accent.primary : "white"}
+                  />
+                  <Text
+                    className="text-base"
+                    style={{
+                      color: isABRepeatMode ? colors.accent.primary : "white",
+                    }}
+                  >
+                    A/B Mode {isABRepeatMode ? "(On)" : "(Off)"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Show set points when both are set */}
+              {bothPointsSet && (
+                <>
+                  <TouchableOpacity
+                    className="flex-row items-center gap-3 px-4 py-3 border-b border-neutral-700"
+                    disabled
+                  >
+                    <Ionicons
+                      name="repeat"
+                      size={20}
+                      color={colors.accent.primary}
+                    />
+                    <Text
+                      className="text-base"
+                      style={{ color: colors.accent.primary }}
+                    >
+                      A/B Repeat
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      handleClearABRepeat();
+                      setShowOptionsMenu(false);
+                    }}
+                    className="flex-row items-center gap-3 px-4 py-3"
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="close-circle" size={20} color="white" />
+                    <Text className="text-base text-white">
+                      Clear A/B Repeat
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </>
         )}
@@ -366,6 +472,28 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     {formatTime(duration)}
                   </Text>
                 </View>
+
+                {/* A/B Repeat Markers */}
+                {(abRepeatPointA !== null || abRepeatPointB !== null) && (
+                  <View className="relative w-full h-2 mt-2">
+                    {abRepeatPointA !== null && (
+                      <View
+                        className="absolute w-1 h-2 bg-green-500"
+                        style={{
+                          left: `${(abRepeatPointA / duration) * 100}%`,
+                        }}
+                      />
+                    )}
+                    {abRepeatPointB !== null && (
+                      <View
+                        className="absolute w-1 h-2 bg-red-500"
+                        style={{
+                          left: `${(abRepeatPointB / duration) * 100}%`,
+                        }}
+                      />
+                    )}
+                  </View>
+                )}
               </View>
 
               {/* Main Playback Controls */}
@@ -415,6 +543,71 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              {/* A/B Repeat Buttons - Show when mode is on but points not fully set */}
+              {isABRepeatMode && !bothPointsSet && (
+                <View className="flex-row items-center justify-center gap-4 mt-6">
+                  <TouchableOpacity
+                    onPress={handleSetPointA}
+                    className="flex-row items-center gap-2 px-6 py-3 rounded-lg"
+                    style={{
+                      backgroundColor:
+                        abRepeatPointA !== null
+                          ? "#22c55e"
+                          : colors.background.elevated,
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Set point A"
+                  >
+                    <Ionicons
+                      name="flag"
+                      size={20}
+                      color={abRepeatPointA !== null ? "black" : "white"}
+                    />
+                    <Text
+                      className="text-base font-semibold"
+                      style={{
+                        color: abRepeatPointA !== null ? "black" : "white",
+                      }}
+                    >
+                      Set Point A
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={handleSetPointB}
+                    className="flex-row items-center gap-2 px-6 py-3 rounded-lg"
+                    style={{
+                      backgroundColor:
+                        abRepeatPointB !== null
+                          ? "#ef4444"
+                          : colors.background.elevated,
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Set point B"
+                    disabled={abRepeatPointA === null}
+                  >
+                    <Ionicons
+                      name="flag"
+                      size={20}
+                      color={abRepeatPointB !== null ? "white" : "#666"}
+                    />
+                    <Text
+                      className="text-base font-semibold"
+                      style={{
+                        color:
+                          abRepeatPointB !== null
+                            ? "white"
+                            : abRepeatPointA === null
+                              ? "#666"
+                              : "white",
+                      }}
+                    >
+                      Set Point B
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         )}

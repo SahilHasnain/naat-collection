@@ -41,6 +41,9 @@ interface AudioContextType {
   error: Error | null;
   isRepeatEnabled: boolean;
   isAutoplayEnabled: boolean;
+  abRepeatPointA: number | null;
+  abRepeatPointB: number | null;
+  isABRepeatActive: boolean;
 
   // Actions
   loadAndPlay: (audio: AudioMetadata) => Promise<void>;
@@ -53,6 +56,10 @@ interface AudioContextType {
   toggleRepeat: () => Promise<void>;
   toggleAutoplay: () => Promise<void>;
   setAutoplayCallback: (callback: (() => Promise<void>) | null) => void;
+  setABRepeatPointA: (position: number | null) => void;
+  setABRepeatPointB: (position: number | null) => void;
+  clearABRepeat: () => void;
+  toggleABRepeat: () => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -74,6 +81,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   const [error, setError] = useState<Error | null>(null);
   const [isRepeatEnabled, setIsRepeatEnabled] = useState(false);
   const [isAutoplayEnabled, setIsAutoplayEnabled] = useState(false);
+  const [abRepeatPointA, setAbRepeatPointA] = useState<number | null>(null);
+  const [abRepeatPointB, setAbRepeatPointB] = useState<number | null>(null);
+  const [isABRepeatActive, setIsABRepeatActive] = useState(false);
 
   // Debug: Log when currentAudio changes
   useEffect(() => {
@@ -88,6 +98,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   const isAutoplayEnabledRef = useRef(false);
   const isLoadingRef = useRef(false);
   const isSetupRef = useRef(false);
+  const abRepeatPointARef = useRef<number | null>(null);
+  const abRepeatPointBRef = useRef<number | null>(null);
+  const isABRepeatActiveRef = useRef(false);
 
   // Sync refs with state
   useEffect(() => {
@@ -101,6 +114,18 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     isLoadingRef.current = isLoading;
   }, [isLoading]);
+
+  useEffect(() => {
+    abRepeatPointARef.current = abRepeatPointA;
+  }, [abRepeatPointA]);
+
+  useEffect(() => {
+    abRepeatPointBRef.current = abRepeatPointB;
+  }, [abRepeatPointB]);
+
+  useEffect(() => {
+    isABRepeatActiveRef.current = isABRepeatActive;
+  }, [isABRepeatActive]);
 
   // Load saved preferences
   useEffect(() => {
@@ -155,8 +180,20 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   const { position: trackPosition, duration: trackDuration } = useProgress();
 
   useEffect(() => {
-    setPosition(Math.floor(trackPosition * 1000));
+    const newPosition = Math.floor(trackPosition * 1000);
+    setPosition(newPosition);
     setDuration(Math.floor(trackDuration * 1000));
+
+    // A/B repeat logic - check if we've passed point B
+    if (
+      isABRepeatActiveRef.current &&
+      abRepeatPointARef.current !== null &&
+      abRepeatPointBRef.current !== null &&
+      newPosition >= abRepeatPointBRef.current
+    ) {
+      console.log("[AudioContext] A/B repeat: looping back to point A");
+      TrackPlayer.seekTo(abRepeatPointARef.current / 1000);
+    }
   }, [trackPosition, trackDuration]);
 
   // Listen to playback state changes - only when normal audio is active
@@ -222,6 +259,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
         setError(null);
 
         console.log("[AudioContext] Loading audio:", audio.title);
+
+        // Clear A/B repeat points when loading new track
+        setAbRepeatPointA(null);
+        setAbRepeatPointB(null);
+        setIsABRepeatActive(false);
 
         // Switch to normal audio mode
         setMode("normal");
@@ -369,6 +411,44 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     [],
   );
 
+  // A/B Repeat functions
+  const setABRepeatPointAFunc = useCallback((position: number | null) => {
+    setAbRepeatPointA(position);
+    console.log("[AudioContext] A/B repeat point A set:", position);
+  }, []);
+
+  const setABRepeatPointBFunc = useCallback(
+    (position: number | null) => {
+      setAbRepeatPointB(position);
+      // Automatically enable A/B repeat when point B is set
+      if (position !== null && abRepeatPointA !== null) {
+        setIsABRepeatActive(true);
+        console.log(
+          "[AudioContext] A/B repeat point B set and auto-enabled:",
+          position,
+        );
+      } else {
+        console.log("[AudioContext] A/B repeat point B set:", position);
+      }
+    },
+    [abRepeatPointA],
+  );
+
+  const clearABRepeat = useCallback(() => {
+    setAbRepeatPointA(null);
+    setAbRepeatPointB(null);
+    setIsABRepeatActive(false);
+    console.log("[AudioContext] A/B repeat cleared");
+  }, []);
+
+  const toggleABRepeat = useCallback(() => {
+    if (abRepeatPointA !== null && abRepeatPointB !== null) {
+      const newValue = !isABRepeatActive;
+      setIsABRepeatActive(newValue);
+      console.log("[AudioContext] A/B repeat toggled:", newValue);
+    }
+  }, [abRepeatPointA, abRepeatPointB, isABRepeatActive]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -386,6 +466,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     error,
     isRepeatEnabled,
     isAutoplayEnabled,
+    abRepeatPointA,
+    abRepeatPointB,
+    isABRepeatActive,
     loadAndPlay,
     play,
     pause,
@@ -396,6 +479,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     toggleRepeat,
     toggleAutoplay,
     setAutoplayCallback,
+    setABRepeatPointA: setABRepeatPointAFunc,
+    setABRepeatPointB: setABRepeatPointBFunc,
+    clearABRepeat,
+    toggleABRepeat,
   };
 
   return (

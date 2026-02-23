@@ -325,6 +325,48 @@ export default function ManualCutClient() {
     }
   }
 
+  async function handleSkipNoExplanation() {
+    if (!selectedNaat) return;
+
+    const confirmed = confirm(
+      `Mark "${selectedNaat.title}" as having no explanation parts?\n\nThis will use the original audio as the final version.`,
+    );
+
+    if (!confirmed) return;
+
+    setProcessing(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/admin/skip-no-explanation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          naatId: selectedNaat.$id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to skip naat");
+      }
+
+      alert("Naat marked as having no explanation parts!");
+
+      clearState();
+
+      setSelectedNaat(null);
+      setTempFileId(null);
+      setCutSegments([{ start: 0, end: 0 }]);
+      loadNaats();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to skip naat");
+    } finally {
+      setProcessing(false);
+    }
+  }
+
   const getAudioUrl = (fileId: string, bucket: string = "audio-files") =>
     `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${bucket}/files/${fileId}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
 
@@ -370,6 +412,10 @@ export default function ManualCutClient() {
           </select>
           <p className="text-sm text-gray-400 mt-2">
             Showing {naats.length} naats with audio but no cut version
+          </p>
+          <p className="text-sm text-yellow-400 mt-2">
+            💡 If a naat has no explanation parts, click "Skip - No Explanation"
+            below
           </p>
         </div>
 
@@ -514,13 +560,22 @@ export default function ManualCutClient() {
                 + Add Segment
               </button>
 
-              <button
-                onClick={handleCut}
-                disabled={processing}
-                className="mt-4 w-full px-6 py-3 bg-green-600 hover:bg-green-700 rounded font-semibold disabled:opacity-50"
-              >
-                {processing ? "Processing..." : "Cut Audio"}
-              </button>
+              <div className="flex gap-4 mt-4">
+                <button
+                  onClick={handleCut}
+                  disabled={processing}
+                  className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 rounded font-semibold disabled:opacity-50"
+                >
+                  {processing ? "Processing..." : "Cut Audio"}
+                </button>
+                <button
+                  onClick={handleSkipNoExplanation}
+                  disabled={processing}
+                  className="flex-1 px-6 py-3 bg-yellow-600 hover:bg-yellow-700 rounded font-semibold disabled:opacity-50"
+                >
+                  Skip - No Explanation
+                </button>
+              </div>
             </div>
 
             {tempFileId && (
