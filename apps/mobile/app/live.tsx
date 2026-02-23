@@ -5,6 +5,7 @@
  */
 
 import { useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
+import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect } from "react";
 import {
@@ -29,6 +30,8 @@ export default function LiveScreen() {
     pause,
     refresh,
   } = useLiveRadioPlayer();
+
+  const { handleScroll: handleTabBarScroll } = useTabBarVisibility();
 
   // Load initial state
   useEffect(() => {
@@ -84,6 +87,8 @@ export default function LiveScreen() {
     <ScrollView
       className="flex-1 bg-gray-900"
       showsVerticalScrollIndicator={false}
+      onScroll={handleTabBarScroll}
+      scrollEventThrottle={16}
       refreshControl={
         <RefreshControl
           refreshing={isLoading}
