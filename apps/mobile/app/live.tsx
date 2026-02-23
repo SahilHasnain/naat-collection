@@ -7,7 +7,8 @@
 import { useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useEffect } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -31,7 +32,15 @@ export default function LiveScreen() {
     refresh,
   } = useLiveRadioPlayer();
 
-  const { handleScroll: handleTabBarScroll } = useTabBarVisibility();
+  const { showTabBar } = useTabBarVisibility();
+
+  // Force tab bar to show when this screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      // Show tab bar and reset scroll tracking state
+      showTabBar();
+    }, [showTabBar]),
+  );
 
   // Load initial state
   useEffect(() => {
@@ -87,8 +96,6 @@ export default function LiveScreen() {
     <ScrollView
       className="flex-1 bg-gray-900"
       showsVerticalScrollIndicator={false}
-      onScroll={handleTabBarScroll}
-      scrollEventThrottle={16}
       refreshControl={
         <RefreshControl
           refreshing={isLoading}

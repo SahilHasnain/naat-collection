@@ -6,6 +6,7 @@ interface TabBarVisibilityContextType {
   handleScroll: (event: any) => void;
   translateY: Animated.SharedValue<number>;
   tabBarHeight: number;
+  showTabBar: () => void; // Force show tab bar and reset state
 }
 
 const TabBarVisibilityContext = createContext<
@@ -25,10 +26,30 @@ export function TabBarVisibilityProvider({
   const translateY = useSharedValue(0);
   const prevScrollY = useRef(0);
   const lastDirection = useRef<"up" | "down">("up");
+  const needsSync = useRef(false); // Flag to sync scroll position on next event
+
+  const showTabBar = useCallback(() => {
+    // Reset to visible state
+    translateY.value = withTiming(0, {
+      duration: 300,
+      easing: Easing.out(Easing.ease),
+    });
+    // Reset direction and mark that we need to sync scroll position
+    lastDirection.current = "up";
+    needsSync.current = true;
+  }, [translateY]);
 
   const handleScroll = useCallback(
     (event: any) => {
       const currentScrollY = event.nativeEvent.contentOffset.y;
+
+      // If we need to sync, just update prevScrollY without animating
+      if (needsSync.current) {
+        prevScrollY.current = currentScrollY;
+        needsSync.current = false;
+        // Don't return - continue to process this scroll event normally
+        // but the diff will be 0 so no animation will trigger
+      }
 
       // Don't hide tab bar when at the top
       if (currentScrollY <= 0) {
@@ -70,7 +91,7 @@ export function TabBarVisibilityProvider({
 
   return (
     <TabBarVisibilityContext.Provider
-      value={{ handleScroll, translateY, tabBarHeight }}
+      value={{ handleScroll, translateY, tabBarHeight, showTabBar }}
     >
       {children}
     </TabBarVisibilityContext.Provider>
