@@ -6,6 +6,7 @@ import UnifiedFilterBar from "@/components/UnifiedFilterBar";
 import { colors } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
+import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useChannels } from "@/hooks/useChannels";
 import { useNaats } from "@/hooks/useNaats";
 import { useSearch } from "@/hooks/useSearch";
@@ -46,10 +47,13 @@ export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   // Audio player context
-  const { loadAndPlay, setAutoplayCallback, currentAudio } = useAudioPlayer();
+  const { loadAndPlay, setAutoplayCallback } = useAudioPlayer();
 
   // Playback mode context
   const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
+
+  // Tab bar visibility context
+  const { handleScroll: handleTabBarScroll } = useTabBarVisibility();
 
   // Data fetching hooks
   const {
@@ -298,10 +302,13 @@ export default function HomeScreen() {
     }
   };
 
-  // Handle scroll to show/hide back to top button
+  // Handle scroll to show/hide back to top button AND tab bar
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     setShowBackToTop(offsetY > 500);
+
+    // Also handle tab bar visibility
+    handleTabBarScroll(event);
   };
 
   // Scroll to top
@@ -447,7 +454,7 @@ export default function HomeScreen() {
           onEndReached={handleEndReached}
           onEndReachedThreshold={1.5}
           onScroll={handleScroll}
-          scrollEventThrottle={400}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={false}

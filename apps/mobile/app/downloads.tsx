@@ -8,6 +8,7 @@ import { SkeletonDownloadCard } from "@/components/SkeletonLoader";
 import { colors } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
+import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useDownloads } from "@/hooks/useDownloads";
 import { DownloadMetadata } from "@/services/audioDownload";
 import { filterDownloadsByQuery, sortDownloads } from "@/utils/formatters";
@@ -54,6 +55,9 @@ export default function DownloadsScreen() {
 
   // Playback mode context
   const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
+
+  // Tab bar visibility context
+  const { handleScroll: handleTabBarScroll } = useTabBarVisibility();
 
   // Modal state
   const [selectedAudio, setSelectedAudio] = useState<DownloadMetadata | null>(
@@ -276,11 +280,17 @@ export default function DownloadsScreen() {
     });
   }, []);
 
-  // Handle scroll to show/hide back to top button
-  const handleScroll = useCallback((event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    setShowBackToTop(offsetY > 500);
-  }, []);
+  // Handle scroll to show/hide back to top button AND tab bar
+  const handleScroll = useCallback(
+    (event: any) => {
+      const offsetY = event.nativeEvent.contentOffset.y;
+      setShowBackToTop(offsetY > 500);
+
+      // Also handle tab bar visibility
+      handleTabBarScroll(event);
+    },
+    [handleTabBarScroll],
+  );
 
   // Scroll to top
   const scrollToTop = useCallback(() => {
@@ -495,7 +505,7 @@ export default function DownloadsScreen() {
           }}
           ListEmptyComponent={renderEmptyState}
           onScroll={handleScroll}
-          scrollEventThrottle={400}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={loading && downloads.length > 0}

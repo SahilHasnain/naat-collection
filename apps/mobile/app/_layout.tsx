@@ -1,3 +1,4 @@
+import { AnimatedTabBar } from "@/components/AnimatedTabBar";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import FullPlayerModal from "@/components/FullPlayerModal";
 import LiveRadioMiniPlayer from "@/components/LiveRadioMiniPlayer";
@@ -12,16 +13,17 @@ import {
   PlaybackModeProvider,
   usePlaybackMode,
 } from "@/contexts/PlaybackModeContext";
+import {
+  TabBarVisibilityProvider,
+  useTabBarVisibility,
+} from "@/contexts/TabBarVisibilityContext.animated";
 import { VideoProvider } from "@/contexts/VideoContext";
 import { storageService } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
 import * as Sentry from "@sentry/react-native";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useState } from "react";
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
 
 // Initialize Sentry
@@ -34,13 +36,13 @@ Sentry.init({
 });
 
 function RootLayoutContent() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const segments = useSegments();
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
   const { currentAudio, stop } = useAudioPlayer();
   const { currentNaat } = useLiveRadioPlayer();
   const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
+  const { translateY } = useTabBarVisibility();
 
   // Check if user is currently on the live tab
   const isOnLiveTab = segments[0] === "live";
@@ -105,19 +107,10 @@ function RootLayoutContent() {
           headerShown: false,
           tabBarActiveTintColor: colors.accent.secondary,
           tabBarInactiveTintColor: colors.text.secondary,
-          tabBarStyle: {
-            backgroundColor: colors.background.elevated,
-            borderTopColor: colors.background.elevated,
-            borderTopWidth: 1,
-            height: 68 + insets.bottom,
-            paddingBottom: insets.bottom,
-            paddingTop: 8,
-          },
-          tabBarLabelStyle: {
-            fontSize: 12,
-            fontWeight: "600",
-          },
         }}
+        tabBar={(props) => (
+          <AnimatedTabBar {...props} translateY={translateY} />
+        )}
       >
         <Tabs.Screen
           name="index"
@@ -158,11 +151,7 @@ function RootLayoutContent() {
         <Tabs.Screen
           name="video"
           options={{
-            title: "Video",
             href: null,
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="play-circle" size={size} color={color} />
-            ),
           }}
         />
         <Tabs.Screen
@@ -206,7 +195,9 @@ function RootLayout() {
           <LiveRadioProvider>
             <VideoProvider>
               <ErrorBoundary>
-                <RootLayoutContent />
+                <TabBarVisibilityProvider tabBarHeight={150}>
+                  <RootLayoutContent />
+                </TabBarVisibilityProvider>
               </ErrorBoundary>
             </VideoProvider>
           </LiveRadioProvider>

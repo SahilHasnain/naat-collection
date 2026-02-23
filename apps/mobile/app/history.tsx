@@ -4,6 +4,7 @@ import HistoryCard from "@/components/HistoryCard";
 import { colors } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
+import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { HistoryItem, useHistory } from "@/hooks/useHistory";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
@@ -148,6 +149,9 @@ export default function HistoryScreen() {
 
   // Playback mode context
   const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
+
+  // Tab bar visibility context
+  const { handleScroll: handleTabBarScroll } = useTabBarVisibility();
 
   // Data fetching hook
   const {
@@ -408,11 +412,17 @@ export default function HistoryScreen() {
     );
   }, [clearHistory]);
 
-  // Handle scroll to show/hide back to top button
-  const handleScroll = useCallback((event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    setShowBackToTop(offsetY > 500);
-  }, []);
+  // Handle scroll to show/hide back to top button AND tab bar
+  const handleScroll = useCallback(
+    (event: any) => {
+      const offsetY = event.nativeEvent.contentOffset.y;
+      setShowBackToTop(offsetY > 500);
+
+      // Also handle tab bar visibility
+      handleTabBarScroll(event);
+    },
+    [handleTabBarScroll],
+  );
 
   // Scroll to top
   const scrollToTop = useCallback(() => {
@@ -524,7 +534,7 @@ export default function HistoryScreen() {
                 paddingBottom: 100,
               }}
               onScroll={handleScroll}
-              scrollEventThrottle={400}
+              scrollEventThrottle={16}
               onEndReached={handleEndReached}
               onEndReachedThreshold={0.5}
               ListFooterComponent={renderFooter}
