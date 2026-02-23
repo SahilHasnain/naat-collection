@@ -53,6 +53,11 @@ export async function setupPlayer() {
       waitForBuffer: true,
       autoUpdateMetadata: true,
       autoHandleInterruptions: true,
+      // Buffer configuration for smoother seeking in both directions
+      minBuffer: 30, // Minimum 30 seconds buffer ahead
+      maxBuffer: 60, // Maximum 60 seconds buffer ahead
+      playBuffer: 2.5, // Only 2.5 seconds needed to resume after seek
+      backBuffer: 60, // Keep 60 seconds behind for instant backward seeking (Android only)
     });
 
     await TrackPlayer.updateOptions({
