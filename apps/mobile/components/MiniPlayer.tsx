@@ -9,6 +9,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -43,29 +44,36 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
 
   // Animated style that responds to both slide animation and tab bar position
   const animatedStyle = useAnimatedStyle(() => {
+    "worklet";
     const TAB_BAR_HEIGHT = 68;
     const MINI_PLAYER_OFFSET_WHEN_HIDDEN = 0; // Space above system buttons when tab bar is hidden
 
+    // Smoothly animate bottom position based on tab bar visibility
     // When tab bar is hidden (translateY > 0), position above system buttons
     // When tab bar is visible (translateY = 0), position above tab bar
-    const bottomPosition =
+    const targetBottom =
       tabBarTranslateY.value > 0
         ? insets.bottom + MINI_PLAYER_OFFSET_WHEN_HIDDEN // Above system buttons
         : TAB_BAR_HEIGHT + insets.bottom; // Above tab bar
 
     return {
       transform: [{ translateY: slideAnim.value }],
-      bottom: bottomPosition,
+      bottom: withTiming(targetBottom, {
+        duration: 300,
+      }),
     };
   });
 
   // Animated style for background overlay - covers native buttons area
   const backgroundStyle = useAnimatedStyle(() => {
-    // Show background when tab bar is hidden (translateY > 0)
-    const opacity = tabBarTranslateY.value > 0 ? 1 : 0;
+    "worklet";
+    // Smoothly fade in/out background when tab bar is hidden
+    const targetOpacity = tabBarTranslateY.value > 0 ? 1 : 0;
 
     return {
-      opacity,
+      opacity: withTiming(targetOpacity, {
+        duration: 300,
+      }),
     };
   });
 
