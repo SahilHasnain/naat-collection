@@ -24,6 +24,7 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { BackHandler } from "react-native";
 import {
   ActivityIndicator,
   FlatList,
@@ -98,6 +99,23 @@ export default function HomeScreen() {
   // Apply duration filter
   const displayData: Naat[] = filterNaatsByDuration(baseData, selectedDuration);
   const isLoading = isSearching ? searchLoading : loading;
+
+  // Handle Android back button when search is active
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        if (isSearching) {
+          // Clear search query
+          setQuery("");
+          return true; // Prevent default back behavior
+        }
+        return false; // Allow default back behavior
+      },
+    );
+
+    return () => backHandler.remove();
+  }, [isSearching, setQuery]);
 
   // Load audio directly without opening video modal
   const loadAudioDirectly = React.useCallback(
