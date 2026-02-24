@@ -32,16 +32,13 @@ const NaatCard: React.FC<NaatCardProps> = ({
   return (
     <Pressable
       onPress={onPress}
-      className="mb-5"
+      className="mb-4"
       style={({ pressed }) => ({
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      {/* Thumbnail Section with explicit 16:9 aspect ratio */}
-      <View
-        className="relative w-full bg-neutral-900 rounded-2xl overflow-hidden"
-        style={{ height: 200 }}
-      >
+      {/* Thumbnail Section - Full width, no rounded corners (YouTube style) */}
+      <View className="relative w-full bg-neutral-900" style={{ height: 200 }}>
         {imageError || !thumbnail ? (
           <View className="h-full w-full items-center justify-center bg-neutral-700">
             <View className="items-center">
@@ -97,55 +94,29 @@ const NaatCard: React.FC<NaatCardProps> = ({
         </View>
       </View>
 
-      {/* Content Section */}
-      <View className="pt-3 space-y-2">
-        {/* Title */}
-        <Text
-          className="text-base font-bold leading-tight text-white"
-          numberOfLines={2}
-          ellipsizeMode="tail"
-        >
-          {title}
-        </Text>
-
-        {/* Channel name with icon */}
-        <View className="flex-row items-center">
-          <Ionicons
-            name="person"
-            size={14}
-            color="#a3a3a3"
-            style={{ marginRight: 6 }}
-          />
-          <Text
-            className="flex-1 text-sm font-semibold text-neutral-300"
-            numberOfLines={1}
-          >
-            {channelName || "Baghdadi Sound & Video"}
-          </Text>
-        </View>
-
-        {/* Upload date and views */}
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center">
-            <Ionicons
-              name="calendar-outline"
-              size={14}
-              color="#737373"
-              style={{ marginRight: 6 }}
-            />
-            <Text className="text-xs text-neutral-400">
-              {formatRelativeTime(uploadDate)}
-            </Text>
+      {/* Content Section - With horizontal padding (YouTube style) */}
+      <View className="pt-3 px-4">
+        <View className="flex-row gap-3">
+          {/* Channel Icon/Logo */}
+          <View className="w-9 h-9 rounded-full bg-neutral-700 items-center justify-center flex-shrink-0">
+            <Ionicons name="person" size={20} color="#a3a3a3" />
           </View>
-          <View className="flex-row items-center">
-            <Ionicons
-              name="eye-outline"
-              size={14}
-              color="#737373"
-              style={{ marginRight: 6 }}
-            />
-            <Text className="text-xs text-neutral-400">
-              {formatViews(views)} views
+
+          {/* Title and Metadata */}
+          <View className="flex-1">
+            {/* Title */}
+            <Text
+              className="text-sm font-medium leading-tight text-white mb-1"
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {title}
+            </Text>
+
+            {/* Channel name • Views • Upload date (single line) */}
+            <Text className="text-xs text-neutral-400" numberOfLines={1}>
+              {channelName || "Baghdadi Sound & Video"} · {formatViews(views)}{" "}
+              views · {formatRelativeTime(uploadDate)}
             </Text>
           </View>
         </View>
