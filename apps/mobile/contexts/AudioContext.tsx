@@ -44,7 +44,6 @@ interface AudioContextType {
   abRepeatPointA: number | null;
   abRepeatPointB: number | null;
   isABRepeatActive: boolean;
-  playbackRate: number;
 
   // Actions
   loadAndPlay: (audio: AudioMetadata) => Promise<void>;
@@ -61,14 +60,12 @@ interface AudioContextType {
   setABRepeatPointB: (position: number | null) => void;
   clearABRepeat: () => void;
   toggleABRepeat: () => void;
-  setPlaybackRate: (rate: number) => Promise<void>;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 const REPEAT_KEY = "@audio_repeat_enabled";
 const AUTOPLAY_KEY = "@audio_autoplay_enabled";
-const PLAYBACK_RATE_KEY = "@audio_playback_rate";
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -87,7 +84,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   const [abRepeatPointA, setAbRepeatPointA] = useState<number | null>(null);
   const [abRepeatPointB, setAbRepeatPointB] = useState<number | null>(null);
   const [isABRepeatActive, setIsABRepeatActive] = useState(false);
-  const [playbackRate, setPlaybackRateState] = useState(1.0);
 
   // Debug: Log when currentAudio changes
   useEffect(() => {
@@ -135,10 +131,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const [repeatValue, autoplayValue, rateValue] = await Promise.all([
+        const [repeatValue, autoplayValue] = await Promise.all([
           AsyncStorage.getItem(REPEAT_KEY),
           AsyncStorage.getItem(AUTOPLAY_KEY),
-          AsyncStorage.getItem(PLAYBACK_RATE_KEY),
         ]);
 
         if (repeatValue !== null) {
@@ -146,12 +141,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         if (autoplayValue !== null) {
           setIsAutoplayEnabled(autoplayValue === "true");
-        }
-        if (rateValue !== null) {
-          const rate = parseFloat(rateValue);
-          if (!isNaN(rate)) {
-            setPlaybackRateState(rate);
-          }
         }
       } catch (err) {
         console.error("[AudioContext] Error loading preferences:", err);
@@ -291,12 +280,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
         // Update notification capabilities for normal mode (with seek) AFTER adding track
         await updateNotificationCapabilities(false);
 
-        // Set volume, repeat mode, and playback rate
+        // Set volume and repeat mode
         await TrackPlayer.setVolume(volume);
         await TrackPlayer.setRepeatMode(
           isRepeatEnabledRef.current ? RepeatMode.Track : RepeatMode.Off,
         );
-        await TrackPlayer.setRate(playbackRate);
 
         // Set currentAudio before playing so miniplayer appears immediately
         setCurrentAudio(audio);
@@ -461,18 +449,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [abRepeatPointA, abRepeatPointB, isABRepeatActive]);
 
-  // Set playback rate
-  const setPlaybackRate = useCallback(async (rate: number) => {
-    try {
-      await TrackPlayer.setRate(rate);
-      setPlaybackRateState(rate);
-      await AsyncStorage.setItem(PLAYBACK_RATE_KEY, String(rate));
-      console.log("[AudioContext] Playback rate set to:", rate);
-    } catch (err) {
-      console.error("[AudioContext] Error setting playback rate:", err);
-    }
-  }, []);
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -493,7 +469,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     abRepeatPointA,
     abRepeatPointB,
     isABRepeatActive,
-    playbackRate,
     loadAndPlay,
     play,
     pause,
@@ -508,7 +483,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     setABRepeatPointB: setABRepeatPointBFunc,
     clearABRepeat,
     toggleABRepeat,
-    setPlaybackRate,
   };
 
   return (
