@@ -1,4 +1,3 @@
-import { BackToTopButton } from "@/components";
 import EmptyState from "@/components/EmptyState";
 import HistoryCard from "@/components/HistoryCard";
 import { colors } from "@/constants/theme";
@@ -16,7 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { getPreferredAudioId } from "@naat-collection/shared";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -140,8 +139,6 @@ function SwipeableHistoryCard({
 export default function HistoryScreen() {
   const router = useRouter();
 
-  // Back to top state
-  const [showBackToTop, setShowBackToTop] = useState(false);
   const sectionListRef = useRef<SectionList<HistoryItem, HistorySection>>(null);
 
   // Audio player context
@@ -412,26 +409,14 @@ export default function HistoryScreen() {
     );
   }, [clearHistory]);
 
-  // Handle scroll to show/hide back to top button AND tab bar
+  // Handle scroll to show/hide tab bar
   const handleScroll = useCallback(
     (event: any) => {
-      const offsetY = event.nativeEvent.contentOffset.y;
-      setShowBackToTop(offsetY > 500);
-
-      // Also handle tab bar visibility
+      // Handle tab bar visibility
       handleTabBarScroll(event);
     },
     [handleTabBarScroll],
   );
-
-  // Scroll to top
-  const scrollToTop = useCallback(() => {
-    sectionListRef.current?.scrollToLocation({
-      sectionIndex: 0,
-      itemIndex: 0,
-      animated: true,
-    });
-  }, []);
 
   // Render section header
   const renderSectionHeader = useCallback(
@@ -576,13 +561,6 @@ export default function HistoryScreen() {
             </View>
           )}
           */}
-
-          {/* Back to Top Button */}
-          <BackToTopButton
-            visible={showBackToTop}
-            onPress={scrollToTop}
-            miniPlayerVisible={isNormalAudioActive || isLiveRadioActive}
-          />
         </View>
       </SafeAreaView>
     </GestureHandlerRootView>

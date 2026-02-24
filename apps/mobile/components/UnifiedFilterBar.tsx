@@ -138,7 +138,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
   return (
     <>
       {/* Compact Filter Bar */}
-      <View className="bg-neutral-800 border-b border-neutral-700">
+      <View className="bg-neutral-800 border-b border-neutral-700 pt-4">
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}

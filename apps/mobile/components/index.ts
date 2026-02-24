@@ -1,4 +1,3 @@
-export { default as BackToTopButton } from "./BackToTopButton";
 export { default as DownloadedAudioCard } from "./DownloadedAudioCard";
 export { default as DownloadedAudioModal } from "./DownloadedAudioModal";
 export { default as DownloadsHeader } from "./DownloadsHeader";

@@ -1,4 +1,3 @@
-import { BackToTopButton } from "@/components";
 import DownloadedAudioCard from "@/components/DownloadedAudioCard";
 import DownloadedAudioModal from "@/components/DownloadedAudioModal";
 import DownloadsHeader from "@/components/DownloadsHeader";
@@ -70,8 +69,6 @@ export default function DownloadsScreen() {
   const [sortBy, setSortBy] = useState<SortBy>("date");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
-  // Back to top state
-  const [showBackToTop, setShowBackToTop] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   // Debounced search query
@@ -280,22 +277,14 @@ export default function DownloadsScreen() {
     });
   }, []);
 
-  // Handle scroll to show/hide back to top button AND tab bar
+  // Handle scroll to show/hide tab bar
   const handleScroll = useCallback(
     (event: any) => {
-      const offsetY = event.nativeEvent.contentOffset.y;
-      setShowBackToTop(offsetY > 500);
-
-      // Also handle tab bar visibility
+      // Handle tab bar visibility
       handleTabBarScroll(event);
     },
     [handleTabBarScroll],
   );
-
-  // Scroll to top
-  const scrollToTop = useCallback(() => {
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-  }, []);
 
   // Optimize FlatList performance with getItemLayout
   const ITEM_HEIGHT = 140; // Card height + margin (136 + 4)
@@ -521,13 +510,6 @@ export default function DownloadsScreen() {
           initialNumToRender={10}
           accessibilityLabel={`${displayData.length} downloaded audio ${displayData.length === 1 ? "file" : "files"}`}
           stickyHeaderIndices={[]}
-        />
-
-        {/* Back to Top Button */}
-        <BackToTopButton
-          visible={showBackToTop}
-          onPress={scrollToTop}
-          miniPlayerVisible={isNormalAudioActive || isLiveRadioActive}
         />
       </View>
 

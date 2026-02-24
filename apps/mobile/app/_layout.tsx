@@ -5,6 +5,7 @@ import LiveRadioMiniPlayer from "@/components/LiveRadioMiniPlayer";
 import MiniPlayer from "@/components/MiniPlayer";
 import { colors } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
+import { HeaderVisibilityProvider } from "@/contexts/HeaderVisibilityContext.animated";
 import {
   LiveRadioProvider,
   useLiveRadioPlayer,
@@ -195,9 +196,11 @@ function RootLayout() {
           <LiveRadioProvider>
             <VideoProvider>
               <ErrorBoundary>
-                <TabBarVisibilityProvider tabBarHeight={150}>
-                  <RootLayoutContent />
-                </TabBarVisibilityProvider>
+                <HeaderVisibilityProvider headerHeight={140}>
+                  <TabBarVisibilityProvider tabBarHeight={150}>
+                    <RootLayoutContent />
+                  </TabBarVisibilityProvider>
+                </HeaderVisibilityProvider>
               </ErrorBoundary>
             </VideoProvider>
           </LiveRadioProvider>
