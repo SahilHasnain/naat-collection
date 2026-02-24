@@ -24,9 +24,9 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { BackHandler } from "react-native";
 import {
   ActivityIndicator,
+  BackHandler,
   FlatList,
   RefreshControl,
   Text,
@@ -344,18 +344,16 @@ export default function HomeScreen() {
   // Render individual naat card - memoized to prevent unnecessary re-renders
   const renderNaatCard = React.useCallback(
     ({ item }: { item: Naat }) => (
-      <View className="px-4 mb-4">
-        <NaatCard
-          id={item.$id}
-          title={item.title}
-          thumbnail={item.thumbnailUrl}
-          duration={item.duration}
-          uploadDate={item.uploadDate}
-          channelName={item.channelName}
-          views={item.views}
-          onPress={() => handleNaatPress(item.$id)}
-        />
-      </View>
+      <NaatCard
+        id={item.$id}
+        title={item.title}
+        thumbnail={item.thumbnailUrl}
+        duration={item.duration}
+        uploadDate={item.uploadDate}
+        channelName={item.channelName}
+        views={item.views}
+        onPress={() => handleNaatPress(item.$id)}
+      />
     ),
     [handleNaatPress],
   );
