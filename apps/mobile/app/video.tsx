@@ -1,12 +1,13 @@
 import { colors, shadows } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
+import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useVideoPlayer } from "@/contexts/VideoContext";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import React from "react";
 import {
@@ -48,6 +49,15 @@ export default function VideoScreen() {
     isRepeatEnabled,
     toggleRepeat,
   } = useVideoPlayer();
+  const { showTabBar } = useTabBarVisibility();
+
+  // Force tab bar to show when this screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      // Show tab bar and reset scroll tracking state
+      showTabBar();
+    }, [showTabBar]),
+  );
 
   // Local video playback state (for UI)
   const [videoPlaying, setVideoPlaying] = React.useState(false);
@@ -369,7 +379,7 @@ export default function VideoScreen() {
               </View>
 
               {/* Custom Video Controls */}
-              <View className="px-6 pb-4 bg-black">
+              <View className="px-6 pb-24 bg-black">
                 {/* Progress Bar */}
                 <View className="mb-4">
                   <Slider
