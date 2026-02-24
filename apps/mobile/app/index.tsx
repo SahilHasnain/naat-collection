@@ -1,10 +1,11 @@
-import { BackToTopButton } from "@/components";
+import { AnimatedHeader } from "@/components/AnimatedHeader";
 import EmptyState from "@/components/EmptyState";
+import { FilterModal } from "@/components/FilterModal";
 import NaatCard from "@/components/NaatCard";
-import SearchBar from "@/components/SearchBar";
 import UnifiedFilterBar from "@/components/UnifiedFilterBar";
 import { colors } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
+import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated";
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useChannels } from "@/hooks/useChannels";
@@ -20,9 +21,9 @@ import {
   getPreferredAudioId,
   hasAudio,
 } from "@naat-collection/shared";
-import { Image } from "expo-image";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -41,19 +42,24 @@ export default function HomeScreen() {
   );
   const [selectedDuration, setSelectedDuration] =
     useState<DurationOption>("all");
+  const [showFilterModal, setShowFilterModal] = useState(false);
 
-  // Back to top state
-  const [showBackToTop, setShowBackToTop] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   // Audio player context
   const { loadAndPlay, setAutoplayCallback } = useAudioPlayer();
 
+  // Tab bar and header visibility
+  const { handleScroll: handleTabBarScroll } = useTabBarVisibility();
+  const {
+    handleScroll: handleHeaderScroll,
+    translateY: headerTranslateY,
+    isScrolledDown,
+    showHeader,
+  } = useHeaderVisibility();
+
   // Playback mode context
   const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
-
-  // Tab bar visibility context
-  const { handleScroll: handleTabBarScroll } = useTabBarVisibility();
 
   // Data fetching hooks
   const {
@@ -71,6 +77,14 @@ export default function HomeScreen() {
     loading: searchLoading,
     setQuery,
   } = useSearch(selectedChannelId);
+
+  // Force header to show when this screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      // Show header and reset scroll tracking state
+      showHeader();
+    }, [showHeader]),
+  );
 
   // Load initial data on mount and when filter changes
   useEffect(() => {
@@ -302,18 +316,11 @@ export default function HomeScreen() {
     }
   };
 
-  // Handle scroll to show/hide back to top button AND tab bar
+  // Handle scroll to show/hide tab bar and header
   const handleScroll = (event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    setShowBackToTop(offsetY > 500);
-
-    // Also handle tab bar visibility
+    // Handle both tab bar and header visibility
     handleTabBarScroll(event);
-  };
-
-  // Scroll to top
-  const scrollToTop = () => {
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    handleHeaderScroll(event);
   };
 
   // Render individual naat card - memoized to prevent unnecessary re-renders
@@ -395,6 +402,19 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-neutral-900">
+      {/* Animated Header */}
+      <AnimatedHeader
+        translateY={headerTranslateY}
+        isScrolledDown={isScrolledDown}
+        query={query}
+        onChangeText={setQuery}
+        selectedSort={selectedFilter}
+        selectedChannelId={selectedChannelId}
+        selectedDuration={selectedDuration}
+        channels={channels}
+        onFilterPress={() => setShowFilterModal(true)}
+      />
+
       <View className="flex-1">
         {/* Scrollable Content */}
         <FlatList
@@ -405,36 +425,11 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             flexGrow: 1,
+            paddingTop: 100, // Space for fixed header
             paddingBottom: 50,
           }}
           ListHeaderComponent={
             <>
-              {/* Header with Logo and Search Bar */}
-              <View className="px-4 pt-safe-top pb-3 bg-neutral-800 border-b border-neutral-700">
-                <View className="flex-row items-center gap-3">
-                  {/* Logo */}
-                  <View
-                    className="rounded-full overflow-hidden bg-neutral-700"
-                    style={{ width: 40, height: 40 }}
-                  >
-                    <Image
-                      source={require("@/assets/images/android-icon-foreground.png")}
-                      style={{ width: 40, height: 40 }}
-                      contentFit="cover"
-                    />
-                  </View>
-
-                  {/* Search Bar */}
-                  <View className="flex-1">
-                    <SearchBar
-                      value={query}
-                      onChangeText={setQuery}
-                      placeholder="Search naats..."
-                    />
-                  </View>
-                </View>
-              </View>
-
               {!isSearching ? (
                 <UnifiedFilterBar
                   selectedSort={selectedFilter}
@@ -468,14 +463,21 @@ export default function HomeScreen() {
           windowSize={10}
           initialNumToRender={10}
         />
-
-        {/* Back to Top Button */}
-        <BackToTopButton
-          visible={showBackToTop}
-          onPress={scrollToTop}
-          miniPlayerVisible={isNormalAudioActive || isLiveRadioActive}
-        />
       </View>
+
+      {/* Filter Modal */}
+      <FilterModal
+        visible={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        selectedSort={selectedFilter}
+        onSortChange={setSelectedFilter}
+        channels={channels}
+        selectedChannelId={selectedChannelId}
+        onChannelChange={setSelectedChannelId}
+        channelsLoading={channelsLoading}
+        selectedDuration={selectedDuration}
+        onDurationChange={setSelectedDuration}
+      />
     </View>
   );
 }
