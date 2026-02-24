@@ -1,4 +1,4 @@
-import { colors, shadows } from "@/constants/theme";
+import { colors } from "@/constants/theme";
 import { NaatCardProps } from "@/types";
 import { formatRelativeTime, formatViews } from "@/utils";
 import { Ionicons } from "@expo/vector-icons";
@@ -32,14 +32,16 @@ const NaatCard: React.FC<NaatCardProps> = ({
   return (
     <Pressable
       onPress={onPress}
-      className="mb-5 overflow-hidden rounded-2xl bg-neutral-800 shadow-lg"
+      className="mb-5"
       style={({ pressed }) => ({
-        ...shadows.md,
         opacity: pressed ? 0.7 : 1,
       })}
     >
       {/* Thumbnail Section with explicit 16:9 aspect ratio */}
-      <View className="relative w-full bg-neutral-900" style={{ height: 200 }}>
+      <View
+        className="relative w-full bg-neutral-900 rounded-2xl overflow-hidden"
+        style={{ height: 200 }}
+      >
         {imageError || !thumbnail ? (
           <View className="h-full w-full items-center justify-center bg-neutral-700">
             <View className="items-center">
@@ -93,25 +95,10 @@ const NaatCard: React.FC<NaatCardProps> = ({
             {formatDuration(duration)}
           </Text>
         </View>
-
-        {/* Play icon overlay hint */}
-        {!imageLoading && !imageError && (
-          <View
-            className="absolute inset-0 items-center justify-center"
-            pointerEvents="none"
-          >
-            <View
-              className="h-14 w-14 items-center justify-center rounded-full"
-              style={{ backgroundColor: colors.overlay.light }}
-            >
-              <Ionicons name="play" size={24} color="white" />
-            </View>
-          </View>
-        )}
       </View>
 
       {/* Content Section */}
-      <View className="p-4 space-y-2">
+      <View className="pt-3 space-y-2">
         {/* Title */}
         <Text
           className="text-base font-bold leading-tight text-white"
