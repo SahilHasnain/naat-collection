@@ -47,7 +47,6 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     abRepeatPointA,
     abRepeatPointB,
     isABRepeatActive,
-    playbackRate,
     togglePlayPause,
     seek,
     toggleRepeat,
@@ -55,7 +54,6 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     setABRepeatPointA,
     setABRepeatPointB,
     clearABRepeat,
-    setPlaybackRate,
   } = useAudioPlayer();
 
   // Download state
@@ -63,19 +61,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
-  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [isABRepeatMode, setIsABRepeatMode] = useState(false);
-
-  // Playback rate options
-  const playbackRates = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75];
-
-  // Handle speed selection
-  const handleSpeedSelect = async (rate: number) => {
-    await setPlaybackRate(rate);
-    setShowSpeedMenu(false);
-    setShowOptionsMenu(false);
-    showSuccessToast(`Playback speed: ${rate}x`);
-  };
 
   // Check if audio is downloaded when currentAudio changes
   useEffect(() => {
@@ -360,44 +346,6 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 </Text>
               </TouchableOpacity>
 
-              {/* Playback Speed */}
-              <TouchableOpacity
-                onPress={() => {
-                  setShowSpeedMenu(true);
-                }}
-                className="flex-row items-center justify-between px-4 py-3 border-b border-neutral-700"
-                accessibilityRole="button"
-              >
-                <View className="flex-row items-center gap-3">
-                  <Ionicons
-                    name="speedometer"
-                    size={20}
-                    color={
-                      playbackRate !== 1.0 ? colors.accent.primary : "white"
-                    }
-                  />
-                  <Text
-                    className="text-base"
-                    style={{
-                      color:
-                        playbackRate !== 1.0 ? colors.accent.primary : "white",
-                    }}
-                  >
-                    Speed
-                  </Text>
-                </View>
-                <View className="flex-row items-center gap-2">
-                  <Text className="text-sm text-neutral-400">
-                    {playbackRate}x
-                  </Text>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={colors.text.secondary}
-                  />
-                </View>
-              </TouchableOpacity>
-
               {/* A/B Repeat Mode Toggle - Show when no points are set */}
               {!bothPointsSet && (
                 <TouchableOpacity
@@ -459,77 +407,6 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   </TouchableOpacity>
                 </>
               )}
-            </View>
-          </>
-        )}
-
-        {/* Speed Submenu with Overlay */}
-        {showSpeedMenu && (
-          <>
-            {/* Transparent Overlay */}
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={() => {
-                setShowSpeedMenu(false);
-                setShowOptionsMenu(true);
-              }}
-              className="absolute inset-0 z-40"
-              accessibilityRole="button"
-              accessibilityLabel="Close speed menu"
-            />
-
-            {/* Speed Menu */}
-            <View className="absolute top-16 right-5 bg-neutral-800 rounded-lg shadow-lg z-50 min-w-[160px]">
-              {/* Header */}
-              <View className="flex-row items-center justify-between px-4 py-3 border-b border-neutral-700">
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowSpeedMenu(false);
-                    setShowOptionsMenu(true);
-                  }}
-                  className="mr-2"
-                  accessibilityRole="button"
-                  accessibilityLabel="Back to menu"
-                >
-                  <Ionicons
-                    name="chevron-back"
-                    size={20}
-                    color={colors.text.secondary}
-                  />
-                </TouchableOpacity>
-                <Text className="flex-1 text-base font-semibold text-white">
-                  Playback Speed
-                </Text>
-              </View>
-
-              {/* Speed Options */}
-              {playbackRates.map((rate) => (
-                <TouchableOpacity
-                  key={rate}
-                  onPress={() => handleSpeedSelect(rate)}
-                  className="flex-row items-center justify-between px-4 py-3 border-b border-neutral-700 last:border-b-0"
-                  accessibilityRole="button"
-                  accessibilityLabel={`Set speed to ${rate}x`}
-                >
-                  <Text
-                    className="text-base"
-                    style={{
-                      color:
-                        playbackRate === rate ? colors.accent.primary : "white",
-                      fontWeight: playbackRate === rate ? "600" : "400",
-                    }}
-                  >
-                    {rate}x
-                  </Text>
-                  {playbackRate === rate && (
-                    <Ionicons
-                      name="checkmark"
-                      size={20}
-                      color={colors.accent.primary}
-                    />
-                  )}
-                </TouchableOpacity>
-              ))}
             </View>
           </>
         )}
