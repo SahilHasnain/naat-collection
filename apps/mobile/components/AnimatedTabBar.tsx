@@ -1,7 +1,7 @@
 import { colors } from "@/constants/theme";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
-import { Platform, Pressable, Text } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -16,18 +16,14 @@ export function AnimatedTabBar({
   translateY,
 }: AnimatedTabBarProps) {
   const insets = useSafeAreaInsets();
-  const TAB_BAR_HEIGHT = 68;
-
-  // Total height including safe area insets
-  const totalHeight = TAB_BAR_HEIGHT + insets.bottom;
+  const TAB_BAR_HEIGHT = 56; // Reduced height for cleaner look
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
 
-  // Filter out routes that should be hidden (video and +not-found)
+  // Filter out routes that should be hidden
   const visibleRoutes = state.routes.filter((route) => {
-    // Hide specific routes by name
     return route.name !== "video" && route.name !== "+not-found";
   });
 
@@ -40,18 +36,17 @@ export function AnimatedTabBar({
           left: 0,
           right: 0,
           flexDirection: "row",
-          backgroundColor: colors.background.elevated,
-          borderTopColor: colors.background.elevated,
-          borderTopWidth: 1,
+          backgroundColor: colors.background.primary, // YouTube dark gray
+          borderTopColor: colors.border.secondary,
+          borderTopWidth: 0.5,
           height: TAB_BAR_HEIGHT + insets.bottom,
           paddingBottom: insets.bottom,
-          paddingTop: 8,
           ...Platform.select({
             ios: {
               shadowColor: "#000",
-              shadowOffset: { width: 0, height: -2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 3,
+              shadowOffset: { width: 0, height: -1 },
+              shadowOpacity: 0.3,
+              shadowRadius: 2,
             },
             android: {
               elevation: 8,
@@ -96,9 +91,7 @@ export function AnimatedTabBar({
         const icon = options.tabBarIcon
           ? options.tabBarIcon({
               focused: isFocused,
-              color: isFocused
-                ? colors.accent.secondary
-                : colors.text.secondary,
+              color: isFocused ? "#ffffff" : "#8e8e93",
               size: 24,
             })
           : null;
@@ -116,21 +109,22 @@ export function AnimatedTabBar({
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
+              paddingTop: 8,
             }}
           >
-            {icon}
-            <Text
-              style={{
-                color: isFocused
-                  ? colors.accent.secondary
-                  : colors.text.secondary,
-                fontSize: 12,
-                fontWeight: "600",
-                marginTop: 4,
-              }}
-            >
-              {typeof label === "string" ? label : ""}
-            </Text>
+            <View style={{ alignItems: "center" }}>
+              {icon}
+              <Text
+                style={{
+                  color: isFocused ? "#ffffff" : "#8e8e93",
+                  fontSize: 10,
+                  fontWeight: "500",
+                  marginTop: 4,
+                }}
+              >
+                {typeof label === "string" ? label : ""}
+              </Text>
+            </View>
           </Pressable>
         );
       })}

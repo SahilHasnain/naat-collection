@@ -17,13 +17,20 @@ const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   return (
-    <View className="flex-row items-center rounded-lg bg-neutral-700 px-3 py-2 border border-neutral-600">
+    <View
+      className="flex-row items-center rounded-full px-4 py-2.5"
+      style={{
+        backgroundColor: colors.background.secondary,
+        borderColor: colors.border.secondary,
+        borderWidth: 1,
+      }}
+    >
       {/* Search icon */}
       <Ionicons
         name="search"
-        size={18}
-        color="#737373"
-        style={{ marginRight: 8 }}
+        size={20}
+        color={colors.text.secondary}
+        style={{ marginRight: 12 }}
       />
 
       <TextInput
@@ -32,23 +39,28 @@ const SearchBar: React.FC<SearchBarProps> = ({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.text.secondary}
-        className="flex-1 text-sm text-white"
+        className="flex-1 text-base text-white"
         returnKeyType="search"
         autoCapitalize="none"
         autoCorrect={false}
         accessibilityLabel="Search naats"
         accessibilityHint="Type to search for naats by title"
+        style={{ paddingVertical: 0 }}
       />
 
       {value.length > 0 && (
         <Pressable
           onPress={handleClear}
-          className="ml-2 rounded-full bg-neutral-600 p-2 active:bg-neutral-500"
+          className="ml-2"
           accessibilityLabel="Clear search"
           accessibilityRole="button"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="close" size={18} color="#e5e5e5" />
+          <Ionicons
+            name="close-circle"
+            size={20}
+            color={colors.text.secondary}
+          />
         </Pressable>
       )}
     </View>

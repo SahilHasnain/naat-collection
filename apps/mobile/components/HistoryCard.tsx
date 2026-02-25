@@ -1,5 +1,6 @@
 import { colors } from "@/constants/theme";
 import { formatRelativeTime, formatViews } from "@/utils";
+import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
@@ -27,15 +28,25 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
     return (
       <Pressable
         onPress={onPress}
-        className="flex-row gap-3 overflow-hidden rounded-xl bg-neutral-800/50 border border-neutral-700/50"
+        className="flex-row gap-3 overflow-hidden rounded-xl border"
+        style={{
+          backgroundColor: `${colors.background.secondary}80`,
+          borderColor: `${colors.border.secondary}80`,
+        }}
         style={({ pressed }) => ({
           opacity: pressed ? 0.7 : 1,
         })}
       >
         {/* Thumbnail Section - Square */}
-        <View className="relative w-24 h-24 bg-neutral-900">
+        <View
+          className="relative w-24 h-24"
+          style={{ backgroundColor: colors.background.tertiary }}
+        >
           {imageError || !thumbnail ? (
-            <View className="h-full w-full items-center justify-center bg-neutral-700">
+            <View
+              className="h-full w-full items-center justify-center"
+              style={{ backgroundColor: colors.background.tertiary }}
+            >
               <Ionicons name="musical-notes" size={28} color="#737373" />
             </View>
           ) : (

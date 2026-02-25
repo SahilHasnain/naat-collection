@@ -1,3 +1,4 @@
+import { AnimatedHeader } from "@/components/AnimatedHeader";
 import { AnimatedTabBar } from "@/components/AnimatedTabBar";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import FullPlayerModal from "@/components/FullPlayerModal";
@@ -5,7 +6,14 @@ import LiveRadioMiniPlayer from "@/components/LiveRadioMiniPlayer";
 import MiniPlayer from "@/components/MiniPlayer";
 import { colors } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
-import { HeaderVisibilityProvider } from "@/contexts/HeaderVisibilityContext.animated";
+import {
+  FilterModalProvider,
+  useFilterModal,
+} from "@/contexts/FilterModalContext";
+import {
+  HeaderVisibilityProvider,
+  useHeaderVisibility,
+} from "@/contexts/HeaderVisibilityContext.animated";
 import {
   LiveRadioProvider,
   useLiveRadioPlayer,
@@ -14,6 +22,10 @@ import {
   PlaybackModeProvider,
   usePlaybackMode,
 } from "@/contexts/PlaybackModeContext";
+import {
+  SearchProvider,
+  useSearch as useSearchContext,
+} from "@/contexts/SearchContext";
 import {
   TabBarVisibilityProvider,
   useTabBarVisibility,
@@ -24,6 +36,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Sentry from "@sentry/react-native";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useState } from "react";
+import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
 
@@ -44,6 +57,9 @@ function RootLayoutContent() {
   const { currentNaat } = useLiveRadioPlayer();
   const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
   const { translateY } = useTabBarVisibility();
+  const { translateY: headerTranslateY } = useHeaderVisibility();
+  const { setShowFilterModal } = useFilterModal();
+  const { setShowSearchModal } = useSearchContext();
 
   // Check if user is currently on the live tab
   const isOnLiveTab = segments[0] === "live";
@@ -103,6 +119,20 @@ function RootLayoutContent() {
 
   return (
     <>
+      {/* Animated Header - Global across all screens */}
+      <AnimatedHeader
+        translateY={headerTranslateY}
+        isScrolledDown={useSharedValue(false)}
+        query=""
+        onChangeText={() => {}}
+        selectedSort="forYou"
+        selectedChannelId={null}
+        selectedDuration="all"
+        channels={[]}
+        onFilterPress={() => setShowFilterModal(true)}
+        onSearchPress={() => setShowSearchModal(true)}
+      />
+
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -117,8 +147,12 @@ function RootLayoutContent() {
           name="index"
           options={{
             title: "Home",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="home" size={size} color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? "home" : "home-outline"}
+                size={24}
+                color={color}
+              />
             ),
           }}
         />
@@ -126,8 +160,12 @@ function RootLayoutContent() {
           name="live"
           options={{
             title: "Live",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="radio" size={size} color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? "radio" : "radio-outline"}
+                size={24}
+                color={color}
+              />
             ),
           }}
         />
@@ -135,8 +173,12 @@ function RootLayoutContent() {
           name="history"
           options={{
             title: "History",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="time-outline" size={size} color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? "time" : "time-outline"}
+                size={24}
+                color={color}
+              />
             ),
           }}
         />
@@ -144,8 +186,12 @@ function RootLayoutContent() {
           name="downloads"
           options={{
             title: "Downloads",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="download" size={size} color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? "download" : "download-outline"}
+                size={24}
+                color={color}
+              />
             ),
           }}
         />
@@ -196,11 +242,15 @@ function RootLayout() {
           <LiveRadioProvider>
             <VideoProvider>
               <ErrorBoundary>
-                <HeaderVisibilityProvider headerHeight={140}>
-                  <TabBarVisibilityProvider tabBarHeight={150}>
-                    <RootLayoutContent />
-                  </TabBarVisibilityProvider>
-                </HeaderVisibilityProvider>
+                <SearchProvider>
+                  <FilterModalProvider>
+                    <HeaderVisibilityProvider headerHeight={140}>
+                      <TabBarVisibilityProvider tabBarHeight={150}>
+                        <RootLayoutContent />
+                      </TabBarVisibilityProvider>
+                    </HeaderVisibilityProvider>
+                  </FilterModalProvider>
+                </SearchProvider>
               </ErrorBoundary>
             </VideoProvider>
           </LiveRadioProvider>

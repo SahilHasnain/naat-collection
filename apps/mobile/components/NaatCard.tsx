@@ -38,12 +38,21 @@ const NaatCard: React.FC<NaatCardProps> = ({
       })}
     >
       {/* Thumbnail Section - Full width, no rounded corners (YouTube style) */}
-      <View className="relative w-full bg-neutral-900" style={{ height: 200 }}>
+      <View
+        className="relative w-full"
+        style={{ height: 200, backgroundColor: colors.background.tertiary }}
+      >
         {imageError || !thumbnail ? (
-          <View className="h-full w-full items-center justify-center bg-neutral-700">
+          <View
+            className="h-full w-full items-center justify-center"
+            style={{ backgroundColor: colors.background.tertiary }}
+          >
             <View className="items-center">
-              <Ionicons name="musical-notes" size={48} color="#737373" />
-              <Text className="text-sm font-medium text-neutral-400 mt-2">
+              <Ionicons name="musical-notes" size={48} color="#717171" />
+              <Text
+                className="text-sm font-medium mt-2"
+                style={{ color: colors.text.tertiary }}
+              >
                 No Thumbnail
               </Text>
             </View>
@@ -66,8 +75,11 @@ const NaatCard: React.FC<NaatCardProps> = ({
             />
             {/* Loading indicator */}
             {imageLoading && (
-              <View className="absolute inset-0 items-center justify-center bg-neutral-700">
-                <Ionicons name="hourglass" size={32} color="#737373" />
+              <View
+                className="absolute inset-0 items-center justify-center"
+                style={{ backgroundColor: colors.background.tertiary }}
+              >
+                <Ionicons name="hourglass" size={32} color="#717171" />
               </View>
             )}
             {/* Gradient overlay for better badge visibility */}
@@ -98,8 +110,11 @@ const NaatCard: React.FC<NaatCardProps> = ({
       <View className="pt-3 px-4">
         <View className="flex-row gap-3">
           {/* Channel Icon/Logo */}
-          <View className="w-9 h-9 rounded-full bg-neutral-700 items-center justify-center flex-shrink-0">
-            <Ionicons name="person" size={20} color="#a3a3a3" />
+          <View
+            className="w-9 h-9 rounded-full items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: colors.background.tertiary }}
+          >
+            <Ionicons name="person" size={20} color={colors.text.secondary} />
           </View>
 
           {/* Title and Metadata */}
@@ -114,7 +129,11 @@ const NaatCard: React.FC<NaatCardProps> = ({
             </Text>
 
             {/* Channel name • Views • Upload date (single line) */}
-            <Text className="text-xs text-neutral-400" numberOfLines={1}>
+            <Text
+              className="text-xs"
+              style={{ color: colors.text.secondary }}
+              numberOfLines={1}
+            >
               {channelName || "Baghdadi Sound & Video"} · {formatViews(views)}{" "}
               views · {formatRelativeTime(uploadDate)}
             </Text>
