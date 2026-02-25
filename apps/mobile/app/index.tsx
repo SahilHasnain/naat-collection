@@ -12,6 +12,7 @@ import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated
 import { useChannels } from "@/hooks/useChannels";
 import { useNaats } from "@/hooks/useNaats";
 import { useSearch } from "@/hooks/useSearch";
+import { useSearchSuggestions } from "@/hooks/useSearchSuggestions";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
@@ -47,6 +48,10 @@ export default function HomeScreen() {
   const { showFilterModal, setShowFilterModal } = useFilterModal();
   const { showSearchModal, setShowSearchModal } = useSearchContext();
 
+  // Search state - separate input from actual search
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSearchQuery, setActiveSearchQuery] = useState("");
+
   const flatListRef = useRef<FlatList>(null);
 
   // Audio player context
@@ -73,6 +78,45 @@ export default function HomeScreen() {
     loading: searchLoading,
     setQuery,
   } = useSearch(selectedChannelId);
+
+  // Search suggestions
+  const { suggestions, updateSuggestions, addToHistory } = useSearchSuggestions(
+    {
+      naats,
+      maxSuggestions: 10,
+    },
+  );
+
+  // Update suggestions as user types (but don't search yet)
+  useEffect(() => {
+    updateSuggestions(searchInput);
+  }, [searchInput, updateSuggestions]);
+
+  // Update suggestions when modal opens
+  useEffect(() => {
+    if (showSearchModal) {
+      updateSuggestions(searchInput);
+    }
+  }, [showSearchModal, searchInput, updateSuggestions]);
+
+  // Perform actual search when activeSearchQuery changes
+  useEffect(() => {
+    if (activeSearchQuery) {
+      setQuery(activeSearchQuery);
+    }
+  }, [activeSearchQuery, setQuery]);
+
+  // Handle search submission
+  const handleSearch = useCallback(
+    (query: string) => {
+      const trimmedQuery = query.trim();
+      if (trimmedQuery) {
+        setActiveSearchQuery(trimmedQuery);
+        addToHistory(trimmedQuery);
+      }
+    },
+    [addToHistory],
+  );
 
   // Force header to show when this screen is focused
   useFocusEffect(
@@ -489,11 +533,24 @@ export default function HomeScreen() {
         visible={showSearchModal}
         onClose={() => {
           setShowSearchModal(false);
+          setSearchInput("");
+          setActiveSearchQuery("");
           setQuery("");
         }}
-        query={query}
-        onChangeQuery={setQuery}
+        query={searchInput}
+        onChangeQuery={(text) => {
+          setSearchInput(text);
+        }}
+        onSubmitSearch={handleSearch}
         placeholder="Search naats..."
+        suggestions={suggestions}
+        onSuggestionPress={(suggestion) => {
+          setSearchInput(suggestion.text);
+          handleSearch(suggestion.text);
+        }}
+        onSuggestionInsert={(suggestion) => {
+          setSearchInput(suggestion.text);
+        }}
       >
         {/* Search Results */}
         <FlatList
