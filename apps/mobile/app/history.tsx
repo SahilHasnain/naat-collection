@@ -421,8 +421,14 @@ export default function HistoryScreen() {
   // Render section header
   const renderSectionHeader = useCallback(
     ({ section }: { section: HistorySection }) => (
-      <View className="px-4 py-2 bg-neutral-900">
-        <Text className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+      <View
+        className="px-4 py-3"
+        style={{ backgroundColor: colors.background.primary }}
+      >
+        <Text
+          className="text-xs font-semibold uppercase tracking-wider"
+          style={{ color: colors.text.secondary }}
+        >
           {section.title}
         </Text>
       </View>
@@ -519,7 +525,7 @@ export default function HistoryScreen() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{
                 flexGrow: 1,
-                paddingTop: 12,
+                paddingTop: 80,
                 paddingBottom: 100,
               }}
               onScroll={handleScroll}
