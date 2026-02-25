@@ -4,6 +4,7 @@
  * 24/7 live naat radio with synchronized playback
  */
 
+import { colors } from "@/constants/theme";
 import { useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { Ionicons } from "@expo/vector-icons";
@@ -64,7 +65,10 @@ export default function LiveScreen() {
   // Loading state
   if (isLoading) {
     return (
-      <View className="flex-1 bg-gray-900 items-center justify-center">
+      <View
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: colors.background.primary }}
+      >
         <ActivityIndicator size="large" color="#ef4444" />
         <Text className="text-white mt-4 text-lg">Loading Live Radio...</Text>
       </View>
@@ -74,7 +78,10 @@ export default function LiveScreen() {
   // Error state
   if (error || !currentNaat) {
     return (
-      <View className="flex-1 bg-gray-900 items-center justify-center px-6">
+      <View
+        className="flex-1 items-center justify-center px-6"
+        style={{ backgroundColor: colors.background.primary }}
+      >
         <Ionicons name="radio-outline" size={64} color="#6b7280" />
         <Text className="text-white text-xl font-bold mt-4">
           Live Radio Unavailable
@@ -94,7 +101,8 @@ export default function LiveScreen() {
 
   return (
     <ScrollView
-      className="flex-1 bg-gray-900"
+      className="flex-1"
+      style={{ backgroundColor: colors.background.primary, marginTop: 80 }}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
@@ -124,7 +132,8 @@ export default function LiveScreen() {
 
       {/* Compact Current Track Card */}
       <View className="px-6 mb-6">
-        <View className="bg-gray-800 rounded-2xl overflow-hidden">
+        <View className="overflow-hidden">
+          {/* Removed background to blend with page */}
           {/* Horizontal Layout with Album Art and Info */}
           <View className="flex-row p-4">
             {/* Album Art - Smaller */}
@@ -154,9 +163,12 @@ export default function LiveScreen() {
               {/* Play/Pause Button - Compact */}
               <TouchableOpacity
                 onPress={isPlaying ? handlePauseLive : handlePlayLive}
-                className={`${
-                  isPlaying ? "bg-gray-700" : "bg-red-500"
-                } py-2.5 rounded-full flex-row items-center justify-center mt-2`}
+                className="py-2.5 rounded-full flex-row items-center justify-center mt-2"
+                style={{
+                  backgroundColor: isPlaying
+                    ? colors.background.tertiary
+                    : "#ef4444",
+                }}
               >
                 <Ionicons
                   name={isPlaying ? "pause" : "play"}
@@ -179,9 +191,13 @@ export default function LiveScreen() {
           {upcomingNaats.slice(0, 3).map((naat, index) => (
             <View
               key={naat.$id}
-              className="flex-row items-center bg-gray-800 rounded-xl p-3 mb-2"
+              className="flex-row items-center rounded-xl p-3 mb-2"
+              style={{ backgroundColor: colors.background.secondary }}
             >
-              <View className="w-6 h-6 bg-gray-700 rounded items-center justify-center mr-3">
+              <View
+                className="w-6 h-6 rounded items-center justify-center mr-3"
+                style={{ backgroundColor: colors.background.tertiary }}
+              >
                 <Text className="text-gray-400 text-xs font-bold">
                   {index + 1}
                 </Text>
@@ -209,7 +225,10 @@ export default function LiveScreen() {
 
       {/* Info Section - Compact */}
       <View className="px-6 pb-24">
-        <View className="bg-gray-800 rounded-xl p-4">
+        <View
+          className="rounded-xl p-4"
+          style={{ backgroundColor: colors.background.secondary }}
+        >
           <View className="flex-row items-start">
             <Ionicons name="information-circle" size={20} color="#ef4444" />
             <View className="flex-1 ml-3">

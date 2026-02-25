@@ -1,16 +1,13 @@
 import DownloadedAudioCard from "@/components/DownloadedAudioCard";
 import DownloadedAudioModal from "@/components/DownloadedAudioModal";
-import DownloadsHeader from "@/components/DownloadsHeader";
 import EmptyState from "@/components/EmptyState";
-import SearchBar from "@/components/SearchBar";
 import { SkeletonDownloadCard } from "@/components/SkeletonLoader";
 import { colors } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
-import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useDownloads } from "@/hooks/useDownloads";
 import { DownloadMetadata } from "@/services/audioDownload";
-import { filterDownloadsByQuery, sortDownloads } from "@/utils/formatters";
+import { formatFileSize, sortDownloads } from "@/utils/formatters";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -50,10 +47,7 @@ export default function DownloadsScreen() {
   } = useDownloads();
 
   // Audio player context
-  const { loadAndPlay, setAutoplayCallback, currentAudio } = useAudioPlayer();
-
-  // Playback mode context
-  const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
+  const { loadAndPlay, setAutoplayCallback } = useAudioPlayer();
 
   // Tab bar visibility context
   const { handleScroll: handleTabBarScroll } = useTabBarVisibility();
@@ -64,33 +58,19 @@ export default function DownloadsScreen() {
   );
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Search and sort state
-  const [searchQuery, setSearchQuery] = useState("");
+  // Sort state
   const [sortBy, setSortBy] = useState<SortBy>("date");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   const flatListRef = useRef<FlatList>(null);
 
-  // Debounced search query
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-
   // Delete loading state
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
-  // Debounce search input
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
   // Filter and sort downloads
   const displayData = useMemo(() => {
-    let filtered = filterDownloadsByQuery(downloads, debouncedQuery);
-    return sortDownloads(filtered, sortBy, sortOrder);
-  }, [downloads, debouncedQuery, sortBy, sortOrder]);
+    return sortDownloads(downloads, sortBy, sortOrder);
+  }, [downloads, sortBy, sortOrder]);
 
   // Set up autoplay callback for downloads
   useEffect(() => {
@@ -353,15 +333,6 @@ export default function DownloadsScreen() {
       );
     }
 
-    if (debouncedQuery && displayData.length === 0) {
-      return (
-        <EmptyState
-          message="No downloads found matching your search."
-          iconName="search"
-        />
-      );
-    }
-
     if (downloads.length === 0) {
       return (
         <EmptyState
@@ -447,21 +418,58 @@ export default function DownloadsScreen() {
   const renderListHeader = () => {
     return (
       <View>
-        {/* Header with storage info */}
-        <DownloadsHeader
-          totalSize={totalSize}
-          downloadCount={downloads.length}
-          onClearAll={downloads.length > 0 ? handleClearAll : undefined}
-        />
-
-        {/* Search Bar */}
+        {/* Storage Info and Clear All */}
         {downloads.length > 0 && (
-          <View className="px-4 pb-3 bg-neutral-900">
-            <SearchBar
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search downloads..."
-            />
+          <View className="px-4 pb-3 pt-2">
+            <View className="flex-row items-center gap-6">
+              {/* Download Count */}
+              <View className="flex-row items-center">
+                <Ionicons
+                  name="musical-notes"
+                  size={16}
+                  color={colors.accent.primary}
+                />
+                <Text
+                  className="text-sm ml-2"
+                  style={{ color: colors.text.secondary }}
+                >
+                  {downloads.length} {downloads.length === 1 ? "file" : "files"}
+                </Text>
+              </View>
+
+              {/* Storage Used */}
+              <View className="flex-row items-center">
+                <Ionicons
+                  name="server-outline"
+                  size={16}
+                  color={colors.accent.secondary}
+                />
+                <Text
+                  className="text-sm ml-2"
+                  style={{ color: colors.text.secondary }}
+                >
+                  {formatFileSize(totalSize)}
+                </Text>
+              </View>
+
+              {/* Clear All Button */}
+              <Pressable
+                onPress={handleClearAll}
+                className="flex-row items-center px-3 py-1.5 rounded-full ml-auto"
+                style={{ backgroundColor: colors.background.tertiary }}
+                accessibilityRole="button"
+                accessibilityLabel="Clear all downloads"
+              >
+                <Ionicons
+                  name="trash-outline"
+                  size={14}
+                  color={colors.accent.error}
+                />
+                <Text className="ml-1.5 text-xs font-semibold text-red-500">
+                  Clear All
+                </Text>
+              </Pressable>
+            </View>
           </View>
         )}
 
@@ -472,7 +480,11 @@ export default function DownloadsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-900" edges={["top"]}>
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: colors.background.primary }}
+      edges={["top"]}
+    >
       <View
         className="flex-1"
         accessible={false}

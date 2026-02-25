@@ -1,13 +1,13 @@
+import { colors } from "@/constants/theme";
 import type { Channel, DurationOption, SortOption } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   type SharedValue,
 } from "react-native-reanimated";
-import SearchBar from "./SearchBar";
 
 interface AnimatedHeaderProps {
   translateY: SharedValue<number>;
@@ -20,6 +20,7 @@ interface AnimatedHeaderProps {
   selectedDuration: DurationOption;
   channels: Channel[];
   onFilterPress: () => void;
+  onSearchPress: () => void;
 }
 
 export function AnimatedHeader({
@@ -32,6 +33,7 @@ export function AnimatedHeader({
   selectedDuration,
   channels,
   onFilterPress,
+  onSearchPress,
 }: AnimatedHeaderProps) {
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -48,49 +50,58 @@ export function AnimatedHeader({
   return (
     <Animated.View
       style={[animatedStyle]}
-      className="absolute top-0 left-0 right-0 z-50 bg-neutral-800 border-b border-neutral-700"
+      className="absolute top-0 left-0 right-0 z-50"
     >
-      <View className="px-4 pt-safe-top pb-3">
-        <View className="flex-row items-center gap-3">
+      <View
+        className="px-4 pt-safe-top pb-2"
+        style={{ backgroundColor: colors.background.primary }}
+      >
+        {/* Top Row: Logo and Action Icons */}
+        <View className="flex-row items-center justify-between mb-3">
           {/* Logo */}
-          <View
-            className="rounded-full overflow-hidden bg-neutral-700"
-            style={{ width: 40, height: 40 }}
-          >
-            <Image
-              source={require("@/assets/images/android-icon-foreground.png")}
-              style={{ width: 40, height: 40 }}
-              contentFit="cover"
-            />
+          <View className="flex-row items-center gap-2">
+            <View
+              className="rounded-full overflow-hidden"
+              style={{ width: 32, height: 32 }}
+            >
+              <Image
+                source={require("@/assets/images/android-icon-foreground.png")}
+                style={{ width: 32, height: 32 }}
+                contentFit="cover"
+              />
+            </View>
+            <Text className="text-white text-lg font-semibold">
+              Naat Collection
+            </Text>
           </View>
 
-          {/* Search Bar */}
-          <View className="flex-1">
-            <SearchBar
-              value={query}
-              onChangeText={onChangeText}
-              placeholder="Search naats..."
-            />
-          </View>
+          {/* Action Icons */}
+          <View className="flex-row items-center gap-4">
+            {/* Search */}
+            <Pressable
+              onPress={onSearchPress}
+              accessibilityLabel="Search"
+              accessibilityRole="button"
+            >
+              <Ionicons name="search" size={24} color="white" />
+            </Pressable>
 
-          {/* Filter Button */}
-          <Pressable
-            onPress={onFilterPress}
-            className={`w-10 h-10 rounded-full items-center justify-center ${
-              hasActiveFilters ? "bg-blue-500" : "bg-neutral-700"
-            }`}
-            accessibilityLabel="Open filters"
-            accessibilityRole="button"
-          >
-            <Ionicons
-              name="filter"
-              size={20}
-              color={hasActiveFilters ? "white" : "#d4d4d8"}
-            />
-            {hasActiveFilters && (
-              <View className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full border border-neutral-800" />
-            )}
-          </Pressable>
+            {/* Filter */}
+            <Pressable
+              onPress={onFilterPress}
+              accessibilityLabel="Open filters"
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name="options-outline"
+                size={24}
+                color={hasActiveFilters ? "#3b82f6" : "white"}
+              />
+              {hasActiveFilters && (
+                <View className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
+              )}
+            </Pressable>
+          </View>
         </View>
       </View>
     </Animated.View>

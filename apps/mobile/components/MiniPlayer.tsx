@@ -115,13 +115,20 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
       >
         <Pressable
           onPress={onExpand}
-          className="bg-neutral-800 border-t border-neutral-700"
-          style={{ height: 72 }}
+          className="border-t"
+          style={{
+            height: 72,
+            backgroundColor: colors.background.secondary,
+            borderTopColor: colors.border.secondary,
+          }}
           accessibilityRole="button"
           accessibilityLabel={`Now playing: ${currentAudio.title}. Double tap to expand player.`}
         >
           {/* Progress Bar */}
-          <View className="absolute top-0 left-0 right-0 h-0.5 bg-neutral-700">
+          <View
+            className="absolute top-0 left-0 right-0 h-0.5"
+            style={{ backgroundColor: colors.background.tertiary }}
+          >
             <View
               className="h-full"
               style={{
@@ -134,8 +141,12 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
           <View className="flex-row items-center h-full px-3">
             {/* Thumbnail */}
             <View
-              className="mr-3 rounded-lg overflow-hidden bg-neutral-700"
-              style={{ width: 56, height: 56 }}
+              className="mr-3 rounded-lg overflow-hidden"
+              style={{
+                width: 56,
+                height: 56,
+                backgroundColor: colors.background.tertiary,
+              }}
             >
               <Image
                 source={{ uri: currentAudio.thumbnailUrl }}
@@ -170,7 +181,8 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
                 e.stopPropagation();
                 togglePlayPause();
               }}
-              className="h-10 w-10 items-center justify-center rounded-full bg-neutral-700 mr-2"
+              className="h-10 w-10 items-center justify-center rounded-full mr-2"
+              style={{ backgroundColor: colors.background.tertiary }}
               accessibilityRole="button"
               accessibilityLabel={isPlaying ? "Pause" : "Play"}
             >

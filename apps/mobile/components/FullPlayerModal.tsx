@@ -206,9 +206,16 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <StatusBar barStyle="light-content" backgroundColor="black" />
+      <StatusBar
+        barStyle="light-content"
+        style={{ backgroundColor: colors.background.primary }}
+      />
 
-      <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-black">
+      <SafeAreaView
+        edges={["top", "bottom"]}
+        className="flex-1"
+        style={{ backgroundColor: colors.background.primary }}
+      >
         {/* Header with Video Toggle and Options Button */}
         <View className="flex-row items-center justify-between px-5 py-4">
           {/* Switch to Video Button */}
@@ -250,7 +257,10 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
             />
 
             {/* Menu */}
-            <View className="absolute top-16 right-5 bg-neutral-800 rounded-lg shadow-lg z-50 min-w-[200px]">
+            <View
+              className="absolute top-16 right-5 rounded-lg shadow-lg z-50 min-w-[200px]"
+              style={{ backgroundColor: colors.background.secondary }}
+            >
               {/* Download/Delete */}
               {showDownloadButton && (
                 <TouchableOpacity

@@ -1,3 +1,4 @@
+import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import type {
   Channel,
@@ -138,7 +139,13 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
   return (
     <>
       {/* Compact Filter Bar */}
-      <View className="bg-neutral-800 border-b border-neutral-700 pt-4">
+      <View
+        className="border-b pt-0"
+        style={{
+          backgroundColor: colors.background.primary,
+          borderBottomColor: colors.border.secondary,
+        }}
+      >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -150,9 +157,13 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               setActiveTab("sort");
               setShowModal(true);
             }}
-            className={`mr-3 px-4 py-2 rounded-full flex-row items-center ${
-              selectedSort !== "forYou" ? "bg-blue-500" : "bg-neutral-700"
-            }`}
+            className="mr-3 px-4 py-2 rounded-full flex-row items-center"
+            style={{
+              backgroundColor:
+                selectedSort !== "forYou"
+                  ? colors.accent.secondary
+                  : colors.background.tertiary,
+            }}
           >
             <Ionicons
               name={currentSort?.iconName || "sparkles"}
@@ -174,9 +185,12 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               setActiveTab("channel");
               setShowModal(true);
             }}
-            className={`mr-3 px-4 py-2 rounded-full flex-row items-center ${
-              selectedChannelId ? "bg-blue-500" : "bg-neutral-700"
-            }`}
+            className="mr-3 px-4 py-2 rounded-full flex-row items-center"
+            style={{
+              backgroundColor: selectedChannelId
+                ? colors.accent.secondary
+                : colors.background.tertiary,
+            }}
           >
             <Ionicons
               name={currentChannel?.iconName || "globe"}
@@ -198,9 +212,13 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               setActiveTab("duration");
               setShowModal(true);
             }}
-            className={`mr-3 px-4 py-2 rounded-full flex-row items-center ${
-              selectedDuration !== "all" ? "bg-blue-500" : "bg-neutral-700"
-            }`}
+            className="mr-3 px-4 py-2 rounded-full flex-row items-center"
+            style={{
+              backgroundColor:
+                selectedDuration !== "all"
+                  ? colors.accent.secondary
+                  : colors.background.tertiary,
+            }}
           >
             <Ionicons
               name={currentDuration?.iconName || "infinite"}
@@ -224,7 +242,11 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                 onChannelChange(null);
                 onDurationChange("all");
               }}
-              className="px-4 py-2 rounded-full flex-row items-center bg-neutral-700 border border-neutral-600"
+              className="px-4 py-2 rounded-full flex-row items-center border"
+              style={{
+                backgroundColor: colors.background.tertiary,
+                borderColor: colors.border.primary,
+              }}
             >
               <Ionicons name="close" size={14} color="#d4d4d8" />
               <Text className="font-semibold text-sm text-neutral-300 ml-1">
@@ -243,7 +265,8 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
         onRequestClose={() => setShowModal(false)}
       >
         <Pressable
-          className="flex-1 bg-black/50"
+          className="flex-1"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
           onPress={() => setShowModal(false)}
         >
           <SafeAreaView
@@ -251,11 +274,15 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
             className="absolute bottom-0 left-0 right-0"
           >
             <Pressable
-              className="bg-neutral-800 rounded-t-3xl"
+              className="rounded-t-3xl"
+              style={{ backgroundColor: colors.background.secondary }}
               onPress={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
-              <View className="flex-row items-center justify-between px-6 py-4 border-b border-neutral-700">
+              <View
+                className="flex-row items-center justify-between px-6 py-4 border-b"
+                style={{ borderBottomColor: colors.border.secondary }}
+              >
                 <Text className="text-white text-lg font-bold">Filters</Text>
                 <Pressable onPress={() => setShowModal(false)}>
                   <Text className="text-blue-500 text-base font-semibold">
@@ -265,7 +292,10 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               </View>
 
               {/* Tabs */}
-              <View className="flex-row border-b border-neutral-700">
+              <View
+                className="flex-row border-b"
+                style={{ borderBottomColor: colors.border.secondary }}
+              >
                 <Pressable
                   onPress={() => setActiveTab("sort")}
                   className={`flex-1 py-3 ${
@@ -332,9 +362,12 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                             onSortChange(filter.value);
                             setShowModal(false);
                           }}
-                          className={`flex-row items-center p-4 rounded-lg mb-2 ${
-                            isSelected ? "bg-blue-500" : "bg-neutral-700"
-                          }`}
+                          className="flex-row items-center p-4 rounded-lg mb-2"
+                          style={{
+                            backgroundColor: isSelected
+                              ? colors.accent.secondary
+                              : colors.background.tertiary,
+                          }}
                         >
                           <Ionicons
                             name={filter.iconName}
@@ -385,9 +418,12 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                             setShowModal(false);
                           }}
                           disabled={channelsLoading}
-                          className={`flex-row items-center p-4 rounded-lg mb-2 ${
-                            isSelected ? "bg-blue-500" : "bg-neutral-700"
-                          }`}
+                          className="flex-row items-center p-4 rounded-lg mb-2"
+                          style={{
+                            backgroundColor: isSelected
+                              ? colors.accent.secondary
+                              : colors.background.tertiary,
+                          }}
                         >
                           <Ionicons
                             name={option.iconName}
@@ -425,9 +461,12 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                             onDurationChange(filter.value);
                             setShowModal(false);
                           }}
-                          className={`flex-row items-center p-4 rounded-lg mb-2 ${
-                            isSelected ? "bg-blue-500" : "bg-neutral-700"
-                          }`}
+                          className="flex-row items-center p-4 rounded-lg mb-2"
+                          style={{
+                            backgroundColor: isSelected
+                              ? colors.accent.secondary
+                              : colors.background.tertiary,
+                          }}
                         >
                           <Ionicons
                             name={filter.iconName}

@@ -119,8 +119,12 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
       >
         <Pressable
           onPress={onExpand}
-          className="bg-neutral-800 border-t border-neutral-700"
-          style={{ height: 72 }}
+          className="border-t"
+          style={{
+            height: 72,
+            backgroundColor: colors.background.secondary,
+            borderTopColor: colors.border.secondary,
+          }}
           accessibilityRole="button"
           accessibilityLabel={`Live radio playing: ${currentNaat.title}. Double tap to expand.`}
         >
@@ -130,8 +134,12 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
           <View className="flex-row items-center h-full px-3">
             {/* Thumbnail */}
             <View
-              className="mr-3 rounded-lg overflow-hidden bg-neutral-700 relative"
-              style={{ width: 56, height: 56 }}
+              className="mr-3 rounded-lg overflow-hidden relative"
+              style={{
+                width: 56,
+                height: 56,
+                backgroundColor: colors.background.tertiary,
+              }}
             >
               <Image
                 source={{ uri: currentNaat.thumbnailUrl }}

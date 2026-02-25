@@ -4,27 +4,27 @@
  */
 
 export const colors = {
-  // Background colors
+  // Background colors - YouTube Dark Mode inspired
   background: {
-    primary: "#000000", // Main background (black)
-    secondary: "#171717", // Secondary background (neutral-900)
-    tertiary: "#262626", // Tertiary background (neutral-800)
-    elevated: "#404040", // Elevated surfaces (neutral-700)
+    primary: "#0f0f0f", // Main background (YouTube dark gray)
+    secondary: "#1f1f1f", // Secondary background (slightly lighter)
+    tertiary: "#272727", // Tertiary background (cards, elevated)
+    elevated: "#3f3f3f", // Elevated surfaces
   },
 
   // Text colors
   text: {
     primary: "#ffffff", // Primary text (white)
-    secondary: "#a3a3a3", // Secondary text (neutral-400)
-    tertiary: "#737373", // Tertiary text (neutral-500)
+    secondary: "#aaaaaa", // Secondary text (lighter gray)
+    tertiary: "#717171", // Tertiary text (medium gray)
     disabled: "#525252", // Disabled text (neutral-600)
   },
 
   // Border colors
   border: {
-    primary: "#404040", // Primary borders (neutral-700)
-    secondary: "#262626", // Secondary borders (neutral-800)
-    subtle: "#171717", // Subtle borders (neutral-900)
+    primary: "#3f3f3f", // Primary borders
+    secondary: "#272727", // Secondary borders
+    subtle: "#1f1f1f", // Subtle borders
   },
 
   // Accent colors
@@ -38,9 +38,9 @@ export const colors = {
 
   // Interactive states
   interactive: {
-    hover: "#525252", // Hover state (neutral-600)
-    active: "#737373", // Active/pressed state (neutral-500)
-    disabled: "#262626", // Disabled state (neutral-800)
+    hover: "#525252", // Hover state
+    active: "#717171", // Active/pressed state
+    disabled: "#272727", // Disabled state
   },
 
   // Overlay colors (with opacity)

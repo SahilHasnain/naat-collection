@@ -1,12 +1,13 @@
-import { AnimatedHeader } from "@/components/AnimatedHeader";
 import EmptyState from "@/components/EmptyState";
 import { FilterModal } from "@/components/FilterModal";
 import NaatCard from "@/components/NaatCard";
+import { SearchModal } from "@/components/SearchModal";
 import UnifiedFilterBar from "@/components/UnifiedFilterBar";
 import { colors } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
+import { useFilterModal } from "@/contexts/FilterModalContext";
 import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated";
-import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
+import { useSearch as useSearchContext } from "@/contexts/SearchContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useChannels } from "@/hooks/useChannels";
 import { useNaats } from "@/hooks/useNaats";
@@ -43,7 +44,8 @@ export default function HomeScreen() {
   );
   const [selectedDuration, setSelectedDuration] =
     useState<DurationOption>("all");
-  const [showFilterModal, setShowFilterModal] = useState(false);
+  const { showFilterModal, setShowFilterModal } = useFilterModal();
+  const { showSearchModal, setShowSearchModal } = useSearchContext();
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -52,15 +54,8 @@ export default function HomeScreen() {
 
   // Tab bar and header visibility
   const { handleScroll: handleTabBarScroll } = useTabBarVisibility();
-  const {
-    handleScroll: handleHeaderScroll,
-    translateY: headerTranslateY,
-    isScrolledDown,
-    showHeader,
-  } = useHeaderVisibility();
-
-  // Playback mode context
-  const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
+  const { handleScroll: handleHeaderScroll, showHeader } =
+    useHeaderVisibility();
 
   // Data fetching hooks
   const {
@@ -417,20 +412,10 @@ export default function HomeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-neutral-900">
-      {/* Animated Header */}
-      <AnimatedHeader
-        translateY={headerTranslateY}
-        isScrolledDown={isScrolledDown}
-        query={query}
-        onChangeText={setQuery}
-        selectedSort={selectedFilter}
-        selectedChannelId={selectedChannelId}
-        selectedDuration={selectedDuration}
-        channels={channels}
-        onFilterPress={() => setShowFilterModal(true)}
-      />
-
+    <View
+      className="flex-1"
+      style={{ backgroundColor: colors.background.primary }}
+    >
       <View className="flex-1">
         {/* Scrollable Content */}
         <FlatList
@@ -447,16 +432,20 @@ export default function HomeScreen() {
           ListHeaderComponent={
             <>
               {!isSearching ? (
-                <UnifiedFilterBar
-                  selectedSort={selectedFilter}
-                  onSortChange={handleFilterChange}
-                  channels={channels}
-                  selectedChannelId={selectedChannelId}
-                  onChannelChange={handleChannelChange}
-                  channelsLoading={channelsLoading}
-                  selectedDuration={selectedDuration}
-                  onDurationChange={handleDurationChange}
-                />
+                <>
+                  <UnifiedFilterBar
+                    selectedSort={selectedFilter}
+                    onSortChange={handleFilterChange}
+                    channels={channels}
+                    selectedChannelId={selectedChannelId}
+                    onChannelChange={handleChannelChange}
+                    channelsLoading={channelsLoading}
+                    selectedDuration={selectedDuration}
+                    onDurationChange={handleDurationChange}
+                  />
+                  {/* Spacer after filter bar */}
+                  <View style={{ height: 12 }} />
+                </>
               ) : null}
             </>
           }
@@ -494,6 +483,65 @@ export default function HomeScreen() {
         selectedDuration={selectedDuration}
         onDurationChange={setSelectedDuration}
       />
+
+      {/* Search Modal */}
+      <SearchModal
+        visible={showSearchModal}
+        onClose={() => {
+          setShowSearchModal(false);
+          setQuery("");
+        }}
+        query={query}
+        onChangeQuery={setQuery}
+        placeholder="Search naats..."
+      >
+        {/* Search Results */}
+        <FlatList
+          data={filterNaatsByDuration(searchResults, selectedDuration)}
+          renderItem={renderNaatCard}
+          keyExtractor={(item) => item.$id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingTop: 8,
+            paddingBottom: 50,
+          }}
+          ListEmptyComponent={() => {
+            if (searchLoading) {
+              return (
+                <View className="flex-1 items-center justify-center py-20">
+                  <ActivityIndicator
+                    size="large"
+                    color={colors.accent.secondary}
+                  />
+                  <Text
+                    className="mt-4 text-base"
+                    style={{ color: colors.text.secondary }}
+                  >
+                    Searching...
+                  </Text>
+                </View>
+              );
+            }
+
+            if (query.trim().length === 0) {
+              return (
+                <EmptyState
+                  message="Start typing to search for naats"
+                  iconName="search"
+                />
+              );
+            }
+
+            return (
+              <EmptyState
+                message="No naats found matching your search"
+                iconName="search"
+              />
+            );
+          }}
+        />
+      </SearchModal>
     </View>
   );
 }

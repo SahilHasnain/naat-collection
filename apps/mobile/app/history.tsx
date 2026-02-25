@@ -502,7 +502,11 @@ export default function HistoryScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView className="flex-1 bg-neutral-900" edges={["top"]}>
+      <SafeAreaView
+        className="flex-1"
+        style={{ backgroundColor: colors.background.primary }}
+        edges={["top"]}
+      >
         <View className="flex-1">
           {/* History List */}
           {groupedHistory.length > 0 ? (
