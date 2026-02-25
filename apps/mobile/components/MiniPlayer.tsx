@@ -94,7 +94,7 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
             right: 0,
             bottom: 0,
             height: insets.bottom + 20, // Covers native buttons area
-            backgroundColor: colors.background.elevated,
+            backgroundColor: colors.background.primary,
             zIndex: 999,
           },
           backgroundStyle,
@@ -115,19 +115,22 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
       >
         <Pressable
           onPress={onExpand}
-          className="border-t"
           style={{
-            height: 72,
-            backgroundColor: colors.background.secondary,
-            borderTopColor: colors.border.secondary,
+            height: 64,
+            backgroundColor: colors.background.primary,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 8,
+            elevation: 8,
           }}
           accessibilityRole="button"
           accessibilityLabel={`Now playing: ${currentAudio.title}. Double tap to expand player.`}
         >
           {/* Progress Bar */}
           <View
-            className="absolute top-0 left-0 right-0 h-0.5"
-            style={{ backgroundColor: colors.background.tertiary }}
+            className="absolute top-0 left-0 right-0"
+            style={{ height: 2, backgroundColor: "rgba(255,255,255,0.1)" }}
           >
             <View
               className="h-full"
@@ -138,7 +141,7 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
             />
           </View>
 
-          <View className="flex-row items-center h-full px-3">
+          <View className="flex-row items-center h-full px-4">
             {/* Thumbnail */}
             <View
               className="mr-3 rounded-md overflow-hidden"
@@ -167,7 +170,8 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
                 {currentAudio.title}
               </Text>
               <Text
-                className="text-neutral-400 text-xs mt-0.5"
+                className="text-xs mt-0.5"
+                style={{ color: colors.text.secondary }}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
@@ -181,14 +185,13 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
                 e.stopPropagation();
                 togglePlayPause();
               }}
-              className="h-10 w-10 items-center justify-center rounded-full mr-2"
-              style={{ backgroundColor: colors.background.tertiary }}
+              className="h-9 w-9 items-center justify-center mr-2"
               accessibilityRole="button"
               accessibilityLabel={isPlaying ? "Pause" : "Play"}
             >
               <Ionicons
                 name={isPlaying ? "pause" : "play"}
-                size={20}
+                size={24}
                 color="white"
               />
             </TouchableOpacity>
@@ -199,11 +202,11 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
                 e.stopPropagation();
                 stop();
               }}
-              className="h-10 w-10 items-center justify-center"
+              className="h-9 w-9 items-center justify-center"
               accessibilityRole="button"
               accessibilityLabel="Close player"
             >
-              <Ionicons name="close" size={24} color={colors.text.secondary} />
+              <Ionicons name="close" size={22} color={colors.text.secondary} />
             </TouchableOpacity>
           </View>
         </Pressable>

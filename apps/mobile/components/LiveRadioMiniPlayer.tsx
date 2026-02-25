@@ -98,7 +98,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
             right: 0,
             bottom: 0,
             height: insets.bottom + 20, // Covers native buttons area
-            backgroundColor: colors.background.elevated,
+            backgroundColor: colors.background.primary,
             zIndex: 999,
           },
           backgroundStyle,
@@ -119,19 +119,25 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
       >
         <Pressable
           onPress={onExpand}
-          className="border-t"
           style={{
-            height: 72,
-            backgroundColor: colors.background.secondary,
-            borderTopColor: colors.border.secondary,
+            height: 64,
+            backgroundColor: colors.background.primary,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 8,
+            elevation: 8,
           }}
           accessibilityRole="button"
           accessibilityLabel={`Live radio playing: ${currentNaat.title}. Double tap to expand.`}
         >
           {/* Live indicator bar */}
-          <View className="absolute top-0 left-0 right-0 h-0.5 bg-red-500" />
+          <View
+            className="absolute top-0 left-0 right-0"
+            style={{ height: 2, backgroundColor: "#ef4444" }}
+          />
 
-          <View className="flex-row items-center h-full px-3">
+          <View className="flex-row items-center h-full px-4">
             {/* Thumbnail */}
             <View
               className="mr-3 rounded-md overflow-hidden relative"
@@ -152,10 +158,13 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
 
             {/* Title and Channel */}
             <View className="flex-1 mr-3">
-              <View className="flex-row items-center mb-1">
-                <View className="w-2 h-2 bg-red-500 rounded-full mr-1.5 animate-pulse" />
-                <Text className="text-red-500 text-xs font-bold uppercase">
-                  Live Radio
+              <View className="flex-row items-center mb-0.5">
+                <View className="w-1.5 h-1.5 bg-red-500 rounded-full mr-1.5" />
+                <Text
+                  className="text-red-500 font-semibold uppercase tracking-wide"
+                  style={{ fontSize: 10 }}
+                >
+                  Live
                 </Text>
               </View>
               <Text
@@ -166,7 +175,8 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
                 {currentNaat.title}
               </Text>
               <Text
-                className="text-neutral-400 text-xs mt-0.5"
+                className="text-xs"
+                style={{ color: colors.text.secondary }}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
@@ -180,11 +190,11 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
                 e.stopPropagation();
                 pause();
               }}
-              className="h-10 w-10 items-center justify-center rounded-full bg-neutral-700 mr-2"
+              className="h-9 w-9 items-center justify-center mr-2"
               accessibilityRole="button"
               accessibilityLabel="Pause live radio"
             >
-              <Ionicons name="pause" size={20} color="white" />
+              <Ionicons name="pause" size={24} color="white" />
             </TouchableOpacity>
 
             {/* Close Button */}
@@ -193,11 +203,11 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
                 e.stopPropagation();
                 stop();
               }}
-              className="h-10 w-10 items-center justify-center"
+              className="h-9 w-9 items-center justify-center"
               accessibilityRole="button"
               accessibilityLabel="Stop live radio"
             >
-              <Ionicons name="close" size={24} color={colors.text.secondary} />
+              <Ionicons name="close" size={22} color={colors.text.secondary} />
             </TouchableOpacity>
           </View>
         </Pressable>
