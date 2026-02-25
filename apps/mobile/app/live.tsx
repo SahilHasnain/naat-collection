@@ -135,13 +135,13 @@ export default function LiveScreen() {
         <View className="overflow-hidden">
           {/* Removed background to blend with page */}
           {/* Horizontal Layout with Album Art and Info */}
-          <View className="flex-row p-4">
+          <View className="flex-row items-center p-4">
             {/* Album Art - Smaller */}
             <View className="mr-4">
               <Image
                 source={{ uri: currentNaat.thumbnailUrl }}
-                style={{ width: 100, height: 100 }}
-                className="rounded-xl"
+                style={{ width: 120, height: 68 }}
+                className="rounded-lg"
                 resizeMode="cover"
               />
             </View>
@@ -204,8 +204,9 @@ export default function LiveScreen() {
               </View>
               <Image
                 source={{ uri: naat.thumbnailUrl }}
-                style={{ width: 48, height: 48 }}
-                className="rounded-lg mr-3"
+                style={{ width: 64, height: 36 }}
+                className="rounded-md mr-3"
+                resizeMode="cover"
               />
               <View className="flex-1">
                 <Text

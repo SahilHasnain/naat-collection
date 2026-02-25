@@ -7,7 +7,7 @@ import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useDownloads } from "@/hooks/useDownloads";
 import { DownloadMetadata } from "@/services/audioDownload";
-import { formatFileSize, sortDownloads } from "@/utils/formatters";
+import { sortDownloads } from "@/utils/formatters";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -126,9 +126,6 @@ export default function DownloadsScreen() {
   // Handle delete with confirmation
   const handleDelete = useCallback(
     async (audioId: string, title: string) => {
-      // Trigger haptic feedback for delete action
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
       Alert.alert(
         "Delete Download",
         `Are you sure you want to delete "${title}"?`,
@@ -136,20 +133,11 @@ export default function DownloadsScreen() {
           {
             text: "Cancel",
             style: "cancel",
-            onPress: () => {
-              // Light haptic for cancel
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            },
           },
           {
             text: "Delete",
             style: "destructive",
             onPress: async () => {
-              // Heavy haptic for destructive action
-              await Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
-              );
-
               // Add to deleting set
               setDeletingIds((prev) => new Set(prev).add(audioId));
 
@@ -267,7 +255,7 @@ export default function DownloadsScreen() {
   );
 
   // Optimize FlatList performance with getItemLayout
-  const ITEM_HEIGHT = 140; // Card height + margin (136 + 4)
+  const ITEM_HEIGHT = 110; // Card height (94 + 16 padding)
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
       length: ITEM_HEIGHT,
@@ -283,7 +271,7 @@ export default function DownloadsScreen() {
       const isDeleting = deletingIds.has(item.audioId);
 
       return (
-        <View className="px-4 mb-4">
+        <View className="px-4">
           <View className="relative">
             <DownloadedAudioCard
               audio={item}
@@ -335,10 +323,14 @@ export default function DownloadsScreen() {
 
     if (downloads.length === 0) {
       return (
-        <EmptyState
-          message="No downloaded audio files yet. Download some naats to listen offline!"
-          iconName="download"
-        />
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="items-center mb-6">
+            <Ionicons name="download-outline" size={120} color="#525252" />
+          </View>
+          <Text className="text-center text-sm text-neutral-400">
+            Videos you download will appear here
+          </Text>
+        </View>
       );
     }
 
@@ -416,65 +408,16 @@ export default function DownloadsScreen() {
 
   // Render list header with all fixed components
   const renderListHeader = () => {
+    if (downloads.length === 0) return null;
+
     return (
       <View>
-        {/* Storage Info and Clear All */}
-        {downloads.length > 0 && (
-          <View className="px-4 pb-3 pt-2">
-            <View className="flex-row items-center gap-6">
-              {/* Download Count */}
-              <View className="flex-row items-center">
-                <Ionicons
-                  name="musical-notes"
-                  size={16}
-                  color={colors.accent.primary}
-                />
-                <Text
-                  className="text-sm ml-2"
-                  style={{ color: colors.text.secondary }}
-                >
-                  {downloads.length} {downloads.length === 1 ? "file" : "files"}
-                </Text>
-              </View>
-
-              {/* Storage Used */}
-              <View className="flex-row items-center">
-                <Ionicons
-                  name="server-outline"
-                  size={16}
-                  color={colors.accent.secondary}
-                />
-                <Text
-                  className="text-sm ml-2"
-                  style={{ color: colors.text.secondary }}
-                >
-                  {formatFileSize(totalSize)}
-                </Text>
-              </View>
-
-              {/* Clear All Button */}
-              <Pressable
-                onPress={handleClearAll}
-                className="flex-row items-center px-3 py-1.5 rounded-full ml-auto"
-                style={{ backgroundColor: colors.background.tertiary }}
-                accessibilityRole="button"
-                accessibilityLabel="Clear all downloads"
-              >
-                <Ionicons
-                  name="trash-outline"
-                  size={14}
-                  color={colors.accent.error}
-                />
-                <Text className="ml-1.5 text-xs font-semibold text-red-500">
-                  Clear All
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        )}
-
-        {/* Sort Filter Bar */}
-        {renderSortBar()}
+        {/* Header Title */}
+        <View className="px-4 pt-4 pb-6">
+          <Text className="text-2xl font-semibold text-white">
+            Your downloads
+          </Text>
+        </View>
       </View>
     );
   };

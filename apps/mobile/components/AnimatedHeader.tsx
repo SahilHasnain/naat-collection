@@ -71,7 +71,7 @@ export function AnimatedHeader({
               />
             </View>
             <Text className="text-white text-lg font-semibold">
-              Naat Collection
+              Owais Raza Qadri
             </Text>
           </View>
 
