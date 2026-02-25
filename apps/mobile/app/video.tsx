@@ -120,8 +120,17 @@ export default function VideoScreen() {
       });
     }
 
+    // Fallback: Clear loading state after 5 seconds if still loading
+    const loadingTimeout = setTimeout(() => {
+      if (isLoading) {
+        console.log("[VideoScreen] Loading timeout - clearing loading state");
+        setIsLoading(false);
+      }
+    }, 5000);
+
     // Cleanup on unmount
     return () => {
+      clearTimeout(loadingTimeout);
       clearVideo();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -234,7 +243,9 @@ export default function VideoScreen() {
   // Handle video state changes
   const onStateChange = React.useCallback(
     (state: string) => {
+      // Clear loading state when video starts playing
       if (state === "playing") {
+        setIsLoading(false);
         setVideoPlaying(true);
         setPlaying(true);
       } else if (state === "paused") {
@@ -285,49 +296,12 @@ export default function VideoScreen() {
         backgroundColor={colors.background.primary}
       />
 
-      <SafeAreaView edges={["bottom"]} className="flex-1 bg-black">
+      <SafeAreaView edges={["bottom", "top"]} className="flex-1 bg-black">
         <View className="flex-1">
           <View
             className="flex-1 bg-neutral-900 overflow-hidden"
             style={shadows.lg}
           >
-            {/* Header */}
-            <SafeAreaView
-              edges={["top"]}
-              className="bg-neutral-800 border-b border-neutral-700"
-            >
-              <View className="px-5 py-4">
-                <View className="flex-row items-center justify-between">
-                  <Pressable
-                    onPress={() => router.back()}
-                    className="mr-4 p-2 -ml-2"
-                    accessibilityRole="button"
-                    accessibilityLabel="Go back"
-                  >
-                    <Ionicons
-                      name="arrow-back"
-                      size={24}
-                      color={colors.text.primary}
-                    />
-                  </Pressable>
-
-                  <View className="flex-1 mr-4">
-                    {title && (
-                      <Text
-                        className="text-base font-bold text-white leading-tight"
-                        numberOfLines={2}
-                      >
-                        {title}
-                      </Text>
-                    )}
-                    <Text className="text-sm text-neutral-400 mt-1">
-                      {channelName || "Baghdadi Sound & Video"}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </SafeAreaView>
-
             {/* Video Player */}
             <View className="flex-1 bg-black">
               <View className="relative flex-1">

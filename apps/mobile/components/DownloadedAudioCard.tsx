@@ -1,156 +1,106 @@
-import { colors, shadows } from "@/constants/theme";
 import { DownloadedAudioCardProps } from "@/types";
-import { formatDownloadDate, formatFileSize } from "@/utils/formatters";
+import { formatDownloadDate } from "@/utils/formatters";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import React, { useEffect, useRef } from "react";
-import { Animated, Pressable, Text, View } from "react-native";
+import React from "react";
+import { Pressable, Text, View } from "react-native";
 
 const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
   ({ audio, onPress, onDelete }) => {
     const [imageError, setImageError] = React.useState(false);
-    const [isPressed, setIsPressed] = React.useState(false);
-
-    // Animation values
-    const scaleAnim = useRef(new Animated.Value(1)).current;
-    const opacityAnim = useRef(new Animated.Value(1)).current;
 
     // Generate thumbnail URL from YouTube ID
     const thumbnailUrl = `https://img.youtube.com/vi/${audio.youtubeId}/mqdefault.jpg`;
 
-    // Animate press feedback
-    useEffect(() => {
-      Animated.spring(scaleAnim, {
-        toValue: isPressed ? 0.97 : 1,
-        useNativeDriver: true,
-        friction: 8,
-        tension: 100,
-      }).start();
-    }, [isPressed, scaleAnim]);
+    // Mock duration - you can add this to your audio metadata
+    const duration = "3:26";
 
     return (
-      <Animated.View
-        style={{
-          transform: [{ scale: scaleAnim }],
-          opacity: opacityAnim,
-        }}
+      <Pressable
+        onPress={onPress}
+        className="flex-row py-3"
+        accessibilityRole="button"
+        accessibilityLabel={`Play ${audio.title}`}
+        accessibilityHint="Double tap to play this downloaded audio"
+        accessible={true}
       >
-        <Pressable
-          onPress={onPress}
-          onPressIn={() => setIsPressed(true)}
-          onPressOut={() => setIsPressed(false)}
-          className="mb-4 overflow-hidden rounded-2xl bg-neutral-800 shadow-lg"
-          style={shadows.md}
-          accessibilityRole="button"
-          accessibilityLabel={`Play ${audio.title}`}
-          accessibilityHint="Double tap to play this downloaded audio"
-          accessibilityState={{ disabled: false }}
-          accessible={true}
+        {/* Thumbnail Section */}
+        <View
+          className="relative bg-neutral-900 rounded-xl overflow-hidden"
+          style={{ width: 168, height: 94 }}
+          accessible={false}
         >
-          <View className="flex-row">
-            {/* Thumbnail Section */}
-            <View
-              className="relative bg-neutral-900"
-              style={{ width: 120, height: 120 }}
+          {imageError || !audio.youtubeId ? (
+            <View className="h-full w-full items-center justify-center bg-neutral-700">
+              <Ionicons name="musical-notes" size={32} color="#737373" />
+            </View>
+          ) : (
+            <Image
+              source={{ uri: thumbnailUrl }}
+              style={{ width: 168, height: 94 }}
+              contentFit="cover"
+              onError={() => setImageError(true)}
+              cachePolicy="memory-disk"
+              transition={200}
               accessible={false}
-            >
-              {imageError || !audio.youtubeId ? (
-                <View className="h-full w-full items-center justify-center bg-neutral-700">
-                  <Ionicons name="musical-notes" size={32} color="#737373" />
-                </View>
-              ) : (
-                <Image
-                  source={{ uri: thumbnailUrl }}
-                  style={{ width: 120, height: 120 }}
-                  contentFit="cover"
-                  onError={() => setImageError(true)}
-                  cachePolicy="memory-disk"
-                  transition={200}
-                  accessible={false}
-                  accessibilityIgnoresInvertColors={true}
-                />
-              )}
+              accessibilityIgnoresInvertColors={true}
+            />
+          )}
 
-              {/* Downloaded indicator badge */}
-              <View
-                className="absolute bottom-1.5 left-1.5 rounded-md px-2 py-1"
-                style={{ backgroundColor: colors.overlay.dark }}
-                accessible={false}
-              >
-                <Ionicons name="checkmark-circle" size={14} color="#10b981" />
-              </View>
-            </View>
-
-            {/* Content Section */}
-            <View className="flex-1 p-3 justify-between" accessible={false}>
-              {/* Title */}
-              <Text
-                className="text-sm font-bold leading-tight text-white mb-1"
-                numberOfLines={2}
-                ellipsizeMode="tail"
-                accessible={false}
-              >
-                {audio.title}
-              </Text>
-
-              {/* Metadata */}
-              <View className="space-y-1" accessible={false}>
-                {/* Download date */}
-                <View className="flex-row items-center" accessible={false}>
-                  <Ionicons
-                    name="time-outline"
-                    size={12}
-                    color={colors.text.secondary}
-                  />
-                  <Text
-                    className="ml-1.5 text-xs text-neutral-400"
-                    accessible={false}
-                  >
-                    {formatDownloadDate(audio.downloadedAt)}
-                  </Text>
-                </View>
-
-                {/* File size */}
-                <View className="flex-row items-center" accessible={false}>
-                  <Ionicons
-                    name="document-outline"
-                    size={12}
-                    color={colors.text.secondary}
-                  />
-                  <Text
-                    className="ml-1.5 text-xs text-neutral-400"
-                    accessible={false}
-                  >
-                    {formatFileSize(audio.fileSize)}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Delete Button */}
-            <View className="justify-center pr-3" accessible={false}>
-              <Pressable
-                onPress={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                className="h-10 w-10 items-center justify-center rounded-full bg-neutral-700"
-                style={{ minWidth: 44, minHeight: 44 }}
-                accessibilityRole="button"
-                accessibilityLabel={`Delete ${audio.title}`}
-                accessibilityHint="Double tap to delete this downloaded audio"
-                accessible={true}
-              >
-                <Ionicons
-                  name="trash-outline"
-                  size={20}
-                  color={colors.accent.error}
-                />
-              </Pressable>
-            </View>
+          {/* Duration overlay */}
+          <View
+            className="absolute bottom-1 right-1 rounded px-1 py-0.5"
+            style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
+            accessible={false}
+          >
+            <Text className="text-xs font-semibold text-white">{duration}</Text>
           </View>
-        </Pressable>
-      </Animated.View>
+        </View>
+
+        {/* Content Section */}
+        <View className="flex-1 ml-3 justify-start" accessible={false}>
+          {/* Title */}
+          <Text
+            className="text-sm font-normal leading-tight text-white mb-1"
+            numberOfLines={2}
+            ellipsizeMode="tail"
+            accessible={false}
+          >
+            {audio.title}
+          </Text>
+
+          {/* Channel name with checkmark */}
+          <View className="flex-row items-center mb-0.5" accessible={false}>
+            <Ionicons name="checkmark-circle" size={14} color="#aaaaaa" />
+            <Text className="ml-1 text-xs text-neutral-400" accessible={false}>
+              Downloaded Audio
+            </Text>
+          </View>
+
+          {/* Views and time */}
+          <Text className="text-xs text-neutral-400" accessible={false}>
+            {formatDownloadDate(audio.downloadedAt)}
+          </Text>
+        </View>
+
+        {/* Delete Button */}
+        <View className="justify-start pt-1" accessible={false}>
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            className="h-10 w-10 items-center justify-center"
+            style={{ minWidth: 44, minHeight: 44 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Delete ${audio.title}`}
+            accessibilityHint="Double tap to delete this downloaded audio"
+            accessible={true}
+          >
+            <Ionicons name="trash-outline" size={20} color="#aaaaaa" />
+          </Pressable>
+        </View>
+      </Pressable>
     );
   },
 );

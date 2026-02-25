@@ -64,6 +64,12 @@ function RootLayoutContent() {
   // Check if user is currently on the live tab
   const isOnLiveTab = segments[0] === "live";
 
+  // Check if user is on video screen
+  const isOnVideoScreen = segments[0] === "video";
+
+  // Shared value for header (must be called unconditionally)
+  const isScrolledDownValue = useSharedValue(false);
+
   // Handle switching from audio to video mode
   const handleSwitchToVideo = async () => {
     if (!currentAudio?.youtubeId) {
@@ -119,19 +125,21 @@ function RootLayoutContent() {
 
   return (
     <>
-      {/* Animated Header - Global across all screens */}
-      <AnimatedHeader
-        translateY={headerTranslateY}
-        isScrolledDown={useSharedValue(false)}
-        query=""
-        onChangeText={() => {}}
-        selectedSort="forYou"
-        selectedChannelId={null}
-        selectedDuration="all"
-        channels={[]}
-        onFilterPress={() => setShowFilterModal(true)}
-        onSearchPress={() => setShowSearchModal(true)}
-      />
+      {/* Animated Header - Global across all screens except video */}
+      {!isOnVideoScreen && (
+        <AnimatedHeader
+          translateY={headerTranslateY}
+          isScrolledDown={isScrolledDownValue}
+          query=""
+          onChangeText={() => {}}
+          selectedSort="forYou"
+          selectedChannelId={null}
+          selectedDuration="all"
+          channels={[]}
+          onFilterPress={() => setShowFilterModal(true)}
+          onSearchPress={() => setShowSearchModal(true)}
+        />
+      )}
 
       <Tabs
         screenOptions={{

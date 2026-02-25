@@ -52,7 +52,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
   // Animated style that responds to both slide animation and tab bar position
   const animatedStyle = useAnimatedStyle(() => {
     "worklet";
-    const TAB_BAR_HEIGHT = 68;
+    const TAB_BAR_HEIGHT = 56;
     const MINI_PLAYER_OFFSET_WHEN_HIDDEN = 0; // Space above system buttons when tab bar is hidden
 
     // Smoothly animate bottom position based on tab bar visibility
@@ -134,16 +134,16 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
           <View className="flex-row items-center h-full px-3">
             {/* Thumbnail */}
             <View
-              className="mr-3 rounded-lg overflow-hidden relative"
+              className="mr-3 rounded-md overflow-hidden relative"
               style={{
-                width: 56,
-                height: 56,
+                width: 64,
+                height: 36,
                 backgroundColor: colors.background.tertiary,
               }}
             >
               <Image
                 source={{ uri: currentNaat.thumbnailUrl }}
-                style={{ width: 56, height: 56 }}
+                style={{ width: 64, height: 36 }}
                 contentFit="cover"
                 cachePolicy="memory-disk"
                 transition={200}
