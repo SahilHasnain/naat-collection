@@ -53,7 +53,7 @@ export function AnimatedHeader({
       className="absolute top-0 left-0 right-0 z-50"
     >
       <View
-        className="px-4 pt-safe-top pb-2"
+        className="px-4 pt-safe-top pb-1"
         style={{ backgroundColor: colors.background.primary }}
       >
         {/* Top Row: Logo and Action Icons */}
