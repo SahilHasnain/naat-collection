@@ -5,6 +5,7 @@
  */
 
 import { colors } from "@/constants/theme";
+import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated";
 import { useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,13 +35,15 @@ export default function LiveScreen() {
   } = useLiveRadioPlayer();
 
   const { showTabBar } = useTabBarVisibility();
+  const { showHeader } = useHeaderVisibility();
 
-  // Force tab bar to show when this screen is focused
+  // Force tab bar and header to show when this screen is focused
   useFocusEffect(
     useCallback(() => {
-      // Show tab bar and reset scroll tracking state
+      // Show tab bar and header, reset scroll tracking state
       showTabBar();
-    }, [showTabBar]),
+      showHeader();
+    }, [showTabBar, showHeader]),
   );
 
   // Load initial state
