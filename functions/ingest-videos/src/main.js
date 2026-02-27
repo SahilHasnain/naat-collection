@@ -519,6 +519,13 @@ async function processSource(
           continue;
         }
 
+        // Filter out videos greater than 1 hour (3600 seconds) for all channels
+        if (video.duration > 3600) {
+          log(`Filtered: ${video.title} (duration ${video.duration}s > 3600s)`);
+          results.filtered++;
+          continue;
+        }
+
         // Filter out videos longer than 20 minutes (1200 seconds) for isOther channels
         if (isOther && video.duration > 1200) {
           log(
