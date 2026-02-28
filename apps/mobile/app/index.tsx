@@ -28,6 +28,7 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   BackHandler,
   FlatList,
   RefreshControl,
@@ -167,20 +168,36 @@ export default function HomeScreen() {
 
       // Fallback to video if no audio ID
       if (!audioId) {
-        console.log("No audio ID available, falling back to video mode");
-        showErrorToast("Audio not available. Playing video instead.");
-        router.push({
-          pathname: "/video",
-          params: {
-            videoUrl: naat.videoUrl,
-            title: naat.title,
-            channelName: naat.channelName,
-            thumbnailUrl: naat.thumbnailUrl,
-            youtubeId: naat.youtubeId,
-            audioId: audioId,
-            isFallback: "true",
-          },
-        });
+        console.log("No audio ID available, asking user for fallback");
+
+        Alert.alert(
+          "Audio Not Available",
+          "Audio is not available for this content. Would you like to play the video instead?",
+          [
+            {
+              text: "Cancel",
+              style: "cancel",
+            },
+            {
+              text: "Play Video",
+              onPress: () => {
+                // Navigate to video mode without changing preference
+                router.push({
+                  pathname: "/video",
+                  params: {
+                    videoUrl: naat.videoUrl,
+                    title: naat.title,
+                    channelName: naat.channelName,
+                    thumbnailUrl: naat.thumbnailUrl,
+                    youtubeId: naat.youtubeId,
+                    audioId: audioId,
+                    isFallback: "true", // Mark as fallback so preference isn't changed
+                  },
+                });
+              },
+            },
+          ],
+        );
         return;
       }
 
@@ -202,21 +219,40 @@ export default function HomeScreen() {
           if (response.success && response.audioUrl) {
             audioUrl = response.audioUrl;
           } else {
-            // Fallback to video mode if audio not available
-            console.log("Audio not available, falling back to video mode");
-            showErrorToast("Audio not available. Playing video instead.");
-            router.push({
-              pathname: "/video",
-              params: {
-                videoUrl: naat.videoUrl,
-                title: naat.title,
-                channelName: naat.channelName,
-                thumbnailUrl: naat.thumbnailUrl,
-                youtubeId: naat.youtubeId,
-                audioId: audioId,
-                isFallback: "true",
-              },
-            });
+            // Audio not available - ask user before falling back to video
+            console.log("Audio not available, asking user for fallback");
+
+            Alert.alert(
+              "Audio Not Available",
+              "Audio is not available for this content. Would you like to play the video instead?",
+              [
+                {
+                  text: "Cancel",
+                  style: "cancel",
+                  onPress: () => {
+                    showErrorToast("Playback cancelled");
+                  },
+                },
+                {
+                  text: "Play Video",
+                  onPress: () => {
+                    // Navigate to video mode without changing preference
+                    router.push({
+                      pathname: "/video",
+                      params: {
+                        videoUrl: naat.videoUrl,
+                        title: naat.title,
+                        channelName: naat.channelName,
+                        thumbnailUrl: naat.thumbnailUrl,
+                        youtubeId: naat.youtubeId,
+                        audioId: audioId,
+                        isFallback: "true", // Mark as fallback so preference isn't changed
+                      },
+                    });
+                  },
+                },
+              ],
+            );
             return;
           }
         }
@@ -234,21 +270,40 @@ export default function HomeScreen() {
 
         await loadAndPlay(audioMetadata);
       } catch (err) {
-        // Fallback to video mode on error
-        console.error("Failed to load audio, falling back to video mode:", err);
-        showErrorToast("Failed to load audio. Playing video instead.");
-        router.push({
-          pathname: "/video",
-          params: {
-            videoUrl: naat.videoUrl,
-            title: naat.title,
-            channelName: naat.channelName,
-            thumbnailUrl: naat.thumbnailUrl,
-            youtubeId: naat.youtubeId,
-            audioId: audioId,
-            isFallback: "true",
-          },
-        });
+        // Error loading audio - ask user before falling back to video
+        console.error("Failed to load audio:", err);
+
+        Alert.alert(
+          "Audio Loading Failed",
+          "Unable to load audio. Would you like to play the video instead?",
+          [
+            {
+              text: "Cancel",
+              style: "cancel",
+              onPress: () => {
+                showErrorToast("Playback cancelled");
+              },
+            },
+            {
+              text: "Play Video",
+              onPress: () => {
+                // Navigate to video mode without changing preference
+                router.push({
+                  pathname: "/video",
+                  params: {
+                    videoUrl: naat.videoUrl,
+                    title: naat.title,
+                    channelName: naat.channelName,
+                    thumbnailUrl: naat.thumbnailUrl,
+                    youtubeId: naat.youtubeId,
+                    audioId: audioId,
+                    isFallback: "true", // Mark as fallback so preference isn't changed
+                  },
+                });
+              },
+            },
+          ],
+        );
       }
     },
     [loadAndPlay, router],
@@ -308,11 +363,8 @@ export default function HomeScreen() {
         // Check saved playback mode preference
         const savedMode = await storageService.loadPlaybackMode();
 
-        // If user prefers audio mode, load audio directly
-        if (savedMode === "audio") {
-          await loadAudioDirectly(naat);
-        } else {
-          // Default to video mode - navigate to video screen
+        // If user prefers video mode, navigate to video screen
+        if (savedMode === "video") {
           router.push({
             pathname: "/video",
             params: {
@@ -325,22 +377,14 @@ export default function HomeScreen() {
               isFallback: "false",
             },
           });
+        } else {
+          // Default to audio mode - load audio directly
+          await loadAudioDirectly(naat);
         }
       } catch (error) {
         console.error("Error checking playback preference:", error);
-        // Fallback to video mode on error
-        router.push({
-          pathname: "/video",
-          params: {
-            videoUrl: naat.videoUrl,
-            title: naat.title,
-            channelName: naat.channelName,
-            thumbnailUrl: naat.thumbnailUrl,
-            youtubeId: naat.youtubeId,
-            audioId: naat.audioId,
-            isFallback: "false",
-          },
-        });
+        // Fallback to audio mode on error
+        await loadAudioDirectly(naat);
       }
     },
     [loadAudioDirectly, router],
