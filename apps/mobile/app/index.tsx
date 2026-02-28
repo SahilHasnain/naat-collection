@@ -475,7 +475,10 @@ export default function HomeScreen() {
           }}
           ListHeaderComponent={
             <>
-              {!isSearching ? (
+              {!isSearching &&
+              (selectedFilter !== "forYou" ||
+                selectedChannelId !== null ||
+                selectedDuration !== "all") ? (
                 <>
                   <UnifiedFilterBar
                     selectedSort={selectedFilter}
