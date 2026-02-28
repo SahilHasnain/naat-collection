@@ -252,14 +252,22 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
               activeOpacity={1}
               onPress={() => setShowOptionsMenu(false)}
               className="absolute inset-0 z-40"
+              style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
               accessibilityRole="button"
               accessibilityLabel="Close menu"
             />
 
             {/* Menu */}
             <View
-              className="absolute top-16 right-5 rounded-lg shadow-lg z-50 min-w-[200px]"
-              style={{ backgroundColor: colors.background.secondary }}
+              className="absolute top-20 right-5 rounded-2xl overflow-hidden z-50 min-w-[220px]"
+              style={{
+                backgroundColor: colors.background.secondary,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.4,
+                shadowRadius: 16,
+                elevation: 8,
+              }}
             >
               {/* Download/Delete */}
               {showDownloadButton && (
@@ -278,33 +286,53 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       handleDownload();
                     }
                   }}
-                  className="flex-row items-center gap-3 px-4 py-3 border-b border-neutral-700"
+                  className="flex-row items-center px-5 py-4"
+                  style={{
+                    backgroundColor:
+                      showDownloadButton && (isDownloaded || isDownloading)
+                        ? "transparent"
+                        : "transparent",
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.border.secondary,
+                  }}
                   accessibilityRole="button"
                 >
-                  <Ionicons
-                    name={
-                      isDownloaded
-                        ? "checkmark-circle"
+                  <View
+                    className="w-9 h-9 items-center justify-center rounded-full mr-3"
+                    style={{ backgroundColor: colors.background.elevated }}
+                  >
+                    <Ionicons
+                      name={
+                        isDownloaded
+                          ? "checkmark-circle"
+                          : isDownloading
+                            ? "hourglass"
+                            : "download-outline"
+                      }
+                      size={20}
+                      color={
+                        isDownloaded
+                          ? "#22c55e"
+                          : isDownloading
+                            ? "#3b82f6"
+                            : "#e5e5e5"
+                      }
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-medium text-white">
+                      {isDownloaded
+                        ? "Delete Download"
                         : isDownloading
-                          ? "hourglass"
-                          : "download"
-                    }
-                    size={20}
-                    color={
-                      isDownloaded
-                        ? "#22c55e"
-                        : isDownloading
-                          ? "#3b82f6"
-                          : "white"
-                    }
-                  />
-                  <Text className="text-base text-white">
-                    {isDownloaded
-                      ? "Delete Download"
-                      : isDownloading
-                        ? `Downloading ${Math.round(downloadProgress * 100)}%`
-                        : "Download"}
-                  </Text>
+                          ? "Downloading..."
+                          : "Download"}
+                    </Text>
+                    {isDownloading && (
+                      <Text className="text-xs text-neutral-400 mt-0.5">
+                        {Math.round(downloadProgress * 100)}% complete
+                      </Text>
+                    )}
+                  </View>
                 </TouchableOpacity>
               )}
 
@@ -314,22 +342,37 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   toggleRepeat();
                   setShowOptionsMenu(false);
                 }}
-                className="flex-row items-center gap-3 px-4 py-3 border-b border-neutral-700"
+                className="flex-row items-center px-5 py-4"
+                style={{
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border.secondary,
+                }}
                 accessibilityRole="button"
               >
-                <Ionicons
-                  name="repeat"
-                  size={20}
-                  color={isRepeatEnabled ? colors.accent.primary : "white"}
-                />
-                <Text
-                  className="text-base"
+                <View
+                  className="w-9 h-9 items-center justify-center rounded-full mr-3"
                   style={{
-                    color: isRepeatEnabled ? colors.accent.primary : "white",
+                    backgroundColor: isRepeatEnabled
+                      ? colors.accent.primary + "20"
+                      : colors.background.elevated,
                   }}
                 >
-                  Repeat {isRepeatEnabled ? "(On)" : "(Off)"}
-                </Text>
+                  <Ionicons
+                    name="repeat"
+                    size={20}
+                    color={isRepeatEnabled ? colors.accent.primary : "#e5e5e5"}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text
+                    className="text-sm font-medium"
+                    style={{
+                      color: isRepeatEnabled ? colors.accent.primary : "white",
+                    }}
+                  >
+                    Repeat
+                  </Text>
+                </View>
               </TouchableOpacity>
 
               {/* Autoplay */}
@@ -338,22 +381,41 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   toggleAutoplay();
                   setShowOptionsMenu(false);
                 }}
-                className="flex-row items-center gap-3 px-4 py-3 border-b border-neutral-700"
+                className="flex-row items-center px-5 py-4"
+                style={{
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border.secondary,
+                }}
                 accessibilityRole="button"
               >
-                <Ionicons
-                  name="play-forward"
-                  size={20}
-                  color={isAutoplayEnabled ? colors.accent.primary : "white"}
-                />
-                <Text
-                  className="text-base"
+                <View
+                  className="w-9 h-9 items-center justify-center rounded-full mr-3"
                   style={{
-                    color: isAutoplayEnabled ? colors.accent.primary : "white",
+                    backgroundColor: isAutoplayEnabled
+                      ? colors.accent.primary + "20"
+                      : colors.background.elevated,
                   }}
                 >
-                  Autoplay {isAutoplayEnabled ? "(On)" : "(Off)"}
-                </Text>
+                  <Ionicons
+                    name="play-forward"
+                    size={20}
+                    color={
+                      isAutoplayEnabled ? colors.accent.primary : "#e5e5e5"
+                    }
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text
+                    className="text-sm font-medium"
+                    style={{
+                      color: isAutoplayEnabled
+                        ? colors.accent.primary
+                        : "white",
+                    }}
+                  >
+                    Autoplay
+                  </Text>
+                </View>
               </TouchableOpacity>
 
               {/* A/B Repeat Mode Toggle - Show when no points are set */}
@@ -363,22 +425,37 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     handleToggleABRepeatMode();
                     setShowOptionsMenu(false);
                   }}
-                  className="flex-row items-center gap-3 px-4 py-3 border-b border-neutral-700"
+                  className="flex-row items-center px-5 py-4"
+                  style={{
+                    borderBottomWidth: bothPointsSet ? 1 : 0,
+                    borderBottomColor: colors.border.secondary,
+                  }}
                   accessibilityRole="button"
                 >
-                  <Ionicons
-                    name="repeat"
-                    size={20}
-                    color={isABRepeatMode ? colors.accent.primary : "white"}
-                  />
-                  <Text
-                    className="text-base"
+                  <View
+                    className="w-9 h-9 items-center justify-center rounded-full mr-3"
                     style={{
-                      color: isABRepeatMode ? colors.accent.primary : "white",
+                      backgroundColor: isABRepeatMode
+                        ? colors.accent.primary + "20"
+                        : colors.background.elevated,
                     }}
                   >
-                    A/B Mode {isABRepeatMode ? "(On)" : "(Off)"}
-                  </Text>
+                    <Ionicons
+                      name="repeat"
+                      size={20}
+                      color={isABRepeatMode ? colors.accent.primary : "#e5e5e5"}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text
+                      className="text-sm font-medium"
+                      style={{
+                        color: isABRepeatMode ? colors.accent.primary : "white",
+                      }}
+                    >
+                      A/B Repeat Mode
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               )}
 
@@ -386,20 +463,34 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
               {bothPointsSet && (
                 <>
                   <TouchableOpacity
-                    className="flex-row items-center gap-3 px-4 py-3 border-b border-neutral-700"
+                    className="flex-row items-center px-5 py-4"
+                    style={{
+                      borderBottomWidth: 1,
+                      borderBottomColor: colors.border.secondary,
+                    }}
                     disabled
                   >
-                    <Ionicons
-                      name="repeat"
-                      size={20}
-                      color={colors.accent.primary}
-                    />
-                    <Text
-                      className="text-base"
-                      style={{ color: colors.accent.primary }}
+                    <View
+                      className="w-9 h-9 items-center justify-center rounded-full mr-3"
+                      style={{ backgroundColor: colors.accent.primary + "20" }}
                     >
-                      A/B Repeat
-                    </Text>
+                      <Ionicons
+                        name="repeat"
+                        size={20}
+                        color={colors.accent.primary}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text
+                        className="text-sm font-medium"
+                        style={{ color: colors.accent.primary }}
+                      >
+                        A/B Repeat
+                      </Text>
+                      <Text className="text-xs text-neutral-400 mt-0.5">
+                        Loop active
+                      </Text>
+                    </View>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -407,13 +498,27 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       handleClearABRepeat();
                       setShowOptionsMenu(false);
                     }}
-                    className="flex-row items-center gap-3 px-4 py-3"
+                    className="flex-row items-center px-5 py-4"
                     accessibilityRole="button"
                   >
-                    <Ionicons name="close-circle" size={20} color="white" />
-                    <Text className="text-base text-white">
-                      Clear A/B Repeat
-                    </Text>
+                    <View
+                      className="w-9 h-9 items-center justify-center rounded-full mr-3"
+                      style={{ backgroundColor: colors.background.elevated }}
+                    >
+                      <Ionicons
+                        name="close-circle-outline"
+                        size={20}
+                        color="#e5e5e5"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-medium text-white">
+                        Clear Loop
+                      </Text>
+                      <Text className="text-xs text-neutral-400 mt-0.5">
+                        Remove A/B points
+                      </Text>
+                    </View>
                   </TouchableOpacity>
                 </>
               )}
@@ -424,7 +529,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         {isLoading ? (
           <View className="items-center justify-center flex-1">
             <ActivityIndicator size="large" color={colors.accent.primary} />
-            <Text className="mt-4 text-white">
+            <Text className="mt-4 text-sm text-neutral-400">
               {currentAudio.isLocalFile
                 ? "Preparing audio..."
                 : "Loading audio..."}
@@ -433,35 +538,36 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         ) : (
           <View className="flex-1">
             {/* Album Art / Thumbnail */}
-            <View className="items-center justify-center flex-1 px-8">
+            <View className="items-center justify-center flex-1 px-6">
               <View className="relative">
                 <Image
                   source={{ uri: currentAudio.thumbnailUrl }}
-                  style={{ width: 320, height: 180 }}
-                  className="rounded-2xl"
+                  style={{ width: 340, height: 191 }}
+                  className="rounded-xl"
                   contentFit="cover"
                   cachePolicy="memory-disk"
                 />
               </View>
 
               {/* Title and Channel */}
-              <View className="w-full mt-8">
+              <View className="w-full mt-10 px-2">
                 <Text
-                  className="text-2xl font-bold text-center text-white"
-                  numberOfLines={2}
+                  className="text-xl font-semibold text-white"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                 >
                   {currentAudio.title}
                 </Text>
-                <Text className="mt-2 text-base text-center text-neutral-400">
+                <Text className="mt-3 text-sm text-neutral-400 font-normal">
                   {currentAudio.channelName}
                 </Text>
               </View>
             </View>
 
             {/* Playback Controls */}
-            <View className="px-6 pb-8">
+            <View className="px-6 pb-10">
               {/* Seek Bar */}
-              <View className="mb-4">
+              <View className="mb-6">
                 <Slider
                   style={{ width: "100%", height: 40 }}
                   minimumValue={0}
@@ -474,11 +580,11 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 />
 
                 {/* Time Labels */}
-                <View className="flex-row justify-between">
-                  <Text className="text-sm text-neutral-400">
+                <View className="flex-row justify-between px-1">
+                  <Text className="text-xs font-medium text-neutral-500">
                     {formatTime(position)}
                   </Text>
-                  <Text className="text-sm text-neutral-400">
+                  <Text className="text-xs font-medium text-neutral-500">
                     {formatTime(duration)}
                   </Text>
                 </View>
@@ -507,21 +613,21 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
               </View>
 
               {/* Main Playback Controls */}
-              <View className="flex-row items-center justify-center gap-8">
+              <View className="flex-row items-center justify-center gap-6 mt-2">
                 {/* Seek Backward 15s */}
                 <TouchableOpacity
                   onPress={seekBackward}
-                  className="relative items-center justify-center h-14 w-14"
+                  className="relative items-center justify-center h-16 w-16"
                   accessibilityLabel="Seek backward 15 seconds"
                   accessibilityRole="button"
                 >
                   <Ionicons
                     name="refresh"
-                    size={40}
-                    color="white"
+                    size={36}
+                    color="#e5e5e5"
                     style={{ transform: [{ scaleX: -1 }] }}
                   />
-                  <Text className="absolute text-xs font-bold text-white">
+                  <Text className="absolute text-[10px] font-bold text-neutral-900">
                     15
                   </Text>
                 </TouchableOpacity>
@@ -532,10 +638,17 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   className="items-center justify-center w-20 h-20 bg-white rounded-full"
                   accessibilityRole="button"
                   accessibilityLabel={isPlaying ? "Pause" : "Play"}
+                  style={{
+                    elevation: 4,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 8,
+                  }}
                 >
                   <Ionicons
                     name={isPlaying ? "pause" : "play"}
-                    size={40}
+                    size={36}
                     color={colors.background.primary}
                   />
                 </TouchableOpacity>
@@ -543,12 +656,12 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 {/* Seek Forward 15s */}
                 <TouchableOpacity
                   onPress={seekForward}
-                  className="relative items-center justify-center h-14 w-14"
+                  className="relative items-center justify-center h-16 w-16"
                   accessibilityLabel="Seek forward 15 seconds"
                   accessibilityRole="button"
                 >
-                  <Ionicons name="refresh" size={40} color="white" />
-                  <Text className="absolute text-xs font-bold text-white">
+                  <Ionicons name="refresh" size={36} color="#e5e5e5" />
+                  <Text className="absolute text-[10px] font-bold text-neutral-900">
                     15
                   </Text>
                 </TouchableOpacity>
@@ -556,10 +669,10 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
 
               {/* A/B Repeat Buttons - Show when mode is on but points not fully set */}
               {isABRepeatMode && !bothPointsSet && (
-                <View className="flex-row items-center justify-center gap-4 mt-6">
+                <View className="flex-row items-center justify-center gap-3 mt-8">
                   <TouchableOpacity
                     onPress={handleSetPointA}
-                    className="flex-row items-center gap-2 px-6 py-3 rounded-lg"
+                    className="flex-row items-center gap-2 px-5 py-2.5 rounded-full"
                     style={{
                       backgroundColor:
                         abRepeatPointA !== null
@@ -571,22 +684,22 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   >
                     <Ionicons
                       name="flag"
-                      size={20}
+                      size={18}
                       color={abRepeatPointA !== null ? "black" : "white"}
                     />
                     <Text
-                      className="text-base font-semibold"
+                      className="text-sm font-medium"
                       style={{
                         color: abRepeatPointA !== null ? "black" : "white",
                       }}
                     >
-                      Set Point A
+                      Point A
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={handleSetPointB}
-                    className="flex-row items-center gap-2 px-6 py-3 rounded-lg"
+                    className="flex-row items-center gap-2 px-5 py-2.5 rounded-full"
                     style={{
                       backgroundColor:
                         abRepeatPointB !== null
@@ -599,11 +712,11 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   >
                     <Ionicons
                       name="flag"
-                      size={20}
+                      size={18}
                       color={abRepeatPointB !== null ? "white" : "#666"}
                     />
                     <Text
-                      className="text-base font-semibold"
+                      className="text-sm font-medium"
                       style={{
                         color:
                           abRepeatPointB !== null
@@ -613,7 +726,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                               : "white",
                       }}
                     >
-                      Set Point B
+                      Point B
                     </Text>
                   </TouchableOpacity>
                 </View>
