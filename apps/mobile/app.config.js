@@ -56,7 +56,7 @@ export default {
     },
     web: {
       output: "static",
-      favicon: "./assets/images/icon.png",
+      favicon: "./assets/images/favicon.png",
       bundler: "metro",
     },
     plugins: [
@@ -64,7 +64,7 @@ export default {
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/android-icon-foreground.png",
+          image: "./assets/images/splash-icon.png",
           resizeMode: "cover",
           backgroundColor: "#000000",
         },
