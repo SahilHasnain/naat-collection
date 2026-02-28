@@ -30,7 +30,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
           duration: 1000,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
 
     animation.start();
@@ -61,36 +61,35 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
 
 export const SkeletonDownloadCard: React.FC = () => {
   return (
-    <View className="mb-4 overflow-hidden rounded-2xl bg-neutral-800 px-4">
+    <View className="px-4 mb-3">
       <View className="flex-row py-3">
-        {/* Thumbnail skeleton */}
-        <SkeletonLoader width={120} height={120} borderRadius={12} />
-
-        {/* Content skeleton */}
-        <View className="flex-1 ml-3 justify-between py-2">
-          {/* Title skeleton */}
-          <View>
-            <SkeletonLoader
-              width="90%"
-              height={16}
-              style={{ marginBottom: 8 }}
-            />
-            <SkeletonLoader width="70%" height={16} />
-          </View>
-
-          {/* Metadata skeleton */}
-          <View>
-            <SkeletonLoader
-              width="60%"
-              height={12}
-              style={{ marginBottom: 6 }}
-            />
-            <SkeletonLoader width="40%" height={12} />
+        {/* Thumbnail skeleton with duration overlay */}
+        <View className="relative">
+          <SkeletonLoader width={168} height={94} borderRadius={12} />
+          {/* Duration overlay skeleton */}
+          <View className="absolute bottom-1 right-1">
+            <SkeletonLoader width={32} height={16} borderRadius={4} />
           </View>
         </View>
 
-        {/* Delete button skeleton */}
-        <View className="justify-center ml-2">
+        {/* Content skeleton */}
+        <View className="flex-1 ml-3 justify-start">
+          {/* Title skeleton - 2 lines */}
+          <SkeletonLoader width="95%" height={14} style={{ marginBottom: 4 }} />
+          <SkeletonLoader width="75%" height={14} style={{ marginBottom: 8 }} />
+
+          {/* Channel name with checkmark skeleton */}
+          <View className="flex-row items-center mb-2">
+            <SkeletonLoader width={14} height={14} borderRadius={7} />
+            <SkeletonLoader width={100} height={12} style={{ marginLeft: 4 }} />
+          </View>
+
+          {/* Date skeleton */}
+          <SkeletonLoader width={80} height={12} />
+        </View>
+
+        {/* Delete button skeleton - top aligned */}
+        <View className="justify-start pt-1">
           <SkeletonLoader width={40} height={40} borderRadius={20} />
         </View>
       </View>
