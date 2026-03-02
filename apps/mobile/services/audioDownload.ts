@@ -16,6 +16,7 @@ export interface DownloadMetadata {
   localUri: string;
   downloadedAt: number;
   fileSize: number;
+  duration: number; // in seconds
 }
 
 export interface DownloadProgress {
@@ -54,7 +55,7 @@ class AudioDownloadService {
   }
 
   /**
-   * Get download metadata
+   * Get download metadata with migration for duration field
    */
   async getDownloadMetadata(audioId: string): Promise<DownloadMetadata | null> {
     try {
@@ -63,7 +64,16 @@ class AudioDownloadService {
 
       const metadata: Record<string, DownloadMetadata> =
         JSON.parse(metadataJson);
-      return metadata[audioId] || null;
+      const downloadMetadata = metadata[audioId];
+
+      if (!downloadMetadata) return null;
+
+      // Migration: Add default duration if missing
+      if (typeof downloadMetadata.duration === "undefined") {
+        downloadMetadata.duration = 0; // Default to 0 if duration is missing
+      }
+
+      return downloadMetadata;
     } catch {
       return null;
     }
@@ -82,7 +92,7 @@ class AudioDownloadService {
       allMetadata[metadata.audioId] = metadata;
       await AsyncStorage.setItem(
         DOWNLOAD_METADATA_KEY,
-        JSON.stringify(allMetadata)
+        JSON.stringify(allMetadata),
       );
     } catch (error) {
       console.error("Failed to save download metadata:", error);
@@ -97,7 +107,8 @@ class AudioDownloadService {
     audioUrl: string,
     youtubeId: string,
     title: string,
-    onProgress?: (progress: DownloadProgress) => void
+    duration: number,
+    onProgress?: (progress: DownloadProgress) => void,
   ): Promise<string> {
     await this.initialize();
 
@@ -127,7 +138,7 @@ class AudioDownloadService {
           };
           onProgress(progress);
         }
-      }
+      },
     );
 
     const result = await downloadResumable.downloadAsync();
@@ -145,6 +156,7 @@ class AudioDownloadService {
       localUri: result.uri,
       downloadedAt: Date.now(),
       fileSize: fileInfo.exists && "size" in fileInfo ? fileInfo.size : 0,
+      duration,
     };
 
     await this.saveDownloadMetadata(metadata);
@@ -173,7 +185,7 @@ class AudioDownloadService {
         delete allMetadata[audioId];
         await AsyncStorage.setItem(
           DOWNLOAD_METADATA_KEY,
-          JSON.stringify(allMetadata)
+          JSON.stringify(allMetadata),
         );
       }
     } catch (error) {
@@ -182,7 +194,7 @@ class AudioDownloadService {
   }
 
   /**
-   * Get all downloaded audios
+   * Get all downloaded audios with migration for duration field
    */
   async getAllDownloads(): Promise<DownloadMetadata[]> {
     try {
@@ -191,7 +203,16 @@ class AudioDownloadService {
 
       const allMetadata: Record<string, DownloadMetadata> =
         JSON.parse(metadataJson);
-      return Object.values(allMetadata);
+
+      // Migration: Add default duration if missing for any downloads
+      const downloads = Object.values(allMetadata).map((download) => {
+        if (typeof download.duration === "undefined") {
+          download.duration = 0; // Default to 0 if duration is missing
+        }
+        return download;
+      });
+
+      return downloads;
     } catch {
       return [];
     }

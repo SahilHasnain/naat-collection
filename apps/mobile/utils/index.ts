@@ -37,4 +37,8 @@ export {
   type ToastType,
 } from "./toast";
 
-export { filterDownloadsByQuery, sortDownloads } from "./formatters";
+export {
+  filterDownloadsByQuery,
+  formatDuration,
+  sortDownloads,
+} from "./formatters";
