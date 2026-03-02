@@ -96,11 +96,23 @@ export function formatDownloadDate(timestamp: number): string {
 }
 
 /**
+ * Format duration from seconds to MM:SS format
+ */
+export function formatDuration(seconds: number): string {
+  if (seconds <= 0) return "0:00";
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+}
+
+/**
  * Filter downloads by search query (searches title and channel name)
  */
 export function filterDownloadsByQuery(
   downloads: DownloadMetadata[],
-  query: string
+  query: string,
 ): DownloadMetadata[] {
   if (!query || query.trim() === "") {
     return downloads;
@@ -122,7 +134,7 @@ export function filterDownloadsByQuery(
 export function sortDownloads(
   downloads: DownloadMetadata[],
   sortBy: "date" | "title",
-  sortOrder: "asc" | "desc"
+  sortOrder: "asc" | "desc",
 ): DownloadMetadata[] {
   const sorted = [...downloads];
 

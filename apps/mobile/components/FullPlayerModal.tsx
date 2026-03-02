@@ -95,6 +95,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         currentAudio.audioUrl,
         currentAudio.youtubeId || "",
         currentAudio.title,
+        Math.floor(duration / 1000), // Convert from milliseconds to seconds
         (progress) => {
           setDownloadProgress(progress.progress);
         },

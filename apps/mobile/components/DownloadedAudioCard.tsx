@@ -1,5 +1,5 @@
 import { DownloadedAudioCardProps } from "@/types";
-import { formatDownloadDate } from "@/utils/formatters";
+import { formatDownloadDate, formatDuration } from "@/utils/formatters";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
@@ -12,8 +12,8 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
     // Generate thumbnail URL from YouTube ID
     const thumbnailUrl = `https://img.youtube.com/vi/${audio.youtubeId}/mqdefault.jpg`;
 
-    // Mock duration - you can add this to your audio metadata
-    const duration = "3:26";
+    // Format duration from seconds to MM:SS
+    const duration = formatDuration(audio.duration);
 
     return (
       <Pressable
@@ -73,7 +73,7 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
           <View className="flex-row items-center mb-0.5" accessible={false}>
             <Ionicons name="checkmark-circle" size={14} color="#aaaaaa" />
             <Text className="ml-1 text-xs text-neutral-400" accessible={false}>
-              Downloaded Audio
+              Downloaded
             </Text>
           </View>
 
