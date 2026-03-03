@@ -40,8 +40,7 @@ export default {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/android-icon-foreground.png",
-        backgroundImage: "./assets/images/android-icon-background.png",
+        foregroundImage: "./assets/images/android-icon-foreground.png"
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
