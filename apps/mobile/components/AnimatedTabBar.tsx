@@ -40,7 +40,7 @@ export function AnimatedTabBar({
           borderTopColor: colors.border.secondary,
           borderTopWidth: 0.5,
           height: TAB_BAR_HEIGHT + insets.bottom,
-          paddingBottom: insets.bottom,
+          paddingBottom: insets.bottom +4,
           ...Platform.select({
             ios: {
               shadowColor: "#000",
