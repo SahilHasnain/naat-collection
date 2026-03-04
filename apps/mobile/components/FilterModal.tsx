@@ -1,7 +1,12 @@
 import type { Channel, DurationOption, SortOption } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface FilterModalProps {
@@ -35,6 +40,29 @@ export function FilterModal({
   const [activeTab, setActiveTab] = useState<"sort" | "channel" | "duration">(
     "sort",
   );
+
+  // Animation values
+  const backdropOpacity = useSharedValue(0);
+  const translateY = useSharedValue(500);
+
+  // Animate in/out based on visible prop
+  useEffect(() => {
+    if (visible) {
+      backdropOpacity.value = withTiming(1, { duration: 200 });
+      translateY.value = withTiming(0, { duration: 250 });
+    } else {
+      backdropOpacity.value = withTiming(0, { duration: 150 });
+      translateY.value = withTiming(500, { duration: 200 });
+    }
+  }, [visible]);
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
+  }));
+
+  const modalStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   const sortFilters: {
     value: SortOption;
@@ -107,39 +135,43 @@ export function FilterModal({
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="none"
       onRequestClose={onClose}
     >
-      <Pressable className="flex-1 bg-black/50" onPress={onClose}>
-        <SafeAreaView
-          edges={["bottom"]}
-          className="absolute bottom-0 left-0 right-0"
-        >
-          <Pressable
-            className="bg-neutral-800 rounded-t-3xl"
-            onPress={(e) => e.stopPropagation()}
+      <Animated.View style={[{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)' }, backdropStyle]}>
+        <Pressable className="flex-1" onPress={onClose}>
+          <SafeAreaView
+            edges={["bottom"]}
+            className="absolute bottom-0 left-0 right-0"
           >
+            <Animated.View style={modalStyle}>
+              <Pressable
+                className="bg-neutral-800 rounded-t-3xl"
+                onPress={(e) => e.stopPropagation()}
+              >
             {/* Modal Header */}
-            <View className="flex-row items-center justify-between px-6 py-4 border-b border-neutral-700">
-              <Text className="text-white text-lg font-bold">Filters</Text>
-              <Pressable onPress={onClose}>
-                <Text className="text-blue-500 text-base font-semibold">
-                  Done
-                </Text>
+            <View className="flex-row items-center justify-between px-6 py-5">
+              <Text className="text-white text-xl font-bold">Filters</Text>
+              <Pressable
+                onPress={onClose}
+                style={{ minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' }}
+              >
+                <Ionicons name="close" size={24} color="#aaaaaa" />
               </Pressable>
             </View>
 
             {/* Tabs */}
-            <View className="flex-row border-b border-neutral-700">
+            <View className="flex-row px-6 mb-2">
               <Pressable
                 onPress={() => setActiveTab("sort")}
-                className={`flex-1 py-3 ${
-                  activeTab === "sort" ? "border-b-2 border-blue-500" : ""
+                className={`flex-1 py-3 rounded-full mr-2 ${
+                  activeTab === "sort" ? "bg-blue-500" : "bg-neutral-700"
                 }`}
+                style={{ minHeight: 44 }}
               >
                 <Text
-                  className={`text-center font-semibold ${
-                    activeTab === "sort" ? "text-blue-500" : "text-neutral-400"
+                  className={`text-center font-semibold text-sm ${
+                    activeTab === "sort" ? "text-white" : "text-neutral-400"
                   }`}
                 >
                   Sort
@@ -147,14 +179,15 @@ export function FilterModal({
               </Pressable>
               <Pressable
                 onPress={() => setActiveTab("channel")}
-                className={`flex-1 py-3 ${
-                  activeTab === "channel" ? "border-b-2 border-blue-500" : ""
+                className={`flex-1 py-3 rounded-full mr-2 ${
+                  activeTab === "channel" ? "bg-blue-500" : "bg-neutral-700"
                 }`}
+                style={{ minHeight: 44 }}
               >
                 <Text
-                  className={`text-center font-semibold ${
+                  className={`text-center font-semibold text-sm ${
                     activeTab === "channel"
-                      ? "text-blue-500"
+                      ? "text-white"
                       : "text-neutral-400"
                   }`}
                 >
@@ -163,14 +196,15 @@ export function FilterModal({
               </Pressable>
               <Pressable
                 onPress={() => setActiveTab("duration")}
-                className={`flex-1 py-3 ${
-                  activeTab === "duration" ? "border-b-2 border-blue-500" : ""
+                className={`flex-1 py-3 rounded-full ${
+                  activeTab === "duration" ? "bg-blue-500" : "bg-neutral-700"
                 }`}
+                style={{ minHeight: 44 }}
               >
                 <Text
-                  className={`text-center font-semibold ${
+                  className={`text-center font-semibold text-sm ${
                     activeTab === "duration"
-                      ? "text-blue-500"
+                      ? "text-white"
                       : "text-neutral-400"
                   }`}
                 >
@@ -195,24 +229,25 @@ export function FilterModal({
                           onSortChange(filter.value);
                           onClose();
                         }}
-                        className={`flex-row items-center p-4 rounded-lg mb-2 ${
+                        className={`flex-row items-center p-4 rounded-xl mb-2 ${
                           isSelected ? "bg-blue-500" : "bg-neutral-700"
                         }`}
+                        style={{ minHeight: 56 }}
                       >
                         <Ionicons
                           name={filter.iconName}
-                          size={20}
+                          size={22}
                           color="white"
                         />
                         <Text
-                          className={`flex-1 font-semibold ml-3 ${
+                          className={`flex-1 font-semibold text-base ml-3 ${
                             isSelected ? "text-white" : "text-neutral-300"
                           }`}
                         >
                           {filter.label}
                         </Text>
                         {isSelected && (
-                          <Ionicons name="checkmark" size={20} color="white" />
+                          <Ionicons name="checkmark-circle" size={22} color="white" />
                         )}
                       </Pressable>
                     );
@@ -244,24 +279,25 @@ export function FilterModal({
                           onClose();
                         }}
                         disabled={channelsLoading}
-                        className={`flex-row items-center p-4 rounded-lg mb-2 ${
+                        className={`flex-row items-center p-4 rounded-xl mb-2 ${
                           isSelected ? "bg-blue-500" : "bg-neutral-700"
                         }`}
+                        style={{ minHeight: 56 }}
                       >
                         <Ionicons
                           name={option.iconName}
-                          size={20}
+                          size={22}
                           color="white"
                         />
                         <Text
-                          className={`flex-1 font-semibold ml-3 ${
+                          className={`flex-1 font-semibold text-base ml-3 ${
                             isSelected ? "text-white" : "text-neutral-300"
                           }`}
                         >
                           {option.name}
                         </Text>
                         {isSelected && (
-                          <Ionicons name="checkmark" size={20} color="white" />
+                          <Ionicons name="checkmark-circle" size={22} color="white" />
                         )}
                       </Pressable>
                     );
@@ -280,24 +316,25 @@ export function FilterModal({
                           onDurationChange(filter.value);
                           onClose();
                         }}
-                        className={`flex-row items-center p-4 rounded-lg mb-2 ${
+                        className={`flex-row items-center p-4 rounded-xl mb-2 ${
                           isSelected ? "bg-blue-500" : "bg-neutral-700"
                         }`}
+                        style={{ minHeight: 56 }}
                       >
                         <Ionicons
                           name={filter.iconName}
-                          size={20}
+                          size={22}
                           color="white"
                         />
                         <Text
-                          className={`flex-1 font-semibold ml-3 ${
+                          className={`flex-1 font-semibold text-base ml-3 ${
                             isSelected ? "text-white" : "text-neutral-300"
                           }`}
                         >
                           {filter.label}
                         </Text>
                         {isSelected && (
-                          <Ionicons name="checkmark" size={20} color="white" />
+                          <Ionicons name="checkmark-circle" size={22} color="white" />
                         )}
                       </Pressable>
                     );
@@ -306,8 +343,10 @@ export function FilterModal({
               )}
             </ScrollView>
           </Pressable>
+        </Animated.View>
         </SafeAreaView>
       </Pressable>
+    </Animated.View>
     </Modal>
   );
 }
