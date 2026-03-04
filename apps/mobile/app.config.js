@@ -66,6 +66,8 @@ export default {
           image: "./assets/images/splash-icon.png",
           resizeMode: "cover",
           backgroundColor: "#000000",
+          width: "1024px",
+          height: "1024px"
         },
       ],
       [
