@@ -1,9 +1,9 @@
 import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import type {
-  Channel,
-  DurationOption,
-  SortOption,
+    Channel,
+    DurationOption,
+    SortOption,
 } from "@naat-collection/shared";
 import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
@@ -140,10 +140,9 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
     <>
       {/* Compact Filter Bar */}
       <View
-        className="border-b pt-0"
+        className="pt-0"
         style={{
           backgroundColor: colors.background.primary,
-          borderBottomColor: colors.border.secondary,
         }}
       >
         <ScrollView
@@ -157,12 +156,13 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               setActiveTab("sort");
               setShowModal(true);
             }}
-            className="mr-3 px-4 py-2 rounded-full flex-row items-center"
+            className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
             style={{
               backgroundColor:
                 selectedSort !== "forYou"
                   ? colors.accent.secondary
                   : colors.background.tertiary,
+              minHeight: 44,
             }}
           >
             <Ionicons
@@ -171,7 +171,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               color={selectedSort !== "forYou" ? "white" : "#d4d4d8"}
             />
             <Text
-              className={`font-semibold text-sm ml-1.5 ${
+              className={`font-semibold text-sm ml-2 ${
                 selectedSort !== "forYou" ? "text-white" : "text-neutral-300"
               }`}
             >
@@ -185,11 +185,12 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               setActiveTab("channel");
               setShowModal(true);
             }}
-            className="mr-3 px-4 py-2 rounded-full flex-row items-center"
+            className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
             style={{
               backgroundColor: selectedChannelId
                 ? colors.accent.secondary
                 : colors.background.tertiary,
+              minHeight: 44,
             }}
           >
             <Ionicons
@@ -198,7 +199,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               color={selectedChannelId ? "white" : "#d4d4d8"}
             />
             <Text
-              className={`font-semibold text-sm ml-1.5 ${
+              className={`font-semibold text-sm ml-2 ${
                 selectedChannelId ? "text-white" : "text-neutral-300"
               }`}
             >
@@ -212,12 +213,13 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               setActiveTab("duration");
               setShowModal(true);
             }}
-            className="mr-3 px-4 py-2 rounded-full flex-row items-center"
+            className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
             style={{
               backgroundColor:
                 selectedDuration !== "all"
                   ? colors.accent.secondary
                   : colors.background.tertiary,
+              minHeight: 44,
             }}
           >
             <Ionicons
@@ -226,7 +228,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               color={selectedDuration !== "all" ? "white" : "#d4d4d8"}
             />
             <Text
-              className={`font-semibold text-sm ml-1.5 ${
+              className={`font-semibold text-sm ml-2 ${
                 selectedDuration !== "all" ? "text-white" : "text-neutral-300"
               }`}
             >
@@ -242,14 +244,14 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                 onChannelChange(null);
                 onDurationChange("all");
               }}
-              className="px-4 py-2 rounded-full flex-row items-center border"
+              className="px-4 py-2.5 rounded-full flex-row items-center"
               style={{
-                backgroundColor: colors.background.tertiary,
-                borderColor: colors.border.primary,
+                backgroundColor: colors.background.secondary,
+                minHeight: 44,
               }}
             >
-              <Ionicons name="close" size={14} color="#d4d4d8" />
-              <Text className="font-semibold text-sm text-neutral-300 ml-1">
+              <Ionicons name="close-circle" size={16} color="#d4d4d8" />
+              <Text className="font-semibold text-sm text-neutral-300 ml-2">
                 Clear
               </Text>
             </Pressable>
@@ -280,14 +282,15 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
             >
               {/* Modal Header */}
               <View
-                className="flex-row items-center justify-between px-6 py-4 border-b"
+                className="flex-row items-center justify-between px-6 py-5 border-b"
                 style={{ borderBottomColor: colors.border.secondary }}
               >
-                <Text className="text-white text-lg font-bold">Filters</Text>
-                <Pressable onPress={() => setShowModal(false)}>
-                  <Text className="text-blue-500 text-base font-semibold">
-                    Done
-                  </Text>
+                <Text className="text-white text-xl font-bold">Filters</Text>
+                <Pressable
+                  onPress={() => setShowModal(false)}
+                  style={{ minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <Ionicons name="close" size={24} color={colors.text.secondary} />
                 </Pressable>
               </View>
 
@@ -298,12 +301,13 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               >
                 <Pressable
                   onPress={() => setActiveTab("sort")}
-                  className={`flex-1 py-3 ${
+                  className={`flex-1 py-4 ${
                     activeTab === "sort" ? "border-b-2 border-blue-500" : ""
                   }`}
+                  style={{ minHeight: 44 }}
                 >
                   <Text
-                    className={`text-center font-semibold ${
+                    className={`text-center font-semibold text-base ${
                       activeTab === "sort"
                         ? "text-blue-500"
                         : "text-neutral-400"
@@ -314,12 +318,13 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                 </Pressable>
                 <Pressable
                   onPress={() => setActiveTab("channel")}
-                  className={`flex-1 py-3 ${
+                  className={`flex-1 py-4 ${
                     activeTab === "channel" ? "border-b-2 border-blue-500" : ""
                   }`}
+                  style={{ minHeight: 44 }}
                 >
                   <Text
-                    className={`text-center font-semibold ${
+                    className={`text-center font-semibold text-base ${
                       activeTab === "channel"
                         ? "text-blue-500"
                         : "text-neutral-400"
@@ -330,12 +335,13 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                 </Pressable>
                 <Pressable
                   onPress={() => setActiveTab("duration")}
-                  className={`flex-1 py-3 ${
+                  className={`flex-1 py-4 ${
                     activeTab === "duration" ? "border-b-2 border-blue-500" : ""
                   }`}
+                  style={{ minHeight: 44 }}
                 >
                   <Text
-                    className={`text-center font-semibold ${
+                    className={`text-center font-semibold text-base ${
                       activeTab === "duration"
                         ? "text-blue-500"
                         : "text-neutral-400"
@@ -362,20 +368,21 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                             onSortChange(filter.value);
                             setShowModal(false);
                           }}
-                          className="flex-row items-center p-4 rounded-lg mb-2"
+                          className="flex-row items-center p-4 rounded-xl mb-2"
                           style={{
                             backgroundColor: isSelected
                               ? colors.accent.secondary
                               : colors.background.tertiary,
+                            minHeight: 56,
                           }}
                         >
                           <Ionicons
                             name={filter.iconName}
-                            size={20}
+                            size={22}
                             color="white"
                           />
                           <Text
-                            className={`flex-1 font-semibold ml-3 ${
+                            className={`flex-1 font-semibold text-base ml-3 ${
                               isSelected ? "text-white" : "text-neutral-300"
                             }`}
                           >
@@ -383,8 +390,8 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                           </Text>
                           {isSelected && (
                             <Ionicons
-                              name="checkmark"
-                              size={20}
+                              name="checkmark-circle"
+                              size={22}
                               color="white"
                             />
                           )}
@@ -418,20 +425,21 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                             setShowModal(false);
                           }}
                           disabled={channelsLoading}
-                          className="flex-row items-center p-4 rounded-lg mb-2"
+                          className="flex-row items-center p-4 rounded-xl mb-2"
                           style={{
                             backgroundColor: isSelected
                               ? colors.accent.secondary
                               : colors.background.tertiary,
+                            minHeight: 56,
                           }}
                         >
                           <Ionicons
                             name={option.iconName}
-                            size={20}
+                            size={22}
                             color="white"
                           />
                           <Text
-                            className={`flex-1 font-semibold ml-3 ${
+                            className={`flex-1 font-semibold text-base ml-3 ${
                               isSelected ? "text-white" : "text-neutral-300"
                             }`}
                           >
@@ -439,8 +447,8 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                           </Text>
                           {isSelected && (
                             <Ionicons
-                              name="checkmark"
-                              size={20}
+                              name="checkmark-circle"
+                              size={22}
                               color="white"
                             />
                           )}
@@ -461,20 +469,21 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                             onDurationChange(filter.value);
                             setShowModal(false);
                           }}
-                          className="flex-row items-center p-4 rounded-lg mb-2"
+                          className="flex-row items-center p-4 rounded-xl mb-2"
                           style={{
                             backgroundColor: isSelected
                               ? colors.accent.secondary
                               : colors.background.tertiary,
+                            minHeight: 56,
                           }}
                         >
                           <Ionicons
                             name={filter.iconName}
-                            size={20}
+                            size={22}
                             color="white"
                           />
                           <Text
-                            className={`flex-1 font-semibold ml-3 ${
+                            className={`flex-1 font-semibold text-base ml-3 ${
                               isSelected ? "text-white" : "text-neutral-300"
                             }`}
                           >
@@ -482,8 +491,8 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                           </Text>
                           {isSelected && (
                             <Ionicons
-                              name="checkmark"
-                              size={20}
+                              name="checkmark-circle"
+                              size={22}
                               color="white"
                             />
                           )}
