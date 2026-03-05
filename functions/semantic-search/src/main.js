@@ -13,31 +13,31 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const GROQ_API_URL = "https://api.groq.com/openai/v1/embeddings";
-const GROQ_EMBEDDING_MODEL = "nomic-embed-text-v1.5"; // 768 dimensions, optimized for search
+const OPENAI_API_URL = "https://api.openai.com/v1/embeddings";
+const OPENAI_EMBEDDING_MODEL = "text-embedding-3-small"; // 1536 dimensions
 
 /**
- * Generate embedding for a text using Groq API
+ * Generate embedding for a text using OpenAI API
  * @param {string} text - Text to embed
- * @param {string} groqApiKey - Groq API key
- * @returns {Promise<number[]>} Embedding vector (768 dimensions)
+ * @param {string} openaiApiKey - OpenAI API key
+ * @returns {Promise<number[]>} Embedding vector (1536 dimensions)
  */
-async function generateEmbedding(text, groqApiKey) {
-  const response = await fetch(GROQ_API_URL, {
+async function generateEmbedding(text, openaiApiKey) {
+  const response = await fetch(OPENAI_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${groqApiKey}`,
+      Authorization: `Bearer ${openaiApiKey}`,
     },
     body: JSON.stringify({
-      model: GROQ_EMBEDDING_MODEL,
+      model: OPENAI_EMBEDDING_MODEL,
       input: text,
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Groq embedding failed: ${response.status} - ${errorText}`);
+    throw new Error(`OpenAI embedding failed: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
@@ -47,7 +47,7 @@ async function generateEmbedding(text, groqApiKey) {
 /**
  * Search for similar naats using vector similarity
  * @param {Object} supabase - Supabase client
- * @param {number[]} queryEmbedding - Query embedding vector
+ * @param {number[]} queryEmbedding - Query embedding vector (1536 dimensions)
  * @param {number} limit - Maximum number of results
  * @returns {Promise<Array>} Array of matching naats with similarity scores
  */
@@ -88,12 +88,12 @@ export default async ({ req, res, log, error: logError }) => {
     log(`Semantic search query: "${query}"`);
 
     // Validate environment variables
-    const groqApiKey = process.env.GROQ_API_KEY;
+    const openaiApiKey = process.env.OPENAI_API_KEY;
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_KEY;
 
-    if (!groqApiKey || !supabaseUrl || !supabaseKey) {
-      const errorMsg = "Missing required environment variables: GROQ_API_KEY, SUPABASE_URL, or SUPABASE_KEY";
+    if (!openaiApiKey || !supabaseUrl || !supabaseKey) {
+      const errorMsg = "Missing required environment variables: OPENAI_API_KEY, SUPABASE_URL, or SUPABASE_KEY";
       logError(errorMsg);
       return res.json(
         {
@@ -109,7 +109,7 @@ export default async ({ req, res, log, error: logError }) => {
 
     // Generate embedding for the query
     log("Generating query embedding...");
-    const queryEmbedding = await generateEmbedding(query, groqApiKey);
+    const queryEmbedding = await generateEmbedding(query, openaiApiKey);
     log(`Generated embedding with ${queryEmbedding.length} dimensions`);
 
     // Search for similar naats
