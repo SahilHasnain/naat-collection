@@ -8,14 +8,13 @@ import { colors } from "@/constants/theme";
 import { useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import React, { useEffect } from "react";
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -138,35 +137,13 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
           />
 
           <View className="flex-row items-center h-full px-4">
-            {/* Thumbnail */}
-            <View
-              className="mr-3 rounded-md overflow-hidden relative"
-              style={{
-                width: 64,
-                height: 36,
-                backgroundColor: colors.background.tertiary,
-              }}
-            >
-              <Image
-                source={{ uri: currentNaat.thumbnailUrl }}
-                style={{ width: 64, height: 36 }}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-                transition={200}
-              />
+            {/* Radio Icon */}
+            <View className="mr-3 items-center justify-center">
+              <Ionicons name="radio" size={32} color={colors.accent.error} />
             </View>
 
             {/* Title and Channel */}
             <View className="flex-1 mr-3">
-              <View className="flex-row items-center mb-0.5">
-                <View className="w-1.5 h-1.5 bg-red-500 rounded-full mr-1.5" />
-                <Text
-                  className="text-red-500 font-semibold uppercase tracking-wide"
-                  style={{ fontSize: 10 }}
-                >
-                  Live
-                </Text>
-              </View>
               <Text
                 className="text-white font-semibold text-sm"
                 numberOfLines={1}

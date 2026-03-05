@@ -5,8 +5,8 @@ import { Image } from "expo-image";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  type SharedValue,
+    useAnimatedStyle,
+    type SharedValue,
 } from "react-native-reanimated";
 
 interface AnimatedHeaderProps {
@@ -21,6 +21,7 @@ interface AnimatedHeaderProps {
   channels: Channel[];
   onFilterPress: () => void;
   onSearchPress: () => void;
+  disableFilter?: boolean; // Optional prop to disable filter button
 }
 
 export function AnimatedHeader({
@@ -34,6 +35,7 @@ export function AnimatedHeader({
   channels,
   onFilterPress,
   onSearchPress,
+  disableFilter = false,
 }: AnimatedHeaderProps) {
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -91,6 +93,8 @@ export function AnimatedHeader({
               onPress={onFilterPress}
               accessibilityLabel="Open filters"
               accessibilityRole="button"
+              disabled={disableFilter}
+              style={{ opacity: disableFilter ? 0.3 : 1 }}
             >
               <Ionicons
                 name="options-outline"

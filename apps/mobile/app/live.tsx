@@ -184,7 +184,7 @@ export default function LiveScreen() {
               className="flex-row items-center rounded-xl p-3"
               style={{ backgroundColor: colors.background.secondary }}
             >
-              <View className="items-center justify-center rounded-lg mr-3" style={{ width: 80, height: 45, backgroundColor: colors.background.tertiary }}>
+              <View className="items-center justify-center mr-3">
                 <Ionicons name="radio" size={32} color={colors.accent.error} />
               </View>
               <View className="flex-1">

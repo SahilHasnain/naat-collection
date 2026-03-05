@@ -7,28 +7,28 @@ import MiniPlayer from "@/components/MiniPlayer";
 import { colors } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
 import {
-  FilterModalProvider,
-  useFilterModal,
+    FilterModalProvider,
+    useFilterModal,
 } from "@/contexts/FilterModalContext";
 import {
-  HeaderVisibilityProvider,
-  useHeaderVisibility,
+    HeaderVisibilityProvider,
+    useHeaderVisibility,
 } from "@/contexts/HeaderVisibilityContext.animated";
 import {
-  LiveRadioProvider,
-  useLiveRadioPlayer,
+    LiveRadioProvider,
+    useLiveRadioPlayer,
 } from "@/contexts/LiveRadioContext";
 import {
-  PlaybackModeProvider,
-  usePlaybackMode,
+    PlaybackModeProvider,
+    usePlaybackMode,
 } from "@/contexts/PlaybackModeContext";
 import {
-  SearchProvider,
-  useSearch as useSearchContext,
+    SearchProvider,
+    useSearch as useSearchContext,
 } from "@/contexts/SearchContext";
 import {
-  TabBarVisibilityProvider,
-  useTabBarVisibility,
+    TabBarVisibilityProvider,
+    useTabBarVisibility,
 } from "@/contexts/TabBarVisibilityContext.animated";
 import { VideoProvider } from "@/contexts/VideoContext";
 import { storageService } from "@/services/storage";
@@ -66,6 +66,9 @@ function RootLayoutContent() {
 
   // Check if user is on video screen
   const isOnVideoScreen = segments[0] === "video";
+
+  // Check if user is on homepage (index) - only enable filter on homepage
+  const isOnHomepage = segments[0] === undefined || segments[0] === "(tabs)" || segments[0] === "index";
 
   // Shared value for header (must be called unconditionally)
   const isScrolledDownValue = useSharedValue(false);
@@ -138,6 +141,7 @@ function RootLayoutContent() {
           channels={[]}
           onFilterPress={() => setShowFilterModal(true)}
           onSearchPress={() => setShowSearchModal(true)}
+          disableFilter={!isOnHomepage}
         />
       )}
 
