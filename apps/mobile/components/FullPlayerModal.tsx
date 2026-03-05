@@ -7,13 +7,13 @@ import Slider from "@react-native-community/slider";
 import { Image } from "expo-image";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -96,6 +96,8 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         currentAudio.youtubeId || "",
         currentAudio.title,
         Math.floor(duration / 1000), // Convert from milliseconds to seconds
+        currentAudio.channelName || "Unknown Channel",
+        currentAudio.views || 0,
         (progress) => {
           setDownloadProgress(progress.progress);
         },
@@ -628,7 +630,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     color="#e5e5e5"
                     style={{ transform: [{ scaleX: -1 }] }}
                   />
-                  <Text className="absolute text-[10px] font-bold text-neutral-900">
+                  <Text className="absolute text-[10px] font-bold text-white">
                     15
                   </Text>
                 </TouchableOpacity>
@@ -662,7 +664,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   accessibilityRole="button"
                 >
                   <Ionicons name="refresh" size={36} color="#e5e5e5" />
-                  <Text className="absolute text-[10px] font-bold text-neutral-900">
+                  <Text className="absolute text-[10px] font-bold text-white">
                     15
                   </Text>
                 </TouchableOpacity>

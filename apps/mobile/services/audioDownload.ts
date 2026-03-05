@@ -17,6 +17,8 @@ export interface DownloadMetadata {
   downloadedAt: number;
   fileSize: number;
   duration: number; // in seconds
+  channelName: string;
+  views: number;
 }
 
 export interface DownloadProgress {
@@ -73,6 +75,16 @@ class AudioDownloadService {
         downloadMetadata.duration = 0; // Default to 0 if duration is missing
       }
 
+      // Migration: Add default channelName if missing
+      if (typeof downloadMetadata.channelName === "undefined") {
+        downloadMetadata.channelName = "Unknown Channel";
+      }
+
+      // Migration: Add default views if missing
+      if (typeof downloadMetadata.views === "undefined") {
+        downloadMetadata.views = 0;
+      }
+
       return downloadMetadata;
     } catch {
       return null;
@@ -108,6 +120,8 @@ class AudioDownloadService {
     youtubeId: string,
     title: string,
     duration: number,
+    channelName: string,
+    views: number,
     onProgress?: (progress: DownloadProgress) => void,
   ): Promise<string> {
     await this.initialize();
@@ -157,6 +171,8 @@ class AudioDownloadService {
       downloadedAt: Date.now(),
       fileSize: fileInfo.exists && "size" in fileInfo ? fileInfo.size : 0,
       duration,
+      channelName,
+      views,
     };
 
     await this.saveDownloadMetadata(metadata);
@@ -208,6 +224,12 @@ class AudioDownloadService {
       const downloads = Object.values(allMetadata).map((download) => {
         if (typeof download.duration === "undefined") {
           download.duration = 0; // Default to 0 if duration is missing
+        }
+        if (typeof download.channelName === "undefined") {
+          download.channelName = "Unknown Channel";
+        }
+        if (typeof download.views === "undefined") {
+          download.views = 0;
         }
         return download;
       });
