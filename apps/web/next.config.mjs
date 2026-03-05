@@ -17,11 +17,10 @@ const nextConfig = {
   compress: true,
   optimizeFonts: true,
 
-  // Exclude native modules from bundling
+  // Exclude native modules from bundling (but NOT node-appwrite)
   serverExternalPackages: [
     "@ffmpeg-installer/ffmpeg",
     "fluent-ffmpeg",
-    "node-appwrite",
   ],
 };
 
