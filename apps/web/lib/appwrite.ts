@@ -1,14 +1,12 @@
 /**
  * Appwrite Configuration for Next.js
- *
- * This file adapts the shared Appwrite config for Next.js environment variables.
  */
 
-import { AppwriteService } from "@naat-collection/api-client";
+import { AppwriteService } from "./appwrite-service";
 import {
-  createAppwriteConfig,
-  validateAppwriteConfig as validateConfig,
-} from "@naat-collection/shared";
+    createAppwriteConfig,
+    validateAppwriteConfig as validateConfig,
+} from "./shared/config";
 
 // Map Next.js environment variables to shared config format
 const env = {
