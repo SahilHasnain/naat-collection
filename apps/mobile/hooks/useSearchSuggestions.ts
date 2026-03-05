@@ -1,12 +1,13 @@
 import { SearchSuggestion } from "@/components/SearchSuggestions";
 import {
-    addToSearchHistory,
-    clearSearchHistory,
-    getSearchHistory,
-    removeFromSearchHistory,
-    SearchHistoryItem,
+  addToSearchHistory,
+  clearSearchHistory,
+  getSearchHistory,
+  removeFromSearchHistory,
+  SearchHistoryItem,
 } from "@/services/searchHistory";
-import type { Naat } from "@/types";
+import { type Naat } from "@/types";
+import { searchItems } from "@naat-collection/shared";
 import { useCallback, useEffect, useState } from "react";
 
 interface UseSearchSuggestionsOptions {
@@ -26,84 +27,21 @@ export function useSearchSuggestions({
     loadHistory();
   }, []);
 
-  // Update suggestions when history changes
-  useEffect(() => {
-    if (history.length > 0) {
-      const newSuggestions = generateSuggestions("");
-      setSuggestions(newSuggestions);
-    }
-  }, [history, generateSuggestions]);
-
   const loadHistory = async () => {
     const historyItems = await getSearchHistory();
     setHistory(historyItems);
   };
 
   /**
-   * Calculate fuzzy match score for a text against a query
-   * Returns a score between 0 and 1, where 1 is a perfect match
-   */
-  const calculateMatchScore = (text: string, query: string): number => {
-    const textLower = text.toLowerCase();
-    const queryLower = query.toLowerCase();
-
-    // Exact match gets highest score
-    if (textLower === queryLower) return 1.0;
-
-    // Starts with query gets high score
-    if (textLower.startsWith(queryLower)) return 0.9;
-
-    // Contains exact query as substring
-    if (textLower.includes(queryLower)) return 0.8;
-
-    // Split query into words and check if all words are present
-    const queryWords = queryLower.split(/\s+/).filter((w) => w.length > 0);
-    const textWords = textLower.split(/\s+/);
-
-    // Check if all query words are present in text
-    const allWordsPresent = queryWords.every((queryWord) =>
-      textWords.some((textWord) => textWord.includes(queryWord)),
-    );
-
-    if (allWordsPresent) {
-      // Calculate score based on how many words match
-      const matchingWords = queryWords.filter((queryWord) =>
-        textWords.some((textWord) => textWord.startsWith(queryWord)),
-      );
-      return 0.5 + (matchingWords.length / queryWords.length) * 0.2;
-    }
-
-    // Fuzzy character matching - check if query characters appear in order
-    let textIndex = 0;
-    let queryIndex = 0;
-    let matchedChars = 0;
-
-    while (textIndex < textLower.length && queryIndex < queryLower.length) {
-      if (textLower[textIndex] === queryLower[queryIndex]) {
-        matchedChars++;
-        queryIndex++;
-      }
-      textIndex++;
-    }
-
-    // If all query characters found in order, give partial score
-    if (matchedChars === queryLower.length) {
-      return 0.3 + (matchedChars / textLower.length) * 0.2;
-    }
-
-    return 0;
-  };
-
-  /**
    * Generate suggestions based on query
-   * - If query is empty, show recent search history
-   * - If query has text, show matching naats with fuzzy matching
+   * - If query is empty, ALWAYS show recent search history (regardless of disable flag)
+   * - If query has text, show matching naats using same algorithm as search (unless disabled)
    */
   const generateSuggestions = useCallback(
     (query: string): SearchSuggestion[] => {
-      const trimmedQuery = query.trim().toLowerCase();
+      const trimmedQuery = query.trim();
 
-      // Show history when query is empty
+      // ALWAYS show history when query is empty (ignore disable flag for history)
       if (!trimmedQuery) {
         return history.slice(0, maxSuggestions).map((item) => ({
           id: item.id,
@@ -112,26 +50,21 @@ export function useSearchSuggestions({
         }));
       }
 
-      // Generate suggestions from naats with scoring
-      const scoredNaats = naats
-        .map((naat) => {
-          const titleScore = calculateMatchScore(naat.title, trimmedQuery);
-          const channelScore = calculateMatchScore(
-            naat.channelName,
-            trimmedQuery,
-          );
-          const maxScore = Math.max(titleScore, channelScore);
+      // Check if search suggestions are disabled (only affects suggestions while typing, NOT history)
+      const disableSuggestions = process.env.EXPO_PUBLIC_DISABLE_SEARCH_SUGGESTIONS === "true";
+      
+      if (disableSuggestions) {
+        return [];
+      }
 
-          return {
-            naat,
-            score: maxScore,
-          };
-        })
-        .filter((item) => item.score > 0.2) // Only include reasonable matches
-        .sort((a, b) => b.score - a.score) // Sort by score descending
-        .slice(0, maxSuggestions);
+      // Use the same search algorithm as the main search
+      const searchResults = searchItems(naats, trimmedQuery, {
+        searchInChannel: true,
+        minScore: 60,
+      });
 
-      return scoredNaats.map(({ naat }) => ({
+      // Return top suggestions
+      return searchResults.slice(0, maxSuggestions).map((naat: Naat) => ({
         id: naat.$id,
         text: naat.title,
         thumbnailUrl: naat.thumbnailUrl,
@@ -140,6 +73,14 @@ export function useSearchSuggestions({
     },
     [history, naats, maxSuggestions],
   );
+
+  // Update suggestions when history changes
+  useEffect(() => {
+    if (history.length > 0) {
+      const newSuggestions = generateSuggestions("");
+      setSuggestions(newSuggestions);
+    }
+  }, [history, generateSuggestions]);
 
   /**
    * Update suggestions based on query
