@@ -7,19 +7,19 @@
 
 import { AppwriteService as BaseAppwriteService } from "@naat-collection/api-client";
 import type {
-  AudioUrlResponse,
-  Channel,
-  IAppwriteService,
-  Naat,
+    AudioUrlResponse,
+    Channel,
+    IAppwriteService,
+    Naat,
 } from "@naat-collection/shared";
 import { AppError, ErrorCode } from "@naat-collection/shared";
 import * as Sentry from "@sentry/react-native";
 import { appwriteConfig, validateAppwriteConfig } from "../config/appwrite";
 import {
-  DEFAULT_TIMEOUT,
-  logError,
-  withCacheFallback,
-  wrapError,
+    DEFAULT_TIMEOUT,
+    logError,
+    withCacheFallback,
+    wrapError,
 } from "../utils/errorHandling";
 
 /**
@@ -217,6 +217,63 @@ export class AppwriteService implements IAppwriteService {
    */
   async getAudioUrl(audioId?: string | null): Promise<AudioUrlResponse> {
     return this.baseService.getAudioUrl(audioId);
+  }
+
+  /**
+   * Performs semantic search using AI-powered function
+   */
+  async semanticSearch(query: string): Promise<Naat[]> {
+    if (!query || query.trim() === "") {
+      return [];
+    }
+
+    const functionUrl = process.env.EXPO_PUBLIC_SEMANTIC_SEARCH_FUNCTION_URL;
+
+    if (!functionUrl) {
+      console.warn("Semantic search function URL not configured, falling back to regular search");
+      return this.searchNaats(query);
+    }
+
+    try {
+      const response = await fetch(functionUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Semantic search failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success || !data.results) {
+        throw new Error("Invalid response from semantic search");
+      }
+
+      // Map results back to Naat objects
+      // The function returns partial naat data, we need to fetch full details
+      const naatIds = data.results.map((r: any) => r.naatId);
+      
+      // Fetch full naat details for each result
+      const naats = await Promise.all(
+        naatIds.map((id: string) => this.getNaatById(id).catch(() => null))
+      );
+
+      // Filter out any failed fetches and return
+      return naats.filter((naat): naat is Naat => naat !== null);
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.NETWORK_ERROR), {
+        context: "semanticSearch",
+        query,
+      });
+
+      // Fallback to regular search on error
+      console.warn("Semantic search failed, falling back to regular search");
+      return this.searchNaats(query);
+    }
   }
 }
 

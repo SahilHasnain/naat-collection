@@ -4,21 +4,15 @@ import { appwriteService } from "../services/appwrite";
 import type { Naat, UseSearchReturn } from "../types";
 
 /**
- * Debounce delay in milliseconds
- */
-const DEBOUNCE_DELAY = 300;
-
-/**
- * Custom hook for searching naats with custom algorithm
+ * Custom hook for searching naats with AI-powered semantic search
  *
  * Features:
- * - All search words must be present (no partial matches)
- * - Relevance-based scoring (exact phrase > word order > all words)
- * - Fast performance (no fuzzy matching overhead)
- * - Debounced search with 300ms delay
+ * - AI-powered semantic search using Groq API
+ * - Fallback to client-side search if semantic search fails
+ * - Debounced search with 500ms delay (longer for API calls)
  * - Real-time filtering as user types
  * - Channel filtering support
- * - Ignores small connector words
+ * - Understands synonyms and related terms
  *
  * @param channelId - Optional channel ID to filter search results (null = all channels)
  * @returns UseSearchReturn object with search state and control functions
@@ -28,7 +22,7 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
   const [results, setResults] = useState<Naat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Ref to store all naats for client-side search
+  // Ref to store all naats for client-side fallback search
   const allNaatsRef = useRef<Naat[]>([]);
 
   // Ref to store the debounce timeout
@@ -38,7 +32,7 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
   const isMountedRef = useRef<boolean>(true);
 
   /**
-   * Load all naats for client-side search
+   * Load all naats for client-side fallback search
    */
   const loadNaats = useCallback(async () => {
     try {
@@ -59,9 +53,9 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
   }, [channelId]);
 
   /**
-   * Perform the actual search using custom algorithm
+   * Perform semantic search using AI
    */
-  const performSearch = useCallback((searchQuery: string) => {
+  const performSemanticSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
       setResults([]);
       setLoading(false);
@@ -71,26 +65,46 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
     setLoading(true);
 
     try {
-      // Use custom search algorithm
-      const searchResults = searchItems(allNaatsRef.current, searchQuery, {
-        searchInChannel: true,
-        minScore: 60, // Only show results with all words present
-      });
+      // Try semantic search first
+      const searchResults = await appwriteService.semanticSearch(searchQuery);
+      
+      // Filter by channel if specified
+      const filteredResults = channelId
+        ? searchResults.filter((naat) => naat.channelId === channelId)
+        : searchResults;
 
-      setResults(searchResults);
+      if (isMountedRef.current) {
+        setResults(filteredResults);
+      }
     } catch (error) {
-      console.error("Search failed:", error);
-      setResults([]);
+      console.error("Semantic search failed, using fallback:", error);
+      
+      // Fallback to client-side search
+      try {
+        const searchResults = searchItems(allNaatsRef.current, searchQuery, {
+          searchInChannel: true,
+          minScore: 60,
+        });
+
+        if (isMountedRef.current) {
+          setResults(searchResults);
+        }
+      } catch (fallbackError) {
+        console.error("Fallback search also failed:", fallbackError);
+        if (isMountedRef.current) {
+          setResults([]);
+        }
+      }
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
       }
     }
-  }, []);
+  }, [channelId]);
 
   /**
    * Set search query with debouncing
-   * Triggers search after 300ms of inactivity
+   * Triggers search after 500ms of inactivity (longer for API calls)
    */
   const setQuery = useCallback(
     (newQuery: string) => {
@@ -111,12 +125,12 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
       // Set loading state immediately for better UX
       setLoading(true);
 
-      // Set new timeout for debounced search
+      // Set new timeout for debounced search (500ms for API calls)
       debounceTimeoutRef.current = setTimeout(() => {
-        performSearch(newQuery);
-      }, DEBOUNCE_DELAY);
+        performSemanticSearch(newQuery);
+      }, 500);
     },
-    [performSearch],
+    [performSemanticSearch],
   );
 
   /**
