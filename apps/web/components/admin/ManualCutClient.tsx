@@ -123,6 +123,10 @@ export default function ManualCutClient() {
         [
           Query.isNotNull("audioId"),
           Query.isNull("cutAudio"),
+          Query.or([
+            Query.equal("exclude", false),
+            Query.isNull("exclude")
+          ]),
           Query.orderDesc("$createdAt"),
           Query.limit(100),
         ],

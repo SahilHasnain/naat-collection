@@ -24,11 +24,18 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
   const seenIds = new Set();
   const MAX_DURATION = 1200; // 20 minutes in seconds
 
-  // Get total count of naats under 20 minutes
+  // Get total count of naats under 20 minutes that are not excluded
   const countResponse = await databases.listDocuments(
     databaseId,
     naatsCollectionId,
-    [Query.limit(1), Query.lessThanEqual("duration", MAX_DURATION)],
+    [
+      Query.limit(1),
+      Query.lessThanEqual("duration", MAX_DURATION),
+      Query.or([
+        Query.equal("exclude", false),
+        Query.isNull("exclude")
+      ])
+    ],
   );
 
   const totalNaats = countResponse.total;
@@ -48,6 +55,10 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
         Query.limit(1),
         Query.offset(randomOffset),
         Query.lessThanEqual("duration", MAX_DURATION),
+        Query.or([
+          Query.equal("exclude", false),
+          Query.isNull("exclude")
+        ]),
         Query.select(["$id"]),
       ],
     );
