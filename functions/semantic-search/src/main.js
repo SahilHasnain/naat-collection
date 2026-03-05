@@ -2,16 +2,16 @@
  * Appwrite Function: Semantic Search with Supabase Vector DB
  *
  * This function provides AI-powered semantic search using:
- * - Groq API for generating query embeddings
+ * - OpenAI API for generating query embeddings
  * - Supabase pgvector for fast vector similarity search
  *
  * Environment Variables Required:
- * - GROQ_API_KEY: Groq API key for embeddings
+ * - OPENAI_API_KEY: OpenAI API key for embeddings
  * - SUPABASE_URL: Supabase project URL
  * - SUPABASE_KEY: Supabase publishable API key
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
 
 const OPENAI_API_URL = "https://api.openai.com/v1/embeddings";
 const OPENAI_EMBEDDING_MODEL = "text-embedding-3-small"; // 1536 dimensions
