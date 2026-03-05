@@ -51,7 +51,7 @@ async function generateEmbedding(text, openaiApiKey) {
  * @param {number} limit - Maximum number of results
  * @returns {Promise<Array>} Array of matching naats with similarity scores
  */
-async function searchSimilarNaats(supabase, queryEmbedding, limit = 20) {
+async function searchSimilarNaats(supabase, queryEmbedding, limit = 100) {
   const { data, error } = await supabase.rpc("search_naats", {
     query_embedding: queryEmbedding,
     match_count: limit,
@@ -61,7 +61,9 @@ async function searchSimilarNaats(supabase, queryEmbedding, limit = 20) {
     throw new Error(`Supabase search failed: ${error.message}`);
   }
 
-  return data || [];
+  // Filter results with similarity > 0.5 (50%) to include spelling variations
+  // Lower threshold captures more variations of the same naat
+  return (data || []).filter(result => result.similarity > 0.5);
 }
 
 /**
