@@ -1,150 +1,67 @@
 /**
- * Appwrite Function: Semantic Search with Groq
+ * Appwrite Function: Semantic Search with Supabase Vector DB
  *
- * This function provides AI-powered semantic search for naats using Groq API.
- * It uses LLM to understand search intent and match against naat titles/descriptions.
+ * This function provides AI-powered semantic search using:
+ * - Groq API for generating query embeddings
+ * - Supabase pgvector for fast vector similarity search
  *
  * Environment Variables Required:
- * - APPWRITE_FUNCTION_PROJECT_ID: Appwrite project ID (auto-provided)
- * - APPWRITE_API_KEY: API key with database read permissions
- * - APPWRITE_DATABASE_ID: Database ID
- * - APPWRITE_NAATS_COLLECTION_ID: Naats collection ID
- * - GROQ_API_KEY: Groq API key
+ * - GROQ_API_KEY: Groq API key for embeddings
+ * - SUPABASE_URL: Supabase project URL
+ * - SUPABASE_KEY: Supabase publishable API key
  */
 
-import { Client, Databases, Query } from "node-appwrite";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = "llama-3.3-70b-versatile"; // Fast and accurate
+const GROQ_API_URL = "https://api.groq.com/openai/v1/embeddings";
+const GROQ_EMBEDDING_MODEL = "nomic-embed-text-v1.5"; // 768 dimensions, optimized for search
 
 /**
- * Fetches naats from database with pagination
- * @param {Databases} databases - Appwrite Databases instance
- * @param {string} databaseId - Database ID
- * @param {string} collectionId - Collection ID
- * @param {number} limit - Maximum number of naats to fetch
- * @returns {Promise<Array>} Array of naat objects
+ * Generate embedding for a text using Groq API
+ * @param {string} text - Text to embed
+ * @param {string} groqApiKey - Groq API key
+ * @returns {Promise<number[]>} Embedding vector (768 dimensions)
  */
-async function fetchNaats(databases, databaseId, collectionId, limit = 5000) {
-  const allNaats = [];
-  let offset = 0;
-  const batchSize = 100;
+async function generateEmbedding(text, groqApiKey) {
+  const response = await fetch(GROQ_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${groqApiKey}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_EMBEDDING_MODEL,
+      input: text,
+    }),
+  });
 
-  while (allNaats.length < limit) {
-    const response = await databases.listDocuments(databaseId, collectionId, [
-      Query.limit(batchSize),
-      Query.offset(offset),
-    ]);
-
-    if (response.documents.length === 0) break;
-
-    allNaats.push(...response.documents);
-    offset += batchSize;
-
-    if (response.documents.length < batchSize) break;
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Groq embedding failed: ${response.status} - ${errorText}`);
   }
 
-  return allNaats.slice(0, limit);
+  const data = await response.json();
+  return data.data[0].embedding;
 }
 
 /**
- * Performs semantic search using Groq API
- * @param {string} query - User search query
- * @param {Array} naats - Array of naat objects
- * @param {string} groqApiKey - Groq API key
- * @param {Function} log - Logging function
- * @returns {Promise<Array>} Array of matched naat IDs with scores
+ * Search for similar naats using vector similarity
+ * @param {Object} supabase - Supabase client
+ * @param {number[]} queryEmbedding - Query embedding vector
+ * @param {number} limit - Maximum number of results
+ * @returns {Promise<Array>} Array of matching naats with similarity scores
  */
-async function semanticSearch(query, naats, groqApiKey, log) {
-  // Prepare naat data for the AI (only essential fields to reduce token usage)
-  const naatData = naats.map((naat, index) => ({
-    index,
-    id: naat.$id,
-    title: naat.title,
-    channel: naat.channelName,
-  }));
+async function searchSimilarNaats(supabase, queryEmbedding, limit = 20) {
+  const { data, error } = await supabase.rpc("search_naats", {
+    query_embedding: queryEmbedding,
+    match_count: limit,
+  });
 
-  const systemPrompt = `You are a semantic search engine for Islamic naats (devotional songs). 
-Your task is to match user queries with relevant naats based on meaning, not just keywords.
-
-Consider:
-- Synonyms and related terms (e.g., "praise" matches "hamd", "love" matches "ishq")
-- Urdu/Arabic transliterations (e.g., "Muhammad" = "Mohammed" = "Muhammed")
-- Common themes (e.g., "Prophet" relates to "Nabi", "Rasool", "Mustafa")
-- Partial matches and fuzzy matching
-- Channel names if user searches by artist
-
-Return ONLY a JSON array of matching naat indices with scores (0-100), sorted by relevance.
-Format: [{"index": 0, "score": 95}, {"index": 5, "score": 80}, ...]
-
-Return maximum 20 results. If no good matches, return empty array [].`;
-
-  const userPrompt = `Search query: "${query}"
-
-Available naats:
-${naatData.map((n) => `${n.index}. ${n.title} - ${n.channel}`).join("\n")}
-
-Return matching naats as JSON array with scores.`;
-
-  try {
-    const response = await fetch(GROQ_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${groqApiKey}`,
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
-        response_format: { type: "json_object" },
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Groq API error: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices[0]?.message?.content;
-
-    if (!content) {
-      throw new Error("No content in Groq response");
-    }
-
-    // Parse the JSON response
-    let matches;
-    try {
-      const parsed = JSON.parse(content);
-      // Handle both array and object with array property
-      matches = Array.isArray(parsed) ? parsed : parsed.matches || parsed.results || [];
-    } catch (parseError) {
-      log(`Failed to parse Groq response: ${content}`);
-      throw new Error("Invalid JSON response from Groq");
-    }
-
-    // Map indices back to naat IDs
-    const results = matches
-      .filter((m) => m.index >= 0 && m.index < naats.length)
-      .map((m) => ({
-        naatId: naats[m.index].$id,
-        title: naats[m.index].title,
-        channelName: naats[m.index].channelName,
-        thumbnailUrl: naats[m.index].thumbnailUrl,
-        score: m.score || 50,
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 20);
-
-    return results;
-  } catch (error) {
-    throw new Error(`Semantic search failed: ${error.message}`);
+  if (error) {
+    throw new Error(`Supabase search failed: ${error.message}`);
   }
+
+  return data || [];
 }
 
 /**
@@ -171,20 +88,12 @@ export default async ({ req, res, log, error: logError }) => {
     log(`Semantic search query: "${query}"`);
 
     // Validate environment variables
-    const requiredEnvVars = [
-      "APPWRITE_FUNCTION_PROJECT_ID",
-      "APPWRITE_API_KEY",
-      "APPWRITE_DATABASE_ID",
-      "APPWRITE_NAATS_COLLECTION_ID",
-      "GROQ_API_KEY",
-    ];
+    const groqApiKey = process.env.GROQ_API_KEY;
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_KEY;
 
-    const missingVars = requiredEnvVars.filter(
-      (varName) => !process.env[varName]
-    );
-
-    if (missingVars.length > 0) {
-      const errorMsg = `Missing required environment variables: ${missingVars.join(", ")}`;
+    if (!groqApiKey || !supabaseUrl || !supabaseKey) {
+      const errorMsg = "Missing required environment variables: GROQ_API_KEY, SUPABASE_URL, or SUPABASE_KEY";
       logError(errorMsg);
       return res.json(
         {
@@ -195,35 +104,32 @@ export default async ({ req, res, log, error: logError }) => {
       );
     }
 
-    // Initialize Appwrite client
-    const client = new Client()
-      .setEndpoint(
-        process.env.APPWRITE_ENDPOINT || "https://cloud.appwrite.io/v1"
-      )
-      .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-      .setKey(process.env.APPWRITE_API_KEY);
+    // Initialize Supabase client
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const databases = new Databases(client);
+    // Generate embedding for the query
+    log("Generating query embedding...");
+    const queryEmbedding = await generateEmbedding(query, groqApiKey);
+    log(`Generated embedding with ${queryEmbedding.length} dimensions`);
 
-    const databaseId = process.env.APPWRITE_DATABASE_ID;
-    const collectionId = process.env.APPWRITE_NAATS_COLLECTION_ID;
-    const groqApiKey = process.env.GROQ_API_KEY;
-
-    // Fetch naats from database
-    log("Fetching naats from database...");
-    const naats = await fetchNaats(databases, databaseId, collectionId);
-    log(`Fetched ${naats.length} naats`);
-
-    // Perform semantic search
-    log("Performing semantic search with Groq...");
-    const results = await semanticSearch(query, naats, groqApiKey, log);
+    // Search for similar naats
+    log("Searching for similar naats...");
+    const results = await searchSimilarNaats(supabase, queryEmbedding, 20);
     log(`Found ${results.length} matching naats`);
+
+    // Format results
+    const formattedResults = results.map((result) => ({
+      naatId: result.id,
+      title: result.title,
+      channelName: result.channel,
+      score: Math.round(result.similarity * 100),
+    }));
 
     return res.json({
       success: true,
       query,
-      results,
-      count: results.length,
+      results: formattedResults,
+      count: formattedResults.length,
     });
   } catch (err) {
     const errorMsg = `Error during semantic search: ${err.message}`;
