@@ -6,12 +6,12 @@
  */
 
 import type {
-  AppwriteConfig,
-  AudioUrlResponse,
-  Channel,
-  ChannelDocument,
-  IAppwriteService,
-  Naat,
+    AppwriteConfig,
+    AudioUrlResponse,
+    Channel,
+    ChannelDocument,
+    IAppwriteService,
+    Naat,
 } from "@naat-collection/shared";
 import { Client, Databases, Query } from "appwrite";
 
@@ -65,6 +65,12 @@ export class AppwriteService implements IAppwriteService {
 
     try {
       const queries = [Query.limit(limit), Query.offset(offset)];
+
+      // Exclude naats marked as excluded
+      queries.push(Query.or([
+        Query.equal("exclude", false),
+        Query.isNull("exclude")
+      ]));
 
       if (channelId) {
         queries.push(Query.equal("channelId", channelId));
@@ -164,6 +170,12 @@ export class AppwriteService implements IAppwriteService {
         Query.search("title", query),
         Query.orderDesc("uploadDate"),
       ];
+
+      // Exclude naats marked as excluded
+      queries.push(Query.or([
+        Query.equal("exclude", false),
+        Query.isNull("exclude")
+      ]));
 
       if (channelId) {
         queries.push(Query.equal("channelId", channelId));
