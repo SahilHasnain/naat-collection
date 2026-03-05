@@ -7,19 +7,19 @@
 
 import { AppwriteService as BaseAppwriteService } from "@naat-collection/api-client";
 import type {
-    AudioUrlResponse,
-    Channel,
-    IAppwriteService,
-    Naat,
+  AudioUrlResponse,
+  Channel,
+  IAppwriteService,
+  Naat,
 } from "@naat-collection/shared";
 import { AppError, ErrorCode } from "@naat-collection/shared";
 import * as Sentry from "@sentry/react-native";
 import { appwriteConfig, validateAppwriteConfig } from "../config/appwrite";
 import {
-    DEFAULT_TIMEOUT,
-    logError,
-    withCacheFallback,
-    wrapError,
+  DEFAULT_TIMEOUT,
+  logError,
+  withCacheFallback,
+  wrapError,
 } from "../utils/errorHandling";
 
 /**
@@ -227,12 +227,20 @@ export class AppwriteService implements IAppwriteService {
       return [];
     }
 
-    const functionUrl = process.env.EXPO_PUBLIC_SEMANTIC_SEARCH_FUNCTION_URL;
+    const functionUrl = appwriteConfig.semanticSearchFunctionUrl;
+
+    console.log("[DEBUG] Semantic Search Config:", {
+      functionUrl,
+      hasConfig: !!functionUrl,
+      configKeys: Object.keys(appwriteConfig),
+    });
 
     if (!functionUrl) {
       console.warn("Semantic search function URL not configured, falling back to regular search");
       return this.searchNaats(query);
     }
+
+    console.log(`[DEBUG] Calling semantic search: ${functionUrl}`);
 
     try {
       const response = await fetch(functionUrl, {
@@ -243,11 +251,16 @@ export class AppwriteService implements IAppwriteService {
         body: JSON.stringify({ query }),
       });
 
+      console.log(`[DEBUG] Semantic search response status: ${response.status}`);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[DEBUG] Semantic search error response:`, errorText);
         throw new Error(`Semantic search failed: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log(`[DEBUG] Semantic search results:`, data);
 
       if (!data.success || !data.results) {
         throw new Error("Invalid response from semantic search");
@@ -257,14 +270,20 @@ export class AppwriteService implements IAppwriteService {
       // The function returns partial naat data, we need to fetch full details
       const naatIds = data.results.map((r: any) => r.naatId);
       
+      console.log(`[DEBUG] Fetching ${naatIds.length} naat details`);
+
       // Fetch full naat details for each result
       const naats = await Promise.all(
         naatIds.map((id: string) => this.getNaatById(id).catch(() => null))
       );
 
       // Filter out any failed fetches and return
-      return naats.filter((naat): naat is Naat => naat !== null);
+      const validNaats = naats.filter((naat): naat is Naat => naat !== null);
+      console.log(`[DEBUG] Returning ${validNaats.length} valid naats`);
+      
+      return validNaats;
     } catch (error) {
+      console.error("[DEBUG] Semantic search error:", error);
       logError(wrapError(error, ErrorCode.NETWORK_ERROR), {
         context: "semanticSearch",
         query,
