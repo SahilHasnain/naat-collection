@@ -12,13 +12,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  RefreshControl,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -126,29 +125,9 @@ export default function LiveScreen() {
       >
         {/* Header */}
         <View className="px-4 pt-4 pb-6">
-          <Text className="text-2xl font-semibold text-white mb-4">
+          <Text className="text-2xl font-semibold text-white">
             Live Radio
           </Text>
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center">
-              <View
-                className="w-2.5 h-2.5 rounded-full mr-2"
-                style={{ backgroundColor: colors.accent.error }}
-              />
-              <Text
-                className="text-xs font-bold uppercase tracking-wider"
-                style={{ color: colors.accent.error }}
-              >
-                Live Now
-              </Text>
-            </View>
-            <View className="flex-row items-center">
-              <Ionicons name="people" size={18} color={colors.text.tertiary} />
-              <Text className="text-neutral-400 text-xs ml-1.5">
-                {listenerCount}
-              </Text>
-            </View>
-          </View>
         </View>
 
         {/* Current Track Card */}
@@ -158,47 +137,40 @@ export default function LiveScreen() {
             style={{ backgroundColor: colors.background.secondary }}
           >
             <View className="p-4">
-              {/* Album Art - 16:9 aspect ratio */}
-              <View className="mb-4">
-                <Image
-                  source={{ uri: currentNaat.thumbnailUrl }}
-                  style={{ width: "100%", aspectRatio: 16 / 9 }}
-                  className="rounded-xl"
-                  resizeMode="cover"
-                />
+              {/* Radio Icon */}
+              <View className="mb-4 items-center justify-center" style={{ width: "100%", aspectRatio: 16 / 9 }}>
+                <View className="items-center justify-center flex-1">
+                  <Ionicons name="radio" size={80} color={colors.accent.error} />
+                </View>
               </View>
 
               {/* Track Info */}
               <View className="mb-4">
                 <Text
-                  className="text-white text-lg font-bold mb-2"
+                  className="text-white text-lg font-bold text-center"
                   numberOfLines={2}
                 >
                   {currentNaat.title}
-                </Text>
-                <Text className="text-neutral-400 text-sm" numberOfLines={1}>
-                  {currentNaat.channelName}
                 </Text>
               </View>
 
               {/* Play/Pause Button */}
               <TouchableOpacity
                 onPress={isPlaying ? handlePauseLive : handlePlayLive}
-                className="py-3.5 rounded-full flex-row items-center justify-center"
+                className="items-center justify-center"
                 style={{
-                  backgroundColor: isPlaying
-                    ? colors.background.tertiary
-                    : colors.accent.error,
+                  width: 72,
+                  height: 72,
+                  borderRadius: 36,
+                  backgroundColor: colors.accent.error,
+                  alignSelf: 'center',
                 }}
               >
                 <Ionicons
                   name={isPlaying ? "pause" : "play"}
-                  size={20}
+                  size={32}
                   color="white"
                 />
-                <Text className="text-white font-semibold text-base ml-2">
-                  {isPlaying ? "Pause" : "Listen Live"}
-                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -212,21 +184,15 @@ export default function LiveScreen() {
               className="flex-row items-center rounded-xl p-3"
               style={{ backgroundColor: colors.background.secondary }}
             >
-              <Image
-                source={{ uri: upcomingNaats[0].thumbnailUrl }}
-                style={{ width: 80, height: 45 }}
-                className="rounded-lg mr-3"
-                resizeMode="cover"
-              />
+              <View className="items-center justify-center rounded-lg mr-3" style={{ width: 80, height: 45, backgroundColor: colors.background.tertiary }}>
+                <Ionicons name="radio" size={32} color={colors.accent.error} />
+              </View>
               <View className="flex-1">
                 <Text
-                  className="text-white text-sm font-semibold mb-1"
-                  numberOfLines={1}
+                  className="text-white text-sm font-semibold"
+                  numberOfLines={2}
                 >
                   {upcomingNaats[0].title}
-                </Text>
-                <Text className="text-neutral-400 text-xs" numberOfLines={1}>
-                  {upcomingNaats[0].channelName}
                 </Text>
               </View>
             </View>

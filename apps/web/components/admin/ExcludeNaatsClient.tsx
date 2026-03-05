@@ -14,6 +14,7 @@ interface Naat {
   uploadDate: string;
   exclude?: boolean;
   radio?: boolean;
+  audioId?: string;
   $createdAt: string;
 }
 
@@ -25,6 +26,7 @@ export default function ExcludeNaatsClient() {
   const [updatingRadio, setUpdatingRadio] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [filterExcluded, setFilterExcluded] = useState<"all" | "excluded" | "included">("all");
   const [filterRadio, setFilterRadio] = useState<"all" | "radio" | "non-radio">("all");
   const [filterChannel, setFilterChannel] = useState<string>("all");
@@ -35,6 +37,8 @@ export default function ExcludeNaatsClient() {
   const [channels, setChannels] = useState<string[]>([]);
   const [randomSeed, setRandomSeed] = useState(0);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [playingNaatId, setPlayingNaatId] = useState<string | null>(null);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
 
   const LIMIT = 50;
 
@@ -47,7 +51,21 @@ export default function ExcludeNaatsClient() {
     };
 
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+
+    // Initialize audio element
+    const audio = new Audio();
+    audio.addEventListener("ended", () => setPlayingNaatId(null));
+    audio.addEventListener("error", () => {
+      setError("Failed to load audio");
+      setPlayingNaatId(null);
+    });
+    setAudioElement(audio);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      audio.pause();
+      audio.src = "";
+    };
   }, []);
 
   useEffect(() => {
@@ -56,7 +74,7 @@ export default function ExcludeNaatsClient() {
     setOffset(0);
     setHasMore(true);
     loadNaats(0, true);
-  }, [sortBy, filterExcluded, filterRadio, filterChannel, searchTerm, randomSeed]);
+  }, [sortBy, filterExcluded, filterRadio, filterChannel, searchQuery, randomSeed]);
 
   async function loadInitialData() {
     try {
@@ -152,8 +170,8 @@ export default function ExcludeNaatsClient() {
       }
 
       // Search query
-      if (searchTerm.trim()) {
-        queries.push(Query.search("title", searchTerm.trim()));
+      if (searchQuery.trim()) {
+        queries.push(Query.search("title", searchQuery.trim()));
       }
 
       const response = await databases.listDocuments(
@@ -193,6 +211,48 @@ export default function ExcludeNaatsClient() {
 
   function scrollToTop() {
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSearchQuery(searchTerm);
+  }
+
+  async function togglePlayAudio(naat: Naat) {
+    if (!audioElement) return;
+
+    // If clicking the same naat, toggle play/pause
+    if (playingNaatId === naat.$id) {
+      if (audioElement.paused) {
+        audioElement.play();
+      } else {
+        audioElement.pause();
+        setPlayingNaatId(null);
+      }
+      return;
+    }
+
+    // Check if audioId exists
+    if (!naat.audioId) {
+      setError("Audio not available for this naat");
+      return;
+    }
+
+    // Stop current audio and play new one
+    audioElement.pause();
+    setPlayingNaatId(naat.$id);
+
+    try {
+      // Use our API route which sets proper MIME type headers
+      const audioUrl = `/api/stream-audio?audioId=${naat.audioId}`;
+      
+      audioElement.src = audioUrl;
+      await audioElement.play();
+    } catch (err) {
+      console.error("Play audio error:", err);
+      setError(err instanceof Error ? err.message : "Failed to play audio");
+      setPlayingNaatId(null);
+    }
   }
 
   async function toggleExclude(naatId: string, currentExcludeStatus: boolean) {
@@ -348,18 +408,21 @@ export default function ExcludeNaatsClient() {
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+            <form onSubmit={handleSearchSubmit} className="flex-1">
               <input
                 type="text"
-                placeholder="Search by title, YouTube ID, or channel..."
+                placeholder="Search by title, YouTube ID, or channel... (Press Enter)"
                 className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-            </div>
-            <div className="flex gap-4">
+            </form>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
               <select
-                className="w-full md:w-auto bg-gray-700 border border-gray-600 rounded px-4 py-2"
+                className="flex-1 bg-gray-700 border border-gray-600 rounded px-4 py-2"
                 value={sortBy}
                 onChange={(e) =>
                   setSortBy(e.target.value as "latest" | "popular" | "oldest" | "random")
@@ -394,7 +457,21 @@ export default function ExcludeNaatsClient() {
                 </button>
               )}
               <select
-                className="w-full md:w-auto bg-gray-700 border border-gray-600 rounded px-4 py-2"
+                className="flex-1 bg-gray-700 border border-gray-600 rounded px-4 py-2"
+                value={filterChannel}
+                onChange={(e) => setFilterChannel(e.target.value)}
+              >
+                <option value="all">All Channels</option>
+                {uniqueChannels.map((channel) => (
+                  <option key={channel} value={channel}>
+                    {channel}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col md:flex-row gap-4">
+              <select
+                className="flex-1 bg-gray-700 border border-gray-600 rounded px-4 py-2"
                 value={filterExcluded}
                 onChange={(e) =>
                   setFilterExcluded(
@@ -407,7 +484,7 @@ export default function ExcludeNaatsClient() {
                 <option value="excluded">Excluded Only</option>
               </select>
               <select
-                className="w-full md:w-auto bg-gray-700 border border-gray-600 rounded px-4 py-2"
+                className="flex-1 bg-gray-700 border border-gray-600 rounded px-4 py-2"
                 value={filterRadio}
                 onChange={(e) =>
                   setFilterRadio(
@@ -419,19 +496,8 @@ export default function ExcludeNaatsClient() {
                 <option value="radio">Radio Only</option>
                 <option value="non-radio">Non-Radio Only</option>
               </select>
-              <select
-                className="w-full md:w-auto bg-gray-700 border border-gray-600 rounded px-4 py-2"
-                value={filterChannel}
-                onChange={(e) => setFilterChannel(e.target.value)}
-              >
-                <option value="all">All Channels</option>
-                {uniqueChannels.map((channel) => (
-                  <option key={channel} value={channel}>
-                    {channel}
-                  </option>
-                ))}
-              </select>
             </div>
+          </div>
           </div>
         </div>
 
@@ -446,15 +512,38 @@ export default function ExcludeNaatsClient() {
                 key={naat.$id}
                 className={`bg-gray-800 rounded-lg overflow-hidden transition-all hover:ring-2 hover:ring-gray-600 ${
                   naat.exclude ? "opacity-60 ring-2 ring-red-900/50" : ""
-                }`}
+                } ${playingNaatId === naat.$id ? "ring-2 ring-blue-500" : ""}`}
               >
                 {/* Thumbnail */}
-                <div className="relative w-full aspect-video bg-gray-700">
+                <div 
+                  className="relative w-full aspect-video bg-gray-700 cursor-pointer group"
+                  onClick={() => togglePlayAudio(naat)}
+                >
                   <img
                     src={naat.thumbnailUrl}
                     alt={naat.title}
                     className="w-full h-full object-cover"
                   />
+                  {/* Play/Pause overlay */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    {playingNaatId === naat.$id && !audioElement?.paused ? (
+                      <svg
+                        className="w-16 h-16 text-white"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-16 h-16 text-white"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    )}
+                  </div>
                   {/* Duration badge */}
                   <div className="absolute bottom-2 right-2 bg-black/80 rounded px-2 py-1">
                     <span className="text-xs font-bold text-white">
@@ -475,6 +564,16 @@ export default function ExcludeNaatsClient() {
                       <span className="text-xs font-bold text-white">
                         📻 RADIO
                       </span>
+                    </div>
+                  )}
+                  {/* Playing indicator */}
+                  {playingNaatId === naat.$id && (
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                      <div className="flex gap-1">
+                        <div className="w-1 h-8 bg-blue-500 animate-pulse"></div>
+                        <div className="w-1 h-8 bg-blue-500 animate-pulse delay-75"></div>
+                        <div className="w-1 h-8 bg-blue-500 animate-pulse delay-150"></div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -522,7 +621,7 @@ export default function ExcludeNaatsClient() {
                   </a>
 
                   {/* Action buttons */}
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() =>
                         toggleExclude(naat.$id, naat.exclude || false)
@@ -604,6 +703,5 @@ export default function ExcludeNaatsClient() {
           </button>
         )}
       </div>
-    </div>
   );
 }
