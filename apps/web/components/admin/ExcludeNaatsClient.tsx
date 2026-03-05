@@ -13,6 +13,7 @@ interface Naat {
   views: number;
   uploadDate: string;
   exclude?: boolean;
+  radio?: boolean;
   $createdAt: string;
 }
 
@@ -20,16 +21,18 @@ export default function ExcludeNaatsClient() {
   const [naats, setNaats] = useState<Naat[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [updating, setUpdating] = useState<string | null>(null);
+  const [updatingExclude, setUpdatingExclude] = useState<string | null>(null);
+  const [updatingRadio, setUpdatingRadio] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterExcluded, setFilterExcluded] = useState<"all" | "excluded" | "included">("all");
   const [filterChannel, setFilterChannel] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<"latest" | "popular" | "oldest">("latest");
+  const [sortBy, setSortBy] = useState<"latest" | "popular" | "oldest" | "random">("latest");
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [channels, setChannels] = useState<string[]>([]);
+  const [randomSeed, setRandomSeed] = useState(0);
 
   const LIMIT = 50;
 
@@ -43,7 +46,7 @@ export default function ExcludeNaatsClient() {
     setOffset(0);
     setHasMore(true);
     loadNaats(0, true);
-  }, [sortBy, filterExcluded, filterChannel, searchTerm]);
+  }, [sortBy, filterExcluded, filterChannel, searchTerm, randomSeed]);
 
   async function loadInitialData() {
     try {
@@ -103,6 +106,8 @@ export default function ExcludeNaatsClient() {
         queries.push(Query.orderAsc("uploadDate"));
       } else if (sortBy === "popular") {
         queries.push(Query.orderDesc("views"));
+      } else if (sortBy === "random") {
+        queries.push(Query.orderRandom());
       }
 
       // Filter by exclude status
@@ -159,8 +164,12 @@ export default function ExcludeNaatsClient() {
     }
   }
 
+  function shuffleResults() {
+    setRandomSeed((prev) => prev + 1);
+  }
+
   async function toggleExclude(naatId: string, currentExcludeStatus: boolean) {
-    setUpdating(naatId);
+    setUpdatingExclude(naatId);
     setError(null);
 
     try {
@@ -191,7 +200,43 @@ export default function ExcludeNaatsClient() {
       console.error("Toggle exclude error:", err);
       setError(err instanceof Error ? err.message : "Failed to update naat");
     } finally {
-      setUpdating(null);
+      setUpdatingExclude(null);
+    }
+  }
+
+  async function toggleRadio(naatId: string, currentRadioStatus: boolean) {
+    setUpdatingRadio(naatId);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/admin/toggle-radio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          naatId,
+          radio: !currentRadioStatus,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update naat");
+      }
+
+      // Update local state
+      setNaats(
+        naats.map((naat) =>
+          naat.$id === naatId
+            ? { ...naat, radio: !currentRadioStatus }
+            : naat
+        )
+      );
+    } catch (err) {
+      console.error("Toggle radio error:", err);
+      setError(err instanceof Error ? err.message : "Failed to update naat");
+    } finally {
+      setUpdatingRadio(null);
     }
   }
 
@@ -290,13 +335,37 @@ export default function ExcludeNaatsClient() {
                 className="w-full md:w-auto bg-gray-700 border border-gray-600 rounded px-4 py-2"
                 value={sortBy}
                 onChange={(e) =>
-                  setSortBy(e.target.value as "latest" | "popular" | "oldest")
+                  setSortBy(e.target.value as "latest" | "popular" | "oldest" | "random")
                 }
               >
                 <option value="latest">Latest</option>
                 <option value="popular">Most Popular</option>
                 <option value="oldest">Oldest</option>
+                <option value="random">Random</option>
               </select>
+              {sortBy === "random" && (
+                <button
+                  onClick={shuffleResults}
+                  disabled={loading || loadingMore}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  title="Shuffle results"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  Shuffle
+                </button>
+              )}
               <select
                 className="w-full md:w-auto bg-gray-700 border border-gray-600 rounded px-4 py-2"
                 value={filterExcluded}
@@ -360,6 +429,14 @@ export default function ExcludeNaatsClient() {
                       </span>
                     </div>
                   )}
+                  {/* Radio badge */}
+                  {naat.radio && (
+                    <div className="absolute top-2 right-2 bg-green-600 rounded px-2 py-1">
+                      <span className="text-xs font-bold text-white">
+                        📻 RADIO
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Content */}
@@ -404,24 +481,44 @@ export default function ExcludeNaatsClient() {
                     {naat.youtubeId}
                   </a>
 
-                  {/* Action button */}
-                  <button
-                    onClick={() =>
-                      toggleExclude(naat.$id, naat.exclude || false)
-                    }
-                    disabled={updating === naat.$id}
-                    className={`w-full px-4 py-2 rounded font-medium text-sm transition-colors ${
-                      naat.exclude
-                        ? "bg-green-600 hover:bg-green-700 text-white"
-                        : "bg-red-600 hover:bg-red-700 text-white"
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    {updating === naat.$id
-                      ? "Updating..."
-                      : naat.exclude
-                        ? "✓ Include"
-                        : "✗ Exclude"}
-                  </button>
+                  {/* Action buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        toggleExclude(naat.$id, naat.exclude || false)
+                      }
+                      disabled={updatingExclude === naat.$id}
+                      className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
+                        naat.exclude
+                          ? "bg-green-600 hover:bg-green-700 text-white"
+                          : "bg-red-600 hover:bg-red-700 text-white"
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {updatingExclude === naat.$id
+                        ? "..."
+                        : naat.exclude
+                          ? "✓ Include"
+                          : "✗ Exclude"}
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        toggleRadio(naat.$id, naat.radio || false)
+                      }
+                      disabled={updatingRadio === naat.$id}
+                      className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
+                        naat.radio
+                          ? "bg-green-600 hover:bg-green-700 text-white"
+                          : "bg-gray-600 hover:bg-gray-700 text-white"
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {updatingRadio === naat.$id
+                        ? "..."
+                        : naat.radio
+                          ? "📻 ON"
+                          : "📻 OFF"}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
