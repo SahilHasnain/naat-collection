@@ -12,22 +12,22 @@ import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 import {
-  AccessibilityInfo,
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Text,
-  View,
+    AccessibilityInfo,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -408,13 +408,11 @@ export default function DownloadsScreen() {
 
   // Render list header with all fixed components
   const renderListHeader = () => {
-    if (downloads.length === 0) return null;
-
     return (
       <View>
         {/* Header Title */}
-        <View className="px-4 pt-4 pb-6">
-          <Text className="text-2xl font-semibold text-white">
+        <View className="px-4 pt-20">
+          <Text className="text-lg font-semibold text-white">
             Your downloads
           </Text>
         </View>

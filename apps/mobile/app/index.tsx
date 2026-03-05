@@ -266,6 +266,7 @@ export default function HomeScreen() {
           isLocalFile,
           audioId: audioId,
           youtubeId: naat.youtubeId,
+          views: naat.views,
         };
 
         await loadAndPlay(audioMetadata);

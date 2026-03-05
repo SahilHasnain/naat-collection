@@ -1,5 +1,6 @@
 import { DownloadedAudioCardProps } from "@/types";
-import { formatDownloadDate, formatDuration } from "@/utils/formatters";
+import { formatDuration } from "@/utils/formatters";
+import { formatViews } from "@/utils/numberUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
@@ -26,7 +27,7 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
       >
         {/* Thumbnail Section */}
         <View
-          className="relative bg-neutral-900 rounded-xl overflow-hidden"
+          className="relative bg-neutral-900 rounded-lg overflow-hidden"
           style={{ width: 168, height: 94 }}
           accessible={false}
         >
@@ -73,13 +74,13 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
           <View className="flex-row items-center mb-0.5" accessible={false}>
             <Ionicons name="checkmark-circle" size={14} color="#aaaaaa" />
             <Text className="ml-1 text-xs text-neutral-400" accessible={false}>
-              Downloaded
+              {audio.channelName}
             </Text>
           </View>
 
-          {/* Views and time */}
+          {/* Views */}
           <Text className="text-xs text-neutral-400" accessible={false}>
-            {formatDownloadDate(audio.downloadedAt)}
+            {formatViews(audio.views)} views
           </Text>
         </View>
 
