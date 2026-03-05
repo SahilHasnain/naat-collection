@@ -19,21 +19,21 @@ import { storageService } from "@/services/storage";
 import type { DurationOption, Naat, SortOption } from "@/types";
 import { showErrorToast } from "@/utils/toast";
 import {
-  filterNaatsByDuration,
-  getPreferredAudioId,
-  hasAudio,
+    filterNaatsByDuration,
+    getPreferredAudioId,
+    hasAudio,
 } from "@naat-collection/shared";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  BackHandler,
-  FlatList,
-  RefreshControl,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    BackHandler,
+    FlatList,
+    RefreshControl,
+    Text,
+    View,
 } from "react-native";
 
 export default function HomeScreen() {
@@ -590,7 +590,7 @@ export default function HomeScreen() {
         }}
         onSubmitSearch={handleSearch}
         placeholder="Search naats..."
-        suggestions={suggestions}
+        suggestions={activeSearchQuery ? [] : suggestions}
         onSuggestionPress={(suggestion) => {
           setSearchInput(suggestion.text);
           handleSearch(suggestion.text);
