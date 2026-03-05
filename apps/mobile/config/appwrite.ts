@@ -26,9 +26,21 @@ const env = {
   AUDIO_STREAMING_FUNCTION_URL:
     process.env.EXPO_PUBLIC_AUDIO_STREAMING_FUNCTION_URL,
   RAPIDAPI_KEY: process.env.EXPO_PUBLIC_RAPIDAPI_KEY,
+  SEMANTIC_SEARCH_FUNCTION_URL:
+    process.env.EXPO_PUBLIC_SEMANTIC_SEARCH_FUNCTION_URL,
 };
 
+console.log("[DEBUG] Appwrite Config Env:", {
+  semanticSearchUrl: env.SEMANTIC_SEARCH_FUNCTION_URL,
+  hasSemanticSearch: !!env.SEMANTIC_SEARCH_FUNCTION_URL,
+});
+
 export const appwriteConfig = createAppwriteConfig(env);
+
+console.log("[DEBUG] Created Appwrite Config:", {
+  semanticSearchFunctionUrl: appwriteConfig.semanticSearchFunctionUrl,
+  hasSemanticSearch: !!appwriteConfig.semanticSearchFunctionUrl,
+});
 
 /**
  * Validates that all required Appwrite configuration values are present
