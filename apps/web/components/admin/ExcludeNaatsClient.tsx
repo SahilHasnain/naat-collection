@@ -109,7 +109,13 @@ export default function ExcludeNaatsClient() {
       if (filterExcluded === "excluded") {
         queries.push(Query.equal("exclude", true));
       } else if (filterExcluded === "included") {
-        queries.push(Query.equal("exclude", [false, null]));
+        // Include naats where exclude is false OR null
+        queries.push(
+          Query.or([
+            Query.equal("exclude", false),
+            Query.isNull("exclude")
+          ])
+        );
       }
 
       // Filter by channel
