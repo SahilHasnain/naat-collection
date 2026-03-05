@@ -26,6 +26,7 @@ export default function ExcludeNaatsClient() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterExcluded, setFilterExcluded] = useState<"all" | "excluded" | "included">("all");
+  const [filterRadio, setFilterRadio] = useState<"all" | "radio" | "non-radio">("all");
   const [filterChannel, setFilterChannel] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"latest" | "popular" | "oldest" | "random">("latest");
   const [hasMore, setHasMore] = useState(true);
@@ -33,11 +34,20 @@ export default function ExcludeNaatsClient() {
   const [totalCount, setTotalCount] = useState(0);
   const [channels, setChannels] = useState<string[]>([]);
   const [randomSeed, setRandomSeed] = useState(0);
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   const LIMIT = 50;
 
   useEffect(() => {
     loadInitialData();
+
+    // Add scroll listener for back to top button
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 500);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
@@ -46,7 +56,7 @@ export default function ExcludeNaatsClient() {
     setOffset(0);
     setHasMore(true);
     loadNaats(0, true);
-  }, [sortBy, filterExcluded, filterChannel, searchTerm, randomSeed]);
+  }, [sortBy, filterExcluded, filterRadio, filterChannel, searchTerm, randomSeed]);
 
   async function loadInitialData() {
     try {
@@ -123,6 +133,19 @@ export default function ExcludeNaatsClient() {
         );
       }
 
+      // Filter by radio status
+      if (filterRadio === "radio") {
+        queries.push(Query.equal("radio", true));
+      } else if (filterRadio === "non-radio") {
+        // Non-radio naats where radio is false OR null
+        queries.push(
+          Query.or([
+            Query.equal("radio", false),
+            Query.isNull("radio")
+          ])
+        );
+      }
+
       // Filter by channel
       if (filterChannel !== "all") {
         queries.push(Query.equal("channelName", filterChannel));
@@ -166,6 +189,10 @@ export default function ExcludeNaatsClient() {
 
   function shuffleResults() {
     setRandomSeed((prev) => prev + 1);
+  }
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function toggleExclude(naatId: string, currentExcludeStatus: boolean) {
@@ -381,6 +408,19 @@ export default function ExcludeNaatsClient() {
               </select>
               <select
                 className="w-full md:w-auto bg-gray-700 border border-gray-600 rounded px-4 py-2"
+                value={filterRadio}
+                onChange={(e) =>
+                  setFilterRadio(
+                    e.target.value as "all" | "radio" | "non-radio"
+                  )
+                }
+              >
+                <option value="all">All Radio Status</option>
+                <option value="radio">Radio Only</option>
+                <option value="non-radio">Non-Radio Only</option>
+              </select>
+              <select
+                className="w-full md:w-auto bg-gray-700 border border-gray-600 rounded px-4 py-2"
                 value={filterChannel}
                 onChange={(e) => setFilterChannel(e.target.value)}
               >
@@ -540,6 +580,29 @@ export default function ExcludeNaatsClient() {
         <div className="mt-6 text-sm text-gray-400 text-center">
           Showing {naats.length.toLocaleString()} of {totalCount.toLocaleString()} naats
         </div>
+
+        {/* Back to Top Button */}
+        {showBackToTop && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-all hover:scale-110 z-50"
+            title="Back to top"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 10l7-7m0 0l7 7m-7-7v18"
+              />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );
