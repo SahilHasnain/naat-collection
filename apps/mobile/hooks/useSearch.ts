@@ -7,8 +7,8 @@ import type { Naat, UseSearchReturn } from "../types";
  * Custom hook for searching naats with AI-powered semantic search
  *
  * Features:
- * - AI-powered semantic search using Groq API
- * - Fallback to client-side search if semantic search fails
+ * - AI-powered semantic search using OpenAI + Supabase (when enabled)
+ * - Fallback to client-side search if semantic search fails or disabled
  * - Debounced search with 500ms delay (longer for API calls)
  * - Real-time filtering as user types
  * - Channel filtering support
@@ -21,6 +21,9 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
   const [query, setQueryState] = useState<string>("");
   const [results, setResults] = useState<Naat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+
+  // Check if semantic search is enabled
+  const useSemanticSearch = process.env.EXPO_PUBLIC_USE_SEMANTIC_SEARCH === "true";
 
   // Ref to store all naats for client-side fallback search
   const allNaatsRef = useRef<Naat[]>([]);
@@ -53,7 +56,7 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
   }, [channelId]);
 
   /**
-   * Perform semantic search using AI
+   * Perform semantic search using AI or fallback to client-side
    */
   const performSemanticSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
@@ -65,21 +68,35 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
     setLoading(true);
 
     try {
-      // Try semantic search first
-      const searchResults = await appwriteService.semanticSearch(searchQuery);
-      
-      // Filter by channel if specified
-      const filteredResults = channelId
-        ? searchResults.filter((naat) => naat.channelId === channelId)
-        : searchResults;
+      // Use semantic search if enabled, otherwise use client-side
+      if (useSemanticSearch) {
+        console.log("[Search] Using semantic search");
+        const searchResults = await appwriteService.semanticSearch(searchQuery);
+        
+        // Filter by channel if specified
+        const filteredResults = channelId
+          ? searchResults.filter((naat) => naat.channelId === channelId)
+          : searchResults;
 
-      if (isMountedRef.current) {
-        setResults(filteredResults);
+        if (isMountedRef.current) {
+          setResults(filteredResults);
+        }
+      } else {
+        console.log("[Search] Using client-side search");
+        // Use client-side search
+        const searchResults = searchItems(allNaatsRef.current, searchQuery, {
+          searchInChannel: true,
+          minScore: 60,
+        });
+
+        if (isMountedRef.current) {
+          setResults(searchResults);
+        }
       }
     } catch (error) {
-      console.error("Semantic search failed, using fallback:", error);
+      console.error("Search failed, using fallback:", error);
       
-      // Fallback to client-side search
+      // Fallback to client-side search on any error
       try {
         const searchResults = searchItems(allNaatsRef.current, searchQuery, {
           searchInChannel: true,
@@ -100,7 +117,7 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
         setLoading(false);
       }
     }
-  }, [channelId]);
+  }, [channelId, useSemanticSearch]);
 
   /**
    * Set search query with debouncing
