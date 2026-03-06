@@ -17,12 +17,76 @@ const LIVE_RADIO_DOCUMENT_ID = "current_state";
 const PLAYLIST_SIZE = 50; // Fixed rotating playlist
 
 /**
+ * Normalize title for comparison
+ */
+function normalizeTitle(title) {
+  return title
+    .toLowerCase()
+    .replace(/official|video|hd|audio|version|lyrics|full|new|latest/gi, '')
+    .replace(/[^\w\s]/g, ' ') // Replace punctuation with space
+    .replace(/\s+/g, ' ') // Collapse multiple spaces
+    .trim();
+}
+
+/**
+ * Calculate Levenshtein distance between two strings
+ */
+function levenshteinDistance(str1, str2) {
+  const len1 = str1.length;
+  const len2 = str2.length;
+  const matrix = Array(len1 + 1).fill(null).map(() => Array(len2 + 1).fill(0));
+
+  for (let i = 0; i <= len1; i++) matrix[i][0] = i;
+  for (let j = 0; j <= len2; j++) matrix[0][j] = j;
+
+  for (let i = 1; i <= len1; i++) {
+    for (let j = 1; j <= len2; j++) {
+      const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,      // deletion
+        matrix[i][j - 1] + 1,      // insertion
+        matrix[i - 1][j - 1] + cost // substitution
+      );
+    }
+  }
+
+  return matrix[len1][len2];
+}
+
+/**
+ * Calculate similarity ratio (0-100)
+ */
+function similarityRatio(str1, str2) {
+  const distance = levenshteinDistance(str1, str2);
+  const maxLen = Math.max(str1.length, str2.length);
+  return maxLen === 0 ? 100 : ((maxLen - distance) / maxLen) * 100;
+}
+
+/**
+ * Check if title is too similar to any in the list
+ */
+function isTooSimilar(title, seenTitles, threshold = 85) {
+  const normalized = normalizeTitle(title);
+  
+  for (const seenTitle of seenTitles) {
+    const similarity = similarityRatio(normalized, seenTitle);
+    if (similarity >= threshold) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
  * Generate a random playlist of naats
  */
 async function generatePlaylist(databases, databaseId, naatsCollectionId) {
   const playlist = [];
   const seenIds = new Set();
+  const seenTitles = []; // Track normalized titles for similarity check
   const MAX_DURATION = 1200; // 20 minutes in seconds
+  const MAX_ATTEMPTS = PLAYLIST_SIZE * 3; // Prevent infinite loops
 
   // Get total count of naats under 20 minutes that are not excluded, have radio enabled, and have audioId
   const countResponse = await databases.listDocuments(
@@ -46,8 +110,11 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
     throw new Error("No naats found with radio enabled, audioId present, under 20 minutes duration, and not excluded");
   }
 
-  // Generate playlist with random naats
-  for (let i = 0; i < PLAYLIST_SIZE && seenIds.size < totalNaats; i++) {
+  let attempts = 0;
+
+  // Generate playlist with random naats, avoiding similar titles
+  while (playlist.length < PLAYLIST_SIZE && attempts < MAX_ATTEMPTS) {
+    attempts++;
     const randomOffset = Math.floor(Math.random() * totalNaats);
 
     const response = await databases.listDocuments(
@@ -63,17 +130,35 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
           Query.equal("exclude", false),
           Query.isNull("exclude")
         ]),
-        Query.select(["$id"]),
+        Query.select(["$id", "title"]),
       ],
     );
 
     if (response.documents.length > 0) {
-      const naatId = response.documents[0].$id;
-      if (!seenIds.has(naatId)) {
-        playlist.push(naatId);
-        seenIds.add(naatId);
+      const naat = response.documents[0];
+      const naatId = naat.$id;
+      const naatTitle = naat.title;
+
+      // Skip if already added
+      if (seenIds.has(naatId)) {
+        continue;
       }
+
+      // Skip if title is too similar to existing ones (85% threshold)
+      if (isTooSimilar(naatTitle, seenTitles, 85)) {
+        console.log(`Skipping similar title: ${naatTitle}`);
+        continue;
+      }
+
+      // Add to playlist
+      playlist.push(naatId);
+      seenIds.add(naatId);
+      seenTitles.push(normalizeTitle(naatTitle));
     }
+  }
+
+  if (playlist.length < PLAYLIST_SIZE) {
+    console.log(`Warning: Only generated ${playlist.length} unique tracks (target: ${PLAYLIST_SIZE})`);
   }
 
   return playlist;
