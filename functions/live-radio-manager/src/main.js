@@ -86,13 +86,30 @@ async function updateLiveRadioState(
   currentTrackIndex,
   playlist,
 ) {
-  try {
-    const now = new Date().toISOString();
+  return updateLiveRadioStateWithTimestamp(
+    databases,
+    databaseId,
+    currentTrackIndex,
+    playlist,
+    new Date().toISOString()
+  );
+}
 
+/**
+ * Initialize or update the live radio state with custom timestamp
+ */
+async function updateLiveRadioStateWithTimestamp(
+  databases,
+  databaseId,
+  currentTrackIndex,
+  playlist,
+  timestamp,
+) {
+  try {
     const data = {
       currentTrackIndex,
       playlist,
-      updatedAt: now,
+      updatedAt: timestamp,
     };
 
     // Try to update existing document
@@ -232,6 +249,14 @@ export default async ({ req, res, log, error }) => {
         LIVE_RADIO_DOCUMENT_ID,
       );
 
+      // Get current track to calculate when it actually started
+      const currentTrackId = currentState.playlist[currentState.currentTrackIndex];
+      const currentTrack = await databases.getDocument(
+        databaseId,
+        naatsCollectionId,
+        currentTrackId,
+      );
+
       playlist = currentState.playlist;
       currentTrackIndex =
         (currentState.currentTrackIndex + 1) % playlist.length;
@@ -245,8 +270,57 @@ export default async ({ req, res, log, error }) => {
           naatsCollectionId,
         );
       }
+
+      // Calculate when the new track actually started
+      // This accounts for the delay between when track finished and when function ran
+      const lastUpdate = new Date(currentState.updatedAt).getTime();
+      const now = Date.now();
+      const elapsed = now - lastUpdate;
+      const trackDuration = currentTrack.duration * 1000;
+      
+      // If we're late (elapsed > trackDuration), backdate the start time
+      const newTrackStartTime = elapsed > trackDuration 
+        ? new Date(lastUpdate + trackDuration).toISOString()
+        : new Date().toISOString();
+      
+      log(`Track finished ${Math.floor(elapsed / 1000)}s ago, backdating start time by ${Math.floor((elapsed - trackDuration) / 1000)}s`);
+
+      // Update state with corrected timestamp
+      const state = await updateLiveRadioStateWithTimestamp(
+        databases,
+        databaseId,
+        currentTrackIndex,
+        playlist,
+        newTrackStartTime,
+      );
+
+      // Get current track info for response
+      const nextTrackId = playlist[currentTrackIndex];
+      const nextTrack = await databases.getDocument(
+        databaseId,
+        naatsCollectionId,
+        nextTrackId,
+      );
+
+      log(
+        `Now playing: ${nextTrack.title} (${currentTrackIndex + 1}/${playlist.length})`,
+      );
+
+      return res.json({
+        success: true,
+        message: "Track advanced",
+        advanced: true,
+        currentTrack: {
+          id: nextTrack.$id,
+          title: nextTrack.title,
+          duration: nextTrack.duration,
+          index: currentTrackIndex,
+        },
+        playlistSize: playlist.length,
+      });
     }
 
+    // This code only runs for initialization (status.needsInit === true)
     // Update state
     const state = await updateLiveRadioState(
       databases,
@@ -269,7 +343,7 @@ export default async ({ req, res, log, error }) => {
 
     return res.json({
       success: true,
-      message: status.needsInit ? "Radio initialized" : "Track advanced",
+      message: "Radio initialized",
       advanced: true,
       currentTrack: {
         id: currentTrack.$id,
