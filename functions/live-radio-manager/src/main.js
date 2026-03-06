@@ -24,7 +24,7 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
   const seenIds = new Set();
   const MAX_DURATION = 1200; // 20 minutes in seconds
 
-  // Get total count of naats under 20 minutes that are not excluded and have radio enabled
+  // Get total count of naats under 20 minutes that are not excluded, have radio enabled, and have audioId
   const countResponse = await databases.listDocuments(
     databaseId,
     naatsCollectionId,
@@ -32,6 +32,7 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
       Query.limit(1),
       Query.lessThanEqual("duration", MAX_DURATION),
       Query.equal("radio", true),
+      Query.isNotNull("audioId"),
       Query.or([
         Query.equal("exclude", false),
         Query.isNull("exclude")
@@ -42,7 +43,7 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
   const totalNaats = countResponse.total;
 
   if (totalNaats === 0) {
-    throw new Error("No naats found with radio enabled, under 20 minutes duration, and not excluded");
+    throw new Error("No naats found with radio enabled, audioId present, under 20 minutes duration, and not excluded");
   }
 
   // Generate playlist with random naats
@@ -57,6 +58,7 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
         Query.offset(randomOffset),
         Query.lessThanEqual("duration", MAX_DURATION),
         Query.equal("radio", true),
+        Query.isNotNull("audioId"),
         Query.or([
           Query.equal("exclude", false),
           Query.isNull("exclude")
