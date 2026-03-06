@@ -12,12 +12,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect } from "react";
 import {
-    ActivityIndicator,
-    RefreshControl,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -113,6 +113,7 @@ export default function LiveScreen() {
     >
       <ScrollView
         className="flex-1"
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', marginBottom: 150 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -123,68 +124,49 @@ export default function LiveScreen() {
           />
         }
       >
-        {/* Header */}
-        <View className="px-4 pt-4 pb-6">
-          <Text className="text-2xl font-semibold text-white">
-            Live Radio
-          </Text>
-        </View>
-
-        {/* Current Track Card */}
+        {/* Current Track */}
         <View className="px-4 mb-6">
-          <View
-            className="rounded-2xl overflow-hidden"
-            style={{ backgroundColor: colors.background.secondary }}
-          >
-            <View className="p-4">
-              {/* Radio Icon */}
-              <View className="mb-4 items-center justify-center" style={{ width: "100%", aspectRatio: 16 / 9 }}>
-                <View className="items-center justify-center flex-1">
-                  <Ionicons name="radio" size={80} color={colors.accent.error} />
-                </View>
-              </View>
-
-              {/* Track Info */}
-              <View className="mb-4">
-                <Text
-                  className="text-white text-lg font-bold text-center"
-                  numberOfLines={2}
-                >
-                  {currentNaat.title}
-                </Text>
-              </View>
-
-              {/* Play/Pause Button */}
-              <TouchableOpacity
-                onPress={isPlaying ? handlePauseLive : handlePlayLive}
-                className="items-center justify-center"
-                style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: 36,
-                  backgroundColor: colors.accent.error,
-                  alignSelf: 'center',
-                }}
+          {/* Radio Icon and Track Info - Inline */}
+          <View className="flex-row items-center mb-4">
+            <View className="mr-4">
+              <Ionicons name="radio" size={64} color={colors.accent.error} />
+            </View>
+            <View className="flex-1">
+              <Text
+                className="text-white text-lg font-bold"
+                numberOfLines={2}
               >
-                <Ionicons
-                  name={isPlaying ? "pause" : "play"}
-                  size={32}
-                  color="white"
-                />
-              </TouchableOpacity>
+                {currentNaat.title}
+              </Text>
             </View>
           </View>
+
+          {/* Play/Pause Button */}
+          <TouchableOpacity
+            onPress={isPlaying ? handlePauseLive : handlePlayLive}
+            className="items-center justify-center"
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              backgroundColor: colors.accent.error,
+              alignSelf: 'center',
+            }}
+          >
+            <Ionicons
+              name={isPlaying ? "pause" : "play"}
+              size={32}
+              color="white"
+            />
+          </TouchableOpacity>
         </View>
 
         {/* Up Next Section */}
         {upcomingNaats.length > 0 && (
           <View className="px-4 mb-6">
             <Text className="text-white text-lg font-bold mb-3">Up Next</Text>
-            <View
-              className="flex-row items-center rounded-xl p-3"
-              style={{ backgroundColor: colors.background.secondary }}
-            >
-              <View className="items-center justify-center mr-3">
+            <View className="flex-row items-center">
+              <View className="mr-3">
                 <Ionicons name="radio" size={32} color={colors.accent.error} />
               </View>
               <View className="flex-1">
