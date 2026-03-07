@@ -28,7 +28,10 @@ export default function ManualCutClient() {
   ]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [processing, setProcessing] = useState(false);
+  const [cutting, setCutting] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [skipping, setSkipping] = useState(false);
   const [tempFileId, setTempFileId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -349,7 +352,7 @@ export default function ManualCutClient() {
   async function handleCut() {
     if (!selectedNaat) return;
 
-    setProcessing(true);
+    setCutting(true);
     setError(null);
 
     try {
@@ -373,7 +376,7 @@ export default function ManualCutClient() {
       await pollJobStatus(jobId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to cut audio");
-      setProcessing(false);
+      setCutting(false);
     }
   }
 
@@ -390,7 +393,7 @@ export default function ManualCutClient() {
 
         if (data.status === "completed") {
           setTempFileId(data.tempFileId);
-          setProcessing(false);
+          setCutting(false);
           // Save to localStorage for later approval
           if (selectedNaat) {
             localStorage.setItem(
@@ -411,7 +414,7 @@ export default function ManualCutClient() {
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to check status");
-        setProcessing(false);
+        setCutting(false);
       }
     };
 
@@ -431,7 +434,7 @@ export default function ManualCutClient() {
       return;
     }
 
-    setProcessing(true);
+    setApproving(true);
     setError(null);
 
     try {
@@ -468,14 +471,14 @@ export default function ManualCutClient() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to approve cut");
     } finally {
-      setProcessing(false);
+      setApproving(false);
     }
   }
 
   async function handleReject() {
     if (!tempFileId) return;
 
-    setProcessing(true);
+    setRejecting(true);
     setError(null);
 
     try {
@@ -499,7 +502,7 @@ export default function ManualCutClient() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to reject cut");
     } finally {
-      setProcessing(false);
+      setRejecting(false);
     }
   }
 
@@ -512,7 +515,7 @@ export default function ManualCutClient() {
 
     if (!confirmed) return;
 
-    setProcessing(true);
+    setSkipping(true);
     setError(null);
 
     try {
@@ -545,7 +548,7 @@ export default function ManualCutClient() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to skip naat");
     } finally {
-      setProcessing(false);
+      setSkipping(false);
     }
   }
 
@@ -916,119 +919,122 @@ export default function ManualCutClient() {
                 to remove
               </p>
 
-              {cutSegments.map((segment, index) => (
-                <div key={index} className="mb-4 p-4 bg-gray-700 rounded-lg">
-                  <div className="flex gap-6 items-end">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium mb-2">
-                        Start Time
-                      </label>
-                      <div className="flex gap-2 items-center">
-                        <div className="flex-1">
-                          <label className="block text-xs text-gray-400 mb-1">
-                            Minutes
-                          </label>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2"
-                            value={getMinutes(segment.start)}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/\D/g, "");
-                              updateSegmentTime(
-                                index,
-                                "start",
-                                parseInt(val) || 0,
-                                getSeconds(segment.start),
-                              );
-                            }}
-                          />
-                        </div>
-                        <span className="text-2xl pb-2">:</span>
-                        <div className="flex-1">
-                          <label className="block text-xs text-gray-400 mb-1">
-                            Seconds
-                          </label>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2"
-                            value={getSeconds(segment.start)}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/\D/g, "");
-                              const seconds = Math.min(parseInt(val) || 0, 59);
-                              updateSegmentTime(
-                                index,
-                                "start",
-                                getMinutes(segment.start),
-                                seconds,
-                              );
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium mb-2">
-                        End Time
-                      </label>
-                      <div className="flex gap-2 items-center">
-                        <div className="flex-1">
-                          <label className="block text-xs text-gray-400 mb-1">
-                            Minutes
-                          </label>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2"
-                            value={getMinutes(segment.end)}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/\D/g, "");
-                              updateSegmentTime(
-                                index,
-                                "end",
-                                parseInt(val) || 0,
-                                getSeconds(segment.end),
-                              );
-                            }}
-                          />
-                        </div>
-                        <span className="text-2xl pb-2">:</span>
-                        <div className="flex-1">
-                          <label className="block text-xs text-gray-400 mb-1">
-                            Seconds
-                          </label>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2"
-                            value={getSeconds(segment.end)}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/\D/g, "");
-                              const seconds = Math.min(parseInt(val) || 0, 59);
-                              updateSegmentTime(
-                                index,
-                                "end",
-                                getMinutes(segment.end),
-                                seconds,
-                              );
-                            }}
-                          />
+              {[...cutSegments].reverse().map((segment, reversedIndex) => {
+                const index = cutSegments.length - 1 - reversedIndex;
+                return (
+                  <div key={index} className="mb-4 p-4 bg-gray-700 rounded-lg">
+                    <div className="flex gap-6 items-end">
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium mb-2">
+                          Start Time
+                        </label>
+                        <div className="flex gap-2 items-center">
+                          <div className="flex-1">
+                            <label className="block text-xs text-gray-400 mb-1">
+                              Minutes
+                            </label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2"
+                              value={getMinutes(segment.start)}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                updateSegmentTime(
+                                  index,
+                                  "start",
+                                  parseInt(val) || 0,
+                                  getSeconds(segment.start),
+                                );
+                              }}
+                            />
+                          </div>
+                          <span className="text-2xl pb-2">:</span>
+                          <div className="flex-1">
+                            <label className="block text-xs text-gray-400 mb-1">
+                              Seconds
+                            </label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2"
+                              value={getSeconds(segment.start)}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const seconds = Math.min(parseInt(val) || 0, 59);
+                                updateSegmentTime(
+                                  index,
+                                  "start",
+                                  getMinutes(segment.start),
+                                  seconds,
+                                );
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <button
-                      onClick={() => removeSegment(index)}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded h-10"
-                      disabled={cutSegments.length === 1}
-                    >
-                      Remove
-                    </button>
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium mb-2">
+                          End Time
+                        </label>
+                        <div className="flex gap-2 items-center">
+                          <div className="flex-1">
+                            <label className="block text-xs text-gray-400 mb-1">
+                              Minutes
+                            </label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2"
+                              value={getMinutes(segment.end)}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                updateSegmentTime(
+                                  index,
+                                  "end",
+                                  parseInt(val) || 0,
+                                  getSeconds(segment.end),
+                                );
+                              }}
+                            />
+                          </div>
+                          <span className="text-2xl pb-2">:</span>
+                          <div className="flex-1">
+                            <label className="block text-xs text-gray-400 mb-1">
+                              Seconds
+                            </label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2"
+                              value={getSeconds(segment.end)}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const seconds = Math.min(parseInt(val) || 0, 59);
+                                updateSegmentTime(
+                                  index,
+                                  "end",
+                                  getMinutes(segment.end),
+                                  seconds,
+                                );
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => removeSegment(index)}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded h-10"
+                        disabled={cutSegments.length === 1}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               <button
                 onClick={addSegment}
@@ -1040,17 +1046,17 @@ export default function ManualCutClient() {
               <div className="flex gap-4 mt-4">
                 <button
                   onClick={handleCut}
-                  disabled={processing}
+                  disabled={cutting}
                   className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 rounded font-semibold disabled:opacity-50"
                 >
-                  {processing ? "Processing..." : "Cut Audio"}
+                  {cutting ? "Processing..." : "Cut Audio"}
                 </button>
                 <button
                   onClick={handleSkipNoExplanation}
-                  disabled={processing}
+                  disabled={skipping}
                   className="flex-1 px-6 py-3 bg-yellow-600 hover:bg-yellow-700 rounded font-semibold disabled:opacity-50"
                 >
-                  Skip - No Explanation
+                  {skipping ? "Skipping..." : "Skip - No Explanation"}
                 </button>
               </div>
             </div>
@@ -1145,17 +1151,17 @@ export default function ManualCutClient() {
                 <div className="flex gap-4">
                   <button
                     onClick={handleApprove}
-                    disabled={processing}
+                    disabled={approving}
                     className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 rounded font-semibold disabled:opacity-50"
                   >
-                    {processing ? "Approving..." : "✓ Approve"}
+                    {approving ? "Approving..." : "✓ Approve"}
                   </button>
                   <button
                     onClick={handleReject}
-                    disabled={processing}
+                    disabled={rejecting}
                     className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 rounded font-semibold disabled:opacity-50"
                   >
-                    {processing ? "Rejecting..." : "✗ Reject"}
+                    {rejecting ? "Rejecting..." : "✗ Reject"}
                   </button>
                 </div>
               </div>
