@@ -14,9 +14,21 @@ import { Client, Databases } from "appwrite";
 const LIVE_RADIO_COLLECTION_ID = "live_radio";
 const LIVE_RADIO_DOCUMENT_ID = "current_state";
 
+// Polyfill localStorage for React Native to suppress Appwrite SDK warnings
+if (typeof window !== 'undefined' && !window.localStorage) {
+  const storage = new Map();
+  (window as any).localStorage = {
+    getItem: (key: string) => storage.get(key) || null,
+    setItem: (key: string, value: string) => storage.set(key, value),
+    removeItem: (key: string) => storage.delete(key),
+    clear: () => storage.clear(),
+  };
+}
+
 class LiveRadioService {
   private client: Client;
   private databases: Databases;
+  private realtimeUnsubscribe: (() => void) | null = null;
 
   constructor() {
     this.client = new Client()
@@ -78,14 +90,50 @@ class LiveRadioService {
   }
 
   /**
-   * Subscribe to live radio state changes using polling
-   * (Realtime doesn't work well in React Native due to localStorage issues)
+   * Subscribe to live radio state changes using Appwrite Realtime
+   * Provides instant updates when server advances tracks
    */
   subscribeToChanges(callback: (state: LiveRadioState) => void): () => void {
+    // Clean up any existing subscription
+    if (this.realtimeUnsubscribe) {
+      this.realtimeUnsubscribe();
+    }
+
+    try {
+      // Subscribe to the specific document using Realtime
+      const channel = `databases.${appwriteConfig.databaseId}.collections.${LIVE_RADIO_COLLECTION_ID}.documents.${LIVE_RADIO_DOCUMENT_ID}`;
+      
+      console.log("[LiveRadio] Subscribing to realtime updates:", channel);
+
+      const unsubscribe = this.client.subscribe(channel, (response) => {
+        console.log("[LiveRadio] Realtime update received:", response.events);
+        
+        // Check if this is an update event
+        if (response.events.some(event => event.includes('.update'))) {
+          const updatedState = response.payload as unknown as LiveRadioState;
+          console.log("[LiveRadio] Track changed via realtime to index:", updatedState.currentTrackIndex);
+          callback(updatedState);
+        }
+      });
+
+      this.realtimeUnsubscribe = unsubscribe;
+      return unsubscribe;
+    } catch (error) {
+      console.error("[LiveRadio] Error setting up realtime subscription:", error);
+      
+      // Fallback to polling if realtime fails
+      console.log("[LiveRadio] Falling back to polling mode");
+      return this.subscribeToChangesPolling(callback);
+    }
+  }
+
+  /**
+   * Fallback polling method if Realtime fails
+   */
+  private subscribeToChangesPolling(callback: (state: LiveRadioState) => void): () => void {
     let isActive = true;
     let lastTrackIndex: number | null = null;
 
-    // Poll every 30 seconds to check for changes
     const pollInterval = setInterval(async () => {
       if (!isActive) return;
 
@@ -99,9 +147,8 @@ class LiveRadioService {
       } catch (error) {
         console.error("[LiveRadio] Error polling for changes:", error);
       }
-    }, 30000); // Poll every 30 seconds
+    }, 10000); // Poll every 10 seconds as fallback
 
-    // Return cleanup function
     return () => {
       isActive = false;
       clearInterval(pollInterval);
