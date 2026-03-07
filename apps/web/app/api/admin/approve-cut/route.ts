@@ -1,21 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  Client,
-  Databases,
-  ID,
-  Permission,
-  Role,
-  Storage,
+    Client,
+    Databases,
+    ID,
+    Permission,
+    Role,
+    Storage,
 } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 
 export async function POST(request: NextRequest) {
   try {
-    const { naatId, tempFileId } = await request.json();
+    const { naatId, tempFileId, cutDuration } = await request.json();
 
     if (!naatId || !tempFileId) {
       return NextResponse.json(
         { error: "Missing naatId or tempFileId" },
+        { status: 400 },
+      );
+    }
+
+    if (!cutDuration || cutDuration <= 0) {
+      return NextResponse.json(
+        { error: "Missing or invalid cutDuration" },
         { status: 400 },
       );
     }
@@ -40,12 +47,15 @@ export async function POST(request: NextRequest) {
       [Permission.read(Role.any())],
     );
 
-    // Update naat document with cutAudio reference
+    // Update naat document with cutAudio reference and cutDuration
     await databases.updateDocument(
       process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
       process.env.NEXT_PUBLIC_APPWRITE_NAATS_COLLECTION_ID!,
       naatId,
-      { cutAudio: mainFile.$id },
+      { 
+        cutAudio: mainFile.$id,
+        cutDuration: cutDuration,
+      },
     );
 
     // Delete temp file
