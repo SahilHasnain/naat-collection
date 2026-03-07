@@ -2,23 +2,23 @@ import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { appwriteService } from "@/services/appwrite";
 import { liveRadioService } from "@/services/liveRadio";
 import {
-  setupPlayer,
-  updateNotificationCapabilities,
+    setupPlayer,
+    updateNotificationCapabilities,
 } from "@/services/trackPlayerService";
 import { LiveRadioState } from "@/types/live-radio";
 import { Naat } from "@naat-collection/shared";
 import TrackPlayer, {
-  Event,
-  State,
-  useTrackPlayerEvents,
+    Event,
+    State,
+    useTrackPlayerEvents,
 } from "@weights-ai/react-native-track-player";
 import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useRef,
+    useState,
 } from "react";
 
 interface LiveRadioContextType {
@@ -55,7 +55,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
   const [liveState, setLiveState] = useState<LiveRadioState | null>(null);
 
   const currentTrackIndexRef = useRef<number>(-1);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const realtimeUnsubscribeRef = useRef<(() => void) | null>(null);
   const isSetupRef = useRef(false);
   const isAdvancingRef = useRef(false); // Mutex to prevent concurrent track advances
 
@@ -85,14 +85,18 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [isNormalAudioActive, isPlaying]);
 
-  // Listen to playback state changes - only when live radio is active
-  useTrackPlayerEvents([Event.PlaybackState], async (event) => {
+  // Listen to playback state changes and track end - only when live radio is active
+  useTrackPlayerEvents([Event.PlaybackState, Event.PlaybackQueueEnded], async (event) => {
     if (!isLiveRadioActive) return;
 
     if (event.type === Event.PlaybackState) {
       const state = event.state;
       setIsPlaying(state === State.Playing);
       setIsLoading(state === State.Buffering || state === State.Loading);
+    } else if (event.type === Event.PlaybackQueueEnded) {
+      // Track ended - automatically advance to next
+      console.log("[LiveRadio] Track ended, auto-advancing to next...");
+      await checkAndAdvanceTrack();
     }
   });
 
@@ -416,47 +420,44 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [isLiveRadioActive, calculateElapsedTime]);
 
   /**
-   * Poll for track changes every 30 seconds
-   * Only sync if there's significant drift from server
+   * Subscribe to realtime updates when playing
+   * Instantly sync when server advances tracks
    */
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || !liveState) return;
 
-    pollIntervalRef.current = setInterval(async () => {
-      try {
-        const state = await liveRadioService.getCurrentState();
-        if (!state) return;
+    console.log("[LiveRadio] Setting up realtime subscription");
 
-        // Check if we're significantly out of sync with server
-        const trackDifference = Math.abs(state.currentTrackIndex - currentTrackIndexRef.current);
-        const isSignificantDrift = trackDifference > 1 && trackDifference < (state.playlist.length - 1);
+    const unsubscribe = liveRadioService.subscribeToChanges(async (updatedState) => {
+      // Check if server has advanced to a different track
+      if (updatedState.currentTrackIndex !== currentTrackIndexRef.current) {
+        console.log(
+          `[LiveRadio] Realtime: Server at index ${updatedState.currentTrackIndex}, client at ${currentTrackIndexRef.current}`
+        );
+        
+        // Check if we're significantly out of sync (more than 1 track difference)
+        const trackDifference = Math.abs(updatedState.currentTrackIndex - currentTrackIndexRef.current);
+        const isSignificantDrift = trackDifference > 1 && trackDifference < (updatedState.playlist.length - 1);
         
         if (isSignificantDrift) {
-          console.log("[LiveRadio] Significant drift detected via polling, resyncing...");
+          console.log("[LiveRadio] Significant drift detected via realtime, resyncing...");
           await checkAndAdvanceTrack();
-          return;
+        } else {
+          console.log("[LiveRadio] Minor drift, will naturally sync on track end");
         }
-
-        // Check if current track should have finished based on timing
-        const currentTrackId = liveRadioService.getCurrentTrackId(state);
-        if (currentTrackId && currentNaat) {
-          const timing = calculateElapsedTime(state, currentNaat.duration);
-          if (timing.shouldAdvance) {
-            console.log("[LiveRadio] Track finished based on timing, advancing...");
-            await checkAndAdvanceTrack();
-          }
-        }
-      } catch (err) {
-        console.error("[LiveRadio] Error polling for changes:", err);
       }
-    }, 30000) as unknown as NodeJS.Timeout; // Poll every 30 seconds (reduced from 5s)
+    });
+
+    realtimeUnsubscribeRef.current = unsubscribe;
 
     return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
+      console.log("[LiveRadio] Cleaning up realtime subscription");
+      if (realtimeUnsubscribeRef.current) {
+        realtimeUnsubscribeRef.current();
+        realtimeUnsubscribeRef.current = null;
       }
     };
-  }, [isPlaying, checkAndAdvanceTrack, currentNaat, calculateElapsedTime]);
+  }, [isPlaying, liveState, checkAndAdvanceTrack]);
 
   /**
    * Play live radio
@@ -511,8 +512,8 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     return () => {
       TrackPlayer.reset();
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
+      if (realtimeUnsubscribeRef.current) {
+        realtimeUnsubscribeRef.current();
       }
     };
   }, []);
