@@ -3,12 +3,12 @@ import ffmpeg from "fluent-ffmpeg";
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs";
 import { NextRequest, NextResponse } from "next/server";
 import {
-  Client,
-  Databases,
-  ID,
-  Permission,
-  Role,
-  Storage,
+    Client,
+    Databases,
+    ID,
+    Permission,
+    Role,
+    Storage,
 } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 import { join } from "path";
@@ -169,26 +169,67 @@ async function cutAudio(
   keepSegments: CutSegment[],
   outputPath: string,
 ): Promise<void> {
+  const FADE_DURATION = 0.3; // 300ms fade duration
+
   return new Promise((resolve, reject) => {
     if (keepSegments.length === 1) {
       const seg = keepSegments[0];
-      ffmpeg(inputPath)
+      const segmentDuration = seg.end - seg.start;
+      
+      // Build fade filters for single segment
+      const fadeFilters: string[] = [];
+      
+      // Fade in at the start (if not at the very beginning)
+      if (seg.start > 0) {
+        fadeFilters.push(`afade=t=in:st=0:d=${FADE_DURATION}`);
+      }
+      
+      // Fade out at the end (if not at the very end of the audio)
+      const fadeOutStart = Math.max(0, segmentDuration - FADE_DURATION);
+      fadeFilters.push(`afade=t=out:st=${fadeOutStart}:d=${FADE_DURATION}`);
+      
+      const command = ffmpeg(inputPath)
         .setStartTime(seg.start)
-        .setDuration(seg.end - seg.start)
+        .setDuration(segmentDuration)
         .audioCodec("aac")
         .audioBitrate("256k")
         .audioFrequency(44100)
         .audioChannels(2)
-        .outputOptions(["-q:a", "2"])
+        .outputOptions(["-q:a", "2"]);
+      
+      if (fadeFilters.length > 0) {
+        command.audioFilters(fadeFilters);
+      }
+      
+      command
         .output(outputPath)
         .on("end", () => resolve())
         .on("error", (err) => reject(err))
         .run();
     } else {
       const filterComplex: string[] = [];
+      
       keepSegments.forEach((segment, index) => {
+        const segmentDuration = segment.end - segment.start;
+        const isFirst = index === 0;
+        const isLast = index === keepSegments.length - 1;
+        
+        // Build fade filters for each segment
+        let fadeFilter = "";
+        
+        // Fade in at the start of each segment (except the very first if it starts at 0)
+        if (!isFirst || segment.start > 0) {
+          fadeFilter += `afade=t=in:st=0:d=${FADE_DURATION}`;
+        }
+        
+        // Fade out at the end of each segment (except the very last)
+        const fadeOutStart = Math.max(0, segmentDuration - FADE_DURATION);
+        if (fadeFilter) fadeFilter += ",";
+        fadeFilter += `afade=t=out:st=${fadeOutStart}:d=${FADE_DURATION}`;
+        
+        // Trim and apply fades
         filterComplex.push(
-          `[0:a]atrim=start=${segment.start}:end=${segment.end},asetpts=PTS-STARTPTS[a${index}]`,
+          `[0:a]atrim=start=${segment.start}:end=${segment.end},asetpts=PTS-STARTPTS,${fadeFilter}[a${index}]`,
         );
       });
 

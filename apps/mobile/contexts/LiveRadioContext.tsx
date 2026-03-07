@@ -57,6 +57,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
   const currentTrackIndexRef = useRef<number>(-1);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isSetupRef = useRef(false);
+  const isAdvancingRef = useRef(false); // Mutex to prevent concurrent track advances
 
   // Setup Track Player on mount
   useEffect(() => {
@@ -93,18 +94,6 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsPlaying(state === State.Playing);
       setIsLoading(state === State.Buffering || state === State.Loading);
     }
-  });
-
-  // Listen to track end events - only when live radio is active
-  useTrackPlayerEvents([Event.PlaybackQueueEnded], async () => {
-    if (!isLiveRadioActive) {
-      console.log(
-        "[LiveRadio] Track finished but live radio not active, ignoring",
-      );
-      return;
-    }
-    console.log("[LiveRadio] Track finished, checking for next track...");
-    checkAndAdvanceTrack();
   });
 
   /**
@@ -242,7 +231,14 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
+    // Prevent concurrent execution (mutex)
+    if (isAdvancingRef.current) {
+      console.log("[LiveRadio] Already advancing track, skipping...");
+      return;
+    }
+
     try {
+      isAdvancingRef.current = true;
       setIsLoading(true);
       const state = await liveRadioService.getCurrentState();
       if (!state) {
@@ -250,11 +246,33 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
 
-      // If server has advanced to next track, load it
+      // If server has advanced to next track, check if we need to sync
       if (state.currentTrackIndex !== currentTrackIndexRef.current) {
         console.log(
-          `[LiveRadio] Server advanced from ${currentTrackIndexRef.current} to ${state.currentTrackIndex}`,
+          `[LiveRadio] Server at index ${state.currentTrackIndex}, client at ${currentTrackIndexRef.current}`,
         );
+        
+        // Check if server is just one track ahead (normal progression)
+        const expectedNextIndex = (currentTrackIndexRef.current + 1) % state.playlist.length;
+        if (state.currentTrackIndex === expectedNextIndex) {
+          console.log("[LiveRadio] Server one track ahead, this is normal - staying with current track");
+          // Don't sync - we'll naturally advance when our track finishes
+          setIsLoading(false);
+          return;
+        }
+        
+        // Check if we're significantly out of sync (more than 1 track difference)
+        const trackDifference = Math.abs(state.currentTrackIndex - currentTrackIndexRef.current);
+        const isSignificantDrift = trackDifference > 1 && trackDifference < (state.playlist.length - 1);
+        
+        if (!isSignificantDrift) {
+          console.log("[LiveRadio] Minor drift or playlist wrap, staying with current track");
+          setIsLoading(false);
+          return;
+        }
+        
+        // Significant drift detected - resync with server
+        console.log("[LiveRadio] Significant drift detected, resyncing with server...");
         currentTrackIndexRef.current = state.currentTrackIndex;
         setLiveState(state);
 
@@ -335,6 +353,9 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
           // Calculate next track index
           const nextIndex =
             (currentTrackIndexRef.current + 1) % state.playlist.length;
+          
+          // Update our local reference BEFORE making any changes
+          // This prevents the polling from detecting a mismatch
           currentTrackIndexRef.current = nextIndex;
 
           const updatedState = { ...state, currentTrackIndex: nextIndex };
@@ -389,11 +410,14 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error("[LiveRadio] Error checking track advancement:", err);
       setError(err as Error);
       setIsLoading(false);
+    } finally {
+      isAdvancingRef.current = false; // Release mutex
     }
   }, [isLiveRadioActive, calculateElapsedTime]);
 
   /**
-   * Poll for track changes every 5 seconds
+   * Poll for track changes every 30 seconds
+   * Only sync if there's significant drift from server
    */
   useEffect(() => {
     if (!isPlaying) return;
@@ -403,9 +427,12 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
         const state = await liveRadioService.getCurrentState();
         if (!state) return;
 
-        // Check if server advanced to next track
-        if (state.currentTrackIndex !== currentTrackIndexRef.current) {
-          console.log("[LiveRadio] Track changed via polling, advancing...");
+        // Check if we're significantly out of sync with server
+        const trackDifference = Math.abs(state.currentTrackIndex - currentTrackIndexRef.current);
+        const isSignificantDrift = trackDifference > 1 && trackDifference < (state.playlist.length - 1);
+        
+        if (isSignificantDrift) {
+          console.log("[LiveRadio] Significant drift detected via polling, resyncing...");
           await checkAndAdvanceTrack();
           return;
         }
@@ -422,7 +449,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (err) {
         console.error("[LiveRadio] Error polling for changes:", err);
       }
-    }, 5000) as unknown as NodeJS.Timeout; // Reduced from 30s to 5s for better sync
+    }, 30000) as unknown as NodeJS.Timeout; // Poll every 30 seconds (reduced from 5s)
 
     return () => {
       if (pollIntervalRef.current) {
