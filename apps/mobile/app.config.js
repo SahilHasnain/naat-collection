@@ -65,10 +65,13 @@ export default {
         {
           image: "./assets/images/splash-icon.png",
           resizeMode: "cover",
-          backgroundColor: "#000000",
-          width: "1024px",
-          height: "1024px"
-        },
+          backgroundColor: "#232323",
+          dark: {
+            image: "./assets/images/splash-icon-dark.png",
+            backgroundColor: "#000000"
+          },
+          imageWidth: 1024
+        }
       ],
       [
         "@sentry/react-native",
