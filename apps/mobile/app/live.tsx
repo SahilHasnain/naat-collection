@@ -164,10 +164,10 @@ export default function LiveScreen() {
         {/* Up Next Section */}
         {upcomingNaats.length > 0 && (
           <View className="px-4 mb-6">
-            <Text className="text-white text-lg font-bold mb-3">Up Next</Text>
+            <Text className="text-white text-lg font-bold mb-3">Next</Text>
             <View className="flex-row items-center">
               <View className="mr-3">
-                <Ionicons name="radio" size={32} color={colors.accent.error} />
+                <Ionicons name="play-skip-forward" size={24} color={colors.accent.error} />
               </View>
               <View className="flex-1">
                 <Text
