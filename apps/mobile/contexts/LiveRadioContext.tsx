@@ -213,6 +213,9 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
       // Play
       await TrackPlayer.play();
 
+      // Start heartbeat to track active listening
+      liveRadioService.startHeartbeat();
+
       setIsPlaying(true);
       setIsLoading(false);
 
@@ -460,6 +463,28 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [isPlaying, liveState, checkAndAdvanceTrack]);
 
   /**
+   * Refresh listener count every 30 seconds when playing
+   */
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    const refreshListenerCount = async () => {
+      const count = await liveRadioService.getListenerCount();
+      setListenerCount(count);
+    };
+
+    // Refresh immediately
+    refreshListenerCount();
+
+    // Then refresh every 30 seconds
+    const interval = setInterval(refreshListenerCount, 30000) as unknown as NodeJS.Timeout;
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isPlaying]);
+
+  /**
    * Play live radio
    */
   const play = useCallback(async () => {
@@ -467,9 +492,12 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
     if (state === State.Paused || state === State.Ready) {
       // Resume existing track
       await TrackPlayer.play();
+      // Start heartbeat when resuming
+      liveRadioService.startHeartbeat();
     } else {
       // Load and play current track
       await loadAndPlayCurrentTrack();
+      // Heartbeat will be started in loadAndPlayCurrentTrack
     }
   }, [loadAndPlayCurrentTrack]);
 
@@ -478,6 +506,8 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
    */
   const pause = useCallback(async () => {
     await TrackPlayer.pause();
+    // Stop heartbeat when pausing
+    await liveRadioService.stopHeartbeat();
   }, []);
 
   /**
@@ -486,6 +516,8 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
   const stop = useCallback(async () => {
     try {
       await TrackPlayer.reset();
+      // Stop heartbeat when stopping
+      await liveRadioService.stopHeartbeat();
     } catch (err) {
       console.error("[LiveRadio] Error stopping:", err);
     }
@@ -512,6 +544,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     return () => {
       TrackPlayer.reset();
+      liveRadioService.stopHeartbeat();
       if (realtimeUnsubscribeRef.current) {
         realtimeUnsubscribeRef.current();
       }

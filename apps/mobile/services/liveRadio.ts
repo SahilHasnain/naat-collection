@@ -9,10 +9,14 @@ import { appwriteConfig } from "@/config/appwrite";
 import { appwriteService } from "@/services/appwrite";
 import { LiveRadioState } from "@/types/live-radio";
 import { Naat } from "@naat-collection/shared";
-import { Client, Databases } from "appwrite";
+import { Client, Databases, Query } from "appwrite";
+import { Platform } from 'react-native';
 
 const LIVE_RADIO_COLLECTION_ID = "live_radio";
 const LIVE_RADIO_DOCUMENT_ID = "current_state";
+const LISTENERS_COLLECTION_ID = "live_radio_listeners";
+const HEARTBEAT_INTERVAL = 30000; // 30 seconds
+const LISTENER_TIMEOUT = 60000; // 60 seconds (consider offline after this)
 
 // Polyfill localStorage for React Native to suppress Appwrite SDK warnings
 if (typeof window !== 'undefined' && !window.localStorage) {
@@ -29,6 +33,8 @@ class LiveRadioService {
   private client: Client;
   private databases: Databases;
   private realtimeUnsubscribe: (() => void) | null = null;
+  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private listenerId: string | null = null;
 
   constructor() {
     this.client = new Client()
@@ -156,12 +162,148 @@ class LiveRadioService {
   }
 
   /**
-   * Get approximate listener count
+   * Get real-time listener count
+   * Counts active listeners (heartbeat within last 60 seconds)
    */
   async getListenerCount(): Promise<number> {
-    // For now, return a placeholder
-    // In production, you'd track this with analytics or a separate collection
-    return Math.floor(Math.random() * 50) + 10; // Random 10-60 for demo
+    try {
+      // Calculate cutoff time (60 seconds ago)
+      const cutoffTime = new Date(Date.now() - LISTENER_TIMEOUT).toISOString();
+
+      // Query for active listeners
+      const response = await this.databases.listDocuments(
+        appwriteConfig.databaseId,
+        LISTENERS_COLLECTION_ID,
+        [
+          Query.greaterThan('lastHeartbeat', cutoffTime),
+          Query.limit(100), // Limit to prevent large queries
+        ]
+      );
+
+      return response.total;
+    } catch (error) {
+      console.error("[LiveRadio] Error fetching listener count:", error);
+      // Return placeholder if collection doesn't exist yet
+      return 0;
+    }
+  }
+
+  /**
+   * Get or create a persistent listener ID for this device
+   * Uses a shorter, valid format that stays consistent per session
+   */
+  private async getListenerId(): Promise<string> {
+    if (this.listenerId) {
+      return this.listenerId;
+    }
+
+    // Generate a session-based ID that's valid for Appwrite (max 36 chars)
+    // Format: listener_<platform>_<timestamp>_<random>
+    const platform = Platform.OS.substring(0, 3); // "ios" or "and"
+    const timestamp = Date.now().toString(36); // Base36 is shorter
+    const random = Math.random().toString(36).substring(2, 8); // 6 chars
+    
+    // Total length: 9 + 3 + 1 + ~8 + 1 + 6 = ~28 chars (well under 36)
+    this.listenerId = `listener_${platform}_${timestamp}_${random}`;
+    
+    console.log("[LiveRadio] Generated new listener ID:", this.listenerId);
+    return this.listenerId;
+  }
+
+  /**
+   * Register this device as an active listener
+   * Creates or updates listener document with heartbeat
+   */
+  async registerListener(): Promise<void> {
+    try {
+      // Get or create listener ID
+      const listenerId = await this.getListenerId();
+
+      const now = new Date().toISOString();
+      const deviceInfo = `${Platform.OS} ${Platform.Version}`;
+
+      try {
+        // Try to update existing document
+        await this.databases.updateDocument(
+          appwriteConfig.databaseId,
+          LISTENERS_COLLECTION_ID,
+          listenerId,
+          {
+            lastHeartbeat: now,
+            deviceInfo,
+          }
+        );
+        console.log("[LiveRadio] Updated heartbeat for listener:", listenerId);
+      } catch (error: any) {
+        // If document doesn't exist, create it
+        if (error.code === 404) {
+          await this.databases.createDocument(
+            appwriteConfig.databaseId,
+            LISTENERS_COLLECTION_ID,
+            listenerId,
+            {
+              lastHeartbeat: now,
+              deviceInfo,
+            }
+          );
+          console.log("[LiveRadio] Registered as listener:", listenerId);
+        } else {
+          throw error;
+        }
+      }
+    } catch (error) {
+      console.error("[LiveRadio] Error registering listener:", error);
+    }
+  }
+
+  /**
+   * Start sending heartbeats to track active listening
+   */
+  startHeartbeat(): void {
+    // Register immediately
+    this.registerListener();
+
+    // Clear any existing interval
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+    }
+
+    // Send heartbeat every 30 seconds
+    this.heartbeatInterval = setInterval(() => {
+      this.registerListener();
+    }, HEARTBEAT_INTERVAL) as unknown as NodeJS.Timeout;
+
+    console.log("[LiveRadio] Heartbeat started");
+  }
+
+  /**
+   * Stop sending heartbeats and remove listener
+   */
+  async stopHeartbeat(): Promise<void> {
+    // Clear interval
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+      console.log("[LiveRadio] Heartbeat interval cleared");
+    }
+
+    // Remove listener document
+    if (this.listenerId) {
+      try {
+        console.log("[LiveRadio] Attempting to delete listener:", this.listenerId);
+        await this.databases.deleteDocument(
+          appwriteConfig.databaseId,
+          LISTENERS_COLLECTION_ID,
+          this.listenerId
+        );
+        console.log("[LiveRadio] Successfully unregistered listener:", this.listenerId);
+      } catch (error: any) {
+        console.error("[LiveRadio] Error unregistering listener:", error);
+        console.error("[LiveRadio] Listener ID was:", this.listenerId);
+      }
+    } else {
+      console.log("[LiveRadio] No listener ID to unregister");
+    }
   }
 
   /**
