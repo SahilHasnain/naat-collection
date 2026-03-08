@@ -12,12 +12,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect } from "react";
 import {
-    ActivityIndicator,
-    RefreshControl,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -111,6 +111,21 @@ export default function LiveScreen() {
       style={{ backgroundColor: colors.background.primary }}
       edges={["top"]}
     >
+      {/* Listener Count Badge - Top Right */}
+      {listenerCount > 0 && (
+        <View className="absolute top-4 right-4 z-10">
+          <View 
+            className="flex-row items-center px-3 py-1.5 rounded-full"
+            style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
+          >
+            <Text className="text-white text-sm font-semibold mr-1.5">
+              {listenerCount}
+            </Text>
+            <Ionicons name="people" size={16} color={colors.accent.error} />
+          </View>
+        </View>
+      )}
+
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', marginBottom: 150 }}
