@@ -1,6 +1,6 @@
+import type { Channel } from "@naat-collection/shared";
 import React from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { Channel } from "../types";
 
 interface ChannelFilterBarProps {
   channels: Channel[];
@@ -25,7 +25,12 @@ const ChannelFilterBar: React.FC<ChannelFilterBarProps> = ({
   );
 
   // Create filter options with "All" as first option
-  const filterOptions = [
+  const filterOptions: Array<{
+    id: string | null;
+    name: string;
+    icon: string;
+    type: "all" | "channel" | "other";
+  }> = [
     { id: null, name: "All", icon: "🌐", type: "all" as const },
     ...sortedMainChannels.map((channel) => ({
       id: channel.id,

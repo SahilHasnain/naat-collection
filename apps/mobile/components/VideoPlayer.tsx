@@ -1,7 +1,7 @@
 import { colors } from "@/constants/theme";
 import { VideoPlayerProps } from "@/types";
 import React from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Alert, View } from "react-native";
 import YoutubePlayer from "react-native-youtube-iframe";
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {

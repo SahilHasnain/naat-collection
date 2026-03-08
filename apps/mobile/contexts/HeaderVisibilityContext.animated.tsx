@@ -1,13 +1,12 @@
 import React, { createContext, useCallback, useContext, useRef } from "react";
-import type Animated from "react-native-reanimated";
-import { Easing, useSharedValue, withTiming } from "react-native-reanimated";
+import { Easing, SharedValue, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface HeaderVisibilityContextType {
   handleScroll: (event: any) => void;
-  translateY: Animated.SharedValue<number>;
+  translateY: SharedValue<number>;
   headerHeight: number;
   showHeader: () => void; // Force show header and reset state
-  isScrolledDown: Animated.SharedValue<boolean>; // Track if user has scrolled down
+  isScrolledDown: SharedValue<boolean>; // Track if user has scrolled down
 }
 
 const HeaderVisibilityContext = createContext<

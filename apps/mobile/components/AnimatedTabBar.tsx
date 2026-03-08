@@ -2,11 +2,11 @@ import { colors } from "@/constants/theme";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { Platform, Pressable, Text, View } from "react-native";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import Animated, { SharedValue, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface AnimatedTabBarProps extends BottomTabBarProps {
-  translateY: Animated.SharedValue<number>;
+  translateY: SharedValue<number>;
 }
 
 export function AnimatedTabBar({
@@ -102,7 +102,6 @@ export function AnimatedTabBar({
             accessibilityRole="button"
             accessibilityState={isFocused ? { selected: true } : {}}
             accessibilityLabel={options.tabBarAccessibilityLabel}
-            testID={options.tabBarTestID}
             onPress={onPress}
             onLongPress={onLongPress}
             style={{

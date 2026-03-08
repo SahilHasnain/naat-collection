@@ -49,6 +49,7 @@ export default function ManualCutClient() {
   const [previewAudioRef, setPreviewAudioRef] = useState<HTMLAudioElement | null>(null);
   const [cutDurationMinutes, setCutDurationMinutes] = useState<string>("");
   const [cutDurationSeconds, setCutDurationSeconds] = useState<string>("");
+  const [autoCutDuration, setAutoCutDuration] = useState<number | null>(null);
 
   const LIMIT = 50;
 
@@ -424,13 +425,17 @@ export default function ManualCutClient() {
   async function handleApprove() {
     if (!selectedNaat || !tempFileId) return;
 
-    // Validate cut duration is provided
-    const minutes = parseInt(cutDurationMinutes) || 0;
-    const seconds = parseInt(cutDurationSeconds) || 0;
-    const totalSeconds = minutes * 60 + seconds;
+    // Use auto-calculated duration if available, otherwise use manual input
+    let totalSeconds = autoCutDuration || 0;
+    
+    if (!autoCutDuration) {
+      const minutes = parseInt(cutDurationMinutes) || 0;
+      const seconds = parseInt(cutDurationSeconds) || 0;
+      totalSeconds = minutes * 60 + seconds;
+    }
 
     if (totalSeconds <= 0) {
-      setError("Please enter the cut audio duration");
+      setError("Unable to determine cut audio duration. Please wait for the audio to load.");
       return;
     }
 
@@ -463,6 +468,7 @@ export default function ManualCutClient() {
       setCutSegments([{ start: 0, end: 0 }]);
       setCutDurationMinutes("");
       setCutDurationSeconds("");
+      setAutoCutDuration(null);
       // Reload the list
       setNaats([]);
       setOffset(0);
@@ -919,6 +925,13 @@ export default function ManualCutClient() {
                 to remove
               </p>
 
+              <button
+                onClick={addSegment}
+                className="mb-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
+              >
+                + Add Segment
+              </button>
+
               {[...cutSegments].reverse().map((segment, reversedIndex) => {
                 const index = cutSegments.length - 1 - reversedIndex;
                 return (
@@ -1036,13 +1049,6 @@ export default function ManualCutClient() {
                 );
               })}
 
-              <button
-                onClick={addSegment}
-                className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
-              >
-                + Add Segment
-              </button>
-
               <div className="flex gap-4 mt-4">
                 <button
                   onClick={handleCut}
@@ -1067,7 +1073,17 @@ export default function ManualCutClient() {
                   Preview (Cut Audio)
                 </h2>
                 <audio
-                  ref={(el) => setPreviewAudioRef(el)}
+                  ref={(el) => {
+                    setPreviewAudioRef(el);
+                    if (el) {
+                      el.onloadedmetadata = () => {
+                        const duration = Math.floor(el.duration);
+                        setAutoCutDuration(duration);
+                        setCutDurationMinutes(Math.floor(duration / 60).toString());
+                        setCutDurationSeconds((duration % 60).toString());
+                      };
+                    }
+                  }}
                   controls
                   className="w-full mb-3"
                   src={getAudioUrl(tempFileId, "tempbucket")}
@@ -1097,10 +1113,12 @@ export default function ManualCutClient() {
 
                 <div className="bg-gray-700 rounded-lg p-4 mb-4">
                   <label className="block text-sm font-medium mb-2">
-                    Cut Audio Duration (Required)
+                    Cut Audio Duration {autoCutDuration && <span className="text-green-400">(Auto-detected)</span>}
                   </label>
                   <p className="text-xs text-gray-400 mb-3">
-                    Enter the duration of the cut audio file
+                    {autoCutDuration 
+                      ? "Duration automatically detected from the audio file" 
+                      : "Waiting for audio to load..."}
                   </p>
                   <div className="flex gap-2 items-center">
                     <div className="flex-1">
@@ -1115,8 +1133,10 @@ export default function ManualCutClient() {
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, "");
                           setCutDurationMinutes(val);
+                          setAutoCutDuration(null); // Clear auto value if manually edited
                         }}
                         placeholder="0"
+                        readOnly={!!autoCutDuration}
                       />
                     </div>
                     <span className="text-2xl pb-2 mt-5">:</span>
@@ -1133,8 +1153,10 @@ export default function ManualCutClient() {
                           const val = e.target.value.replace(/\D/g, "");
                           const seconds = Math.min(parseInt(val) || 0, 59);
                           setCutDurationSeconds(seconds.toString());
+                          setAutoCutDuration(null); // Clear auto value if manually edited
                         }}
                         placeholder="0"
+                        readOnly={!!autoCutDuration}
                       />
                     </div>
                     <div className="flex-1 mt-5">

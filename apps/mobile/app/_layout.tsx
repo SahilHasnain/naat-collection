@@ -68,7 +68,7 @@ function RootLayoutContent() {
   const isOnVideoScreen = segments[0] === "video";
 
   // Check if user is on homepage (index) - only enable filter on homepage
-  const isOnHomepage = segments[0] === undefined || segments[0] === "(tabs)" || segments[0] === "index";
+  const isOnHomepage = segments[0] === undefined;
 
   // Shared value for header (must be called unconditionally)
   const isScrolledDownValue = useSharedValue(false);

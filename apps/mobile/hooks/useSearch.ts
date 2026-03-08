@@ -176,7 +176,7 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
     if (query.trim()) {
       // Reload naats and re-search
       loadNaats().then(() => {
-        performSearch(query);
+        performSemanticSearch(query);
       });
     }
   }, [channelId]); // Only depend on channelId to avoid infinite loops
