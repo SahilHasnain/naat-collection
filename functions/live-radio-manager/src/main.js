@@ -80,6 +80,8 @@ function isTooSimilar(title, seenTitles, threshold = 85) {
 
 /**
  * Generate a random playlist of naats
+ * Returns array of objects with: { naatId, audioId, hasCutAudio }
+ * Prioritizes cutAudio (processed) over audioId when available
  */
 async function generatePlaylist(databases, databaseId, naatsCollectionId) {
   const playlist = [];
@@ -130,7 +132,7 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
           Query.equal("exclude", false),
           Query.isNull("exclude")
         ]),
-        Query.select(["$id", "title"]),
+        Query.select(["$id", "title", "cutAudio", "audioId"]),
       ],
     );
 
@@ -150,8 +152,13 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
         continue;
       }
 
-      // Add to playlist
-      playlist.push(naatId);
+      // Add to playlist with preferred audio ID (cutAudio if available, otherwise audioId)
+      const preferredAudioId = naat.cutAudio || naat.audioId;
+      playlist.push({
+        naatId,
+        audioId: preferredAudioId,
+        hasCutAudio: !!naat.cutAudio
+      });
       seenIds.add(naatId);
       seenTitles.push(normalizeTitle(naatTitle));
     }
@@ -243,13 +250,17 @@ async function shouldAdvanceTrack(databases, databaseId, naatsCollectionId) {
     );
 
     // Get current track from playlist
-    const currentTrackId =
-      currentState.playlist[currentState.currentTrackIndex];
+    const currentTrackData = currentState.playlist[currentState.currentTrackIndex];
 
-    if (!currentTrackId) {
+    if (!currentTrackData) {
       console.log("No current track, needs initialization");
       return { shouldAdvance: true, needsInit: true };
     }
+
+    // Handle both old format (string ID) and new format (object with naatId)
+    const currentTrackId = typeof currentTrackData === 'string' 
+      ? currentTrackData 
+      : currentTrackData.naatId;
 
     // Get track details
     const currentTrack = await databases.getDocument(
@@ -337,7 +348,10 @@ export default async ({ req, res, log, error }) => {
       );
 
       // Get current track to calculate when it actually started
-      const currentTrackId = currentState.playlist[currentState.currentTrackIndex];
+      const currentTrackData = currentState.playlist[currentState.currentTrackIndex];
+      const currentTrackId = typeof currentTrackData === 'string' 
+        ? currentTrackData 
+        : currentTrackData.naatId;
       const currentTrack = await databases.getDocument(
         databaseId,
         naatsCollectionId,
@@ -382,7 +396,10 @@ export default async ({ req, res, log, error }) => {
       );
 
       // Get current track info for response
-      const nextTrackId = playlist[currentTrackIndex];
+      const nextTrackData = playlist[currentTrackIndex];
+      const nextTrackId = typeof nextTrackData === 'string' 
+        ? nextTrackData 
+        : nextTrackData.naatId;
       const nextTrack = await databases.getDocument(
         databaseId,
         naatsCollectionId,
@@ -390,7 +407,7 @@ export default async ({ req, res, log, error }) => {
       );
 
       log(
-        `Now playing: ${nextTrack.title} (${currentTrackIndex + 1}/${playlist.length})`,
+        `Now playing: ${nextTrack.title} (${currentTrackIndex + 1}/${playlist.length})${typeof nextTrackData === 'object' && nextTrackData.hasCutAudio ? ' [Cut Audio]' : ''}`,
       );
 
       return res.json({
@@ -402,6 +419,8 @@ export default async ({ req, res, log, error }) => {
           title: nextTrack.title,
           duration: nextTrack.duration,
           index: currentTrackIndex,
+          audioId: typeof nextTrackData === 'object' ? nextTrackData.audioId : nextTrack.audioId,
+          hasCutAudio: typeof nextTrackData === 'object' ? nextTrackData.hasCutAudio : false,
         },
         playlistSize: playlist.length,
       });
@@ -417,7 +436,10 @@ export default async ({ req, res, log, error }) => {
     );
 
     // Get current track info for response
-    const currentTrackId = playlist[currentTrackIndex];
+    const currentTrackData = playlist[currentTrackIndex];
+    const currentTrackId = typeof currentTrackData === 'string' 
+      ? currentTrackData 
+      : currentTrackData.naatId;
     const currentTrack = await databases.getDocument(
       databaseId,
       naatsCollectionId,
@@ -425,7 +447,7 @@ export default async ({ req, res, log, error }) => {
     );
 
     log(
-      `Now playing: ${currentTrack.title} (${currentTrackIndex + 1}/${playlist.length})`,
+      `Now playing: ${currentTrack.title} (${currentTrackIndex + 1}/${playlist.length})${typeof currentTrackData === 'object' && currentTrackData.hasCutAudio ? ' [Cut Audio]' : ''}`,
     );
 
     return res.json({
@@ -437,6 +459,8 @@ export default async ({ req, res, log, error }) => {
         title: currentTrack.title,
         duration: currentTrack.duration,
         index: currentTrackIndex,
+        audioId: typeof currentTrackData === 'object' ? currentTrackData.audioId : currentTrack.audioId,
+        hasCutAudio: typeof currentTrackData === 'object' ? currentTrackData.hasCutAudio : false,
       },
       playlistSize: playlist.length,
     });
