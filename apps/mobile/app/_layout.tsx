@@ -187,7 +187,7 @@ function RootLayoutContent() {
             title: "History",
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
-                name={focused ? "time" : "time-outline"}
+                name={focused ? "list" : "list-outline"}
                 size={24}
                 color={color}
               />
@@ -200,7 +200,7 @@ function RootLayoutContent() {
             title: "Downloads",
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
-                name={focused ? "download" : "download-outline"}
+                name={focused ? "cloud-download" : "cloud-download-outline"}
                 size={24}
                 color={color}
               />

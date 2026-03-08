@@ -112,7 +112,7 @@ export default function LiveScreen() {
       edges={["top"]}
     >
       {/* Listener Count Badge - Top Right */}
-      {listenerCount > 0 && (
+      {listenerCount >= 0 && (
         <View className="absolute top-4 right-4 z-10">
           <View 
             className="flex-row items-center px-3 py-1.5 rounded-full"
