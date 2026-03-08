@@ -1,7 +1,8 @@
 import EmptyState from "@/components/EmptyState";
 import { FilterModal } from "@/components/FilterModal";
 import NaatCard from "@/components/NaatCard";
-import { SearchModal } from "@/components/SearchModal";
+import { SearchFilterBar } from "@/components/SearchFilterBar";
+import { SearchSuggestions } from "@/components/SearchSuggestions";
 import UnifiedFilterBar from "@/components/UnifiedFilterBar";
 import { colors } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
@@ -19,21 +20,21 @@ import { storageService } from "@/services/storage";
 import type { DurationOption, Naat, SortOption } from "@/types";
 import { showErrorToast } from "@/utils/toast";
 import {
-    filterNaatsByDuration,
-    getPreferredAudioId,
-    hasAudio,
+  filterNaatsByDuration,
+  getPreferredAudioId,
+  hasAudio,
 } from "@naat-collection/shared";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    BackHandler,
-    FlatList,
-    RefreshControl,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  BackHandler,
+  FlatList,
+  RefreshControl,
+  Text,
+  View,
 } from "react-native";
 
 export default function HomeScreen() {
@@ -47,11 +48,15 @@ export default function HomeScreen() {
   const [selectedDuration, setSelectedDuration] =
     useState<DurationOption>("all");
   const { showFilterModal, setShowFilterModal } = useFilterModal();
-  const { showSearchModal, setShowSearchModal } = useSearchContext();
-
-  // Search state - separate input from actual search
-  const [searchInput, setSearchInput] = useState("");
-  const [activeSearchQuery, setActiveSearchQuery] = useState("");
+  const {
+    isSearchActive,
+    deactivateSearch,
+    searchInput,
+    setSearchInput,
+    activeSearchQuery,
+    setActiveSearchQuery,
+    submitSearch,
+  } = useSearchContext();
 
   // Search-specific filters (independent from home filters)
   const [searchChannelId, setSearchChannelId] = useState<string | null>(null);
@@ -78,7 +83,6 @@ export default function HomeScreen() {
     selectedFilter,
   );
   const {
-    query,
     results: searchResults,
     loading: searchLoading,
     setQuery,
@@ -92,36 +96,54 @@ export default function HomeScreen() {
     },
   );
 
-  // Update suggestions as user types (but don't search yet)
-  useEffect(() => {
-    updateSuggestions(searchInput);
-  }, [searchInput, updateSuggestions]);
+  // Derived search state
+  const isShowingSearchResults = isSearchActive && activeSearchQuery.length > 0;
+  const showSuggestionsOverlay = isSearchActive && !activeSearchQuery;
 
-  // Update suggestions when modal opens
+  // Update suggestions as user types
   useEffect(() => {
-    if (showSearchModal) {
+    if (isSearchActive) {
       updateSuggestions(searchInput);
     }
-  }, [showSearchModal, searchInput, updateSuggestions]);
+  }, [searchInput, isSearchActive, updateSuggestions]);
+
+  // When input changes after submission, go back to suggestions mode
+  useEffect(() => {
+    if (activeSearchQuery && searchInput !== activeSearchQuery) {
+      setActiveSearchQuery("");
+    }
+  }, [searchInput, activeSearchQuery, setActiveSearchQuery]);
 
   // Perform actual search when activeSearchQuery changes
   useEffect(() => {
     if (activeSearchQuery) {
       setQuery(activeSearchQuery);
+      addToHistory(activeSearchQuery);
+    } else {
+      setQuery("");
     }
-  }, [activeSearchQuery, setQuery]);
+  }, [activeSearchQuery, setQuery, addToHistory]);
 
-  // Handle search submission
-  const handleSearch = useCallback(
-    (query: string) => {
-      const trimmedQuery = query.trim();
-      if (trimmedQuery) {
-        setActiveSearchQuery(trimmedQuery);
-        addToHistory(trimmedQuery);
-      }
-    },
-    [addToHistory],
-  );
+  // Reset search-specific state when search deactivates
+  useEffect(() => {
+    if (!isSearchActive) {
+      setSearchChannelId(null);
+      setSearchDuration("all");
+      setQuery("");
+    }
+  }, [isSearchActive, setQuery]);
+
+  // Keep header visible during search
+  useEffect(() => {
+    if (isSearchActive) {
+      showHeader();
+    }
+  }, [isSearchActive, showHeader]);
+
+  // Scroll to top when switching between feed and search results
+  useEffect(() => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [isShowingSearchResults]);
 
   // Force header to show when this screen is focused
   useFocusEffect(
@@ -138,28 +160,26 @@ export default function HomeScreen() {
   }, [selectedFilter, selectedChannelId]);
 
   // Determine which data to display
-  const isSearching = query.trim().length > 0;
-  const baseData: Naat[] = isSearching ? searchResults : naats;
-  // Apply duration filter
-  const displayData: Naat[] = filterNaatsByDuration(baseData, selectedDuration);
-  const isLoading = isSearching ? searchLoading : loading;
+  const displayData: Naat[] = isShowingSearchResults
+    ? filterNaatsByDuration(searchResults, searchDuration)
+    : filterNaatsByDuration(naats, selectedDuration);
+  const isLoading = isShowingSearchResults ? searchLoading : loading;
 
   // Handle Android back button when search is active
   useEffect(() => {
     const backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {
-        if (isSearching) {
-          // Clear search query
-          setQuery("");
-          return true; // Prevent default back behavior
+        if (isSearchActive) {
+          deactivateSearch();
+          return true;
         }
-        return false; // Allow default back behavior
+        return false;
       },
     );
 
     return () => backHandler.remove();
-  }, [isSearching, setQuery]);
+  }, [isSearchActive, deactivateSearch]);
 
   // Load audio directly without opening video modal
   const loadAudioDirectly = React.useCallback(
@@ -416,16 +436,17 @@ export default function HomeScreen() {
 
   // Handle infinite scroll
   const handleEndReached = () => {
-    if (!isSearching && hasMore && !loading) {
+    if (!isShowingSearchResults && hasMore && !loading) {
       loadMore();
     }
   };
 
   // Handle scroll to show/hide tab bar and header
   const handleScroll = (event: any) => {
-    // Handle both tab bar and header visibility
     handleTabBarScroll(event);
-    handleHeaderScroll(event);
+    if (!isSearchActive) {
+      handleHeaderScroll(event);
+    }
   };
 
   // Render individual naat card - memoized to prevent unnecessary re-renders
@@ -447,7 +468,7 @@ export default function HomeScreen() {
 
   // Render footer loading indicator
   const renderFooter = () => {
-    if (!loading || isSearching || displayData.length === 0) {
+    if (!loading || isShowingSearchResults || displayData.length === 0) {
       return null;
     }
 
@@ -465,7 +486,7 @@ export default function HomeScreen() {
         <View className="items-center justify-center flex-1 py-20">
           <ActivityIndicator size="large" color={colors.accent.secondary} />
           <Text className="mt-4 text-base text-neutral-400">
-            Loading naats...
+            {isShowingSearchResults ? "Searching..." : "Loading naats..."}
           </Text>
         </View>
       );
@@ -482,7 +503,7 @@ export default function HomeScreen() {
       );
     }
 
-    if (isSearching && displayData.length === 0) {
+    if (isShowingSearchResults && displayData.length === 0) {
       return (
         <EmptyState
           message="No naats found matching your search."
@@ -523,10 +544,21 @@ export default function HomeScreen() {
           }}
           ListHeaderComponent={
             <>
-              {!isSearching &&
-              (selectedFilter !== "forYou" ||
-                selectedChannelId !== null ||
-                selectedDuration !== "all") ? (
+              {isShowingSearchResults ? (
+                <>
+                  <SearchFilterBar
+                    channels={channels}
+                    selectedChannelId={searchChannelId}
+                    onChannelChange={setSearchChannelId}
+                    selectedDuration={searchDuration}
+                    onDurationChange={setSearchDuration}
+                  />
+                  <View style={{ height: 12 }} />
+                </>
+              ) : !isSearchActive &&
+                (selectedFilter !== "forYou" ||
+                  selectedChannelId !== null ||
+                  selectedDuration !== "all") ? (
                 <>
                   <UnifiedFilterBar
                     selectedSort={selectedFilter}
@@ -538,7 +570,6 @@ export default function HomeScreen() {
                     selectedDuration={selectedDuration}
                     onDurationChange={handleDurationChange}
                   />
-                  {/* Spacer after filter bar */}
                   <View style={{ height: 12 }} />
                 </>
               ) : null}
@@ -579,84 +610,32 @@ export default function HomeScreen() {
         onDurationChange={setSelectedDuration}
       />
 
-      {/* Search Modal */}
-      <SearchModal
-        visible={showSearchModal}
-        onClose={() => {
-          setShowSearchModal(false);
-          setSearchInput("");
-          setActiveSearchQuery("");
-          setQuery("");
-          setSearchChannelId(null);
-          setSearchDuration("all");
-        }}
-        channels={channels}
-        selectedChannelId={searchChannelId}
-        onChannelChange={setSearchChannelId}
-        selectedDuration={searchDuration}
-        onDurationChange={setSearchDuration}
-        query={searchInput}
-        onChangeQuery={(text) => {
-          setSearchInput(text);
-        }}
-        onSubmitSearch={handleSearch}
-        placeholder="Search naats..."
-        suggestions={activeSearchQuery ? [] : suggestions}
-        onSuggestionPress={(suggestion) => {
-          setSearchInput(suggestion.text);
-          handleSearch(suggestion.text);
-        }}
-        onSuggestionInsert={(suggestion) => {
-          setSearchInput(suggestion.text);
-        }}
-      >
-        {/* Search Results */}
-        <FlatList
-          data={filterNaatsByDuration(searchResults, searchDuration)}
-          renderItem={renderNaatCard}
-          keyExtractor={(item) => item.$id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingTop: 8,
-            paddingBottom: 50,
+      {/* Suggestions Overlay */}
+      {showSuggestionsOverlay && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            paddingTop: 100,
+            backgroundColor: colors.background.primary,
+            zIndex: 40,
           }}
-          ListEmptyComponent={() => {
-            if (searchLoading) {
-              return (
-                <View className="items-center justify-center flex-1 py-20">
-                  <ActivityIndicator
-                    size="large"
-                    color={colors.accent.secondary}
-                  />
-                  <Text
-                    className="mt-4 text-base"
-                    style={{ color: colors.text.secondary }}
-                  >
-                    Searching...
-                  </Text>
-                </View>
-              );
-            }
-
-            if (query.trim().length === 0) {
-              return (
-                <EmptyState
-                  message="Start typing to search for naats"
-                  iconName="search"
-                />
-              );
-            }
-
-            return (
-              <EmptyState
-                message="No naats found matching your search"
-                iconName="search"
-              />
-            );
-          }}
-        />
-      </SearchModal>
+        >
+          <SearchSuggestions
+            suggestions={suggestions}
+            onSuggestionPress={(suggestion) => {
+              setSearchInput(suggestion.text);
+              submitSearch(suggestion.text);
+            }}
+            onSuggestionInsert={(suggestion) => {
+              setSearchInput(suggestion.text);
+            }}
+          />
+        </View>
+      )}
     </View>
   );
 }
