@@ -485,28 +485,22 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [isPlaying]);
 
   /**
-   * Play live radio
+   * Play live radio - always loads fresh from backend to stay in sync
    */
   const play = useCallback(async () => {
-    const state = await TrackPlayer.getState();
-    if (state === State.Paused || state === State.Ready) {
-      // Resume existing track
-      await TrackPlayer.play();
-      // Start heartbeat when resuming
-      liveRadioService.startHeartbeat();
-    } else {
-      // Load and play current track
-      await loadAndPlayCurrentTrack();
-      // Heartbeat will be started in loadAndPlayCurrentTrack
-    }
+    await loadAndPlayCurrentTrack();
   }, [loadAndPlayCurrentTrack]);
 
   /**
-   * Pause live radio
+   * Stop live radio playback (keeps UI visible so user can resume fresh)
    */
   const pause = useCallback(async () => {
-    await TrackPlayer.pause();
-    // Stop heartbeat when pausing
+    try {
+      await TrackPlayer.reset();
+    } catch (err) {
+      console.error("[LiveRadio] Error resetting player:", err);
+    }
+    setIsPlaying(false);
     await liveRadioService.stopHeartbeat();
   }, []);
 
