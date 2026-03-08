@@ -2,7 +2,7 @@ import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
+import { FlatList, Keyboard, Pressable, Text, View } from "react-native";
 
 export interface SearchSuggestion {
   id: string;
@@ -30,7 +30,10 @@ export function SearchSuggestions({
 
     return (
       <Pressable
-        onPress={() => onSuggestionPress(item)}
+        onPress={() => {
+          Keyboard.dismiss();
+          onSuggestionPress(item);
+        }}
         className="flex-row items-center px-4 py-3"
         style={{ backgroundColor: colors.background.primary }}
         android_ripple={{ color: colors.background.tertiary }}
@@ -110,6 +113,7 @@ export function SearchSuggestions({
         data={suggestions}
         renderItem={renderSuggestion}
         keyExtractor={(item) => item.id}
+        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
         ItemSeparatorComponent={() => (
           <View
