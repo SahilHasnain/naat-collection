@@ -1,10 +1,9 @@
 import React, { createContext, useCallback, useContext, useRef } from "react";
-import type Animated from "react-native-reanimated";
-import { Easing, useSharedValue, withTiming } from "react-native-reanimated";
+import { Easing, SharedValue, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface TabBarVisibilityContextType {
   handleScroll: (event: any) => void;
-  translateY: Animated.SharedValue<number>;
+  translateY: SharedValue<number>;
   tabBarHeight: number;
   showTabBar: () => void; // Force show tab bar and reset state
 }

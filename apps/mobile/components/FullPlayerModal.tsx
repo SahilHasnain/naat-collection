@@ -97,7 +97,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         currentAudio.title,
         Math.floor(duration / 1000), // Convert from milliseconds to seconds
         currentAudio.channelName || "Unknown Channel",
-        currentAudio.views || 0,
+        0, // views - not available in AudioMetadata
         (progress) => {
           setDownloadProgress(progress.progress);
         },
@@ -211,7 +211,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     >
       <StatusBar
         barStyle="light-content"
-        style={{ backgroundColor: colors.background.primary }}
+        backgroundColor={colors.background.primary}
       />
 
       <SafeAreaView
