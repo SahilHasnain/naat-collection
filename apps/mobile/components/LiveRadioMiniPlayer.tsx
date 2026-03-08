@@ -33,20 +33,20 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
   const slideAnim = useSharedValue(100);
 
   useEffect(() => {
-    if (currentNaat) {
-      // Slide up when there's a current naat (playing or paused)
+    if (currentNaat && isPlaying) {
+      // Slide up when playing
       slideAnim.value = withSpring(0, {
         damping: 20,
         stiffness: 90,
       });
     } else {
-      // Slide down when no naat is loaded
+      // Slide down when not playing or no naat
       slideAnim.value = withSpring(100, {
         damping: 20,
         stiffness: 90,
       });
     }
-  }, [currentNaat, slideAnim]);
+  }, [currentNaat, isPlaying, slideAnim]);
 
   // Animated style that responds to both slide animation and tab bar position
   const animatedStyle = useAnimatedStyle(() => {
@@ -83,7 +83,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
     };
   });
 
-  if (!currentNaat) return null;
+  if (!currentNaat || !isPlaying) return null;
 
   return (
     <>
@@ -171,7 +171,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
                   play();
                 }
               }}
-              className="h-9 w-9 items-center justify-center"
+              className="h-9 w-9 items-center justify-center mr-2"
               accessibilityRole="button"
               accessibilityLabel={
                 isPlaying ? "Stop live radio" : "Play live radio"
@@ -184,6 +184,18 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
               />
             </TouchableOpacity>
 
+            {/* Close Button */}
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation();
+                stop();
+              }}
+              className="h-9 w-9 items-center justify-center"
+              accessibilityRole="button"
+              accessibilityLabel="Stop live radio"
+            >
+              <Ionicons name="close" size={22} color={colors.text.secondary} />
+            </TouchableOpacity>
           </View>
         </Pressable>
       </Animated.View>
