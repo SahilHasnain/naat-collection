@@ -221,8 +221,8 @@ function RootLayoutContent() {
         />
       </Tabs>
 
-      {/* Mini Player - Persistent across all screens (only show when normal audio is active) */}
-      {isNormalAudioActive && currentAudio && (
+      {/* Mini Player - Persistent across all screens (only show when normal audio is active and NOT on live tab) */}
+      {isNormalAudioActive && currentAudio && !isOnLiveTab && (
         <MiniPlayer onExpand={() => setIsPlayerExpanded(true)} />
       )}
 
