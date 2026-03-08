@@ -7,28 +7,28 @@ import MiniPlayer from "@/components/MiniPlayer";
 import { colors } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
 import {
-    FilterModalProvider,
-    useFilterModal,
+  FilterModalProvider,
+  useFilterModal,
 } from "@/contexts/FilterModalContext";
 import {
-    HeaderVisibilityProvider,
-    useHeaderVisibility,
+  HeaderVisibilityProvider,
+  useHeaderVisibility,
 } from "@/contexts/HeaderVisibilityContext.animated";
 import {
-    LiveRadioProvider,
-    useLiveRadioPlayer,
+  LiveRadioProvider,
+  useLiveRadioPlayer,
 } from "@/contexts/LiveRadioContext";
 import {
-    PlaybackModeProvider,
-    usePlaybackMode,
+  PlaybackModeProvider,
+  usePlaybackMode,
 } from "@/contexts/PlaybackModeContext";
 import {
-    SearchProvider,
-    useSearch as useSearchContext,
+  SearchProvider,
+  useSearch as useSearchContext,
 } from "@/contexts/SearchContext";
 import {
-    TabBarVisibilityProvider,
-    useTabBarVisibility,
+  TabBarVisibilityProvider,
+  useTabBarVisibility,
 } from "@/contexts/TabBarVisibilityContext.animated";
 import { VideoProvider } from "@/contexts/VideoContext";
 import { storageService } from "@/services/storage";
@@ -59,7 +59,14 @@ function RootLayoutContent() {
   const { translateY } = useTabBarVisibility();
   const { translateY: headerTranslateY } = useHeaderVisibility();
   const { setShowFilterModal } = useFilterModal();
-  const { setShowSearchModal } = useSearchContext();
+  const {
+    isSearchActive,
+    activateSearch,
+    deactivateSearch,
+    searchInput,
+    setSearchInput,
+    submitSearch,
+  } = useSearchContext();
 
   // Check if user is currently on the live tab
   const isOnLiveTab = segments[0] === "live";
@@ -133,15 +140,23 @@ function RootLayoutContent() {
         <AnimatedHeader
           translateY={headerTranslateY}
           isScrolledDown={isScrolledDownValue}
-          query=""
-          onChangeText={() => {}}
           selectedSort="forYou"
           selectedChannelId={null}
           selectedDuration="all"
           channels={[]}
           onFilterPress={() => setShowFilterModal(true)}
-          onSearchPress={() => setShowSearchModal(true)}
-          disableFilter={!isOnHomepage}
+          onSearchPress={() => {
+            activateSearch();
+            if (!isOnHomepage) {
+              router.push("/");
+            }
+          }}
+          disableFilter={!isOnHomepage || isSearchActive}
+          isSearchActive={isSearchActive}
+          searchInput={searchInput}
+          onSearchInputChange={setSearchInput}
+          onSearchSubmit={() => submitSearch(searchInput)}
+          onSearchClose={deactivateSearch}
         />
       )}
 
