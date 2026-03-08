@@ -11,10 +11,10 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect } from "react";
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -161,7 +161,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
               </Text>
             </View>
 
-            {/* Play/Pause Button */}
+            {/* Play/Stop Button */}
             <TouchableOpacity
               onPress={(e) => {
                 e.stopPropagation();
@@ -171,25 +171,19 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
                   play();
                 }
               }}
-              className="h-9 w-9 items-center justify-center mr-2"
-              accessibilityRole="button"
-              accessibilityLabel={isPlaying ? "Stop live radio" : "Play live radio"}
-            >
-              <Ionicons name={isPlaying ? "pause" : "play"} size={24} color="white" />
-            </TouchableOpacity>
-
-            {/* Close Button */}
-            <TouchableOpacity
-              onPress={(e) => {
-                e.stopPropagation();
-                stop();
-              }}
               className="h-9 w-9 items-center justify-center"
               accessibilityRole="button"
-              accessibilityLabel="Stop live radio"
+              accessibilityLabel={
+                isPlaying ? "Stop live radio" : "Play live radio"
+              }
             >
-              <Ionicons name="close" size={22} color={colors.text.secondary} />
+              <Ionicons
+                name={isPlaying ? "pause" : "play"}
+                size={24}
+                color="white"
+              />
             </TouchableOpacity>
+
           </View>
         </Pressable>
       </Animated.View>

@@ -2,23 +2,23 @@ import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { appwriteService } from "@/services/appwrite";
 import { liveRadioService } from "@/services/liveRadio";
 import {
-    setupPlayer,
-    updateNotificationCapabilities,
+  setupPlayer,
+  updateNotificationCapabilities,
 } from "@/services/trackPlayerService";
 import { LiveRadioState } from "@/types/live-radio";
 import { Naat } from "@naat-collection/shared";
 import TrackPlayer, {
-    Event,
-    State,
-    useTrackPlayerEvents,
+  Event,
+  State,
+  useTrackPlayerEvents,
 } from "@weights-ai/react-native-track-player";
 import React, {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useRef,
-    useState,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
 } from "react";
 
 interface LiveRadioContextType {
@@ -86,19 +86,37 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [isNormalAudioActive, isPlaying]);
 
   // Listen to playback state changes and track end - only when live radio is active
-  useTrackPlayerEvents([Event.PlaybackState, Event.PlaybackQueueEnded], async (event) => {
-    if (!isLiveRadioActive) return;
+  useTrackPlayerEvents(
+    [Event.PlaybackState, Event.PlaybackQueueEnded],
+    async (event) => {
+      if (!isLiveRadioActive) return;
 
-    if (event.type === Event.PlaybackState) {
-      const state = event.state;
-      setIsPlaying(state === State.Playing);
-      setIsLoading(state === State.Buffering || state === State.Loading);
-    } else if (event.type === Event.PlaybackQueueEnded) {
-      // Track ended - automatically advance to next
-      console.log("[LiveRadio] Track ended, auto-advancing to next...");
-      await checkAndAdvanceTrack();
-    }
-  });
+      if (event.type === Event.PlaybackState) {
+        const state = event.state;
+
+        // Intercept pause from notification — treat it as stop for live radio
+        if (state === State.Paused) {
+          console.log("[LiveRadio] Pause detected, treating as stop");
+          await TrackPlayer.reset();
+          setIsPlaying(false);
+          await liveRadioService.stopHeartbeat();
+          return;
+        }
+
+        setIsPlaying(state === State.Playing);
+        setIsLoading(state === State.Buffering || state === State.Loading);
+
+        // When player is reset (e.g. from notification stop), stop heartbeat
+        if (state === State.None) {
+          await liveRadioService.stopHeartbeat();
+        }
+      } else if (event.type === Event.PlaybackQueueEnded) {
+        // Track ended - automatically advance to next
+        console.log("[LiveRadio] Track ended, auto-advancing to next...");
+        await checkAndAdvanceTrack();
+      }
+    },
+  );
 
   /**
    * Load current live state from server
@@ -144,23 +162,28 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
   /**
    * Calculate elapsed time since track started on backend
    */
-  const calculateElapsedTime = useCallback((state: LiveRadioState, trackDuration: number) => {
-    const trackStartTime = new Date(state.updatedAt).getTime();
-    const now = Date.now();
-    const elapsedMs = now - trackStartTime;
-    const elapsedSeconds = Math.floor(elapsedMs / 1000);
-    
-    const shouldAdvance = elapsedSeconds >= trackDuration;
-    const remainingSeconds = Math.max(0, trackDuration - elapsedSeconds);
-    
-    console.log(`[LiveRadio] Track started at ${state.updatedAt}, elapsed: ${elapsedSeconds}s / ${trackDuration}s`);
-    
-    return {
-      elapsedSeconds: Math.min(elapsedSeconds, trackDuration), // Cap at track duration
-      shouldAdvance,
-      remainingSeconds
-    };
-  }, []);
+  const calculateElapsedTime = useCallback(
+    (state: LiveRadioState, trackDuration: number) => {
+      const trackStartTime = new Date(state.updatedAt).getTime();
+      const now = Date.now();
+      const elapsedMs = now - trackStartTime;
+      const elapsedSeconds = Math.floor(elapsedMs / 1000);
+
+      const shouldAdvance = elapsedSeconds >= trackDuration;
+      const remainingSeconds = Math.max(0, trackDuration - elapsedSeconds);
+
+      console.log(
+        `[LiveRadio] Track started at ${state.updatedAt}, elapsed: ${elapsedSeconds}s / ${trackDuration}s`,
+      );
+
+      return {
+        elapsedSeconds: Math.min(elapsedSeconds, trackDuration), // Cap at track duration
+        shouldAdvance,
+        remainingSeconds,
+      };
+    },
+    [],
+  );
 
   /**
    * Load and play current track
@@ -177,7 +200,9 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // If track should have already finished, advance to next
       if (timing.shouldAdvance) {
-        console.log("[LiveRadio] Track already finished on backend, advancing...");
+        console.log(
+          "[LiveRadio] Track already finished on backend, advancing...",
+        );
         setIsLoading(false);
         await checkAndAdvanceTrack();
         return;
@@ -206,7 +231,9 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Seek to correct position to sync with backend
       if (timing.elapsedSeconds > 0) {
-        console.log(`[LiveRadio] Seeking to ${timing.elapsedSeconds}s to sync with backend`);
+        console.log(
+          `[LiveRadio] Seeking to ${timing.elapsedSeconds}s to sync with backend`,
+        );
         await TrackPlayer.seekTo(timing.elapsedSeconds);
       }
 
@@ -219,7 +246,9 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsPlaying(true);
       setIsLoading(false);
 
-      console.log(`[LiveRadio] Now playing: ${naat.title} (${timing.remainingSeconds}s remaining)`);
+      console.log(
+        `[LiveRadio] Now playing: ${naat.title} (${timing.remainingSeconds}s remaining)`,
+      );
     } catch (err) {
       console.error("[LiveRadio] Error loading track:", err);
       setError(err as Error);
@@ -258,28 +287,38 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
         console.log(
           `[LiveRadio] Server at index ${state.currentTrackIndex}, client at ${currentTrackIndexRef.current}`,
         );
-        
+
         // Check if server is just one track ahead (normal progression)
-        const expectedNextIndex = (currentTrackIndexRef.current + 1) % state.playlist.length;
+        const expectedNextIndex =
+          (currentTrackIndexRef.current + 1) % state.playlist.length;
         if (state.currentTrackIndex === expectedNextIndex) {
-          console.log("[LiveRadio] Server one track ahead, this is normal - staying with current track");
+          console.log(
+            "[LiveRadio] Server one track ahead, this is normal - staying with current track",
+          );
           // Don't sync - we'll naturally advance when our track finishes
           setIsLoading(false);
           return;
         }
-        
+
         // Check if we're significantly out of sync (more than 1 track difference)
-        const trackDifference = Math.abs(state.currentTrackIndex - currentTrackIndexRef.current);
-        const isSignificantDrift = trackDifference > 1 && trackDifference < (state.playlist.length - 1);
-        
+        const trackDifference = Math.abs(
+          state.currentTrackIndex - currentTrackIndexRef.current,
+        );
+        const isSignificantDrift =
+          trackDifference > 1 && trackDifference < state.playlist.length - 1;
+
         if (!isSignificantDrift) {
-          console.log("[LiveRadio] Minor drift or playlist wrap, staying with current track");
+          console.log(
+            "[LiveRadio] Minor drift or playlist wrap, staying with current track",
+          );
           setIsLoading(false);
           return;
         }
-        
+
         // Significant drift detected - resync with server
-        console.log("[LiveRadio] Significant drift detected, resyncing with server...");
+        console.log(
+          "[LiveRadio] Significant drift detected, resyncing with server...",
+        );
         currentTrackIndexRef.current = state.currentTrackIndex;
         setLiveState(state);
 
@@ -307,7 +346,9 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
         // where we got the new track index but old updatedAt timestamp
         // In this case, just start from beginning
         if (timing.shouldAdvance) {
-          console.log("[LiveRadio] Timing mismatch detected (race condition), starting from beginning");
+          console.log(
+            "[LiveRadio] Timing mismatch detected (race condition), starting from beginning",
+          );
           timing.elapsedSeconds = 0;
           timing.shouldAdvance = false;
           timing.remainingSeconds = naat.duration;
@@ -331,13 +372,17 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Seek to correct position to sync with backend
         if (timing.elapsedSeconds > 0) {
-          console.log(`[LiveRadio] Seeking to ${timing.elapsedSeconds}s to sync with backend`);
+          console.log(
+            `[LiveRadio] Seeking to ${timing.elapsedSeconds}s to sync with backend`,
+          );
           await TrackPlayer.seekTo(timing.elapsedSeconds);
         }
 
         await TrackPlayer.play();
 
-        console.log(`[LiveRadio] Now playing: ${naat.title} (${timing.remainingSeconds}s remaining)`);
+        console.log(
+          `[LiveRadio] Now playing: ${naat.title} (${timing.remainingSeconds}s remaining)`,
+        );
         setIsLoading(false);
       } else {
         // Server hasn't advanced yet, check if current track should have finished
@@ -355,12 +400,14 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (timing.shouldAdvance) {
           // Track finished but server hasn't updated yet, advance locally
-          console.log("[LiveRadio] Track finished locally, advancing to next...");
+          console.log(
+            "[LiveRadio] Track finished locally, advancing to next...",
+          );
 
           // Calculate next track index
           const nextIndex =
             (currentTrackIndexRef.current + 1) % state.playlist.length;
-          
+
           // Update our local reference BEFORE making any changes
           // This prevents the polling from detecting a mismatch
           currentTrackIndexRef.current = nextIndex;
@@ -389,7 +436,9 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
           setUpcomingNaats(upcoming);
 
           // Get audio URL and play
-          const audioResponse = await appwriteService.getAudioUrl(nextNaat.audioId);
+          const audioResponse = await appwriteService.getAudioUrl(
+            nextNaat.audioId,
+          );
           if (!audioResponse.success || !audioResponse.audioUrl) {
             throw new Error("Failed to get audio URL");
           }
@@ -405,11 +454,16 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
           await updateNotificationCapabilities(true);
           await TrackPlayer.play();
 
-          console.log("[LiveRadio] Now playing (local advance):", nextNaat.title);
+          console.log(
+            "[LiveRadio] Now playing (local advance):",
+            nextNaat.title,
+          );
           setIsLoading(false);
         } else {
           // Track still playing, no action needed
-          console.log(`[LiveRadio] Track still playing (${timing.remainingSeconds}s remaining)`);
+          console.log(
+            `[LiveRadio] Track still playing (${timing.remainingSeconds}s remaining)`,
+          );
           setIsLoading(false);
         }
       }
@@ -431,25 +485,35 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
 
     console.log("[LiveRadio] Setting up realtime subscription");
 
-    const unsubscribe = liveRadioService.subscribeToChanges(async (updatedState) => {
-      // Check if server has advanced to a different track
-      if (updatedState.currentTrackIndex !== currentTrackIndexRef.current) {
-        console.log(
-          `[LiveRadio] Realtime: Server at index ${updatedState.currentTrackIndex}, client at ${currentTrackIndexRef.current}`
-        );
-        
-        // Check if we're significantly out of sync (more than 1 track difference)
-        const trackDifference = Math.abs(updatedState.currentTrackIndex - currentTrackIndexRef.current);
-        const isSignificantDrift = trackDifference > 1 && trackDifference < (updatedState.playlist.length - 1);
-        
-        if (isSignificantDrift) {
-          console.log("[LiveRadio] Significant drift detected via realtime, resyncing...");
-          await checkAndAdvanceTrack();
-        } else {
-          console.log("[LiveRadio] Minor drift, will naturally sync on track end");
+    const unsubscribe = liveRadioService.subscribeToChanges(
+      async (updatedState) => {
+        // Check if server has advanced to a different track
+        if (updatedState.currentTrackIndex !== currentTrackIndexRef.current) {
+          console.log(
+            `[LiveRadio] Realtime: Server at index ${updatedState.currentTrackIndex}, client at ${currentTrackIndexRef.current}`,
+          );
+
+          // Check if we're significantly out of sync (more than 1 track difference)
+          const trackDifference = Math.abs(
+            updatedState.currentTrackIndex - currentTrackIndexRef.current,
+          );
+          const isSignificantDrift =
+            trackDifference > 1 &&
+            trackDifference < updatedState.playlist.length - 1;
+
+          if (isSignificantDrift) {
+            console.log(
+              "[LiveRadio] Significant drift detected via realtime, resyncing...",
+            );
+            await checkAndAdvanceTrack();
+          } else {
+            console.log(
+              "[LiveRadio] Minor drift, will naturally sync on track end",
+            );
+          }
         }
-      }
-    });
+      },
+    );
 
     realtimeUnsubscribeRef.current = unsubscribe;
 
@@ -477,7 +541,10 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
     refreshListenerCount();
 
     // Then refresh every 30 seconds
-    const interval = setInterval(refreshListenerCount, 30000) as unknown as NodeJS.Timeout;
+    const interval = setInterval(
+      refreshListenerCount,
+      30000,
+    ) as unknown as NodeJS.Timeout;
 
     return () => {
       clearInterval(interval);
