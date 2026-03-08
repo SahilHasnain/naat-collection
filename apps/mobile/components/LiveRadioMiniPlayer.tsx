@@ -11,10 +11,10 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect } from "react";
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -25,7 +25,7 @@ interface LiveRadioMiniPlayerProps {
 const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
   onExpand,
 }) => {
-  const { currentNaat, isPlaying, pause, play, stop } = useLiveRadioPlayer();
+  const { currentNaat, isPlaying, stop } = useLiveRadioPlayer();
   const { translateY: tabBarTranslateY } = useTabBarVisibility();
   const insets = useSafeAreaInsets();
 
@@ -160,29 +160,6 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
                 {currentNaat.channelName}
               </Text>
             </View>
-
-            {/* Play/Stop Button */}
-            <TouchableOpacity
-              onPress={(e) => {
-                e.stopPropagation();
-                if (isPlaying) {
-                  pause();
-                } else {
-                  play();
-                }
-              }}
-              className="h-9 w-9 items-center justify-center mr-2"
-              accessibilityRole="button"
-              accessibilityLabel={
-                isPlaying ? "Stop live radio" : "Play live radio"
-              }
-            >
-              <Ionicons
-                name={isPlaying ? "pause" : "play"}
-                size={24}
-                color="white"
-              />
-            </TouchableOpacity>
 
             {/* Close Button */}
             <TouchableOpacity

@@ -19,21 +19,21 @@ import { storageService } from "@/services/storage";
 import type { DurationOption, Naat, SortOption } from "@/types";
 import { showErrorToast } from "@/utils/toast";
 import {
-    filterNaatsByDuration,
-    getPreferredAudioId,
-    hasAudio,
+  filterNaatsByDuration,
+  getPreferredAudioId,
+  hasAudio,
 } from "@naat-collection/shared";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    BackHandler,
-    FlatList,
-    RefreshControl,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  BackHandler,
+  FlatList,
+  RefreshControl,
+  Text,
+  View,
 } from "react-native";
 
 export default function HomeScreen() {
@@ -52,6 +52,10 @@ export default function HomeScreen() {
   // Search state - separate input from actual search
   const [searchInput, setSearchInput] = useState("");
   const [activeSearchQuery, setActiveSearchQuery] = useState("");
+
+  // Search-specific filters (independent from home filters)
+  const [searchChannelId, setSearchChannelId] = useState<string | null>(null);
+  const [searchDuration, setSearchDuration] = useState<DurationOption>("all");
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -78,7 +82,7 @@ export default function HomeScreen() {
     results: searchResults,
     loading: searchLoading,
     setQuery,
-  } = useSearch(selectedChannelId);
+  } = useSearch(searchChannelId);
 
   // Search suggestions
   const { suggestions, updateSuggestions, addToHistory } = useSearchSuggestions(
@@ -584,7 +588,14 @@ export default function HomeScreen() {
           setSearchInput("");
           setActiveSearchQuery("");
           setQuery("");
+          setSearchChannelId(null);
+          setSearchDuration("all");
         }}
+        channels={channels}
+        selectedChannelId={searchChannelId}
+        onChannelChange={setSearchChannelId}
+        selectedDuration={searchDuration}
+        onDurationChange={setSearchDuration}
         query={searchInput}
         onChangeQuery={(text) => {
           setSearchInput(text);
@@ -602,7 +613,7 @@ export default function HomeScreen() {
       >
         {/* Search Results */}
         <FlatList
-          data={filterNaatsByDuration(searchResults, selectedDuration)}
+          data={filterNaatsByDuration(searchResults, searchDuration)}
           renderItem={renderNaatCard}
           keyExtractor={(item) => item.$id}
           showsVerticalScrollIndicator={false}
@@ -614,7 +625,7 @@ export default function HomeScreen() {
           ListEmptyComponent={() => {
             if (searchLoading) {
               return (
-                <View className="flex-1 items-center justify-center py-20">
+                <View className="items-center justify-center flex-1 py-20">
                   <ActivityIndicator
                     size="large"
                     color={colors.accent.secondary}
