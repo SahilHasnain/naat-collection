@@ -22,7 +22,7 @@ export async function PlaybackService() {
   });
 
   TrackPlayer.addEventListener(Event.RemoteStop, () => {
-    TrackPlayer.pause();
+    TrackPlayer.reset();
   });
 
   TrackPlayer.addEventListener(Event.RemoteNext, () => {
@@ -84,7 +84,7 @@ export async function setupPlayer() {
 export async function updateNotificationCapabilities(isLiveMode: boolean) {
   try {
     if (isLiveMode) {
-      // Live mode: only play/pause
+      // Live mode: play/pause (pause is intercepted and treated as stop in LiveRadioContext)
       await TrackPlayer.updateOptions({
         capabilities: [Capability.Play, Capability.Pause],
         notificationCapabilities: [Capability.Play, Capability.Pause],
