@@ -33,20 +33,20 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
   const slideAnim = useSharedValue(100);
 
   useEffect(() => {
-    if (currentNaat && isPlaying) {
-      // Slide up
+    if (currentNaat) {
+      // Slide up when there's a current naat (playing or paused)
       slideAnim.value = withSpring(0, {
         damping: 20,
         stiffness: 90,
       });
     } else {
-      // Slide down
+      // Slide down when no naat is loaded
       slideAnim.value = withSpring(100, {
         damping: 20,
         stiffness: 90,
       });
     }
-  }, [currentNaat, isPlaying, slideAnim]);
+  }, [currentNaat, slideAnim]);
 
   // Animated style that responds to both slide animation and tab bar position
   const animatedStyle = useAnimatedStyle(() => {
@@ -83,7 +83,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
     };
   });
 
-  if (!currentNaat || !isPlaying) return null;
+  if (!currentNaat) return null;
 
   return (
     <>
@@ -161,17 +161,21 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
               </Text>
             </View>
 
-            {/* Pause Button */}
+            {/* Play/Pause Button */}
             <TouchableOpacity
               onPress={(e) => {
                 e.stopPropagation();
-                pause();
+                if (isPlaying) {
+                  pause();
+                } else {
+                  play();
+                }
               }}
               className="h-9 w-9 items-center justify-center mr-2"
               accessibilityRole="button"
-              accessibilityLabel="Pause live radio"
+              accessibilityLabel={isPlaying ? "Stop live radio" : "Play live radio"}
             >
-              <Ionicons name="pause" size={24} color="white" />
+              <Ionicons name={isPlaying ? "pause" : "play"} size={24} color="white" />
             </TouchableOpacity>
 
             {/* Close Button */}

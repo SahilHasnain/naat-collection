@@ -581,7 +581,7 @@ export default function HistoryScreen() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{
                 flexGrow: 1,
-                paddingTop: 55,
+                paddingTop: 50,
                 paddingBottom: 100,
               }}
               onScroll={handleScroll}

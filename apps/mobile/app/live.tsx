@@ -17,7 +17,7 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -59,9 +59,9 @@ export default function LiveScreen() {
   };
 
   /**
-   * Handle pause live radio
+   * Handle stop live radio (stops playback; next play will sync fresh)
    */
-  const handlePauseLive = async () => {
+  const handleStopLive = async () => {
     await pause();
   };
 
@@ -69,12 +69,12 @@ export default function LiveScreen() {
   if (isLoading) {
     return (
       <SafeAreaView
-        className="flex-1 items-center justify-center"
+        className="items-center justify-center flex-1"
         style={{ backgroundColor: colors.background.primary }}
         edges={["top"]}
       >
         <ActivityIndicator size="large" color={colors.accent.error} />
-        <Text className="text-white mt-4 text-base">Loading Live Radio...</Text>
+        <Text className="mt-4 text-base text-white">Loading Live Radio...</Text>
       </SafeAreaView>
     );
   }
@@ -83,23 +83,23 @@ export default function LiveScreen() {
   if (error || !currentNaat) {
     return (
       <SafeAreaView
-        className="flex-1 items-center justify-center px-6"
+        className="items-center justify-center flex-1 px-6"
         style={{ backgroundColor: colors.background.primary }}
         edges={["top"]}
       >
         <Ionicons name="radio-outline" size={80} color={colors.text.disabled} />
-        <Text className="text-white text-xl font-bold mt-4">
+        <Text className="mt-4 text-xl font-bold text-white">
           Live Radio Unavailable
         </Text>
-        <Text className="text-neutral-400 text-center mt-2">
+        <Text className="mt-2 text-center text-neutral-400">
           {error?.message || "Unable to load live radio"}
         </Text>
         <TouchableOpacity
           onPress={refresh}
-          className="mt-6 px-6 py-3 rounded-full"
+          className="px-6 py-3 mt-6 rounded-full"
           style={{ backgroundColor: colors.accent.error }}
         >
-          <Text className="text-white font-semibold">Try Again</Text>
+          <Text className="font-semibold text-white">Try Again</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -111,12 +111,12 @@ export default function LiveScreen() {
       style={{ backgroundColor: colors.background.primary }}
       edges={["top"]}
     >
-      {/* Listener Count Badge - Top Right */}
-      {listenerCount >= 0 && (
-        <View className="absolute top-4 right-4 z-10">
-          <View 
+      {/* Listener Count Badge - Top Right, below header */}
+      {listenerCount > 0 && (
+        <View className="flex-row justify-end px-4 pt-16">
+          <View
             className="flex-row items-center px-3 py-1.5 rounded-full"
-            style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
+            style={{ backgroundColor: "rgba(239, 68, 68, 0.2)" }}
           >
             <Text className="text-white text-sm font-semibold mr-1.5">
               {listenerCount}
@@ -128,7 +128,11 @@ export default function LiveScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', marginBottom: 150 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "flex-end",
+          marginBottom: 150,
+        }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -147,10 +151,7 @@ export default function LiveScreen() {
               <Ionicons name="radio" size={64} color={colors.accent.error} />
             </View>
             <View className="flex-1">
-              <Text
-                className="text-white text-lg font-bold"
-                numberOfLines={2}
-              >
+              <Text className="text-lg font-bold text-white" numberOfLines={2}>
                 {currentNaat.title}
               </Text>
             </View>
@@ -158,14 +159,14 @@ export default function LiveScreen() {
 
           {/* Play/Pause Button */}
           <TouchableOpacity
-            onPress={isPlaying ? handlePauseLive : handlePlayLive}
+            onPress={isPlaying ? handleStopLive : handlePlayLive}
             className="items-center justify-center"
             style={{
               width: 72,
               height: 72,
               borderRadius: 36,
               backgroundColor: colors.accent.error,
-              alignSelf: 'center',
+              alignSelf: "center",
             }}
           >
             <Ionicons
@@ -179,14 +180,18 @@ export default function LiveScreen() {
         {/* Up Next Section */}
         {upcomingNaats.length > 0 && (
           <View className="px-4 mb-6">
-            <Text className="text-white text-lg font-bold mb-3">Next</Text>
+            <Text className="mb-3 text-lg font-bold text-white">Next</Text>
             <View className="flex-row items-center">
               <View className="mr-3">
-                <Ionicons name="play-skip-forward" size={24} color={colors.accent.error} />
+                <Ionicons
+                  name="play-skip-forward"
+                  size={24}
+                  color={colors.accent.error}
+                />
               </View>
               <View className="flex-1">
                 <Text
-                  className="text-white text-sm font-semibold"
+                  className="text-sm font-semibold text-white"
                   numberOfLines={2}
                 >
                   {upcomingNaats[0].title}
