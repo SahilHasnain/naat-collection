@@ -35,9 +35,11 @@ export function getDateGroup(timestamp: number): DateGroup {
 
 /**
  * Format a relative time string
+ * Accepts both timestamps (number) and date strings/objects
  */
-export function formatRelativeTime(timestamp: number): string {
+export function formatRelativeTime(date: number | string | Date): string {
   const now = Date.now();
+  const timestamp = typeof date === 'number' ? date : new Date(date).getTime();
   const diff = now - timestamp;
 
   const seconds = Math.floor(diff / 1000);
@@ -56,8 +58,8 @@ export function formatRelativeTime(timestamp: number): string {
   } else if (days < 7) {
     return `${days}d ago`;
   } else {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString("en-US", {
+    const dateObj = new Date(timestamp);
+    return dateObj.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
     });

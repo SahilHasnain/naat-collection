@@ -2,23 +2,23 @@ import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { appwriteService } from "@/services/appwrite";
 import { liveRadioService } from "@/services/liveRadio";
 import {
-  setupPlayer,
-  updateNotificationCapabilities,
+    setupPlayer,
+    updateNotificationCapabilities,
 } from "@/services/trackPlayerService";
 import { LiveRadioState } from "@/types/live-radio";
 import { Naat } from "@naat-collection/shared";
 import TrackPlayer, {
-  Event,
-  State,
-  useTrackPlayerEvents,
+    Event,
+    State,
+    useTrackPlayerEvents,
 } from "@weights-ai/react-native-track-player";
 import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useRef,
+    useState,
 } from "react";
 
 interface LiveRadioContextType {
@@ -222,7 +222,6 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
       await TrackPlayer.add({
         url: audioResponse.audioUrl,
         title: naat.title,
-        artist: naat.channelName,
         artwork: naat.thumbnailUrl,
       });
 
@@ -364,7 +363,6 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
         await TrackPlayer.add({
           url: audioResponse.audioUrl,
           title: naat.title,
-          artist: naat.channelName,
           artwork: naat.thumbnailUrl,
         });
 
@@ -447,7 +445,6 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
           await TrackPlayer.add({
             url: audioResponse.audioUrl,
             title: nextNaat.title,
-            artist: nextNaat.channelName,
             artwork: nextNaat.thumbnailUrl,
           });
 

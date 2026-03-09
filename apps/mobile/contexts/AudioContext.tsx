@@ -1,23 +1,23 @@
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import {
-  setupPlayer,
-  updateNotificationCapabilities,
+    setupPlayer,
+    updateNotificationCapabilities,
 } from "@/services/trackPlayerService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import TrackPlayer, {
-  Event,
-  RepeatMode,
-  State,
-  useProgress,
-  useTrackPlayerEvents,
+    Event,
+    RepeatMode,
+    State,
+    useProgress,
+    useTrackPlayerEvents,
 } from "@weights-ai/react-native-track-player";
 import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useRef,
+    useState,
 } from "react";
 
 export interface AudioMetadata {
@@ -273,7 +273,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
         await TrackPlayer.add({
           url: audio.audioUrl,
           title: audio.title,
-          artist: audio.channelName,
           artwork: audio.thumbnailUrl,
         });
 

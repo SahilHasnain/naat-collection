@@ -6,10 +6,10 @@ import { Image } from "expo-image";
 import React, { useEffect } from "react";
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -160,7 +160,7 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
               />
             </View>
 
-            {/* Title and Channel */}
+            {/* Title */}
             <View className="flex-1 mr-3">
               <Text
                 className="text-white font-semibold text-sm"
@@ -168,14 +168,6 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand }) => {
                 ellipsizeMode="tail"
               >
                 {currentAudio.title}
-              </Text>
-              <Text
-                className="text-xs mt-0.5"
-                style={{ color: colors.text.secondary }}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {currentAudio.channelName}
               </Text>
             </View>
 

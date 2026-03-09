@@ -1,6 +1,7 @@
 import { colors } from "@/constants/theme";
 import { NaatCardProps } from "@/types";
-import { formatRelativeTime, formatViews } from "@/utils";
+import { formatViews } from "@/utils";
+import { formatRelativeTime } from "@/utils/dateGrouping";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
@@ -106,37 +107,38 @@ const NaatCard: React.FC<NaatCardProps> = ({
         </View>
       </View>
 
-      {/* Content Section - With horizontal padding (YouTube style) */}
+      {/* Content Section - With horizontal padding */}
       <View className="pt-3 px-4">
         <View className="flex-row gap-3">
-          {/* Channel Icon/Logo */}
+          {/* Icon */}
           <View
             className="w-9 h-9 rounded-full items-center justify-center flex-shrink-0"
             style={{ backgroundColor: colors.background.tertiary }}
           >
-            <Ionicons name="person" size={20} color={colors.text.secondary} />
+            <Ionicons name="musical-note" size={20} color={colors.text.secondary} />
           </View>
 
           {/* Title and Metadata */}
           <View className="flex-1">
             {/* Title */}
             <Text
-              className="text-sm font-medium leading-tight text-white mb-1"
+              className="text-sm font-medium leading-tight text-white mb-1.5"
               numberOfLines={2}
               ellipsizeMode="tail"
             >
               {title}
             </Text>
 
-            {/* Channel name • Views • Upload date (single line) */}
-            <Text
-              className="text-xs"
-              style={{ color: colors.text.secondary }}
-              numberOfLines={1}
-            >
-              {channelName || "Baghdadi Sound & Video"} · {formatViews(views)}{" "}
-              views · {formatRelativeTime(uploadDate)}
-            </Text>
+            {/* Views • Upload date (aligned right) */}
+            <View className="flex-row justify-end">
+              <Text
+                className="text-xs"
+                style={{ color: colors.text.secondary }}
+                numberOfLines={1}
+              >
+                {formatViews(views)} views · {formatRelativeTime(uploadDate)}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -157,7 +159,6 @@ const arePropsEqual = (
     prevProps.thumbnail === nextProps.thumbnail &&
     prevProps.duration === nextProps.duration &&
     prevProps.uploadDate === nextProps.uploadDate &&
-    prevProps.channelName === nextProps.channelName &&
     prevProps.views === nextProps.views
     // Don't compare onPress - it's a function and will always be different
   );

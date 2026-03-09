@@ -142,7 +142,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
               <Ionicons name="radio" size={32} color={colors.accent.error} />
             </View>
 
-            {/* Title and Channel */}
+            {/* Title */}
             <View className="flex-1 mr-3">
               <Text
                 className="text-white font-semibold text-sm"
@@ -150,14 +150,6 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
                 ellipsizeMode="tail"
               >
                 {currentNaat.title}
-              </Text>
-              <Text
-                className="text-xs"
-                style={{ color: colors.text.secondary }}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {currentNaat.channelName}
               </Text>
             </View>
 

@@ -1,5 +1,6 @@
 import { colors } from "@/constants/theme";
 import { formatViews } from "@/utils";
+import { formatRelativeTime } from "@/utils/dateGrouping";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
@@ -74,31 +75,22 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
 
         {/* Content Section */}
         <View className="flex-1 py-2 pr-3 justify-between">
-          {/* Title and channel */}
-          <View>
-            <Text
-              className="text-sm font-semibold leading-tight text-white mb-1"
-              numberOfLines={2}
-              ellipsizeMode="tail"
-            >
-              {title}
-            </Text>
-            <Text
-              className="text-xs"
-              style={{ color: colors.text.secondary }}
-              numberOfLines={1}
-            >
-              {channelName}
-            </Text>
-          </View>
+          {/* Title */}
+          <Text
+            className="text-sm font-semibold leading-tight text-white mb-1.5"
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
+            {title}
+          </Text>
 
-          {/* Bottom info */}
-          <View className="flex-row items-center">
+          {/* Views and time - aligned right */}
+          <View className="flex-row justify-end">
             <Text
               className="text-[11px]"
               style={{ color: colors.text.tertiary }}
             >
-              {formatViews(views)} views
+              {formatViews(views)} views · {formatRelativeTime(watchedAt)}
             </Text>
           </View>
         </View>
