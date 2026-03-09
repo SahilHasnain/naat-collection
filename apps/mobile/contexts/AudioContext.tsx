@@ -1,23 +1,23 @@
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import {
-    setupPlayer,
-    updateNotificationCapabilities,
+  setupPlayer,
+  updateNotificationCapabilities,
 } from "@/services/trackPlayerService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import TrackPlayer, {
-    Event,
-    RepeatMode,
-    State,
-    useProgress,
-    useTrackPlayerEvents,
+  Event,
+  RepeatMode,
+  State,
+  useProgress,
+  useTrackPlayerEvents,
 } from "@weights-ai/react-native-track-player";
 import React, {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useRef,
-    useState,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
 } from "react";
 
 export interface AudioMetadata {
@@ -212,6 +212,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   });
 
   // Listen to track end events - only when normal audio is active
+  // Note: When repeat is ON, RepeatMode.Track handles looping natively
+  // so PlaybackQueueEnded only fires when repeat is OFF
   useTrackPlayerEvents([Event.PlaybackQueueEnded], async () => {
     if (!isNormalAudioActive) {
       console.log(
@@ -223,25 +225,15 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     console.log("[AudioContext] Track finished");
     setIsPlaying(false);
 
-    const repeatEnabled = isRepeatEnabledRef.current;
     const autoplayEnabled = isAutoplayEnabledRef.current;
 
-    console.log(
-      "[AudioContext] Repeat enabled:",
-      repeatEnabled,
-      "Autoplay enabled:",
-      autoplayEnabled,
-    );
+    console.log("[AudioContext] Autoplay enabled:", autoplayEnabled);
 
-    if (repeatEnabled) {
-      console.log("[AudioContext] Repeating track");
-      await TrackPlayer.seekTo(0);
-      await TrackPlayer.play();
-    } else if (autoplayEnabled && autoplayCallbackRef.current) {
+    if (autoplayEnabled && autoplayCallbackRef.current) {
       console.log("[AudioContext] Autoplay triggered");
       autoplayCallbackRef.current();
     } else {
-      await TrackPlayer.seekTo(0);
+      // Don't call TrackPlayer.seekTo(0) here — it can restart playback
       setPosition(0);
     }
   });
