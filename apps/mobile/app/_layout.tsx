@@ -7,28 +7,28 @@ import MiniPlayer from "@/components/MiniPlayer";
 import { colors } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
 import {
-  FilterModalProvider,
-  useFilterModal,
+    FilterModalProvider,
+    useFilterModal,
 } from "@/contexts/FilterModalContext";
 import {
-  HeaderVisibilityProvider,
-  useHeaderVisibility,
+    HeaderVisibilityProvider,
+    useHeaderVisibility,
 } from "@/contexts/HeaderVisibilityContext.animated";
 import {
-  LiveRadioProvider,
-  useLiveRadioPlayer,
+    LiveRadioProvider,
+    useLiveRadioPlayer,
 } from "@/contexts/LiveRadioContext";
 import {
-  PlaybackModeProvider,
-  usePlaybackMode,
+    PlaybackModeProvider,
+    usePlaybackMode,
 } from "@/contexts/PlaybackModeContext";
 import {
-  SearchProvider,
-  useSearch as useSearchContext,
+    SearchProvider,
+    useSearch as useSearchContext,
 } from "@/contexts/SearchContext";
 import {
-  TabBarVisibilityProvider,
-  useTabBarVisibility,
+    TabBarVisibilityProvider,
+    useTabBarVisibility,
 } from "@/contexts/TabBarVisibilityContext.animated";
 import { VideoProvider } from "@/contexts/VideoContext";
 import { storageService } from "@/services/storage";
@@ -236,13 +236,13 @@ function RootLayoutContent() {
         />
       </Tabs>
 
-      {/* Mini Player - Persistent across all screens (only show when normal audio is active and NOT on live tab) */}
-      {isNormalAudioActive && currentAudio && !isOnLiveTab && (
+      {/* Mini Player - Persistent across all screens (only show when normal audio is active and NOT on live tab or video screen) */}
+      {isNormalAudioActive && currentAudio && !isOnLiveTab && !isOnVideoScreen && (
         <MiniPlayer onExpand={() => setIsPlayerExpanded(true)} />
       )}
 
-      {/* Live Radio Mini Player - Shows when live radio is active and user is NOT on live tab */}
-      {isLiveRadioActive && currentNaat && !isOnLiveTab && (
+      {/* Live Radio Mini Player - Shows when live radio is active and user is NOT on live tab or video screen */}
+      {isLiveRadioActive && currentNaat && !isOnLiveTab && !isOnVideoScreen && (
         <LiveRadioMiniPlayer
           onExpand={() => {
             // Navigate to live tab when miniplayer is tapped

@@ -46,23 +46,31 @@ export function formatRelativeTime(date: number | string | Date): string {
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
+  const weeks = Math.floor(days / 7);
+  const months = Math.floor(days / 30);
+  const years = Math.floor(days / 365);
 
   if (seconds < 60) {
     return "Just now";
-  } else if (minutes < 60) {
-    return `${minutes}m ago`;
-  } else if (hours < 24) {
-    return `${hours}h ago`;
+  } else if (minutes > 0 && minutes < 60) {
+    return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+  } else if (hours > 0 && hours < 24) {
+    return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
   } else if (days === 1) {
     return "Yesterday";
-  } else if (days < 7) {
-    return `${days}d ago`;
+  } else if (days > 1 && days < 7) {
+    return `${days} days ago`;
+  } else if (weeks > 0 && weeks < 4) {
+    return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
+  } else if (months > 0 && months < 12) {
+    return `${months} ${months === 1 ? 'month' : 'months'} ago`;
+  } else if (years === 1) {
+    return "1 year ago";
+  } else if (years > 1) {
+    return `${years} years ago`;
   } else {
-    const dateObj = new Date(timestamp);
-    return dateObj.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
+    // Fallback for edge cases
+    return "Just now";
   }
 }
 
