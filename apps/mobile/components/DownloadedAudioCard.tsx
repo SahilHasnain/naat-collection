@@ -7,6 +7,8 @@ import { Image } from "expo-image";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 
+const textPrimary = "rgba(255, 255, 255, 0.92)";
+
 const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
   ({ audio, onPress, onDelete }) => {
     const [imageError, setImageError] = React.useState(false);
@@ -55,7 +57,12 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
             style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
             accessible={false}
           >
-            <Text className="text-xs font-semibold text-white">{duration}</Text>
+            <Text
+              className="text-xs font-semibold"
+              style={{ color: textPrimary }}
+            >
+              {duration}
+            </Text>
           </View>
         </View>
 
@@ -63,10 +70,11 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
         <View className="flex-1 ml-3 justify-start" accessible={false}>
           {/* Title */}
           <Text
-            className="text-sm font-normal leading-tight text-white mb-1.5"
+            className="text-sm font-normal leading-tight mb-1.5"
             numberOfLines={2}
             ellipsizeMode="tail"
             accessible={false}
+            style={{ color: textPrimary }}
           >
             {audio.title}
           </Text>
@@ -74,7 +82,8 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
           {/* Views and download time - aligned right */}
           <View className="flex-row justify-end items-end" accessible={false}>
             <Text className="text-xs text-neutral-400" accessible={false}>
-              {formatViews(audio.views)} views · {formatRelativeTime(audio.downloadedAt)}
+              {formatViews(audio.views)} views ·{" "}
+              {formatRelativeTime(audio.downloadedAt)}
             </Text>
           </View>
         </View>

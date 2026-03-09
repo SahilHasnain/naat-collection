@@ -54,7 +54,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             color="#ef4444"
             style={{ marginBottom: 16 }}
           />
-          <Text className="mb-3 text-center text-2xl font-bold text-white">
+          <Text
+            className="mb-3 text-center text-2xl font-bold"
+            style={{ color: colors.text.primary }}
+          >
             Something went wrong
           </Text>
           <Text className="mb-8 text-center text-base leading-relaxed text-neutral-400 max-w-md">
@@ -71,7 +74,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             accessibilityRole="button"
             accessibilityLabel="Retry"
           >
-            <Text className="text-base font-bold text-white tracking-wide">
+            <Text
+              className="text-base font-bold tracking-wide"
+              style={{ color: colors.text.primary }}
+            >
               Try Again
             </Text>
           </Pressable>

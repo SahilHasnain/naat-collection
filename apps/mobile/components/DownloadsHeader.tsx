@@ -19,7 +19,12 @@ const DownloadsHeader: React.FC<DownloadsHeaderProps> = ({
     >
       {/* Title Row */}
       <View className="flex-row items-center justify-between mb-4">
-        <Text className="text-2xl font-bold text-white">Downloads</Text>
+        <Text
+          className="text-2xl font-bold"
+          style={{ color: colors.text.primary }}
+        >
+          Downloads
+        </Text>
         {onClearAll && downloadCount > 0 && (
           <Pressable
             onPress={onClearAll}

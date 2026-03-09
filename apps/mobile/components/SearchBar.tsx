@@ -39,13 +39,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.text.secondary}
-        className="flex-1 text-base text-white"
+        className="flex-1 text-base"
         returnKeyType="search"
         autoCapitalize="none"
         autoCorrect={false}
         accessibilityLabel="Search naats"
         accessibilityHint="Type to search for naats by title"
-        style={{ paddingVertical: 0 }}
+        style={{ paddingVertical: 0, color: colors.text.primary }}
       />
 
       {value.length > 0 && (

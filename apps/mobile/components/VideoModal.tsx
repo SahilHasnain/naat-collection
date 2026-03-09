@@ -197,7 +197,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
 
     if (isFullscreen) {
       await ScreenOrientation.lockAsync(
-        ScreenOrientation.OrientationLock.LANDSCAPE
+        ScreenOrientation.OrientationLock.LANDSCAPE,
       );
     } else {
       await ScreenOrientation.unlockAsync();
@@ -264,7 +264,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
         }
       }
     },
-    [setPlaying, handleVideoEnd, isRepeatEnabled]
+    [setPlaying, handleVideoEnd, isRepeatEnabled],
   );
 
   // Seek to position in video
@@ -308,8 +308,9 @@ const VideoModal: React.FC<VideoModalProps> = ({
                   <View className="flex-1 mr-4">
                     {title && (
                       <Text
-                        className="text-base font-bold text-white leading-tight"
+                        className="text-base font-bold leading-tight"
                         numberOfLines={2}
+                        style={{ color: colors.text.primary }}
                       >
                         {title}
                       </Text>
@@ -349,7 +350,7 @@ const VideoModal: React.FC<VideoModalProps> = ({
                     Alert.alert(
                       "Video Error",
                       "Unable to load video. Please check your internet connection and try again.",
-                      [{ text: "OK" }]
+                      [{ text: "OK" }],
                     );
                   }}
                   webViewStyle={{ opacity: isLoading ? 0 : 1 }}
@@ -412,14 +413,18 @@ const VideoModal: React.FC<VideoModalProps> = ({
                     <Ionicons
                       name="repeat"
                       size={20}
-                      color={isRepeatEnabled ? colors.accent.primary : "white"}
+                      color={
+                        isRepeatEnabled
+                          ? colors.accent.primary
+                          : colors.text.primary
+                      }
                     />
                     <Text
                       className="text-sm font-medium"
                       style={{
                         color: isRepeatEnabled
                           ? colors.accent.primary
-                          : "white",
+                          : colors.text.primary,
                       }}
                     >
                       Repeat
@@ -445,7 +450,10 @@ const VideoModal: React.FC<VideoModalProps> = ({
                         size="small"
                         color={colors.text.primary}
                       />
-                      <Text className="ml-3 text-base font-bold text-white">
+                      <Text
+                        className="ml-3 text-base font-bold"
+                        style={{ color: colors.text.primary }}
+                      >
                         Loading Audio...
                       </Text>
                     </>
@@ -456,7 +464,10 @@ const VideoModal: React.FC<VideoModalProps> = ({
                         size={24}
                         color={colors.text.primary}
                       />
-                      <Text className="ml-3 text-base font-bold text-white">
+                      <Text
+                        className="ml-3 text-base font-bold"
+                        style={{ color: colors.text.primary }}
+                      >
                         Play as Audio Only
                       </Text>
                     </>

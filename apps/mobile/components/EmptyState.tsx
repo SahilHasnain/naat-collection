@@ -36,7 +36,10 @@ const EmptyState: React.FC<EmptyStateProps> = ({
           accessibilityRole="button"
           accessibilityLabel={actionLabel}
         >
-          <Text className="text-base font-bold text-white tracking-wide">
+          <Text
+            className="text-base font-bold tracking-wide"
+            style={{ color: colors.text.primary }}
+          >
             {actionLabel}
           </Text>
         </Pressable>

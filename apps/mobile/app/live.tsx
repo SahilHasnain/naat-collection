@@ -74,7 +74,9 @@ export default function LiveScreen() {
         edges={["top"]}
       >
         <ActivityIndicator size="large" color={colors.accent.error} />
-        <Text className="mt-4 text-base text-white">Loading Live Radio...</Text>
+        <Text className="mt-4 text-base" style={{ color: colors.text.primary }}>
+          Loading Live Radio...
+        </Text>
       </SafeAreaView>
     );
   }
@@ -88,7 +90,10 @@ export default function LiveScreen() {
         edges={["top"]}
       >
         <Ionicons name="radio-outline" size={80} color={colors.text.disabled} />
-        <Text className="mt-4 text-xl font-bold text-white">
+        <Text
+          className="mt-4 text-xl font-bold"
+          style={{ color: colors.text.primary }}
+        >
           Live Radio Unavailable
         </Text>
         <Text className="mt-2 text-center text-neutral-400">
@@ -99,7 +104,12 @@ export default function LiveScreen() {
           className="px-6 py-3 mt-6 rounded-full"
           style={{ backgroundColor: colors.accent.error }}
         >
-          <Text className="font-semibold text-white">Try Again</Text>
+          <Text
+            className="font-semibold"
+            style={{ color: colors.text.primary }}
+          >
+            Try Again
+          </Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -118,7 +128,10 @@ export default function LiveScreen() {
             className="flex-row items-center px-3 py-1.5 rounded-full"
             style={{ backgroundColor: "rgba(239, 68, 68, 0.2)" }}
           >
-            <Text className="text-white text-sm font-semibold mr-1.5">
+            <Text
+              className="text-sm font-semibold mr-1.5"
+              style={{ color: colors.text.primary }}
+            >
               {listenerCount}
             </Text>
             <Ionicons name="people" size={16} color={colors.accent.error} />
@@ -151,7 +164,11 @@ export default function LiveScreen() {
               <Ionicons name="radio" size={64} color={colors.accent.error} />
             </View>
             <View className="flex-1">
-              <Text className="text-lg font-bold text-white" numberOfLines={2}>
+              <Text
+                className="text-lg font-bold"
+                numberOfLines={2}
+                style={{ color: colors.text.primary }}
+              >
                 {currentNaat.title}
               </Text>
             </View>
@@ -172,7 +189,7 @@ export default function LiveScreen() {
             <Ionicons
               name={isPlaying ? "pause" : "play"}
               size={32}
-              color="white"
+              color={colors.text.primary}
             />
           </TouchableOpacity>
         </View>
@@ -180,7 +197,12 @@ export default function LiveScreen() {
         {/* Up Next Section */}
         {upcomingNaats.length > 0 && (
           <View className="px-4 mb-6">
-            <Text className="mb-3 text-lg font-bold text-white">Next</Text>
+            <Text
+              className="mb-3 text-lg font-bold"
+              style={{ color: colors.text.primary }}
+            >
+              Next
+            </Text>
             <View className="flex-row items-center">
               <View className="mr-3">
                 <Ionicons
@@ -191,7 +213,8 @@ export default function LiveScreen() {
               </View>
               <View className="flex-1">
                 <Text
-                  className="text-sm font-semibold text-white"
+                  className="text-sm font-semibold"
+                  style={{ color: colors.text.primary }}
                   numberOfLines={2}
                 >
                   {upcomingNaats[0].title}

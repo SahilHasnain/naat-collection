@@ -12,12 +12,12 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import React from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    StatusBar,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StatusBar,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import YoutubePlayer from "react-native-youtube-iframe";
@@ -392,14 +392,18 @@ export default function VideoScreen() {
                     <Ionicons
                       name="repeat"
                       size={20}
-                      color={isRepeatEnabled ? colors.accent.primary : "white"}
+                      color={
+                        isRepeatEnabled
+                          ? colors.accent.primary
+                          : colors.text.primary
+                      }
                     />
                     <Text
                       className="text-sm font-medium"
                       style={{
                         color: isRepeatEnabled
                           ? colors.accent.primary
-                          : "white",
+                          : colors.text.primary,
                       }}
                     >
                       Repeat
@@ -425,7 +429,10 @@ export default function VideoScreen() {
                         size="small"
                         color={colors.text.primary}
                       />
-                      <Text className="ml-3 text-base font-bold text-white">
+                      <Text
+                        className="ml-3 text-base font-bold"
+                        style={{ color: colors.text.primary }}
+                      >
                         Loading Audio...
                       </Text>
                     </>
@@ -436,7 +443,10 @@ export default function VideoScreen() {
                         size={24}
                         color={colors.text.primary}
                       />
-                      <Text className="ml-3 text-base font-bold text-white">
+                      <Text
+                        className="ml-3 text-base font-bold"
+                        style={{ color: colors.text.primary }}
+                      >
                         Play as Audio Only
                       </Text>
                     </>
