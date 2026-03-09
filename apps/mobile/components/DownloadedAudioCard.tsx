@@ -72,7 +72,7 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
           </Text>
 
           {/* Views and download time - aligned right */}
-          <View className="flex-row justify-end" accessible={false}>
+          <View className="flex-row justify-end items-end" accessible={false}>
             <Text className="text-xs text-neutral-400" accessible={false}>
               {formatViews(audio.views)} views · {formatRelativeTime(audio.downloadedAt)}
             </Text>

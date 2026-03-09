@@ -5,7 +5,7 @@ import { formatRelativeTime } from "@/utils/dateGrouping";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, TouchableOpacity, View } from "react-native";
 
 const formatDuration = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
@@ -26,6 +26,10 @@ const NaatCard: React.FC<NaatCardProps> = ({
   channelName,
   views,
   onPress,
+  onDownload,
+  isDownloaded,
+  isDownloading,
+  downloadProgress,
 }) => {
   const [imageError, setImageError] = React.useState(false);
   const [imageLoading, setImageLoading] = React.useState(true);
@@ -140,6 +144,29 @@ const NaatCard: React.FC<NaatCardProps> = ({
               </Text>
             </View>
           </View>
+
+          {/* Download button */}
+          {onDownload && (
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation();
+                if (!isDownloading) onDownload();
+              }}
+              className="w-9 h-9 rounded-full items-center justify-center flex-shrink-0 self-center"
+              style={{ backgroundColor: colors.background.tertiary }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              {isDownloading ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons
+                  name={isDownloaded ? "checkmark-circle" : "download-outline"}
+                  size={20}
+                  color={isDownloaded ? colors.primary : colors.text.secondary}
+                />
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </Pressable>
@@ -159,8 +186,11 @@ const arePropsEqual = (
     prevProps.thumbnail === nextProps.thumbnail &&
     prevProps.duration === nextProps.duration &&
     prevProps.uploadDate === nextProps.uploadDate &&
-    prevProps.views === nextProps.views
-    // Don't compare onPress - it's a function and will always be different
+    prevProps.views === nextProps.views &&
+    prevProps.isDownloaded === nextProps.isDownloaded &&
+    prevProps.isDownloading === nextProps.isDownloading &&
+    prevProps.downloadProgress === nextProps.downloadProgress
+    // Don't compare onPress/onDownload - they're functions and will always be different
   );
 };
 
