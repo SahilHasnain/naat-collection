@@ -12,12 +12,12 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import React from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  StatusBar,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Pressable,
+    StatusBar,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import YoutubePlayer from "react-native-youtube-iframe";

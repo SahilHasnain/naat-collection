@@ -552,17 +552,14 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 />
               </View>
 
-              {/* Title and Channel */}
+              {/* Title */}
               <View className="w-full mt-10 px-2">
                 <Text
-                  className="text-xl font-semibold text-white"
-                  numberOfLines={1}
+                  className="text-xl font-semibold text-white text-center"
+                  numberOfLines={2}
                   ellipsizeMode="tail"
                 >
                   {currentAudio.title}
-                </Text>
-                <Text className="mt-3 text-sm text-neutral-400 font-normal">
-                  {currentAudio.channelName}
                 </Text>
               </View>
             </View>

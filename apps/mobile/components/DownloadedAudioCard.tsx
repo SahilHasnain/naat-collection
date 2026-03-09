@@ -1,4 +1,5 @@
 import { DownloadedAudioCardProps } from "@/types";
+import { formatRelativeTime } from "@/utils/dateGrouping";
 import { formatDuration } from "@/utils/formatters";
 import { formatViews } from "@/utils/numberUtils";
 import { Ionicons } from "@expo/vector-icons";
@@ -62,7 +63,7 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
         <View className="flex-1 ml-3 justify-start" accessible={false}>
           {/* Title */}
           <Text
-            className="text-sm font-normal leading-tight text-white mb-1"
+            className="text-sm font-normal leading-tight text-white mb-1.5"
             numberOfLines={2}
             ellipsizeMode="tail"
             accessible={false}
@@ -70,18 +71,12 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
             {audio.title}
           </Text>
 
-          {/* Channel name with checkmark */}
-          <View className="flex-row items-center mb-0.5" accessible={false}>
-            <Ionicons name="checkmark-circle" size={14} color="#aaaaaa" />
-            <Text className="ml-1 text-xs text-neutral-400" accessible={false}>
-              {audio.channelName}
+          {/* Views and download time - aligned right */}
+          <View className="flex-row justify-end" accessible={false}>
+            <Text className="text-xs text-neutral-400" accessible={false}>
+              {formatViews(audio.views)} views · {formatRelativeTime(audio.downloadedAt)}
             </Text>
           </View>
-
-          {/* Views */}
-          <Text className="text-xs text-neutral-400" accessible={false}>
-            {formatViews(audio.views)} views
-          </Text>
         </View>
 
         {/* Delete Button */}
