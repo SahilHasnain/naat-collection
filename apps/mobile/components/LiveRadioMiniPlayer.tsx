@@ -11,10 +11,10 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect } from "react";
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -145,9 +145,10 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
             {/* Title */}
             <View className="flex-1 mr-3">
               <Text
-                className="text-white font-semibold text-sm"
+                className="font-semibold text-sm"
                 numberOfLines={1}
                 ellipsizeMode="tail"
+                style={{ color: colors.text.primary }}
               >
                 {currentNaat.title}
               </Text>

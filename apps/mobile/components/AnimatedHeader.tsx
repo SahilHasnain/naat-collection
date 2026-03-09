@@ -87,7 +87,11 @@ export function AnimatedHeader({
               accessibilityRole="button"
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons name="arrow-back" size={24} color="white" />
+              <Ionicons
+                name="arrow-back"
+                size={24}
+                color={colors.text.primary}
+              />
             </Pressable>
 
             {/* Search Input */}
@@ -108,11 +112,11 @@ export function AnimatedHeader({
                 onSubmitEditing={onSearchSubmit}
                 placeholder="Search naats..."
                 placeholderTextColor={colors.text.secondary}
-                className="flex-1 text-white text-base"
+                className="flex-1 text-base"
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="search"
-                style={{ paddingVertical: 0 }}
+                style={{ paddingVertical: 0, color: colors.text.primary }}
               />
               {searchInput.length > 0 && (
                 <Pressable
@@ -145,7 +149,10 @@ export function AnimatedHeader({
                   contentFit="cover"
                 />
               </View>
-              <Text className="text-white text-lg font-semibold">
+              <Text
+                className="text-lg font-semibold"
+                style={{ color: colors.text.primary }}
+              >
                 Owais Raza Qadri
               </Text>
             </View>
@@ -158,7 +165,7 @@ export function AnimatedHeader({
                 accessibilityLabel="Search"
                 accessibilityRole="button"
               >
-                <Ionicons name="search" size={24} color="white" />
+                <Ionicons name="search" size={24} color={colors.text.primary} />
               </Pressable>
 
               {/* Filter */}
@@ -172,7 +179,7 @@ export function AnimatedHeader({
                 <Ionicons
                   name="options-outline"
                   size={24}
-                  color={hasActiveFilters ? "#3b82f6" : "white"}
+                  color={hasActiveFilters ? "#3b82f6" : colors.text.primary}
                 />
                 {hasActiveFilters && (
                   <View className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />

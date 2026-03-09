@@ -1,3 +1,4 @@
+import { colors } from "@/constants/theme";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -18,7 +19,7 @@ export default function NotFoundRedirect() {
 
   return (
     <View className="flex-1 items-center justify-center bg-black">
-      <ActivityIndicator size="small" color="#ffffff" />
+      <ActivityIndicator size="small" color={colors.text.primary} />
     </View>
   );
 }

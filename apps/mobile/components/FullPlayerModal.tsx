@@ -7,13 +7,13 @@ import Slider from "@react-native-community/slider";
 import { Image } from "expo-image";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -229,7 +229,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
               accessibilityRole="button"
               accessibilityLabel="Switch to video"
             >
-              <Ionicons name="videocam" size={24} color="white" />
+              <Ionicons name="videocam" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           )}
           {(!currentAudio.youtubeId || !onSwitchToVideo) && (
@@ -243,7 +243,11 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
             accessibilityRole="button"
             accessibilityLabel="Options menu"
           >
-            <Ionicons name="ellipsis-vertical" size={24} color="white" />
+            <Ionicons
+              name="ellipsis-vertical"
+              size={24}
+              color={colors.text.primary}
+            />
           </TouchableOpacity>
         </View>
 
@@ -323,7 +327,10 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-medium text-white">
+                    <Text
+                      className="text-sm font-medium"
+                      style={{ color: colors.text.primary }}
+                    >
                       {isDownloaded
                         ? "Delete Download"
                         : isDownloading
@@ -370,7 +377,9 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   <Text
                     className="text-sm font-medium"
                     style={{
-                      color: isRepeatEnabled ? colors.accent.primary : "white",
+                      color: isRepeatEnabled
+                        ? colors.accent.primary
+                        : colors.text.primary,
                     }}
                   >
                     Repeat
@@ -413,7 +422,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     style={{
                       color: isAutoplayEnabled
                         ? colors.accent.primary
-                        : "white",
+                        : colors.text.primary,
                     }}
                   >
                     Autoplay
@@ -453,7 +462,9 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     <Text
                       className="text-sm font-medium"
                       style={{
-                        color: isABRepeatMode ? colors.accent.primary : "white",
+                        color: isABRepeatMode
+                          ? colors.accent.primary
+                          : colors.text.primary,
                       }}
                     >
                       A/B Repeat Mode
@@ -515,7 +526,10 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-medium text-white">
+                      <Text
+                        className="text-sm font-medium"
+                        style={{ color: colors.text.primary }}
+                      >
                         Clear Loop
                       </Text>
                       <Text className="text-xs text-neutral-400 mt-0.5">
@@ -555,9 +569,10 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
               {/* Title */}
               <View className="w-full mt-10 px-2">
                 <Text
-                  className="text-xl font-semibold text-white text-center"
+                  className="text-xl font-semibold text-center"
                   numberOfLines={2}
                   ellipsizeMode="tail"
+                  style={{ color: colors.text.primary }}
                 >
                   {currentAudio.title}
                 </Text>
@@ -627,7 +642,10 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     color="rgba(255, 255, 255, 0.5)"
                     style={{ transform: [{ scaleX: -1 }] }}
                   />
-                  <Text className="absolute text-[10px] font-semibold" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                  <Text
+                    className="absolute text-[10px] font-semibold"
+                    style={{ color: "rgba(255, 255, 255, 0.7)" }}
+                  >
                     15
                   </Text>
                 </TouchableOpacity>
@@ -641,7 +659,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   style={{
                     backgroundColor: colors.accent.primary,
                     borderWidth: 2,
-                    borderColor: 'rgba(29, 185, 84, 0.3)',
+                    borderColor: "rgba(29, 185, 84, 0.3)",
                     shadowColor: colors.accent.primary,
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.4,
@@ -652,7 +670,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   <Ionicons
                     name={isPlaying ? "pause" : "play"}
                     size={36}
-                    color="white"
+                    color={colors.text.primary}
                   />
                 </TouchableOpacity>
 
@@ -663,8 +681,15 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   accessibilityLabel="Seek forward 15 seconds"
                   accessibilityRole="button"
                 >
-                  <Ionicons name="refresh" size={36} color="rgba(255, 255, 255, 0.5)" />
-                  <Text className="absolute text-[10px] font-semibold" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                  <Ionicons
+                    name="refresh"
+                    size={36}
+                    color="rgba(255, 255, 255, 0.5)"
+                  />
+                  <Text
+                    className="absolute text-[10px] font-semibold"
+                    style={{ color: "rgba(255, 255, 255, 0.7)" }}
+                  >
                     15
                   </Text>
                 </TouchableOpacity>
@@ -688,12 +713,17 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     <Ionicons
                       name="flag"
                       size={18}
-                      color={abRepeatPointA !== null ? "black" : "white"}
+                      color={
+                        abRepeatPointA !== null ? "black" : colors.text.primary
+                      }
                     />
                     <Text
                       className="text-sm font-medium"
                       style={{
-                        color: abRepeatPointA !== null ? "black" : "white",
+                        color:
+                          abRepeatPointA !== null
+                            ? "black"
+                            : colors.text.primary,
                       }}
                     >
                       Point A
@@ -716,17 +746,19 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     <Ionicons
                       name="flag"
                       size={18}
-                      color={abRepeatPointB !== null ? "white" : "#666"}
+                      color={
+                        abRepeatPointB !== null ? colors.text.primary : "#666"
+                      }
                     />
                     <Text
                       className="text-sm font-medium"
                       style={{
                         color:
                           abRepeatPointB !== null
-                            ? "white"
+                            ? colors.text.primary
                             : abRepeatPointA === null
                               ? "#666"
-                              : "white",
+                              : colors.text.primary,
                       }}
                     >
                       Point B

@@ -118,7 +118,11 @@ export function SearchModal({
               accessibilityRole="button"
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons name="arrow-back" size={24} color="white" />
+              <Ionicons
+                name="arrow-back"
+                size={24}
+                color={colors.text.primary}
+              />
             </Pressable>
 
             {/* Search Input */}
@@ -139,11 +143,11 @@ export function SearchModal({
                 onSubmitEditing={handleSubmit}
                 placeholder={placeholder}
                 placeholderTextColor={colors.text.secondary}
-                className="flex-1 text-white text-base"
+                className="flex-1 text-base"
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="search"
-                style={{ paddingVertical: 0 }}
+                style={{ paddingVertical: 0, color: colors.text.primary }}
               />
               {query.length > 0 && (
                 <Pressable
@@ -169,7 +173,7 @@ export function SearchModal({
                 accessibilityRole="button"
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="mic" size={24} color="white" />
+                <Ionicons name="mic" size={24} color={colors.text.primary} />
               </Pressable>
             )}
           </View>
@@ -199,14 +203,20 @@ export function SearchModal({
                   <Ionicons
                     name="globe"
                     size={14}
-                    color={selectedChannelId === null ? "white" : "#d4d4d8"}
+                    color={
+                      selectedChannelId === null
+                        ? colors.text.primary
+                        : "#d4d4d8"
+                    }
                   />
                   <Text
-                    className={`font-medium text-xs ml-1.5 ${
-                      selectedChannelId === null
-                        ? "text-white"
-                        : "text-neutral-300"
-                    }`}
+                    className={`font-medium text-xs ml-1.5`}
+                    style={{
+                      color:
+                        selectedChannelId === null
+                          ? colors.text.primary
+                          : "#d4d4d8",
+                    }}
                   >
                     All
                   </Text>
@@ -227,12 +237,14 @@ export function SearchModal({
                       }}
                     >
                       <Text
-                        className={`font-medium text-xs ${
-                          selectedChannelId === channel.id
-                            ? "text-white"
-                            : "text-neutral-300"
-                        }`}
+                        className={`font-medium text-xs`}
                         numberOfLines={1}
+                        style={{
+                          color:
+                            selectedChannelId === channel.id
+                              ? colors.text.primary
+                              : "#d4d4d8",
+                        }}
                       >
                         {channel.name}
                       </Text>
@@ -265,15 +277,19 @@ export function SearchModal({
                       name={filter.iconName}
                       size={14}
                       color={
-                        selectedDuration === filter.value ? "white" : "#d4d4d8"
+                        selectedDuration === filter.value
+                          ? colors.text.primary
+                          : "#d4d4d8"
                       }
                     />
                     <Text
-                      className={`font-medium text-xs ml-1.5 ${
-                        selectedDuration === filter.value
-                          ? "text-white"
-                          : "text-neutral-300"
-                      }`}
+                      className={`font-medium text-xs ml-1.5`}
+                      style={{
+                        color:
+                          selectedDuration === filter.value
+                            ? colors.text.primary
+                            : "#d4d4d8",
+                      }}
                     >
                       {filter.label}
                     </Text>

@@ -111,7 +111,10 @@ const NaatCard: React.FC<NaatCardProps> = ({
           className="absolute bottom-2.5 right-2.5 rounded-lg px-3 py-1.5"
           style={{ backgroundColor: colors.overlay.dark }}
         >
-          <Text className="text-xs font-bold text-white tracking-wider">
+          <Text
+            className="text-xs font-bold tracking-wider"
+            style={{ color: colors.text.primary }}
+          >
             {formatDuration(duration)}
           </Text>
         </View>
@@ -136,9 +139,10 @@ const NaatCard: React.FC<NaatCardProps> = ({
           <View className="flex-1">
             {/* Title */}
             <Text
-              className="text-sm font-medium leading-tight text-white mb-1.5"
+              className="text-sm font-medium leading-tight mb-1.5"
               numberOfLines={2}
               ellipsizeMode="tail"
+              style={{ color: colors.text.primary }}
             >
               {title}
             </Text>
@@ -167,12 +171,14 @@ const NaatCard: React.FC<NaatCardProps> = ({
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               {isDownloading ? (
-                <ActivityIndicator size="small" color={colors.primary} />
+                <ActivityIndicator size="small" color={colors.accent.primary} />
               ) : (
                 <Ionicons
                   name={isDownloaded ? "checkmark-circle" : "download-outline"}
                   size={20}
-                  color={isDownloaded ? colors.primary : colors.text.secondary}
+                  color={
+                    isDownloaded ? colors.accent.primary : colors.text.secondary
+                  }
                 />
               )}
             </TouchableOpacity>

@@ -54,12 +54,14 @@ export function SearchFilterBar({
           <Ionicons
             name="globe"
             size={14}
-            color={selectedChannelId === null ? "white" : "#d4d4d8"}
+            color={selectedChannelId === null ? colors.text.primary : "#d4d4d8"}
           />
           <Text
-            className={`font-medium text-xs ml-1.5 ${
-              selectedChannelId === null ? "text-white" : "text-neutral-300"
-            }`}
+            className={`font-medium text-xs ml-1.5`}
+            style={{
+              color:
+                selectedChannelId === null ? colors.text.primary : "#d4d4d8",
+            }}
           >
             All
           </Text>
@@ -80,12 +82,14 @@ export function SearchFilterBar({
               }}
             >
               <Text
-                className={`font-medium text-xs ${
-                  selectedChannelId === channel.id
-                    ? "text-white"
-                    : "text-neutral-300"
-                }`}
+                className={`font-medium text-xs`}
                 numberOfLines={1}
+                style={{
+                  color:
+                    selectedChannelId === channel.id
+                      ? colors.text.primary
+                      : "#d4d4d8",
+                }}
               >
                 {channel.name}
               </Text>
@@ -117,14 +121,20 @@ export function SearchFilterBar({
             <Ionicons
               name={filter.iconName}
               size={14}
-              color={selectedDuration === filter.value ? "white" : "#d4d4d8"}
+              color={
+                selectedDuration === filter.value
+                  ? colors.text.primary
+                  : "#d4d4d8"
+              }
             />
             <Text
-              className={`font-medium text-xs ml-1.5 ${
-                selectedDuration === filter.value
-                  ? "text-white"
-                  : "text-neutral-300"
-              }`}
+              className={`font-medium text-xs ml-1.5`}
+              style={{
+                color:
+                  selectedDuration === filter.value
+                    ? colors.text.primary
+                    : "#d4d4d8",
+              }}
             >
               {filter.label}
             </Text>

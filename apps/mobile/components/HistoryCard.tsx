@@ -29,7 +29,7 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
     return (
       <Pressable
         onPress={onPress}
-        className="flex-row items-center gap-3 rounded-lg"
+        className="flex-row items-start gap-3 rounded-lg"
         style={({ pressed }) => ({
           opacity: pressed ? 0.7 : 1,
           backgroundColor: colors.background.secondary,
@@ -37,7 +37,7 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
       >
         {/* Thumbnail Section - 16:9 */}
         <View
-          className="relative rounded-md overflow-hidden"
+          className="relative overflow-hidden rounded-md"
           style={{
             width: 140,
             height: 79,
@@ -46,7 +46,7 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
         >
           {imageError || !thumbnail ? (
             <View
-              className="h-full w-full items-center justify-center"
+              className="items-center justify-center w-full h-full"
               style={{ backgroundColor: colors.background.tertiary }}
             >
               <Ionicons name="musical-notes" size={28} color="#737373" />
@@ -67,19 +67,23 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
             className="absolute bottom-1 right-1 rounded px-1.5 py-0.5"
             style={{ backgroundColor: "rgba(0,0,0,0.75)" }}
           >
-            <Text className="text-[10px] font-semibold text-white">
+            <Text
+              className="text-[10px] font-semibold"
+              style={{ color: colors.text.primary }}
+            >
               {formatDuration(duration)}
             </Text>
           </View>
         </View>
 
         {/* Content Section */}
-        <View className="flex-1 py-2 pr-3 justify-between">
+        <View className="justify-between flex-1 py-2 pr-3">
           {/* Title */}
           <Text
-            className="text-sm font-semibold leading-tight text-white mb-1.5"
+            className="text-sm font-semibold leading-tight mb-1.5"
             numberOfLines={2}
             ellipsizeMode="tail"
+            style={{ color: colors.text.primary }}
           >
             {title}
           </Text>

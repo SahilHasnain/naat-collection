@@ -12,22 +12,22 @@ import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
-    AccessibilityInfo,
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    Text,
-    View,
+  AccessibilityInfo,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -286,7 +286,12 @@ export default function DownloadsScreen() {
                   size="large"
                   color={colors.accent.secondary}
                 />
-                <Text className="mt-2 text-sm text-white">Deleting...</Text>
+                <Text
+                  className="mt-2 text-sm"
+                  style={{ color: colors.text.primary }}
+                >
+                  Deleting...
+                </Text>
               </View>
             )}
           </View>
@@ -380,12 +385,13 @@ export default function DownloadsScreen() {
                 <Ionicons
                   name={option.iconName}
                   size={16}
-                  color={isSelected ? "white" : "#d4d4d8"}
+                  color={isSelected ? colors.text.primary : "#d4d4d8"}
                 />
                 <Text
-                  className={`font-semibold text-sm ml-1.5 ${
-                    isSelected ? "text-white" : "text-neutral-300"
-                  }`}
+                  className={`font-semibold text-sm ml-1.5`}
+                  style={{
+                    color: isSelected ? colors.text.primary : "#d4d4d8",
+                  }}
                   accessible={false}
                 >
                   {option.label}
@@ -394,7 +400,7 @@ export default function DownloadsScreen() {
                   <Ionicons
                     name={sortOrder === "asc" ? "arrow-up" : "arrow-down"}
                     size={14}
-                    color="white"
+                    color={colors.text.primary}
                     style={{ marginLeft: 4 }}
                   />
                 )}
@@ -412,7 +418,10 @@ export default function DownloadsScreen() {
       <View>
         {/* Header Title */}
         <View className="px-4 pt-20">
-          <Text className="text-lg font-semibold text-white">
+          <Text
+            className="text-lg font-semibold"
+            style={{ color: colors.text.primary }}
+          >
             Your downloads
           </Text>
         </View>

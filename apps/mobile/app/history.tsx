@@ -622,7 +622,7 @@ export default function HistoryScreen() {
                 accessibilityLabel="Clear all history"
                 accessibilityHint="Double tap to clear all watch history"
               >
-                <Ionicons name="trash-outline" size={24} color="white" />
+                <Ionicons name="trash-outline" size={24} color={colors.text.primary} />
               </Pressable>
             </View>
           )}

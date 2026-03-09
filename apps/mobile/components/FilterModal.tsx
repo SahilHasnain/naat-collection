@@ -1,3 +1,4 @@
+import { colors } from "@/constants/theme";
 import type { Channel, DurationOption, SortOption } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
@@ -5,7 +6,7 @@ import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withTiming
+  withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -138,7 +139,12 @@ export function FilterModal({
       animationType="none"
       onRequestClose={onClose}
     >
-      <Animated.View style={[{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)' }, backdropStyle]}>
+      <Animated.View
+        style={[
+          { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)" },
+          backdropStyle,
+        ]}
+      >
         <Pressable className="flex-1" onPress={onClose}>
           <SafeAreaView
             edges={["bottom"]}
@@ -149,204 +155,245 @@ export function FilterModal({
                 className="bg-neutral-800 rounded-t-3xl"
                 onPress={(e) => e.stopPropagation()}
               >
-            {/* Modal Header */}
-            <View className="flex-row items-center justify-between px-6 py-5">
-              <Text className="text-white text-xl font-bold">Filters</Text>
-              <Pressable
-                onPress={onClose}
-                style={{ minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' }}
-              >
-                <Ionicons name="close" size={24} color="#aaaaaa" />
-              </Pressable>
-            </View>
-
-            {/* Tabs */}
-            <View className="flex-row px-6 mb-2">
-              <Pressable
-                onPress={() => setActiveTab("sort")}
-                className={`flex-1 py-3 rounded-full mr-2 ${
-                  activeTab === "sort" ? "bg-blue-500" : "bg-neutral-700"
-                }`}
-                style={{ minHeight: 44 }}
-              >
-                <Text
-                  className={`text-center font-semibold text-sm ${
-                    activeTab === "sort" ? "text-white" : "text-neutral-400"
-                  }`}
-                >
-                  Sort
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setActiveTab("channel")}
-                className={`flex-1 py-3 rounded-full mr-2 ${
-                  activeTab === "channel" ? "bg-blue-500" : "bg-neutral-700"
-                }`}
-                style={{ minHeight: 44 }}
-              >
-                <Text
-                  className={`text-center font-semibold text-sm ${
-                    activeTab === "channel"
-                      ? "text-white"
-                      : "text-neutral-400"
-                  }`}
-                >
-                  Channel
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setActiveTab("duration")}
-                className={`flex-1 py-3 rounded-full ${
-                  activeTab === "duration" ? "bg-blue-500" : "bg-neutral-700"
-                }`}
-                style={{ minHeight: 44 }}
-              >
-                <Text
-                  className={`text-center font-semibold text-sm ${
-                    activeTab === "duration"
-                      ? "text-white"
-                      : "text-neutral-400"
-                  }`}
-                >
-                  Duration
-                </Text>
-              </Pressable>
-            </View>
-
-            {/* Content */}
-            <ScrollView
-              className="max-h-96"
-              showsVerticalScrollIndicator={false}
-            >
-              {activeTab === "sort" && (
-                <View className="p-4">
-                  {sortFilters.map((filter) => {
-                    const isSelected = selectedSort === filter.value;
-                    return (
-                      <Pressable
-                        key={filter.value}
-                        onPress={() => {
-                          onSortChange(filter.value);
-                          onClose();
-                        }}
-                        className={`flex-row items-center p-4 rounded-xl mb-2 ${
-                          isSelected ? "bg-blue-500" : "bg-neutral-700"
-                        }`}
-                        style={{ minHeight: 56 }}
-                      >
-                        <Ionicons
-                          name={filter.iconName}
-                          size={22}
-                          color="white"
-                        />
-                        <Text
-                          className={`flex-1 font-semibold text-base ml-3 ${
-                            isSelected ? "text-white" : "text-neutral-300"
-                          }`}
-                        >
-                          {filter.label}
-                        </Text>
-                        {isSelected && (
-                          <Ionicons name="checkmark-circle" size={22} color="white" />
-                        )}
-                      </Pressable>
-                    );
-                  })}
+                {/* Modal Header */}
+                <View className="flex-row items-center justify-between px-6 py-5">
+                  <Text
+                    className="text-xl font-bold"
+                    style={{ color: colors.text.primary }}
+                  >
+                    Filters
+                  </Text>
+                  <Pressable
+                    onPress={onClose}
+                    style={{
+                      minHeight: 44,
+                      minWidth: 44,
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Ionicons name="close" size={24} color="#aaaaaa" />
+                  </Pressable>
                 </View>
-              )}
 
-              {activeTab === "channel" && (
-                <View className="p-4">
-                  {channelOptions.map((option) => {
-                    const isSelected =
-                      option.type === "other"
-                        ? isOtherSelected
-                        : selectedChannelId === option.id;
-
-                    return (
-                      <Pressable
-                        key={option.id || "all"}
-                        onPress={() => {
-                          if (
-                            option.type === "other" &&
-                            otherChannels.length > 0
-                          ) {
-                            // Select the first "other" channel
-                            onChannelChange(otherChannels[0].id);
-                          } else {
-                            onChannelChange(option.id);
-                          }
-                          onClose();
-                        }}
-                        disabled={channelsLoading}
-                        className={`flex-row items-center p-4 rounded-xl mb-2 ${
-                          isSelected ? "bg-blue-500" : "bg-neutral-700"
-                        }`}
-                        style={{ minHeight: 56 }}
-                      >
-                        <Ionicons
-                          name={option.iconName}
-                          size={22}
-                          color="white"
-                        />
-                        <Text
-                          className={`flex-1 font-semibold text-base ml-3 ${
-                            isSelected ? "text-white" : "text-neutral-300"
-                          }`}
-                        >
-                          {option.name}
-                        </Text>
-                        {isSelected && (
-                          <Ionicons name="checkmark-circle" size={22} color="white" />
-                        )}
-                      </Pressable>
-                    );
-                  })}
+                {/* Tabs */}
+                <View className="flex-row px-6 mb-2">
+                  <Pressable
+                    onPress={() => setActiveTab("sort")}
+                    className={`flex-1 py-3 rounded-full mr-2 ${
+                      activeTab === "sort" ? "bg-blue-500" : "bg-neutral-700"
+                    }`}
+                    style={{ minHeight: 44 }}
+                  >
+                    <Text
+                      className={`text-center font-semibold text-sm`}
+                      style={{
+                        color:
+                          activeTab === "sort"
+                            ? colors.text.primary
+                            : "#a3a3a3",
+                      }}
+                    >
+                      Sort
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setActiveTab("channel")}
+                    className={`flex-1 py-3 rounded-full mr-2 ${
+                      activeTab === "channel" ? "bg-blue-500" : "bg-neutral-700"
+                    }`}
+                    style={{ minHeight: 44 }}
+                  >
+                    <Text
+                      className={`text-center font-semibold text-sm`}
+                      style={{
+                        color:
+                          activeTab === "channel"
+                            ? colors.text.primary
+                            : "#a3a3a3",
+                      }}
+                    >
+                      Channel
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setActiveTab("duration")}
+                    className={`flex-1 py-3 rounded-full ${
+                      activeTab === "duration"
+                        ? "bg-blue-500"
+                        : "bg-neutral-700"
+                    }`}
+                    style={{ minHeight: 44 }}
+                  >
+                    <Text
+                      className={`text-center font-semibold text-sm`}
+                      style={{
+                        color:
+                          activeTab === "duration"
+                            ? colors.text.primary
+                            : "#a3a3a3",
+                      }}
+                    >
+                      Duration
+                    </Text>
+                  </Pressable>
                 </View>
-              )}
 
-              {activeTab === "duration" && (
-                <View className="p-4">
-                  {durationFilters.map((filter) => {
-                    const isSelected = selectedDuration === filter.value;
-                    return (
-                      <Pressable
-                        key={filter.value}
-                        onPress={() => {
-                          onDurationChange(filter.value);
-                          onClose();
-                        }}
-                        className={`flex-row items-center p-4 rounded-xl mb-2 ${
-                          isSelected ? "bg-blue-500" : "bg-neutral-700"
-                        }`}
-                        style={{ minHeight: 56 }}
-                      >
-                        <Ionicons
-                          name={filter.iconName}
-                          size={22}
-                          color="white"
-                        />
-                        <Text
-                          className={`flex-1 font-semibold text-base ml-3 ${
-                            isSelected ? "text-white" : "text-neutral-300"
-                          }`}
-                        >
-                          {filter.label}
-                        </Text>
-                        {isSelected && (
-                          <Ionicons name="checkmark-circle" size={22} color="white" />
-                        )}
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              )}
-            </ScrollView>
-          </Pressable>
-        </Animated.View>
-        </SafeAreaView>
-      </Pressable>
-    </Animated.View>
+                {/* Content */}
+                <ScrollView
+                  className="max-h-96"
+                  showsVerticalScrollIndicator={false}
+                >
+                  {activeTab === "sort" && (
+                    <View className="p-4">
+                      {sortFilters.map((filter) => {
+                        const isSelected = selectedSort === filter.value;
+                        return (
+                          <Pressable
+                            key={filter.value}
+                            onPress={() => {
+                              onSortChange(filter.value);
+                              onClose();
+                            }}
+                            className={`flex-row items-center p-4 rounded-xl mb-2 ${
+                              isSelected ? "bg-blue-500" : "bg-neutral-700"
+                            }`}
+                            style={{ minHeight: 56 }}
+                          >
+                            <Ionicons
+                              name={filter.iconName}
+                              size={22}
+                              color={colors.text.primary}
+                            />
+                            <Text
+                              className={`flex-1 font-semibold text-base ml-3`}
+                              style={{
+                                color: isSelected
+                                  ? colors.text.primary
+                                  : "#d4d4d4",
+                              }}
+                            >
+                              {filter.label}
+                            </Text>
+                            {isSelected && (
+                              <Ionicons
+                                name="checkmark-circle"
+                                size={22}
+                                color={colors.text.primary}
+                              />
+                            )}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  )}
+
+                  {activeTab === "channel" && (
+                    <View className="p-4">
+                      {channelOptions.map((option) => {
+                        const isSelected =
+                          option.type === "other"
+                            ? isOtherSelected
+                            : selectedChannelId === option.id;
+
+                        return (
+                          <Pressable
+                            key={option.id || "all"}
+                            onPress={() => {
+                              if (
+                                option.type === "other" &&
+                                otherChannels.length > 0
+                              ) {
+                                // Select the first "other" channel
+                                onChannelChange(otherChannels[0].id);
+                              } else {
+                                onChannelChange(option.id);
+                              }
+                              onClose();
+                            }}
+                            disabled={channelsLoading}
+                            className={`flex-row items-center p-4 rounded-xl mb-2 ${
+                              isSelected ? "bg-blue-500" : "bg-neutral-700"
+                            }`}
+                            style={{ minHeight: 56 }}
+                          >
+                            <Ionicons
+                              name={option.iconName}
+                              size={22}
+                              color={colors.text.primary}
+                            />
+                            <Text
+                              className={`flex-1 font-semibold text-base ml-3`}
+                              style={{
+                                color: isSelected
+                                  ? colors.text.primary
+                                  : "#d4d4d4",
+                              }}
+                            >
+                              {option.name}
+                            </Text>
+                            {isSelected && (
+                              <Ionicons
+                                name="checkmark-circle"
+                                size={22}
+                                color={colors.text.primary}
+                              />
+                            )}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  )}
+
+                  {activeTab === "duration" && (
+                    <View className="p-4">
+                      {durationFilters.map((filter) => {
+                        const isSelected = selectedDuration === filter.value;
+                        return (
+                          <Pressable
+                            key={filter.value}
+                            onPress={() => {
+                              onDurationChange(filter.value);
+                              onClose();
+                            }}
+                            className={`flex-row items-center p-4 rounded-xl mb-2 ${
+                              isSelected ? "bg-blue-500" : "bg-neutral-700"
+                            }`}
+                            style={{ minHeight: 56 }}
+                          >
+                            <Ionicons
+                              name={filter.iconName}
+                              size={22}
+                              color={colors.text.primary}
+                            />
+                            <Text
+                              className={`flex-1 font-semibold text-base ml-3`}
+                              style={{
+                                color: isSelected
+                                  ? colors.text.primary
+                                  : "#d4d4d4",
+                              }}
+                            >
+                              {filter.label}
+                            </Text>
+                            {isSelected && (
+                              <Ionicons
+                                name="checkmark-circle"
+                                size={22}
+                                color={colors.text.primary}
+                              />
+                            )}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  )}
+                </ScrollView>
+              </Pressable>
+            </Animated.View>
+          </SafeAreaView>
+        </Pressable>
+      </Animated.View>
     </Modal>
   );
 }

@@ -2,7 +2,10 @@ import { colors } from "@/constants/theme";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { Platform, Pressable, Text, View } from "react-native";
-import Animated, { SharedValue, useAnimatedStyle } from "react-native-reanimated";
+import Animated, {
+  SharedValue,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface AnimatedTabBarProps extends BottomTabBarProps {
@@ -40,7 +43,7 @@ export function AnimatedTabBar({
           borderTopColor: colors.border.secondary,
           borderTopWidth: 0.5,
           height: TAB_BAR_HEIGHT + insets.bottom,
-          paddingBottom: insets.bottom +4,
+          paddingBottom: insets.bottom + 4,
           ...Platform.select({
             ios: {
               shadowColor: "#000",
@@ -115,7 +118,7 @@ export function AnimatedTabBar({
               {icon}
               <Text
                 style={{
-                  color: isFocused ? "#ffffff" : "#8e8e93",
+                  color: isFocused ? colors.text.primary : "#8e8e93",
                   fontSize: 10,
                   fontWeight: "500",
                   marginTop: 4,

@@ -1,9 +1,9 @@
 import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import type {
-    Channel,
-    DurationOption,
-    SortOption,
+  Channel,
+  DurationOption,
+  SortOption,
 } from "@naat-collection/shared";
 import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
@@ -168,12 +168,16 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
             <Ionicons
               name={currentSort?.iconName || "sparkles"}
               size={16}
-              color={selectedSort !== "forYou" ? "white" : "#d4d4d8"}
+              color={
+                selectedSort !== "forYou" ? colors.text.primary : "#d4d4d8"
+              }
             />
             <Text
-              className={`font-semibold text-sm ml-2 ${
-                selectedSort !== "forYou" ? "text-white" : "text-neutral-300"
-              }`}
+              className={`font-semibold text-sm ml-2`}
+              style={{
+                color:
+                  selectedSort !== "forYou" ? colors.text.primary : "#d4d4d8",
+              }}
             >
               {currentSort?.label}
             </Text>
@@ -196,12 +200,13 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
             <Ionicons
               name={currentChannel?.iconName || "globe"}
               size={16}
-              color={selectedChannelId ? "white" : "#d4d4d8"}
+              color={selectedChannelId ? colors.text.primary : "#d4d4d8"}
             />
             <Text
-              className={`font-semibold text-sm ml-2 ${
-                selectedChannelId ? "text-white" : "text-neutral-300"
-              }`}
+              className={`font-semibold text-sm ml-2`}
+              style={{
+                color: selectedChannelId ? colors.text.primary : "#d4d4d8",
+              }}
             >
               {currentChannel?.name}
             </Text>
@@ -225,12 +230,16 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
             <Ionicons
               name={currentDuration?.iconName || "infinite"}
               size={16}
-              color={selectedDuration !== "all" ? "white" : "#d4d4d8"}
+              color={
+                selectedDuration !== "all" ? colors.text.primary : "#d4d4d8"
+              }
             />
             <Text
-              className={`font-semibold text-sm ml-2 ${
-                selectedDuration !== "all" ? "text-white" : "text-neutral-300"
-              }`}
+              className={`font-semibold text-sm ml-2`}
+              style={{
+                color:
+                  selectedDuration !== "all" ? colors.text.primary : "#d4d4d8",
+              }}
             >
               {currentDuration?.label}
             </Text>
@@ -285,12 +294,26 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                 className="flex-row items-center justify-between px-6 py-5 border-b"
                 style={{ borderBottomColor: colors.border.secondary }}
               >
-                <Text className="text-white text-xl font-bold">Filters</Text>
+                <Text
+                  className="text-xl font-bold"
+                  style={{ color: colors.text.primary }}
+                >
+                  Filters
+                </Text>
                 <Pressable
                   onPress={() => setShowModal(false)}
-                  style={{ minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' }}
+                  style={{
+                    minHeight: 44,
+                    minWidth: 44,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
                 >
-                  <Ionicons name="close" size={24} color={colors.text.secondary} />
+                  <Ionicons
+                    name="close"
+                    size={24}
+                    color={colors.text.secondary}
+                  />
                 </Pressable>
               </View>
 
@@ -379,12 +402,15 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                           <Ionicons
                             name={filter.iconName}
                             size={22}
-                            color="white"
+                            color={colors.text.primary}
                           />
                           <Text
-                            className={`flex-1 font-semibold text-base ml-3 ${
-                              isSelected ? "text-white" : "text-neutral-300"
-                            }`}
+                            className={`flex-1 font-semibold text-base ml-3`}
+                            style={{
+                              color: isSelected
+                                ? colors.text.primary
+                                : "#d4d4d4",
+                            }}
                           >
                             {filter.label}
                           </Text>
@@ -392,7 +418,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                             <Ionicons
                               name="checkmark-circle"
                               size={22}
-                              color="white"
+                              color={colors.text.primary}
                             />
                           )}
                         </Pressable>
@@ -436,12 +462,15 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                           <Ionicons
                             name={option.iconName}
                             size={22}
-                            color="white"
+                            color={colors.text.primary}
                           />
                           <Text
-                            className={`flex-1 font-semibold text-base ml-3 ${
-                              isSelected ? "text-white" : "text-neutral-300"
-                            }`}
+                            className={`flex-1 font-semibold text-base ml-3`}
+                            style={{
+                              color: isSelected
+                                ? colors.text.primary
+                                : "#d4d4d4",
+                            }}
                           >
                             {option.name}
                           </Text>
@@ -449,7 +478,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                             <Ionicons
                               name="checkmark-circle"
                               size={22}
-                              color="white"
+                              color={colors.text.primary}
                             />
                           )}
                         </Pressable>
@@ -480,12 +509,15 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                           <Ionicons
                             name={filter.iconName}
                             size={22}
-                            color="white"
+                            color={colors.text.primary}
                           />
                           <Text
-                            className={`flex-1 font-semibold text-base ml-3 ${
-                              isSelected ? "text-white" : "text-neutral-300"
-                            }`}
+                            className={`flex-1 font-semibold text-base ml-3`}
+                            style={{
+                              color: isSelected
+                                ? colors.text.primary
+                                : "#d4d4d4",
+                            }}
                           >
                             {filter.label}
                           </Text>
@@ -493,7 +525,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                             <Ionicons
                               name="checkmark-circle"
                               size={22}
-                              color="white"
+                              color={colors.text.primary}
                             />
                           )}
                         </Pressable>
