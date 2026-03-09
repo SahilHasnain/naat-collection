@@ -20,6 +20,24 @@ interface CutSegment {
   end: number;
 }
 
+interface DetectionResult {
+  duration: number;
+  speechSegments: {
+    start: number;
+    end: number;
+    confidence: number;
+    duration: number;
+  }[];
+  allSegments: {
+    start: number;
+    end: number;
+    type: string;
+    confidence: number;
+  }[];
+  totalSpeechDuration: number;
+  totalSingingDuration: number;
+}
+
 export default function ManualCutClient() {
   const [naats, setNaats] = useState<Naat[]>([]);
   const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
@@ -37,25 +55,39 @@ export default function ManualCutClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterChannel, setFilterChannel] = useState<string>("all");
-  const [filterRadio, setFilterRadio] = useState<"all" | "radio" | "non-radio">("all");
-  const [filterDuration, setFilterDuration] = useState<"all" | "<=10min" | ">15min" | ">20min">("all");
-  const [sortBy, setSortBy] = useState<"latest" | "popular" | "oldest">("latest");
+  const [filterRadio, setFilterRadio] = useState<"all" | "radio" | "non-radio">(
+    "all",
+  );
+  const [filterDuration, setFilterDuration] = useState<
+    "all" | "<=10min" | ">15min" | ">20min"
+  >("all");
+  const [sortBy, setSortBy] = useState<"latest" | "popular" | "oldest">(
+    "latest",
+  );
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [channels, setChannels] = useState<string[]>([]);
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [originalAudioRef, setOriginalAudioRef] = useState<HTMLAudioElement | null>(null);
-  const [previewAudioRef, setPreviewAudioRef] = useState<HTMLAudioElement | null>(null);
+  const [originalAudioRef, setOriginalAudioRef] =
+    useState<HTMLAudioElement | null>(null);
+  const [previewAudioRef, setPreviewAudioRef] =
+    useState<HTMLAudioElement | null>(null);
   const [cutDurationMinutes, setCutDurationMinutes] = useState<string>("");
   const [cutDurationSeconds, setCutDurationSeconds] = useState<string>("");
   const [autoCutDuration, setAutoCutDuration] = useState<number | null>(null);
+  const [detecting, setDetecting] = useState(false);
+  const [detectionResult, setDetectionResult] =
+    useState<DetectionResult | null>(null);
 
   const LIMIT = 50;
 
   const seekAudio = (audioRef: HTMLAudioElement | null, seconds: number) => {
     if (audioRef) {
-      audioRef.currentTime = Math.max(0, Math.min(audioRef.currentTime + seconds, audioRef.duration || 0));
+      audioRef.currentTime = Math.max(
+        0,
+        Math.min(audioRef.currentTime + seconds, audioRef.duration || 0),
+      );
     }
   };
 
@@ -98,7 +130,14 @@ export default function ManualCutClient() {
       setHasMore(true);
       loadNaats(0, true);
     }
-  }, [sortBy, filterRadio, filterChannel, filterDuration, searchQuery, selectedNaat]);
+  }, [
+    sortBy,
+    filterRadio,
+    filterChannel,
+    filterDuration,
+    searchQuery,
+    selectedNaat,
+  ]);
 
   useEffect(() => {
     // Restore pending cut after naats are loaded
@@ -171,7 +210,7 @@ export default function ManualCutClient() {
       const channelsResponse = await databases.listDocuments(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_NAATS_COLLECTION_ID!,
-        [Query.select(["channelName"]), Query.limit(5000)]
+        [Query.select(["channelName"]), Query.limit(5000)],
       );
 
       const uniqueChannels = Array.from(
@@ -179,8 +218,8 @@ export default function ManualCutClient() {
           channelsResponse.documents
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .map((doc: any) => doc.channelName)
-            .filter(Boolean)
-        )
+            .filter(Boolean),
+        ),
       ).sort() as string[];
 
       setChannels(uniqueChannels);
@@ -193,7 +232,10 @@ export default function ManualCutClient() {
     }
   }
 
-  async function loadNaats(currentOffset: number = offset, isInitial: boolean = false) {
+  async function loadNaats(
+    currentOffset: number = offset,
+    isInitial: boolean = false,
+  ) {
     if (isInitial) {
       setLoading(true);
     } else {
@@ -214,10 +256,7 @@ export default function ManualCutClient() {
         Query.offset(currentOffset),
         Query.isNotNull("audioId"),
         Query.isNull("cutAudio"),
-        Query.or([
-          Query.equal("exclude", false),
-          Query.isNull("exclude")
-        ]),
+        Query.or([Query.equal("exclude", false), Query.isNull("exclude")]),
       ];
 
       // Sort query
@@ -234,10 +273,7 @@ export default function ManualCutClient() {
         queries.push(Query.equal("radio", true));
       } else if (filterRadio === "non-radio") {
         queries.push(
-          Query.or([
-            Query.equal("radio", false),
-            Query.isNull("radio")
-          ])
+          Query.or([Query.equal("radio", false), Query.isNull("radio")]),
         );
       }
 
@@ -263,7 +299,7 @@ export default function ManualCutClient() {
       const response = await databases.listDocuments(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_NAATS_COLLECTION_ID!,
-        queries
+        queries,
       );
 
       const newNaats = response.documents as unknown as Naat[];
@@ -427,7 +463,7 @@ export default function ManualCutClient() {
 
     // Use auto-calculated duration if available, otherwise use manual input
     let totalSeconds = autoCutDuration || 0;
-    
+
     if (!autoCutDuration) {
       const minutes = parseInt(cutDurationMinutes) || 0;
       const seconds = parseInt(cutDurationSeconds) || 0;
@@ -435,7 +471,9 @@ export default function ManualCutClient() {
     }
 
     if (totalSeconds <= 0) {
-      setError("Unable to determine cut audio duration. Please wait for the audio to load.");
+      setError(
+        "Unable to determine cut audio duration. Please wait for the audio to load.",
+      );
       return;
     }
 
@@ -561,14 +599,54 @@ export default function ManualCutClient() {
   const getAudioUrl = (fileId: string, bucket: string = "audio-files") =>
     `/api/stream-audio?audioId=${fileId}&bucket=${bucket}`;
 
-  const filteredNaats = naats.filter((naat) =>
-    naat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    naat.youtubeId.toLowerCase().includes(searchQuery.toLowerCase())
+  async function handleDetectSegments() {
+    if (!selectedNaat) return;
+
+    setDetecting(true);
+    setDetectionResult(null);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/admin/detect-segments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ naatId: selectedNaat.$id }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Detection failed");
+      }
+
+      setDetectionResult(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Detection failed");
+    } finally {
+      setDetecting(false);
+    }
+  }
+
+  function applyDetectedSegments() {
+    if (!detectionResult || detectionResult.speechSegments.length === 0) return;
+
+    const segments = detectionResult.speechSegments.map((seg) => ({
+      start: Math.round(seg.start),
+      end: Math.round(seg.end),
+    }));
+
+    setCutSegments(segments);
+  }
+
+  const filteredNaats = naats.filter(
+    (naat) =>
+      naat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      naat.youtubeId.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-8">
+      <div className="min-h-screen p-8 text-white bg-gray-900">
         <div className="max-w-6xl mx-auto">
           <p>Loading naats...</p>
         </div>
@@ -577,28 +655,30 @@ export default function ManualCutClient() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">Manual Audio Cut</h1>
-        <p className="text-gray-400 mb-8">
+    <div className="min-h-screen p-8 text-white bg-gray-900">
+      <div className="mx-auto max-w-7xl">
+        <h1 className="mb-2 text-3xl font-bold">Manual Audio Cut</h1>
+        <p className="mb-8 text-gray-400">
           Select a naat to edit • {naats.length} available
         </p>
 
         {error && (
-          <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded mb-6">
+          <div className="px-4 py-3 mb-6 text-red-200 border border-red-500 rounded bg-red-900/50">
             {error}
           </div>
         )}
 
         {!selectedNaat ? (
           <div>
-            <div className="bg-gray-800 rounded-lg p-6 mb-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div className="bg-gray-700 rounded-lg p-4">
+            <div className="p-6 mb-6 bg-gray-800 rounded-lg">
+              <div className="grid grid-cols-1 gap-4 mb-4 md:grid-cols-2">
+                <div className="p-4 bg-gray-700 rounded-lg">
                   <p className="text-sm text-gray-400">Total Matching</p>
-                  <p className="text-2xl font-bold">{totalCount.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">
+                    {totalCount.toLocaleString()}
+                  </p>
                 </div>
-                <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4">
+                <div className="p-4 border border-blue-700 rounded-lg bg-blue-900/30">
                   <p className="text-sm text-gray-400">Loaded</p>
                   <p className="text-2xl font-bold text-blue-400">
                     {naats.length.toLocaleString()}
@@ -613,10 +693,10 @@ export default function ManualCutClient() {
                     placeholder="Search by title or YouTube ID... (Press Enter)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-2 pl-10 transition-colors bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
                   />
                   <svg
-                    className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    className="absolute w-5 h-5 text-gray-400 -translate-y-1/2 left-3 top-1/2"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -632,12 +712,14 @@ export default function ManualCutClient() {
               </form>
 
               <div className="flex flex-col gap-4">
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex flex-col gap-4 md:flex-row">
                   <select
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded px-4 py-2"
+                    className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded"
                     value={sortBy}
                     onChange={(e) =>
-                      setSortBy(e.target.value as "latest" | "popular" | "oldest")
+                      setSortBy(
+                        e.target.value as "latest" | "popular" | "oldest",
+                      )
                     }
                   >
                     <option value="latest">Latest</option>
@@ -645,7 +727,7 @@ export default function ManualCutClient() {
                     <option value="oldest">Oldest</option>
                   </select>
                   <select
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded px-4 py-2"
+                    className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded"
                     value={filterChannel}
                     onChange={(e) => setFilterChannel(e.target.value)}
                   >
@@ -657,13 +739,13 @@ export default function ManualCutClient() {
                     ))}
                   </select>
                 </div>
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex flex-col gap-4 md:flex-row">
                   <select
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded px-4 py-2"
+                    className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded"
                     value={filterRadio}
                     onChange={(e) =>
                       setFilterRadio(
-                        e.target.value as "all" | "radio" | "non-radio"
+                        e.target.value as "all" | "radio" | "non-radio",
                       )
                     }
                   >
@@ -672,11 +754,15 @@ export default function ManualCutClient() {
                     <option value="non-radio">Non-Radio Only</option>
                   </select>
                   <select
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded px-4 py-2"
+                    className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded"
                     value={filterDuration}
                     onChange={(e) =>
                       setFilterDuration(
-                        e.target.value as "all" | "<=10min" | ">15min" | ">20min"
+                        e.target.value as
+                          | "all"
+                          | "<=10min"
+                          | ">15min"
+                          | ">20min",
                       )
                     }
                   >
@@ -688,13 +774,13 @@ export default function ManualCutClient() {
                 </div>
               </div>
 
-              <p className="text-sm text-yellow-400 mt-4 flex items-center gap-2">
+              <p className="flex items-center gap-2 mt-4 text-sm text-yellow-400">
                 <span>💡</span>
                 <span>Click a card to start editing</span>
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredNaats.map((naat) => (
                 <button
                   key={naat.$id}
@@ -702,39 +788,40 @@ export default function ManualCutClient() {
                     setSelectedNaat(naat);
                     setTempFileId(null);
                     setCutSegments([{ start: 0, end: 0 }]);
+                    setDetectionResult(null);
                   }}
-                  className="bg-gray-800 hover:bg-gray-750 border-2 border-gray-700 hover:border-blue-500 rounded-lg p-4 transition-all duration-200 text-left group shadow-lg hover:shadow-blue-500/20"
+                  className="p-4 text-left transition-all duration-200 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg hover:bg-gray-750 hover:border-blue-500 group hover:shadow-blue-500/20"
                 >
-                  <div className="aspect-video bg-gray-700 rounded-lg mb-3 overflow-hidden relative">
+                  <div className="relative mb-3 overflow-hidden bg-gray-700 rounded-lg aspect-video">
                     <img
                       src={`https://img.youtube.com/vi/${naat.youtubeId}/mqdefault.jpg`}
                       alt={naat.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      className="object-cover w-full h-full transition-transform group-hover:scale-105"
                       onError={(e) => {
                         e.currentTarget.src = `https://img.youtube.com/vi/${naat.youtubeId}/default.jpg`;
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-1 rounded text-xs">
+                    <div className="absolute px-2 py-1 text-xs rounded bottom-2 right-2 bg-black/80">
                       {naat.duration
                         ? `${Math.floor(naat.duration / 60)}:${String(Math.floor(naat.duration % 60)).padStart(2, "0")}`
                         : "N/A"}
                     </div>
                     {naat.radio && (
-                      <div className="absolute top-2 right-2 bg-green-600 rounded px-2 py-1">
+                      <div className="absolute px-2 py-1 bg-green-600 rounded top-2 right-2">
                         <span className="text-xs font-bold text-white">
                           📻 RADIO
                         </span>
                       </div>
                     )}
                   </div>
-                  <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors line-clamp-2 mb-2">
+                  <h3 className="mb-2 font-semibold text-white transition-colors group-hover:text-blue-400 line-clamp-2">
                     {naat.title}
                   </h3>
                   {naat.channelName && (
-                    <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                    <div className="flex items-center gap-2 mb-2 text-sm text-gray-400">
                       <svg
-                        className="w-4 h-4 flex-shrink-0"
+                        className="flex-shrink-0 w-4 h-4"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                       >
@@ -758,16 +845,18 @@ export default function ManualCutClient() {
             </div>
 
             {filteredNaats.length === 0 && !loading && (
-              <div className="col-span-full text-center py-12 text-gray-400">
+              <div className="py-12 text-center text-gray-400 col-span-full">
                 {searchQuery ? (
                   <>
-                    <p className="text-lg">No naats found matching "{searchQuery}"</p>
+                    <p className="text-lg">
+                      No naats found matching "{searchQuery}"
+                    </p>
                     <button
                       onClick={() => {
                         setSearchTerm("");
                         setSearchQuery("");
                       }}
-                      className="mt-4 text-blue-400 hover:text-blue-300 underline"
+                      className="mt-4 text-blue-400 underline hover:text-blue-300"
                     >
                       Clear search
                     </button>
@@ -775,7 +864,7 @@ export default function ManualCutClient() {
                 ) : (
                   <>
                     <p className="text-lg">No naats available for cutting</p>
-                    <p className="text-sm mt-2">
+                    <p className="mt-2 text-sm">
                       All naats have been processed or don't have audio files
                     </p>
                   </>
@@ -788,7 +877,7 @@ export default function ManualCutClient() {
                 <button
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-8 py-3 font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loadingMore ? "Loading..." : "Load More"}
                 </button>
@@ -796,8 +885,9 @@ export default function ManualCutClient() {
             )}
 
             {naats.length > 0 && (
-              <div className="mt-6 text-sm text-gray-400 text-center">
-                Showing {naats.length.toLocaleString()} of {totalCount.toLocaleString()} naats
+              <div className="mt-6 text-sm text-center text-gray-400">
+                Showing {naats.length.toLocaleString()} of{" "}
+                {totalCount.toLocaleString()} naats
               </div>
             )}
 
@@ -805,7 +895,7 @@ export default function ManualCutClient() {
             {showBackToTop && (
               <button
                 onClick={scrollToTop}
-                className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-all hover:scale-110 z-50"
+                className="fixed z-50 p-4 text-white transition-all bg-blue-600 rounded-full shadow-lg bottom-8 right-8 hover:bg-blue-700 hover:scale-110"
                 title="Back to top"
               >
                 <svg
@@ -831,8 +921,9 @@ export default function ManualCutClient() {
                 setSelectedNaat(null);
                 setTempFileId(null);
                 setCutSegments([{ start: 0, end: 0 }]);
+                setDetectionResult(null);
               }}
-              className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+              className="flex items-center gap-2 mb-6 text-gray-400 transition-colors hover:text-white"
             >
               <svg
                 className="w-5 h-5"
@@ -850,23 +941,23 @@ export default function ManualCutClient() {
               Back to list
             </button>
 
-            <div className="bg-gray-800 rounded-lg p-6 mb-6">
+            <div className="p-6 mb-6 bg-gray-800 rounded-lg">
               <div className="flex gap-4">
-                <div className="w-48 h-32 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
+                <div className="flex-shrink-0 w-48 h-32 overflow-hidden bg-gray-700 rounded-lg">
                   <img
                     src={`https://img.youtube.com/vi/${selectedNaat.youtubeId}/mqdefault.jpg`}
                     alt={selectedNaat.title}
-                    className="w-full h-full object-cover"
+                    className="object-cover w-full h-full"
                     onError={(e) => {
                       e.currentTarget.src = `https://img.youtube.com/vi/${selectedNaat.youtubeId}/default.jpg`;
                     }}
                   />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-semibold mb-2">
+                  <h2 className="mb-2 text-2xl font-semibold">
                     {selectedNaat.title}
                   </h2>
-                  <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
+                  <div className="flex items-center gap-2 mb-4 text-sm text-gray-400">
                     <svg
                       className="w-4 h-4"
                       fill="currentColor"
@@ -884,50 +975,304 @@ export default function ManualCutClient() {
               </div>
             </div>
 
-            <div className="bg-gray-800 rounded-lg p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">Original Audio</h2>
+            <div className="p-6 mb-6 bg-gray-800 rounded-lg">
+              <h2 className="mb-4 text-xl font-semibold">Original Audio</h2>
               <audio
                 ref={(el) => setOriginalAudioRef(el)}
                 controls
                 className="w-full mb-3"
                 src={getAudioUrl(selectedNaat.audioId)}
               />
-              <div className="flex gap-2 justify-center">
+              <div className="flex justify-center gap-2">
                 <button
                   onClick={() => seekAudio(originalAudioRef, -10)}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded font-medium transition-colors flex items-center gap-2"
+                  className="flex items-center gap-2 px-4 py-2 font-medium transition-colors bg-gray-700 rounded hover:bg-gray-600"
                   title="Rewind 10 seconds"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"
+                    />
                   </svg>
                   -10s
                 </button>
                 <button
                   onClick={() => seekAudio(originalAudioRef, 10)}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded font-medium transition-colors flex items-center gap-2"
+                  className="flex items-center gap-2 px-4 py-2 font-medium transition-colors bg-gray-700 rounded hover:bg-gray-600"
                   title="Forward 10 seconds"
                 >
                   +10s
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z"
+                    />
                   </svg>
                 </button>
               </div>
             </div>
 
-            <div className="bg-gray-800 rounded-lg p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">
+            {/* AI Segment Detection */}
+            <div className="p-6 mb-6 bg-gray-800 rounded-lg">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-semibold">
+                    AI Segment Detection
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-400">
+                    Automatically detect explanation vs naat segments using
+                    audio analysis
+                  </p>
+                </div>
+                <button
+                  onClick={handleDetectSegments}
+                  disabled={detecting}
+                  className="flex items-center gap-2 px-6 py-3 font-semibold transition-colors bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                >
+                  {detecting ? (
+                    <>
+                      <svg
+                        className="w-5 h-5 animate-spin"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                        />
+                      </svg>
+                      AI Detect
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {detecting && (
+                <div className="p-4 border border-purple-700 rounded-lg bg-purple-900/30">
+                  <div className="flex items-center gap-3">
+                    <svg
+                      className="w-6 h-6 text-purple-400 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    <div>
+                      <p className="font-medium text-purple-300">
+                        Analyzing audio...
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        Extracting spectral features to detect speech vs singing
+                        patterns
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {detectionResult && (
+                <div className="space-y-4">
+                  {/* Summary */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="p-3 text-center bg-gray-700 rounded-lg">
+                      <p className="text-xs text-gray-400">Total Duration</p>
+                      <p className="text-lg font-bold">
+                        {Math.floor(detectionResult.duration / 60)}:
+                        {String(
+                          Math.floor(detectionResult.duration % 60),
+                        ).padStart(2, "0")}
+                      </p>
+                    </div>
+                    <div className="p-3 text-center border border-red-700 rounded-lg bg-red-900/30">
+                      <p className="text-xs text-gray-400">Speech (to cut)</p>
+                      <p className="text-lg font-bold text-red-400">
+                        {Math.floor(detectionResult.totalSpeechDuration / 60)}:
+                        {String(
+                          Math.floor(detectionResult.totalSpeechDuration % 60),
+                        ).padStart(2, "0")}
+                      </p>
+                    </div>
+                    <div className="p-3 text-center border border-green-700 rounded-lg bg-green-900/30">
+                      <p className="text-xs text-gray-400">Naat (to keep)</p>
+                      <p className="text-lg font-bold text-green-400">
+                        {Math.floor(detectionResult.totalSingingDuration / 60)}:
+                        {String(
+                          Math.floor(detectionResult.totalSingingDuration % 60),
+                        ).padStart(2, "0")}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Visual timeline */}
+                  <div>
+                    <p className="mb-2 text-sm font-medium">Timeline</p>
+                    <div className="relative h-10 overflow-hidden bg-gray-700 rounded-lg">
+                      {detectionResult.allSegments.map((seg, i) => {
+                        const left =
+                          (seg.start / detectionResult.duration) * 100;
+                        const width =
+                          ((seg.end - seg.start) / detectionResult.duration) *
+                          100;
+                        return (
+                          <div
+                            key={i}
+                            className={`absolute top-0 h-full ${
+                              seg.type === "speech"
+                                ? "bg-red-500/60 border-red-400"
+                                : "bg-green-500/60 border-green-400"
+                            } border-x`}
+                            style={{
+                              left: `${left}%`,
+                              width: `${Math.max(width, 0.5)}%`,
+                            }}
+                            title={`${seg.type}: ${Math.floor(seg.start / 60)}:${String(Math.floor(seg.start % 60)).padStart(2, "0")} - ${Math.floor(seg.end / 60)}:${String(Math.floor(seg.end % 60)).padStart(2, "0")} (${Math.round(seg.confidence * 100)}%)`}
+                          />
+                        );
+                      })}
+                    </div>
+                    <div className="flex justify-between mt-1 text-xs text-gray-500">
+                      <span>0:00</span>
+                      <span className="flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <span className="inline-block w-3 h-3 rounded bg-red-500/60" />{" "}
+                          Speech
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="inline-block w-3 h-3 rounded bg-green-500/60" />{" "}
+                          Naat
+                        </span>
+                      </span>
+                      <span>
+                        {Math.floor(detectionResult.duration / 60)}:
+                        {String(
+                          Math.floor(detectionResult.duration % 60),
+                        ).padStart(2, "0")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Detected speech segments */}
+                  {detectionResult.speechSegments.length > 0 ? (
+                    <div>
+                      <p className="mb-2 text-sm font-medium">
+                        Detected Explanation Segments (
+                        {detectionResult.speechSegments.length})
+                      </p>
+                      <div className="space-y-2">
+                        {detectionResult.speechSegments.map((seg, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center gap-3 px-4 py-2 border border-red-800 rounded-lg bg-red-900/20"
+                          >
+                            <span className="font-mono text-sm text-red-400">
+                              {Math.floor(seg.start / 60)}:
+                              {String(Math.floor(seg.start % 60)).padStart(
+                                2,
+                                "0",
+                              )}
+                              {" → "}
+                              {Math.floor(seg.end / 60)}:
+                              {String(Math.floor(seg.end % 60)).padStart(
+                                2,
+                                "0",
+                              )}
+                            </span>
+                            <span className="text-sm text-gray-400">
+                              ({seg.duration}s)
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {Math.round(seg.confidence * 100)}% confident
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={applyDetectedSegments}
+                        className="w-full px-6 py-3 mt-4 font-semibold transition-colors bg-purple-600 rounded-lg hover:bg-purple-700"
+                      >
+                        Apply Detected Segments as Cut Points
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center border border-green-800 rounded-lg bg-green-900/20">
+                      <p className="font-medium text-green-400">
+                        No explanation segments detected
+                      </p>
+                      <p className="mt-1 text-sm text-gray-400">
+                        This naat appears to have no spoken explanations —
+                        consider using &quot;Skip - No Explanation&quot;
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 mb-6 bg-gray-800 rounded-lg">
+              <h2 className="mb-4 text-xl font-semibold">
                 Cut Segments (Parts to Remove)
               </h2>
-              <p className="text-sm text-gray-400 mb-4">
+              <p className="mb-4 text-sm text-gray-400">
                 Enter the start and end times for the explanation parts you want
                 to remove
               </p>
 
               <button
                 onClick={addSegment}
-                className="mb-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
+                className="px-4 py-2 mb-4 bg-blue-600 rounded hover:bg-blue-700"
               >
                 + Add Segment
               </button>
@@ -935,21 +1280,21 @@ export default function ManualCutClient() {
               {[...cutSegments].reverse().map((segment, reversedIndex) => {
                 const index = cutSegments.length - 1 - reversedIndex;
                 return (
-                  <div key={index} className="mb-4 p-4 bg-gray-700 rounded-lg">
-                    <div className="flex gap-6 items-end">
+                  <div key={index} className="p-4 mb-4 bg-gray-700 rounded-lg">
+                    <div className="flex items-end gap-6">
                       <div className="flex-1">
-                        <label className="block text-sm font-medium mb-2">
+                        <label className="block mb-2 text-sm font-medium">
                           Start Time
                         </label>
-                        <div className="flex gap-2 items-center">
+                        <div className="flex items-center gap-2">
                           <div className="flex-1">
-                            <label className="block text-xs text-gray-400 mb-1">
+                            <label className="block mb-1 text-xs text-gray-400">
                               Minutes
                             </label>
                             <input
                               type="text"
                               inputMode="numeric"
-                              className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2"
+                              className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded"
                               value={getMinutes(segment.start)}
                               onChange={(e) => {
                                 const val = e.target.value.replace(/\D/g, "");
@@ -962,19 +1307,22 @@ export default function ManualCutClient() {
                               }}
                             />
                           </div>
-                          <span className="text-2xl pb-2">:</span>
+                          <span className="pb-2 text-2xl">:</span>
                           <div className="flex-1">
-                            <label className="block text-xs text-gray-400 mb-1">
+                            <label className="block mb-1 text-xs text-gray-400">
                               Seconds
                             </label>
                             <input
                               type="text"
                               inputMode="numeric"
-                              className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2"
+                              className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded"
                               value={getSeconds(segment.start)}
                               onChange={(e) => {
                                 const val = e.target.value.replace(/\D/g, "");
-                                const seconds = Math.min(parseInt(val) || 0, 59);
+                                const seconds = Math.min(
+                                  parseInt(val) || 0,
+                                  59,
+                                );
                                 updateSegmentTime(
                                   index,
                                   "start",
@@ -988,18 +1336,18 @@ export default function ManualCutClient() {
                       </div>
 
                       <div className="flex-1">
-                        <label className="block text-sm font-medium mb-2">
+                        <label className="block mb-2 text-sm font-medium">
                           End Time
                         </label>
-                        <div className="flex gap-2 items-center">
+                        <div className="flex items-center gap-2">
                           <div className="flex-1">
-                            <label className="block text-xs text-gray-400 mb-1">
+                            <label className="block mb-1 text-xs text-gray-400">
                               Minutes
                             </label>
                             <input
                               type="text"
                               inputMode="numeric"
-                              className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2"
+                              className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded"
                               value={getMinutes(segment.end)}
                               onChange={(e) => {
                                 const val = e.target.value.replace(/\D/g, "");
@@ -1012,19 +1360,22 @@ export default function ManualCutClient() {
                               }}
                             />
                           </div>
-                          <span className="text-2xl pb-2">:</span>
+                          <span className="pb-2 text-2xl">:</span>
                           <div className="flex-1">
-                            <label className="block text-xs text-gray-400 mb-1">
+                            <label className="block mb-1 text-xs text-gray-400">
                               Seconds
                             </label>
                             <input
                               type="text"
                               inputMode="numeric"
-                              className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2"
+                              className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded"
                               value={getSeconds(segment.end)}
                               onChange={(e) => {
                                 const val = e.target.value.replace(/\D/g, "");
-                                const seconds = Math.min(parseInt(val) || 0, 59);
+                                const seconds = Math.min(
+                                  parseInt(val) || 0,
+                                  59,
+                                );
                                 updateSegmentTime(
                                   index,
                                   "end",
@@ -1039,7 +1390,7 @@ export default function ManualCutClient() {
 
                       <button
                         onClick={() => removeSegment(index)}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded h-10"
+                        className="h-10 px-4 py-2 bg-red-600 rounded hover:bg-red-700"
                         disabled={cutSegments.length === 1}
                       >
                         Remove
@@ -1053,14 +1404,14 @@ export default function ManualCutClient() {
                 <button
                   onClick={handleCut}
                   disabled={cutting}
-                  className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 rounded font-semibold disabled:opacity-50"
+                  className="flex-1 px-6 py-3 font-semibold bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
                 >
                   {cutting ? "Processing..." : "Cut Audio"}
                 </button>
                 <button
                   onClick={handleSkipNoExplanation}
                   disabled={skipping}
-                  className="flex-1 px-6 py-3 bg-yellow-600 hover:bg-yellow-700 rounded font-semibold disabled:opacity-50"
+                  className="flex-1 px-6 py-3 font-semibold bg-yellow-600 rounded hover:bg-yellow-700 disabled:opacity-50"
                 >
                   {skipping ? "Skipping..." : "Skip - No Explanation"}
                 </button>
@@ -1068,8 +1419,8 @@ export default function ManualCutClient() {
             </div>
 
             {tempFileId && (
-              <div className="bg-gray-800 rounded-lg p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-4">
+              <div className="p-6 mb-6 bg-gray-800 rounded-lg">
+                <h2 className="mb-4 text-xl font-semibold">
                   Preview (Cut Audio)
                 </h2>
                 <audio
@@ -1079,7 +1430,9 @@ export default function ManualCutClient() {
                       el.onloadedmetadata = () => {
                         const duration = Math.floor(el.duration);
                         setAutoCutDuration(duration);
-                        setCutDurationMinutes(Math.floor(duration / 60).toString());
+                        setCutDurationMinutes(
+                          Math.floor(duration / 60).toString(),
+                        );
                         setCutDurationSeconds((duration % 60).toString());
                       };
                     }
@@ -1088,47 +1441,70 @@ export default function ManualCutClient() {
                   className="w-full mb-3"
                   src={getAudioUrl(tempFileId, "tempbucket")}
                 />
-                <div className="flex gap-2 justify-center mb-4">
+                <div className="flex justify-center gap-2 mb-4">
                   <button
                     onClick={() => seekAudio(previewAudioRef, -10)}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded font-medium transition-colors flex items-center gap-2"
+                    className="flex items-center gap-2 px-4 py-2 font-medium transition-colors bg-gray-700 rounded hover:bg-gray-600"
                     title="Rewind 10 seconds"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"
+                      />
                     </svg>
                     -10s
                   </button>
                   <button
                     onClick={() => seekAudio(previewAudioRef, 10)}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded font-medium transition-colors flex items-center gap-2"
+                    className="flex items-center gap-2 px-4 py-2 font-medium transition-colors bg-gray-700 rounded hover:bg-gray-600"
                     title="Forward 10 seconds"
                   >
                     +10s
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" />
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z"
+                      />
                     </svg>
                   </button>
                 </div>
 
-                <div className="bg-gray-700 rounded-lg p-4 mb-4">
-                  <label className="block text-sm font-medium mb-2">
-                    Cut Audio Duration {autoCutDuration && <span className="text-green-400">(Auto-detected)</span>}
+                <div className="p-4 mb-4 bg-gray-700 rounded-lg">
+                  <label className="block mb-2 text-sm font-medium">
+                    Cut Audio Duration{" "}
+                    {autoCutDuration && (
+                      <span className="text-green-400">(Auto-detected)</span>
+                    )}
                   </label>
-                  <p className="text-xs text-gray-400 mb-3">
-                    {autoCutDuration 
-                      ? "Duration automatically detected from the audio file" 
+                  <p className="mb-3 text-xs text-gray-400">
+                    {autoCutDuration
+                      ? "Duration automatically detected from the audio file"
                       : "Waiting for audio to load..."}
                   </p>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex items-center gap-2">
                     <div className="flex-1">
-                      <label className="block text-xs text-gray-400 mb-1">
+                      <label className="block mb-1 text-xs text-gray-400">
                         Minutes
                       </label>
                       <input
                         type="text"
                         inputMode="numeric"
-                        className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2"
+                        className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded"
                         value={cutDurationMinutes}
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, "");
@@ -1139,15 +1515,15 @@ export default function ManualCutClient() {
                         readOnly={!!autoCutDuration}
                       />
                     </div>
-                    <span className="text-2xl pb-2 mt-5">:</span>
+                    <span className="pb-2 mt-5 text-2xl">:</span>
                     <div className="flex-1">
-                      <label className="block text-xs text-gray-400 mb-1">
+                      <label className="block mb-1 text-xs text-gray-400">
                         Seconds
                       </label>
                       <input
                         type="text"
                         inputMode="numeric"
-                        className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2"
+                        className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded"
                         value={cutDurationSeconds}
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, "");
@@ -1160,10 +1536,12 @@ export default function ManualCutClient() {
                       />
                     </div>
                     <div className="flex-1 mt-5">
-                      <div className="bg-gray-800 rounded px-3 py-2 text-center">
+                      <div className="px-3 py-2 text-center bg-gray-800 rounded">
                         <span className="text-xs text-gray-400">Total: </span>
                         <span className="font-semibold">
-                          {(parseInt(cutDurationMinutes) || 0) * 60 + (parseInt(cutDurationSeconds) || 0)} sec
+                          {(parseInt(cutDurationMinutes) || 0) * 60 +
+                            (parseInt(cutDurationSeconds) || 0)}{" "}
+                          sec
                         </span>
                       </div>
                     </div>
@@ -1174,14 +1552,14 @@ export default function ManualCutClient() {
                   <button
                     onClick={handleApprove}
                     disabled={approving}
-                    className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 rounded font-semibold disabled:opacity-50"
+                    className="flex-1 px-6 py-3 font-semibold bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
                   >
                     {approving ? "Approving..." : "✓ Approve"}
                   </button>
                   <button
                     onClick={handleReject}
                     disabled={rejecting}
-                    className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 rounded font-semibold disabled:opacity-50"
+                    className="flex-1 px-6 py-3 font-semibold bg-red-600 rounded hover:bg-red-700 disabled:opacity-50"
                   >
                     {rejecting ? "Rejecting..." : "✗ Reject"}
                   </button>
