@@ -13,8 +13,9 @@ const DownloadedAudioModal: React.FC<DownloadedAudioModalProps> = ({
   useEffect(() => {
     if (visible && audio) {
       const loadAudio = async () => {
-        // Generate thumbnail URL from YouTube ID
-        const thumbnailUrl = `https://img.youtube.com/vi/${audio.youtubeId}/maxresdefault.jpg`;
+        // Use local thumbnail if available, fall back to remote
+        const thumbnailUrl = audio.thumbnailLocalUri
+          || `https://img.youtube.com/vi/${audio.youtubeId}/maxresdefault.jpg`;
 
         const audioMetadata: AudioMetadata = {
           audioUrl: audio.localUri,

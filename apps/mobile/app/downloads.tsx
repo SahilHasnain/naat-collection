@@ -12,22 +12,22 @@ import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 import {
-  AccessibilityInfo,
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Text,
-  View,
+    AccessibilityInfo,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -86,8 +86,9 @@ export default function DownloadsScreen() {
 
       console.log("[Autoplay] Playing random download:", randomDownload.title);
 
-      // Generate thumbnail URL from YouTube ID
-      const thumbnailUrl = `https://img.youtube.com/vi/${randomDownload.youtubeId}/maxresdefault.jpg`;
+      // Use local thumbnail if available, fall back to remote
+      const thumbnailUrl = randomDownload.thumbnailLocalUri
+        || `https://img.youtube.com/vi/${randomDownload.youtubeId}/maxresdefault.jpg`;
 
       const audioMetadata: AudioMetadata = {
         audioUrl: randomDownload.localUri,

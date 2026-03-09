@@ -13,8 +13,10 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
   ({ audio, onPress, onDelete }) => {
     const [imageError, setImageError] = React.useState(false);
 
-    // Generate thumbnail URL from YouTube ID
-    const thumbnailUrl = `https://img.youtube.com/vi/${audio.youtubeId}/mqdefault.jpg`;
+    // Use local thumbnail if available, fall back to remote URL
+    const thumbnailSource = audio.thumbnailLocalUri
+      ? { uri: audio.thumbnailLocalUri }
+      : { uri: `https://img.youtube.com/vi/${audio.youtubeId}/mqdefault.jpg` };
 
     // Format duration from seconds to MM:SS
     const duration = formatDuration(audio.duration);
@@ -40,7 +42,7 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
             </View>
           ) : (
             <Image
-              source={{ uri: thumbnailUrl }}
+              source={thumbnailSource}
               style={{ width: 168, height: 94 }}
               contentFit="cover"
               onError={() => setImageError(true)}
