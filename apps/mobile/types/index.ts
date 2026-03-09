@@ -77,6 +77,10 @@ export interface NaatCardProps {
   channelName: string;
   views: number;
   onPress: () => void;
+  onDownload?: () => void;
+  isDownloaded?: boolean;
+  isDownloading?: boolean;
+  downloadProgress?: number;
 }
 
 export interface VideoPlayerProps {

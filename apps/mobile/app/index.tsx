@@ -18,7 +18,7 @@ import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
 import type { DurationOption, Naat, SortOption } from "@/types";
-import { showErrorToast } from "@/utils/toast";
+import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import {
   filterNaatsByDuration,
   getPreferredAudioId,
@@ -63,6 +63,11 @@ export default function HomeScreen() {
   const [searchDuration, setSearchDuration] = useState<DurationOption>("all");
 
   const flatListRef = useRef<FlatList>(null);
+
+  // Download state: track download status per naat
+  const [downloadStates, setDownloadStates] = useState<
+    Record<string, { isDownloaded: boolean; isDownloading: boolean; progress: number }>
+  >({});
 
   // Audio player context
   const { loadAndPlay, setAutoplayCallback } = useAudioPlayer();
@@ -180,6 +185,94 @@ export default function HomeScreen() {
 
     return () => backHandler.remove();
   }, [isSearchActive, deactivateSearch]);
+
+  // Check download status for visible naats
+  React.useEffect(() => {
+    const checkDownloads = async () => {
+      const updates: Record<string, { isDownloaded: boolean; isDownloading: boolean; progress: number }> = {};
+      for (const naat of displayData) {
+        const audioId = getPreferredAudioId(naat);
+        if (audioId) {
+          const downloaded = await audioDownloadService.isDownloaded(audioId);
+          if (downloaded) {
+            updates[naat.$id] = { isDownloaded: true, isDownloading: false, progress: 1 };
+          }
+        }
+      }
+      setDownloadStates((prev) => ({ ...prev, ...updates }));
+    };
+    checkDownloads();
+  }, [displayData]);
+
+  // Handle download from NaatCard
+  const handleDownload = React.useCallback(
+    async (naat: Naat) => {
+      const audioId = getPreferredAudioId(naat);
+      if (!audioId) {
+        showErrorToast("Audio not available for download");
+        return;
+      }
+
+      const alreadyDownloaded = await audioDownloadService.isDownloaded(audioId);
+      if (alreadyDownloaded) {
+        showSuccessToast("Already downloaded");
+        setDownloadStates((prev) => ({
+          ...prev,
+          [naat.$id]: { isDownloaded: true, isDownloading: false, progress: 1 },
+        }));
+        return;
+      }
+
+      // Mark as downloading
+      setDownloadStates((prev) => ({
+        ...prev,
+        [naat.$id]: { isDownloaded: false, isDownloading: true, progress: 0 },
+      }));
+
+      try {
+        // Get audio URL
+        const response = await appwriteService.getAudioUrl(audioId);
+        if (!response.success || !response.audioUrl) {
+          showErrorToast("Audio not available for download");
+          setDownloadStates((prev) => ({
+            ...prev,
+            [naat.$id]: { isDownloaded: false, isDownloading: false, progress: 0 },
+          }));
+          return;
+        }
+
+        await audioDownloadService.downloadAudio(
+          audioId,
+          response.audioUrl,
+          naat.youtubeId || "",
+          naat.title,
+          naat.duration,
+          naat.channelName || "Unknown Channel",
+          naat.views || 0,
+          (progress) => {
+            setDownloadStates((prev) => ({
+              ...prev,
+              [naat.$id]: { isDownloaded: false, isDownloading: true, progress: progress.progress },
+            }));
+          },
+        );
+
+        setDownloadStates((prev) => ({
+          ...prev,
+          [naat.$id]: { isDownloaded: true, isDownloading: false, progress: 1 },
+        }));
+        showSuccessToast("Downloaded successfully");
+      } catch (error) {
+        console.error("Download failed:", error);
+        showErrorToast(error instanceof Error ? error.message : "Download failed");
+        setDownloadStates((prev) => ({
+          ...prev,
+          [naat.$id]: { isDownloaded: false, isDownloading: false, progress: 0 },
+        }));
+      }
+    },
+    [],
+  );
 
   // Load audio directly without opening video modal
   const loadAudioDirectly = React.useCallback(
@@ -451,19 +544,26 @@ export default function HomeScreen() {
 
   // Render individual naat card - memoized to prevent unnecessary re-renders
   const renderNaatCard = React.useCallback(
-    ({ item }: { item: Naat }) => (
-      <NaatCard
-        id={item.$id}
-        title={item.title}
-        thumbnail={item.thumbnailUrl}
-        duration={item.duration}
-        uploadDate={item.uploadDate}
-        channelName={item.channelName}
-        views={item.views}
-        onPress={() => handleNaatPress(item.$id)}
-      />
-    ),
-    [handleNaatPress],
+    ({ item }: { item: Naat }) => {
+      const ds = downloadStates[item.$id];
+      return (
+        <NaatCard
+          id={item.$id}
+          title={item.title}
+          thumbnail={item.thumbnailUrl}
+          duration={item.duration}
+          uploadDate={item.uploadDate}
+          channelName={item.channelName}
+          views={item.views}
+          onPress={() => handleNaatPress(item.$id)}
+          onDownload={() => handleDownload(item)}
+          isDownloaded={ds?.isDownloaded}
+          isDownloading={ds?.isDownloading}
+          downloadProgress={ds?.progress}
+        />
+      );
+    },
+    [handleNaatPress, handleDownload, downloadStates],
   );
 
   // Render footer loading indicator
