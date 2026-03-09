@@ -624,10 +624,10 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   <Ionicons
                     name="refresh"
                     size={36}
-                    color="#e5e5e5"
+                    color="rgba(255, 255, 255, 0.5)"
                     style={{ transform: [{ scaleX: -1 }] }}
                   />
-                  <Text className="absolute text-[10px] font-bold text-white">
+                  <Text className="absolute text-[10px] font-semibold" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                     15
                   </Text>
                 </TouchableOpacity>
@@ -635,21 +635,24 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 {/* Play/Pause Button */}
                 <TouchableOpacity
                   onPress={togglePlayPause}
-                  className="items-center justify-center w-20 h-20 bg-white rounded-full"
+                  className="items-center justify-center w-20 h-20 rounded-full"
                   accessibilityRole="button"
                   accessibilityLabel={isPlaying ? "Pause" : "Play"}
                   style={{
-                    elevation: 4,
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.25,
-                    shadowRadius: 8,
+                    backgroundColor: colors.accent.primary,
+                    borderWidth: 2,
+                    borderColor: 'rgba(29, 185, 84, 0.3)',
+                    shadowColor: colors.accent.primary,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.4,
+                    shadowRadius: 12,
+                    elevation: 6,
                   }}
                 >
                   <Ionicons
                     name={isPlaying ? "pause" : "play"}
                     size={36}
-                    color={colors.background.primary}
+                    color="white"
                   />
                 </TouchableOpacity>
 
@@ -660,8 +663,8 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   accessibilityLabel="Seek forward 15 seconds"
                   accessibilityRole="button"
                 >
-                  <Ionicons name="refresh" size={36} color="#e5e5e5" />
-                  <Text className="absolute text-[10px] font-bold text-white">
+                  <Ionicons name="refresh" size={36} color="rgba(255, 255, 255, 0.5)" />
+                  <Text className="absolute text-[10px] font-semibold" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                     15
                   </Text>
                 </TouchableOpacity>
