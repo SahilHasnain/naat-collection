@@ -14,7 +14,7 @@ export const colors = {
 
   // Text colors
   text: {
-    primary: "#ffffff", // Primary text (white)
+    primary: "rgba(255, 255, 255, 0.92)", // Primary text (soft white)
     secondary: "#aaaaaa", // Secondary text (lighter gray)
     tertiary: "#717171", // Tertiary text (medium gray)
     disabled: "#525252", // Disabled text (neutral-600)
