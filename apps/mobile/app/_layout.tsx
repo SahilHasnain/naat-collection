@@ -31,11 +31,13 @@ import {
     useTabBarVisibility,
 } from "@/contexts/TabBarVisibilityContext.animated";
 import { VideoProvider } from "@/contexts/VideoContext";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { storageService } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
 import * as Sentry from "@sentry/react-native";
 import { Tabs, useRouter, useSegments } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { Text, View } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
@@ -76,6 +78,24 @@ function RootLayoutContent() {
 
   // Check if user is on homepage (index) - only enable filter on homepage
   const isOnHomepage = segments[0] === undefined;
+
+  // Check if user is on downloads tab
+  const isOnDownloadsTab = segments[0] === "downloads";
+
+  // Network status for offline handling
+  const { isConnected } = useNetworkStatus();
+  const hasNavigatedOffline = useRef(false);
+
+  // Auto-navigate to downloads when going offline
+  useEffect(() => {
+    if (!isConnected && !isOnDownloadsTab && !hasNavigatedOffline.current) {
+      hasNavigatedOffline.current = true;
+      router.push("/downloads");
+    }
+    if (isConnected) {
+      hasNavigatedOffline.current = false;
+    }
+  }, [isConnected, isOnDownloadsTab, router]);
 
   // Shared value for header (must be called unconditionally)
   const isScrolledDownValue = useSharedValue(false);
@@ -158,6 +178,32 @@ function RootLayoutContent() {
           onSearchSubmit={() => submitSearch(searchInput)}
           onSearchClose={deactivateSearch}
         />
+      )}
+
+      {/* Offline banner */}
+      {!isConnected && (
+        <View
+          style={{
+            backgroundColor: colors.background.tertiary,
+            paddingVertical: 6,
+            paddingHorizontal: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+          }}
+          accessibilityRole="alert"
+          accessibilityLabel="You are offline"
+        >
+          <Ionicons
+            name="cloud-offline-outline"
+            size={14}
+            color={colors.text.secondary}
+          />
+          <Text style={{ color: colors.text.secondary, fontSize: 12 }}>
+            You're offline
+          </Text>
+        </View>
       )}
 
       <Tabs

@@ -7,6 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
 
 const AUDIO_DIRECTORY = `${FileSystem.documentDirectory}audio/`;
+const THUMBNAILS_DIRECTORY = `${FileSystem.documentDirectory}thumbnails/`;
 const DOWNLOAD_METADATA_KEY = "@audio_downloads";
 
 export interface DownloadMetadata {
@@ -14,6 +15,7 @@ export interface DownloadMetadata {
   youtubeId: string;
   title: string;
   localUri: string;
+  thumbnailLocalUri?: string;
   downloadedAt: number;
   fileSize: number;
   duration: number; // in seconds
@@ -29,14 +31,46 @@ export interface DownloadProgress {
 
 class AudioDownloadService {
   /**
-   * Initialize audio directory
+   * Initialize audio and thumbnails directories
    */
   async initialize(): Promise<void> {
-    const dirInfo = await FileSystem.getInfoAsync(AUDIO_DIRECTORY);
-    if (!dirInfo.exists) {
+    const audioDirInfo = await FileSystem.getInfoAsync(AUDIO_DIRECTORY);
+    if (!audioDirInfo.exists) {
       await FileSystem.makeDirectoryAsync(AUDIO_DIRECTORY, {
         intermediates: true,
       });
+    }
+    const thumbDirInfo = await FileSystem.getInfoAsync(THUMBNAILS_DIRECTORY);
+    if (!thumbDirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(THUMBNAILS_DIRECTORY, {
+        intermediates: true,
+      });
+    }
+  }
+
+  /**
+   * Get local thumbnail path for an audio
+   */
+  getThumbnailPath(audioId: string): string {
+    return `${THUMBNAILS_DIRECTORY}${audioId}.jpg`;
+  }
+
+  /**
+   * Download thumbnail image for offline use
+   */
+  async downloadThumbnail(youtubeId: string, audioId: string): Promise<string | null> {
+    try {
+      const thumbnailUrl = `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`;
+      const localPath = this.getThumbnailPath(audioId);
+
+      const result = await FileSystem.downloadAsync(thumbnailUrl, localPath);
+      if (result && result.status === 200) {
+        return result.uri;
+      }
+      return null;
+    } catch (error) {
+      console.warn("Failed to download thumbnail:", error);
+      return null;
     }
   }
 
@@ -163,11 +197,16 @@ class AudioDownloadService {
 
     // Save metadata
     const fileInfo = await FileSystem.getInfoAsync(result.uri);
+
+    // Download thumbnail alongside audio
+    const thumbnailLocalUri = await this.downloadThumbnail(youtubeId, audioId);
+
     const metadata: DownloadMetadata = {
       audioId,
       youtubeId,
       title,
       localUri: result.uri,
+      thumbnailLocalUri: thumbnailLocalUri ?? undefined,
       downloadedAt: Date.now(),
       fileSize: fileInfo.exists && "size" in fileInfo ? fileInfo.size : 0,
       duration,
@@ -181,15 +220,22 @@ class AudioDownloadService {
   }
 
   /**
-   * Delete downloaded audio
+   * Delete downloaded audio and its thumbnail
    */
   async deleteAudio(audioId: string): Promise<void> {
     const localPath = this.getLocalPath(audioId);
+    const thumbnailPath = this.getThumbnailPath(audioId);
 
-    // Delete file
+    // Delete audio file
     const fileInfo = await FileSystem.getInfoAsync(localPath);
     if (fileInfo.exists) {
       await FileSystem.deleteAsync(localPath);
+    }
+
+    // Delete thumbnail file
+    const thumbInfo = await FileSystem.getInfoAsync(thumbnailPath);
+    if (thumbInfo.exists) {
+      await FileSystem.deleteAsync(thumbnailPath);
     }
 
     // Remove metadata
