@@ -66,7 +66,10 @@ export default function HomeScreen() {
 
   // Download state: track download status per naat
   const [downloadStates, setDownloadStates] = useState<
-    Record<string, { isDownloaded: boolean; isDownloading: boolean; progress: number }>
+    Record<
+      string,
+      { isDownloaded: boolean; isDownloading: boolean; progress: number }
+    >
   >({});
 
   // Audio player context
@@ -189,13 +192,20 @@ export default function HomeScreen() {
   // Check download status for visible naats
   React.useEffect(() => {
     const checkDownloads = async () => {
-      const updates: Record<string, { isDownloaded: boolean; isDownloading: boolean; progress: number }> = {};
+      const updates: Record<
+        string,
+        { isDownloaded: boolean; isDownloading: boolean; progress: number }
+      > = {};
       for (const naat of displayData) {
         const audioId = getPreferredAudioId(naat);
         if (audioId) {
           const downloaded = await audioDownloadService.isDownloaded(audioId);
           if (downloaded) {
-            updates[naat.$id] = { isDownloaded: true, isDownloading: false, progress: 1 };
+            updates[naat.$id] = {
+              isDownloaded: true,
+              isDownloading: false,
+              progress: 1,
+            };
           }
         }
       }
@@ -205,74 +215,81 @@ export default function HomeScreen() {
   }, [displayData]);
 
   // Handle download from NaatCard
-  const handleDownload = React.useCallback(
-    async (naat: Naat) => {
-      const audioId = getPreferredAudioId(naat);
-      if (!audioId) {
-        showErrorToast("Audio not available for download");
-        return;
-      }
+  const handleDownload = React.useCallback(async (naat: Naat) => {
+    const audioId = getPreferredAudioId(naat);
+    if (!audioId) {
+      showErrorToast("Audio not available for download");
+      return;
+    }
 
-      const alreadyDownloaded = await audioDownloadService.isDownloaded(audioId);
-      if (alreadyDownloaded) {
-        showSuccessToast("Already downloaded");
-        setDownloadStates((prev) => ({
-          ...prev,
-          [naat.$id]: { isDownloaded: true, isDownloading: false, progress: 1 },
-        }));
-        return;
-      }
-
-      // Mark as downloading
+    const alreadyDownloaded = await audioDownloadService.isDownloaded(audioId);
+    if (alreadyDownloaded) {
+      showSuccessToast("Already downloaded");
       setDownloadStates((prev) => ({
         ...prev,
-        [naat.$id]: { isDownloaded: false, isDownloading: true, progress: 0 },
+        [naat.$id]: { isDownloaded: true, isDownloading: false, progress: 1 },
       }));
+      return;
+    }
 
-      try {
-        // Get audio URL
-        const response = await appwriteService.getAudioUrl(audioId);
-        if (!response.success || !response.audioUrl) {
-          showErrorToast("Audio not available for download");
+    // Mark as downloading
+    setDownloadStates((prev) => ({
+      ...prev,
+      [naat.$id]: { isDownloaded: false, isDownloading: true, progress: 0 },
+    }));
+
+    try {
+      // Get audio URL
+      const response = await appwriteService.getAudioUrl(audioId);
+      if (!response.success || !response.audioUrl) {
+        showErrorToast("Audio not available for download");
+        setDownloadStates((prev) => ({
+          ...prev,
+          [naat.$id]: {
+            isDownloaded: false,
+            isDownloading: false,
+            progress: 0,
+          },
+        }));
+        return;
+      }
+
+      await audioDownloadService.downloadAudio(
+        audioId,
+        response.audioUrl,
+        naat.youtubeId || "",
+        naat.title,
+        naat.duration,
+        naat.channelName || "Unknown Channel",
+        naat.views || 0,
+        (progress) => {
           setDownloadStates((prev) => ({
             ...prev,
-            [naat.$id]: { isDownloaded: false, isDownloading: false, progress: 0 },
+            [naat.$id]: {
+              isDownloaded: false,
+              isDownloading: true,
+              progress: progress.progress,
+            },
           }));
-          return;
-        }
+        },
+      );
 
-        await audioDownloadService.downloadAudio(
-          audioId,
-          response.audioUrl,
-          naat.youtubeId || "",
-          naat.title,
-          naat.duration,
-          naat.channelName || "Unknown Channel",
-          naat.views || 0,
-          (progress) => {
-            setDownloadStates((prev) => ({
-              ...prev,
-              [naat.$id]: { isDownloaded: false, isDownloading: true, progress: progress.progress },
-            }));
-          },
-        );
-
-        setDownloadStates((prev) => ({
-          ...prev,
-          [naat.$id]: { isDownloaded: true, isDownloading: false, progress: 1 },
-        }));
-        showSuccessToast("Downloaded successfully");
-      } catch (error) {
-        console.error("Download failed:", error);
-        showErrorToast(error instanceof Error ? error.message : "Download failed");
-        setDownloadStates((prev) => ({
-          ...prev,
-          [naat.$id]: { isDownloaded: false, isDownloading: false, progress: 0 },
-        }));
-      }
-    },
-    [],
-  );
+      setDownloadStates((prev) => ({
+        ...prev,
+        [naat.$id]: { isDownloaded: true, isDownloading: false, progress: 1 },
+      }));
+      showSuccessToast("Downloaded successfully");
+    } catch (error) {
+      console.error("Download failed:", error);
+      showErrorToast(
+        error instanceof Error ? error.message : "Download failed",
+      );
+      setDownloadStates((prev) => ({
+        ...prev,
+        [naat.$id]: { isDownloaded: false, isDownloading: false, progress: 0 },
+      }));
+    }
+  }, []);
 
   // Load audio directly without opening video modal
   const loadAudioDirectly = React.useCallback(

@@ -5,7 +5,13 @@ import { formatRelativeTime } from "@/utils/dateGrouping";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
-import { ActivityIndicator, Pressable, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const formatDuration = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
@@ -119,7 +125,11 @@ const NaatCard: React.FC<NaatCardProps> = ({
             className="w-9 h-9 rounded-full items-center justify-center flex-shrink-0"
             style={{ backgroundColor: colors.background.tertiary }}
           >
-            <Ionicons name="musical-note" size={20} color={colors.text.secondary} />
+            <Ionicons
+              name="musical-note"
+              size={20}
+              color={colors.text.secondary}
+            />
           </View>
 
           {/* Title and Metadata */}
