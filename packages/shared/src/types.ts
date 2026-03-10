@@ -12,6 +12,8 @@ export interface Naat {
   views: number; // view count for popularity sorting
   audioId?: string; // Appwrite Storage file ID for audio
   cutAudio?: string; // Appwrite Storage file ID for cut/processed audio (prioritized over audioId)
+  cutSegments?: string; // JSON string of cut segments [{start, end}] for AI training data
+  cutStatus?: string; // "processing" | "done" | "failed" | null
   createdAt: string;
   updatedAt: string;
 }

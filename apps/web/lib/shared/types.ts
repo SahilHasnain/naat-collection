@@ -16,6 +16,8 @@ export interface Naat {
   uploadDate: string;
   audioId?: string;
   cutAudio?: string;
+  cutSegments?: string; // JSON string of cut segments [{start, end}] for AI training data
+  cutStatus?: string; // "processing" | "done" | "failed" | null
   exclude?: boolean;
   $createdAt: string;
   $updatedAt: string;
