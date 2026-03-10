@@ -45,4 +45,6 @@ app-example
 /android
 
 temp-audio
+training-data/naat
+training-data/explanation
 ref/secret.md

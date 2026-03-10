@@ -36,7 +36,7 @@ const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
-dotenv.config({ path: join(__dirname, "../../.env") });
+dotenv.config({ path: join(__dirname, "../../apps/mobile/.env") });
 
 // ── Config ────────────────────────────────────────────────────
 const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT;

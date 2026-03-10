@@ -6,11 +6,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
 import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Pressable,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const formatDuration = (seconds: number): string => {
@@ -36,6 +36,7 @@ const NaatCard: React.FC<NaatCardProps> = ({
   isDownloaded,
   isDownloading,
   downloadProgress,
+  isCut,
 }) => {
   const [imageError, setImageError] = React.useState(false);
   const [imageLoading, setImageLoading] = React.useState(true);
@@ -118,6 +119,16 @@ const NaatCard: React.FC<NaatCardProps> = ({
             {formatDuration(duration)}
           </Text>
         </View>
+
+        {/* Cut/trimmed indicator */}
+        {isCut && (
+          <View
+            className="absolute top-2.5 right-2.5 rounded-full w-7 h-7 items-center justify-center"
+            style={{ backgroundColor: colors.accent.primary }}
+          >
+            <Ionicons name="cut-outline" size={14} color="#fff" />
+          </View>
+        )}
       </View>
 
       {/* Content Section - With horizontal padding */}
@@ -205,7 +216,8 @@ const arePropsEqual = (
     prevProps.views === nextProps.views &&
     prevProps.isDownloaded === nextProps.isDownloaded &&
     prevProps.isDownloading === nextProps.isDownloading &&
-    prevProps.downloadProgress === nextProps.downloadProgress
+    prevProps.downloadProgress === nextProps.downloadProgress &&
+    prevProps.isCut === nextProps.isCut
     // Don't compare onPress/onDownload - they're functions and will always be different
   );
 };

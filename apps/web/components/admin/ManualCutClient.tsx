@@ -53,13 +53,13 @@ export default function ManualCutClient() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterChannel, setFilterChannel] = useState<string>("all");
   const [filterRadio, setFilterRadio] = useState<"all" | "radio" | "non-radio">(
-    "all",
+    "radio",
   );
   const [filterDuration, setFilterDuration] = useState<
     "all" | "<=10min" | ">15min" | ">20min"
-  >("all");
+  >("<=10min");
   const [sortBy, setSortBy] = useState<"latest" | "popular" | "oldest">(
-    "latest",
+    "popular",
   );
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
@@ -458,7 +458,7 @@ export default function ManualCutClient() {
     setError(null);
 
     try {
-      const response = await fetch("/api/admin/detect-segments", {
+      const response = await fetch("/api/admin/ai-detect-segments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ naatId: selectedNaat.$id }),
@@ -876,240 +876,7 @@ export default function ManualCutClient() {
               </div>
             </div>
 
-            {/* AI Segment Detection */}
-            <div className="p-6 mb-6 bg-gray-800 rounded-lg">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-semibold">
-                    AI Segment Detection
-                  </h2>
-                  <p className="mt-1 text-sm text-gray-400">
-                    Automatically detect explanation vs naat segments using
-                    audio analysis
-                  </p>
-                </div>
-                <button
-                  onClick={handleDetectSegments}
-                  disabled={detecting}
-                  className="flex items-center gap-2 px-6 py-3 font-semibold transition-colors bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                >
-                  {detecting ? (
-                    <>
-                      <svg
-                        className="w-5 h-5 animate-spin"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                        />
-                      </svg>
-                      Analyzing...
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                        />
-                      </svg>
-                      AI Detect
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {detecting && (
-                <div className="p-4 border border-purple-700 rounded-lg bg-purple-900/30">
-                  <div className="flex items-center gap-3">
-                    <svg
-                      className="w-6 h-6 text-purple-400 animate-spin"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
-                    <div>
-                      <p className="font-medium text-purple-300">
-                        Analyzing audio...
-                      </p>
-                      <p className="text-sm text-gray-400">
-                        Extracting spectral features to detect speech vs singing
-                        patterns
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {detectionResult && (
-                <div className="space-y-4">
-                  {/* Summary */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="p-3 text-center bg-gray-700 rounded-lg">
-                      <p className="text-xs text-gray-400">Total Duration</p>
-                      <p className="text-lg font-bold">
-                        {Math.floor(detectionResult.duration / 60)}:
-                        {String(
-                          Math.floor(detectionResult.duration % 60),
-                        ).padStart(2, "0")}
-                      </p>
-                    </div>
-                    <div className="p-3 text-center border border-red-700 rounded-lg bg-red-900/30">
-                      <p className="text-xs text-gray-400">Speech (to cut)</p>
-                      <p className="text-lg font-bold text-red-400">
-                        {Math.floor(detectionResult.totalSpeechDuration / 60)}:
-                        {String(
-                          Math.floor(detectionResult.totalSpeechDuration % 60),
-                        ).padStart(2, "0")}
-                      </p>
-                    </div>
-                    <div className="p-3 text-center border border-green-700 rounded-lg bg-green-900/30">
-                      <p className="text-xs text-gray-400">Naat (to keep)</p>
-                      <p className="text-lg font-bold text-green-400">
-                        {Math.floor(detectionResult.totalSingingDuration / 60)}:
-                        {String(
-                          Math.floor(detectionResult.totalSingingDuration % 60),
-                        ).padStart(2, "0")}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Visual timeline */}
-                  <div>
-                    <p className="mb-2 text-sm font-medium">Timeline</p>
-                    <div className="relative h-10 overflow-hidden bg-gray-700 rounded-lg">
-                      {detectionResult.allSegments.map((seg, i) => {
-                        const left =
-                          (seg.start / detectionResult.duration) * 100;
-                        const width =
-                          ((seg.end - seg.start) / detectionResult.duration) *
-                          100;
-                        return (
-                          <div
-                            key={i}
-                            className={`absolute top-0 h-full ${
-                              seg.type === "speech"
-                                ? "bg-red-500/60 border-red-400"
-                                : "bg-green-500/60 border-green-400"
-                            } border-x`}
-                            style={{
-                              left: `${left}%`,
-                              width: `${Math.max(width, 0.5)}%`,
-                            }}
-                            title={`${seg.type}: ${Math.floor(seg.start / 60)}:${String(Math.floor(seg.start % 60)).padStart(2, "0")} - ${Math.floor(seg.end / 60)}:${String(Math.floor(seg.end % 60)).padStart(2, "0")} (${Math.round(seg.confidence * 100)}%)`}
-                          />
-                        );
-                      })}
-                    </div>
-                    <div className="flex justify-between mt-1 text-xs text-gray-500">
-                      <span>0:00</span>
-                      <span className="flex items-center gap-4">
-                        <span className="flex items-center gap-1">
-                          <span className="inline-block w-3 h-3 rounded bg-red-500/60" />{" "}
-                          Speech
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <span className="inline-block w-3 h-3 rounded bg-green-500/60" />{" "}
-                          Naat
-                        </span>
-                      </span>
-                      <span>
-                        {Math.floor(detectionResult.duration / 60)}:
-                        {String(
-                          Math.floor(detectionResult.duration % 60),
-                        ).padStart(2, "0")}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Detected speech segments */}
-                  {detectionResult.speechSegments.length > 0 ? (
-                    <div>
-                      <p className="mb-2 text-sm font-medium">
-                        Detected Explanation Segments (
-                        {detectionResult.speechSegments.length})
-                      </p>
-                      <div className="space-y-2">
-                        {detectionResult.speechSegments.map((seg, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center gap-3 px-4 py-2 border border-red-800 rounded-lg bg-red-900/20"
-                          >
-                            <span className="font-mono text-sm text-red-400">
-                              {Math.floor(seg.start / 60)}:
-                              {String(Math.floor(seg.start % 60)).padStart(
-                                2,
-                                "0",
-                              )}
-                              {" → "}
-                              {Math.floor(seg.end / 60)}:
-                              {String(Math.floor(seg.end % 60)).padStart(
-                                2,
-                                "0",
-                              )}
-                            </span>
-                            <span className="text-sm text-gray-400">
-                              ({seg.duration}s)
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {Math.round(seg.confidence * 100)}% confident
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      <button
-                        onClick={applyDetectedSegments}
-                        className="w-full px-6 py-3 mt-4 font-semibold transition-colors bg-purple-600 rounded-lg hover:bg-purple-700"
-                      >
-                        Apply Detected Segments as Cut Points
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="p-4 text-center border border-green-800 rounded-lg bg-green-900/20">
-                      <p className="font-medium text-green-400">
-                        No explanation segments detected
-                      </p>
-                      <p className="mt-1 text-sm text-gray-400">
-                        This naat appears to have no spoken explanations —
-                        consider using &quot;Skip - No Explanation&quot;
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
+            {/* Cut Segments (Manual) */}
             <div className="p-6 mb-6 bg-gray-800 rounded-lg">
               <h2 className="mb-4 text-xl font-semibold">
                 Cut Segments (Parts to Remove)
@@ -1265,6 +1032,182 @@ export default function ManualCutClient() {
                   {skipping ? "Skipping..." : "Skip - No Explanation"}
                 </button>
               </div>
+            </div>
+
+            {/* AI Segment Detection */}
+            <div className="p-6 mb-6 bg-gray-800 rounded-lg">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-semibold">
+                    AI Segment Detection
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-400">
+                    Automatically detect explanation vs naat segments using
+                    audio analysis
+                  </p>
+                </div>
+                <button
+                  onClick={handleDetectSegments}
+                  disabled={detecting}
+                  className="flex items-center gap-2 px-6 py-3 font-semibold transition-colors bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50"
+                >
+                  {detecting ? (
+                    <>
+                      <svg
+                        className="w-5 h-5 animate-spin"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>🤗 AI Detect</>
+                  )}
+                </button>
+              </div>
+
+              {detecting && (
+                <div className="p-4 border border-purple-700 rounded-lg bg-purple-900/30">
+                  <div className="flex items-center gap-3">
+                    <svg
+                      className="w-6 h-6 text-purple-400 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    <div>
+                      <p className="font-medium text-purple-300">
+                        Analyzing audio...
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        Running Wav2Vec2 model to detect speech vs singing
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {detectionResult && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="p-3 text-center bg-gray-700 rounded-lg">
+                      <p className="text-xs text-gray-400">Total Duration</p>
+                      <p className="text-lg font-bold">
+                        {Math.floor(detectionResult.duration / 60)}:
+                        {String(Math.floor(detectionResult.duration % 60)).padStart(2, "0")}
+                      </p>
+                    </div>
+                    <div className="p-3 text-center border border-red-700 rounded-lg bg-red-900/30">
+                      <p className="text-xs text-gray-400">Speech (to cut)</p>
+                      <p className="text-lg font-bold text-red-400">
+                        {Math.floor(detectionResult.totalSpeechDuration / 60)}:
+                        {String(Math.floor(detectionResult.totalSpeechDuration % 60)).padStart(2, "0")}
+                      </p>
+                    </div>
+                    <div className="p-3 text-center border border-green-700 rounded-lg bg-green-900/30">
+                      <p className="text-xs text-gray-400">Naat (to keep)</p>
+                      <p className="text-lg font-bold text-green-400">
+                        {Math.floor(detectionResult.totalSingingDuration / 60)}:
+                        {String(Math.floor(detectionResult.totalSingingDuration % 60)).padStart(2, "0")}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-sm font-medium">Timeline</p>
+                    <div className="relative h-10 overflow-hidden bg-gray-700 rounded-lg">
+                      {detectionResult.allSegments.map((seg, i) => {
+                        const left = (seg.start / detectionResult.duration) * 100;
+                        const width = ((seg.end - seg.start) / detectionResult.duration) * 100;
+                        return (
+                          <div
+                            key={i}
+                            className={`absolute top-0 h-full ${seg.type === "speech" ? "bg-red-500/60 border-red-400" : "bg-green-500/60 border-green-400"} border-x`}
+                            style={{ left: `${left}%`, width: `${Math.max(width, 0.5)}%` }}
+                            title={`${seg.type}: ${Math.floor(seg.start / 60)}:${String(Math.floor(seg.start % 60)).padStart(2, "0")} - ${Math.floor(seg.end / 60)}:${String(Math.floor(seg.end % 60)).padStart(2, "0")} (${Math.round(seg.confidence * 100)}%)`}
+                          />
+                        );
+                      })}
+                    </div>
+                    <div className="flex justify-between mt-1 text-xs text-gray-500">
+                      <span>0:00</span>
+                      <span className="flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <span className="inline-block w-3 h-3 rounded bg-red-500/60" /> Speech
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="inline-block w-3 h-3 rounded bg-green-500/60" /> Naat
+                        </span>
+                      </span>
+                      <span>
+                        {Math.floor(detectionResult.duration / 60)}:
+                        {String(Math.floor(detectionResult.duration % 60)).padStart(2, "0")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {detectionResult.speechSegments.length > 0 ? (
+                    <div>
+                      <p className="mb-2 text-sm font-medium">
+                        Detected Explanation Segments ({detectionResult.speechSegments.length})
+                      </p>
+                      <div className="space-y-2">
+                        {detectionResult.speechSegments.map((seg, i) => (
+                          <div key={i} className="flex items-center gap-3 px-4 py-2 border border-red-800 rounded-lg bg-red-900/20">
+                            <span className="font-mono text-sm text-red-400">
+                              {Math.floor(seg.start / 60)}:{String(Math.floor(seg.start % 60)).padStart(2, "0")}
+                              {" → "}
+                              {Math.floor(seg.end / 60)}:{String(Math.floor(seg.end % 60)).padStart(2, "0")}
+                            </span>
+                            <span className="text-sm text-gray-400">({seg.duration}s)</span>
+                            <span className="text-xs text-gray-500">{Math.round(seg.confidence * 100)}% confident</span>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={applyDetectedSegments}
+                        className="w-full px-6 py-3 mt-4 font-semibold transition-colors bg-purple-600 rounded-lg hover:bg-purple-700"
+                      >
+                        Apply Detected Segments as Cut Points
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center border border-green-800 rounded-lg bg-green-900/20">
+                      <p className="font-medium text-green-400">No explanation segments detected</p>
+                      <p className="mt-1 text-sm text-gray-400">
+                        This naat appears to have no spoken explanations — consider using &quot;Skip - No Explanation&quot;
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
           </div>
