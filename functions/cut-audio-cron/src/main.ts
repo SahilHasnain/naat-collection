@@ -159,11 +159,18 @@ async function processNaat(
     }
 
     if (!Array.isArray(cutSegments) || cutSegments.length === 0) {
+      // No cuts — download to get duration, then link original
+      log(`  Downloading audio for ${naat.title || naatId} (no cuts)...`);
+      const audioBuffer = await storage.getFileDownload(AUDIO_BUCKET, naat.audioId);
+      writeFileSync(inputPath, Buffer.from(audioBuffer));
+      const originalDuration = await getAudioDuration(inputPath);
+
       await databases.updateDocument(databaseId, collectionId, naatId, {
         cutAudio: naat.audioId,
+        cutDuration: Math.floor(originalDuration),
         cutStatus: "done",
       });
-      log(`  ${naatId}: no cuts needed, linked original audio`);
+      log(`  ${naatId}: no cuts needed, linked original audio (${Math.floor(originalDuration)}s)`);
       return true;
     }
 
@@ -185,7 +192,10 @@ async function processNaat(
     log(`  Cutting audio (${keepSegments.length} segments to keep)...`);
     await cutAudio(inputPath, keepSegments, outputPath);
 
-    log(`  Uploading cut audio...`);
+    // Get cut audio duration
+    const cutDuration = Math.floor(await getAudioDuration(outputPath));
+
+    log(`  Uploading cut audio (${cutDuration}s)...`);
     const fileId = ID.unique();
     const file = await storage.createFile(
       AUDIO_BUCKET,
@@ -196,6 +206,7 @@ async function processNaat(
 
     await databases.updateDocument(databaseId, collectionId, naatId, {
       cutAudio: file.$id,
+      cutDuration,
       cutStatus: "done",
     });
 
