@@ -1,129 +1,68 @@
 import EmptyState from "@/components/EmptyState";
-import { FilterModal } from "@/components/FilterModal";
 import NaatCard from "@/components/NaatCard";
 import { SearchFilterBar } from "@/components/SearchFilterBar";
 import { SearchSuggestions } from "@/components/SearchSuggestions";
 import UnifiedFilterBar from "@/components/UnifiedFilterBar";
 import { colors } from "@/constants/theme";
-import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
-import { useFilterModal } from "@/contexts/FilterModalContext";
 import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated";
 import { useSearch as useSearchContext } from "@/contexts/SearchContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
-import { useChannels } from "@/hooks/useChannels";
-import { useNaats } from "@/hooks/useNaats";
-import { useSearch } from "@/hooks/useSearch";
+import { useDownloadManager } from "@/hooks/useDownloadManager";
+import { useHomeFilters } from "@/hooks/useHomeFilters";
+import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { useSearchSuggestions } from "@/hooks/useSearchSuggestions";
-import { appwriteService } from "@/services/appwrite";
-import { audioDownloadService } from "@/services/audioDownload";
-import { storageService } from "@/services/storage";
-import type { DurationOption, Naat, SortOption } from "@/types";
-import { showErrorToast, showSuccessToast } from "@/utils/toast";
-import {
-    filterNaatsByDuration,
-    getPreferredAudioId,
-    getPreferredDuration,
-    hasAudio
-} from "@naat-collection/shared";
+import type { Naat } from "@/types";
+import { getPreferredDuration } from "@naat-collection/shared";
 import { useFocusEffect } from "@react-navigation/native";
-import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    BackHandler,
-    FlatList,
-    RefreshControl,
-    Text,
-    View,
+  ActivityIndicator,
+  BackHandler,
+  FlatList,
+  RefreshControl,
+  Text,
+  View,
 } from "react-native";
 
 export default function HomeScreen() {
-  const router = useRouter();
-
-  // Filter state
-  const [selectedFilter, setSelectedFilter] = useState<SortOption>("forYou");
-  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
-    null,
-  );
-  const [selectedDuration, setSelectedDuration] =
-    useState<DurationOption>("all");
-  const { showFilterModal, setShowFilterModal } = useFilterModal();
-  const {
-    isSearchActive,
-    deactivateSearch,
-    searchInput,
-    setSearchInput,
-    activeSearchQuery,
-    setActiveSearchQuery,
-    submitSearch,
-  } = useSearchContext();
-
-  // Search-specific filters (independent from home filters)
-  const [searchChannelId, setSearchChannelId] = useState<string | null>(null);
-  const [searchDuration, setSearchDuration] = useState<DurationOption>("all");
-
   const flatListRef = useRef<FlatList>(null);
 
-  // Download state: track download status per naat
-  const [downloadStates, setDownloadStates] = useState<
-    Record<
-      string,
-      { isDownloaded: boolean; isDownloading: boolean; progress: number }
-    >
-  >({});
-
-  // Audio player context
-  const { loadAndPlay, setAutoplayCallback } = useAudioPlayer();
-
-  // Tab bar and header visibility
+  // Contexts
+  const {
+    isSearchActive, deactivateSearch,
+    searchInput, setSearchInput,
+    activeSearchQuery, setActiveSearchQuery,
+    submitSearch,
+  } = useSearchContext();
   const { handleScroll: handleTabBarScroll } = useTabBarVisibility();
-  const { handleScroll: handleHeaderScroll, showHeader } =
-    useHeaderVisibility();
+  const { handleScroll: handleHeaderScroll, showHeader } = useHeaderVisibility();
 
-  // Data fetching hooks
-  const {
-    channels,
-    loading: channelsLoading,
-    refresh: refreshChannels,
-  } = useChannels();
-  const { naats, loading, error, hasMore, loadMore, refresh } = useNaats(
-    selectedChannelId,
-    selectedFilter,
-  );
-  const {
-    results: searchResults,
-    loading: searchLoading,
-    setQuery,
-  } = useSearch(searchChannelId);
+  // Custom hooks
+  const filters = useHomeFilters();
+  const { setQuery, resetSearchFilters, loadMore, isShowingSearchResults } = filters;
+  const { downloadStates, handleDownload } = useDownloadManager(filters.displayData);
+  const { handleNaatPress } = useNaatPlayback(filters.displayData);
 
   // Search suggestions
-  const { suggestions, updateSuggestions, addToHistory } = useSearchSuggestions(
-    {
-      naats,
-      maxSuggestions: 10,
-    },
-  );
+  const { suggestions, updateSuggestions, addToHistory } = useSearchSuggestions({
+    naats: filters.naats,
+    maxSuggestions: 10,
+  });
 
-  // Derived search state
-  const isShowingSearchResults = isSearchActive && activeSearchQuery.length > 0;
   const showSuggestionsOverlay = isSearchActive && !activeSearchQuery;
 
-  // Update suggestions as user types
+  // --- Search orchestration effects ---
+
   useEffect(() => {
-    if (isSearchActive) {
-      updateSuggestions(searchInput);
-    }
+    if (isSearchActive) updateSuggestions(searchInput);
   }, [searchInput, isSearchActive, updateSuggestions]);
 
-  // When input changes after submission, go back to suggestions mode
   useEffect(() => {
     if (activeSearchQuery && searchInput !== activeSearchQuery) {
       setActiveSearchQuery("");
     }
   }, [searchInput, activeSearchQuery, setActiveSearchQuery]);
 
-  // Perform actual search when activeSearchQuery changes
   useEffect(() => {
     if (activeSearchQuery) {
       setQuery(activeSearchQuery);
@@ -131,438 +70,59 @@ export default function HomeScreen() {
     } else {
       setQuery("");
     }
-  }, [activeSearchQuery, setQuery, addToHistory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSearchQuery]);
 
-  // Reset search-specific state when search deactivates
   useEffect(() => {
     if (!isSearchActive) {
-      setSearchChannelId(null);
-      setSearchDuration("all");
+      resetSearchFilters();
       setQuery("");
     }
-  }, [isSearchActive, setQuery]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSearchActive]);
 
-  // Keep header visible during search
   useEffect(() => {
-    if (isSearchActive) {
-      showHeader();
-    }
+    if (isSearchActive) showHeader();
   }, [isSearchActive, showHeader]);
 
-  // Scroll to top when switching between feed and search results
   useEffect(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, [isShowingSearchResults]);
 
-  // Force header to show when this screen is focused
-  useFocusEffect(
-    useCallback(() => {
-      // Show header and reset scroll tracking state
-      showHeader();
-    }, [showHeader]),
-  );
+  useFocusEffect(useCallback(() => { showHeader(); }, [showHeader]));
 
-  // Load initial data on mount and when filter changes
   useEffect(() => {
     loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFilter, selectedChannelId]);
+  }, [filters.selectedFilter, filters.selectedChannelId]);
 
-  // Determine which data to display
-  const displayData: Naat[] = isShowingSearchResults
-    ? filterNaatsByDuration(searchResults, searchDuration)
-    : filterNaatsByDuration(naats, selectedDuration);
-  const isLoading = isShowingSearchResults ? searchLoading : loading;
-
-  // Handle Android back button when search is active
+  // Android back button
   useEffect(() => {
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      () => {
-        if (isSearchActive) {
-          deactivateSearch();
-          return true;
-        }
-        return false;
-      },
-    );
-
-    return () => backHandler.remove();
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (isSearchActive) { deactivateSearch(); return true; }
+      return false;
+    });
+    return () => sub.remove();
   }, [isSearchActive, deactivateSearch]);
 
-  // Check download status for visible naats
-  React.useEffect(() => {
-    const checkDownloads = async () => {
-      const updates: Record<
-        string,
-        { isDownloaded: boolean; isDownloading: boolean; progress: number }
-      > = {};
-      for (const naat of displayData) {
-        const audioId = getPreferredAudioId(naat);
-        if (audioId) {
-          const downloaded = await audioDownloadService.isDownloaded(audioId);
-          if (downloaded) {
-            updates[naat.$id] = {
-              isDownloaded: true,
-              isDownloading: false,
-              progress: 1,
-            };
-          }
-        }
-      }
-      setDownloadStates((prev) => ({ ...prev, ...updates }));
-    };
-    checkDownloads();
-  }, [displayData]);
+  // --- Handlers ---
 
-  // Handle download from NaatCard
-  const handleDownload = React.useCallback(async (naat: Naat) => {
-    const audioId = getPreferredAudioId(naat);
-    if (!audioId) {
-      showErrorToast("Audio not available for download");
-      return;
-    }
-
-    const alreadyDownloaded = await audioDownloadService.isDownloaded(audioId);
-    if (alreadyDownloaded) {
-      showSuccessToast("Already downloaded");
-      setDownloadStates((prev) => ({
-        ...prev,
-        [naat.$id]: { isDownloaded: true, isDownloading: false, progress: 1 },
-      }));
-      return;
-    }
-
-    // Mark as downloading
-    setDownloadStates((prev) => ({
-      ...prev,
-      [naat.$id]: { isDownloaded: false, isDownloading: true, progress: 0 },
-    }));
-
-    try {
-      // Get audio URL
-      const response = await appwriteService.getAudioUrl(audioId);
-      if (!response.success || !response.audioUrl) {
-        showErrorToast("Audio not available for download");
-        setDownloadStates((prev) => ({
-          ...prev,
-          [naat.$id]: {
-            isDownloaded: false,
-            isDownloading: false,
-            progress: 0,
-          },
-        }));
-        return;
-      }
-
-      await audioDownloadService.downloadAudio(
-        audioId,
-        response.audioUrl,
-        naat.youtubeId || "",
-        naat.title,
-        getPreferredDuration(naat),
-        naat.channelName || "Unknown Channel",
-        naat.views || 0,
-        (progress) => {
-          setDownloadStates((prev) => ({
-            ...prev,
-            [naat.$id]: {
-              isDownloaded: false,
-              isDownloading: true,
-              progress: progress.progress,
-            },
-          }));
-        },
-      );
-
-      setDownloadStates((prev) => ({
-        ...prev,
-        [naat.$id]: { isDownloaded: true, isDownloading: false, progress: 1 },
-      }));
-      showSuccessToast("Downloaded successfully");
-    } catch (error) {
-      console.error("Download failed:", error);
-      showErrorToast(
-        error instanceof Error ? error.message : "Download failed",
-      );
-      setDownloadStates((prev) => ({
-        ...prev,
-        [naat.$id]: { isDownloaded: false, isDownloading: false, progress: 0 },
-      }));
-    }
-  }, []);
-
-  // Load audio directly without opening video modal
-  const loadAudioDirectly = React.useCallback(
-    async (naat: Naat) => {
-      // Track watch history
-      await storageService.addToWatchHistory(naat.$id);
-
-      // Get preferred audio ID (cutAudio if available, otherwise audioId)
-      const audioId = getPreferredAudioId(naat);
-
-      // Fallback to video if no audio ID
-      if (!audioId) {
-        console.log("No audio ID available, asking user for fallback");
-
-        Alert.alert(
-          "Audio Not Available",
-          "Audio is not available for this content. Would you like to play the video instead?",
-          [
-            {
-              text: "Cancel",
-              style: "cancel",
-            },
-            {
-              text: "Play Video",
-              onPress: () => {
-                // Navigate to video mode without changing preference
-                router.push({
-                  pathname: "/video",
-                  params: {
-                    videoUrl: naat.videoUrl,
-                    title: naat.title,
-                    channelName: naat.channelName,
-                    thumbnailUrl: naat.thumbnailUrl,
-                    youtubeId: naat.youtubeId,
-                    audioId: audioId,
-                    isFallback: "true", // Mark as fallback so preference isn't changed
-                  },
-                });
-              },
-            },
-          ],
-        );
-        return;
-      }
-
-      try {
-        // Check if audio is downloaded first
-        let audioUrl: string;
-        let isLocalFile = false;
-
-        const downloaded = await audioDownloadService.isDownloaded(audioId);
-
-        if (downloaded) {
-          // Use local file
-          audioUrl = audioDownloadService.getLocalPath(audioId);
-          isLocalFile = true;
-        } else {
-          // Fetch from storage
-          const response = await appwriteService.getAudioUrl(audioId);
-
-          if (response.success && response.audioUrl) {
-            audioUrl = response.audioUrl;
-          } else {
-            // Audio not available - ask user before falling back to video
-            console.log("Audio not available, asking user for fallback");
-
-            Alert.alert(
-              "Audio Not Available",
-              "Audio is not available for this content. Would you like to play the video instead?",
-              [
-                {
-                  text: "Cancel",
-                  style: "cancel",
-                  onPress: () => {
-                    showErrorToast("Playback cancelled");
-                  },
-                },
-                {
-                  text: "Play Video",
-                  onPress: () => {
-                    // Navigate to video mode without changing preference
-                    router.push({
-                      pathname: "/video",
-                      params: {
-                        videoUrl: naat.videoUrl,
-                        title: naat.title,
-                        channelName: naat.channelName,
-                        thumbnailUrl: naat.thumbnailUrl,
-                        youtubeId: naat.youtubeId,
-                        audioId: audioId,
-                        isFallback: "true", // Mark as fallback so preference isn't changed
-                      },
-                    });
-                  },
-                },
-              ],
-            );
-            return;
-          }
-        }
-
-        // Load audio via AudioContext
-        const audioMetadata: AudioMetadata = {
-          audioUrl,
-          title: naat.title,
-          channelName: naat.channelName,
-          thumbnailUrl: naat.thumbnailUrl,
-          isLocalFile,
-          audioId: audioId,
-          youtubeId: naat.youtubeId,
-        };
-
-        await loadAndPlay(audioMetadata);
-      } catch (err) {
-        // Error loading audio - ask user before falling back to video
-        console.error("Failed to load audio:", err);
-
-        Alert.alert(
-          "Audio Loading Failed",
-          "Unable to load audio. Would you like to play the video instead?",
-          [
-            {
-              text: "Cancel",
-              style: "cancel",
-              onPress: () => {
-                showErrorToast("Playback cancelled");
-              },
-            },
-            {
-              text: "Play Video",
-              onPress: () => {
-                // Navigate to video mode without changing preference
-                router.push({
-                  pathname: "/video",
-                  params: {
-                    videoUrl: naat.videoUrl,
-                    title: naat.title,
-                    channelName: naat.channelName,
-                    thumbnailUrl: naat.thumbnailUrl,
-                    youtubeId: naat.youtubeId,
-                    audioId: audioId,
-                    isFallback: "true", // Mark as fallback so preference isn't changed
-                  },
-                });
-              },
-            },
-          ],
-        );
-      }
-    },
-    [loadAndPlay, router],
-  );
-
-  // Set up autoplay callback for audio
-  useEffect(() => {
-    const handleAutoplay = async () => {
-      // Get all available naats (not just displayed ones)
-      const availableNaats = displayData.filter((naat) => hasAudio(naat));
-
-      if (availableNaats.length === 0) {
-        console.log("[Autoplay] No naats available for autoplay");
-        return;
-      }
-
-      // Pick a random naat
-      const randomIndex = Math.floor(Math.random() * availableNaats.length);
-      const randomNaat = availableNaats[randomIndex];
-
-      console.log("[Autoplay] Playing random naat:", randomNaat.title);
-
-      // Load the random naat
-      await loadAudioDirectly(randomNaat);
-    };
-
-    // Register the callback
-    setAutoplayCallback(handleAutoplay);
-
-    // Cleanup
-    return () => {
-      setAutoplayCallback(null);
-    };
-  }, [displayData, loadAudioDirectly, setAutoplayCallback]);
-
-  // Store naats in a ref to avoid recreating callbacks
-  const naatsMapRef = React.useRef<Map<string, Naat>>(new Map());
-
-  // Update the map when displayData changes
-  React.useEffect(() => {
-    naatsMapRef.current.clear();
-    displayData.forEach((naat) => {
-      naatsMapRef.current.set(naat.$id, naat);
-    });
-  }, [displayData]);
-
-  // Handle naat selection - check preference and open accordingly
-  const handleNaatPress = React.useCallback(
-    async (naatId: string) => {
-      const naat = naatsMapRef.current.get(naatId);
-      if (!naat) return;
-
-      // Track watch history
-      await storageService.addToWatchHistory(naat.$id);
-
-      try {
-        // Check saved playback mode preference
-        const savedMode = await storageService.loadPlaybackMode();
-
-        // If user prefers video mode, navigate to video screen
-        if (savedMode === "video") {
-          router.push({
-            pathname: "/video",
-            params: {
-              videoUrl: naat.videoUrl,
-              title: naat.title,
-              channelName: naat.channelName,
-              thumbnailUrl: naat.thumbnailUrl,
-              youtubeId: naat.youtubeId,
-              audioId: naat.audioId,
-              isFallback: "false",
-            },
-          });
-        } else {
-          // Default to audio mode - load audio directly
-          await loadAudioDirectly(naat);
-        }
-      } catch (error) {
-        console.error("Error checking playback preference:", error);
-        // Fallback to audio mode on error
-        await loadAudioDirectly(naat);
-      }
-    },
-    [loadAudioDirectly, router],
-  );
-
-  // Handle pull-to-refresh
   const handleRefresh = async () => {
-    await Promise.all([refresh(), refreshChannels()]);
+    await Promise.all([filters.refresh(), filters.refreshChannels()]);
   };
 
-  // Handle filter change
-  const handleFilterChange = (filter: SortOption) => {
-    setSelectedFilter(filter);
-  };
-
-  // Handle channel filter change
-  const handleChannelChange = (channelId: string | null) => {
-    setSelectedChannelId(channelId);
-  };
-
-  // Handle duration filter change
-  const handleDurationChange = (duration: DurationOption) => {
-    setSelectedDuration(duration);
-  };
-
-  // Handle infinite scroll
-  const handleEndReached = () => {
-    if (!isShowingSearchResults && hasMore && !loading) {
-      loadMore();
-    }
-  };
-
-  // Handle scroll to show/hide tab bar and header
   const handleScroll = (event: any) => {
     handleTabBarScroll(event);
-    if (!isSearchActive) {
-      handleHeaderScroll(event);
-    }
+    if (!isSearchActive) handleHeaderScroll(event);
   };
 
-  // Render individual naat card - memoized to prevent unnecessary re-renders
+  // --- Render helpers ---
+
+  const activePureOnly = isShowingSearchResults ? filters.searchPureOnly : filters.pureOnly;
+
   const renderNaatCard = React.useCallback(
     ({ item }: { item: Naat }) => {
+      if (activePureOnly && !item.cutAudio) return null;
       const ds = downloadStates[item.$id];
       return (
         <NaatCard
@@ -578,18 +138,15 @@ export default function HomeScreen() {
           isDownloaded={ds?.isDownloaded}
           isDownloading={ds?.isDownloading}
           downloadProgress={ds?.progress}
+          isCut={!!item.cutAudio}
         />
       );
     },
-    [handleNaatPress, handleDownload, downloadStates],
+    [handleNaatPress, handleDownload, downloadStates, activePureOnly],
   );
 
-  // Render footer loading indicator
   const renderFooter = () => {
-    if (!loading || isShowingSearchResults || displayData.length === 0) {
-      return null;
-    }
-
+    if (!filters.loading || filters.isShowingSearchResults || filters.displayData.length === 0) return null;
     return (
       <View className="py-6">
         <ActivityIndicator size="small" color={colors.accent.secondary} />
@@ -597,20 +154,18 @@ export default function HomeScreen() {
     );
   };
 
-  // Render empty state
   const renderEmptyState = () => {
-    if (isLoading && displayData.length === 0) {
+    if (filters.isLoading && filters.displayData.length === 0) {
       return (
         <View className="items-center justify-center flex-1 py-20">
           <ActivityIndicator size="large" color={colors.accent.secondary} />
           <Text className="mt-4 text-base text-neutral-400">
-            {isShowingSearchResults ? "Searching..." : "Loading naats..."}
+            {filters.isShowingSearchResults ? "Searching..." : "Loading naats..."}
           </Text>
         </View>
       );
     }
-
-    if (error && displayData.length === 0) {
+    if (filters.error && filters.displayData.length === 0) {
       return (
         <EmptyState
           message="Unable to connect. Please check your internet connection."
@@ -620,82 +175,71 @@ export default function HomeScreen() {
         />
       );
     }
-
-    if (isShowingSearchResults && displayData.length === 0) {
-      return (
-        <EmptyState
-          message="No naats found matching your search."
-          iconName="search"
-        />
-      );
+    if (filters.isShowingSearchResults && filters.displayData.length === 0) {
+      return <EmptyState message="No naats found matching your search." iconName="search" />;
     }
-
-    if (displayData.length === 0) {
-      return (
-        <EmptyState
-          message="No naats available yet. Check back soon!"
-          iconName="musical-notes"
-        />
-      );
+    if (filters.displayData.length === 0) {
+      return <EmptyState message="No naats available yet. Check back soon!" iconName="musical-notes" />;
     }
-
     return null;
   };
 
+  // --- JSX ---
+
   return (
-    <View
-      className="flex-1"
-      style={{ backgroundColor: colors.background.primary }}
-    >
+    <View className="flex-1" style={{ backgroundColor: colors.background.primary }}>
       <View className="flex-1">
-        {/* Scrollable Content */}
         <FlatList
           ref={flatListRef}
-          data={displayData}
+          data={filters.displayData}
           renderItem={renderNaatCard}
           keyExtractor={(item) => item.$id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingTop: 100, // Space for fixed header
-            paddingBottom: 50,
-          }}
+          contentContainerStyle={{ flexGrow: 1, paddingTop: 100, paddingBottom: 50 }}
           ListHeaderComponent={
             <>
-              {isShowingSearchResults ? (
+              {filters.isShowingSearchResults ? (
                 <>
                   <SearchFilterBar
-                    channels={channels}
-                    selectedChannelId={searchChannelId}
-                    onChannelChange={setSearchChannelId}
-                    selectedDuration={searchDuration}
-                    onDurationChange={setSearchDuration}
+                    channels={filters.channels}
+                    selectedChannelId={filters.searchChannelId}
+                    onChannelChange={filters.setSearchChannelId}
+                    selectedDuration={filters.searchDuration}
+                    onDurationChange={filters.setSearchDuration}
+                    pureOnly={filters.searchPureOnly}
+                    onPureOnlyChange={filters.setSearchPureOnly}
                   />
                   <View style={{ height: 12 }} />
                 </>
-              ) : !isSearchActive &&
-                (selectedFilter !== "forYou" ||
-                  selectedChannelId !== null ||
-                  selectedDuration !== "all") ? (
+              ) : !isSearchActive ? (
                 <>
                   <UnifiedFilterBar
-                    selectedSort={selectedFilter}
-                    onSortChange={handleFilterChange}
-                    channels={channels}
-                    selectedChannelId={selectedChannelId}
-                    onChannelChange={handleChannelChange}
-                    channelsLoading={channelsLoading}
-                    selectedDuration={selectedDuration}
-                    onDurationChange={handleDurationChange}
+                    selectedSort={filters.selectedFilter}
+                    onSortChange={filters.setSelectedFilter}
+                    channels={filters.channels}
+                    selectedChannelId={filters.selectedChannelId}
+                    onChannelChange={filters.setSelectedChannelId}
+                    channelsLoading={filters.channelsLoading}
+                    selectedDuration={filters.selectedDuration}
+                    onDurationChange={filters.setSelectedDuration}
+                    pureOnly={filters.pureOnly}
+                    onPureOnlyChange={filters.setPureOnly}
+                    externalOpen={filters.showFilterModal}
+                    onExternalClose={() => filters.setShowFilterModal(false)}
+                    hideChips={!filters.hasActiveHomeFilters}
                   />
-                  <View style={{ height: 12 }} />
+                  {filters.hasActiveHomeFilters && <View style={{ height: 12 }} />}
                 </>
               ) : null}
             </>
           }
           ListEmptyComponent={renderEmptyState}
           ListFooterComponent={renderFooter}
-          onEndReached={handleEndReached}
+          onEndReached={() => {
+            if (!filters.isShowingSearchResults && filters.hasMore && !filters.loading) {
+              filters.loadMore();
+            }
+          }}
           onEndReachedThreshold={1.5}
           onScroll={handleScroll}
           scrollEventThrottle={16}
@@ -714,29 +258,11 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* Filter Modal */}
-      <FilterModal
-        visible={showFilterModal}
-        onClose={() => setShowFilterModal(false)}
-        selectedSort={selectedFilter}
-        onSortChange={setSelectedFilter}
-        channels={channels}
-        selectedChannelId={selectedChannelId}
-        onChannelChange={setSelectedChannelId}
-        channelsLoading={channelsLoading}
-        selectedDuration={selectedDuration}
-        onDurationChange={setSelectedDuration}
-      />
-
-      {/* Suggestions Overlay */}
       {showSuggestionsOverlay && (
         <View
           style={{
             position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
+            top: 0, left: 0, right: 0, bottom: 0,
             paddingTop: 100,
             backgroundColor: colors.background.primary,
             zIndex: 40,
@@ -744,13 +270,8 @@ export default function HomeScreen() {
         >
           <SearchSuggestions
             suggestions={suggestions}
-            onSuggestionPress={(suggestion) => {
-              setSearchInput(suggestion.text);
-              submitSearch(suggestion.text);
-            }}
-            onSuggestionInsert={(suggestion) => {
-              setSearchInput(suggestion.text);
-            }}
+            onSuggestionPress={(s) => { setSearchInput(s.text); submitSearch(s.text); }}
+            onSuggestionInsert={(s) => setSearchInput(s.text)}
           />
         </View>
       )}

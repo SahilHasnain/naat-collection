@@ -2,10 +2,11 @@
 Upload Naat Training Data to HuggingFace
 
 Reads the training-data/ folder (exported by export-training-data.js)
-and uploads it as a HuggingFace Audio dataset.
+and uploads it as a HuggingFace dataset using the Hub API directly.
+No torchcodec/soundfile dependency needed.
 
 Usage:
-  1. pip install datasets huggingface_hub soundfile
+  1. pip install huggingface_hub
   2. huggingface-cli login  (paste your HF token)
   3. python scripts/audio-processing/upload-to-huggingface.py
 
@@ -15,12 +16,14 @@ The dataset will be available at:
 
 import json
 import os
-from datasets import Dataset, Audio, ClassLabel, Features
+import csv
+import io
+from huggingface_hub import HfApi, create_repo
 
 # ── Config ────────────────────────────────────────────────────
 TRAINING_DATA_DIR = os.path.join(os.getcwd(), "training-data")
 MANIFEST_PATH = os.path.join(TRAINING_DATA_DIR, "manifest.json")
-HF_DATASET_NAME = "naat-classifier"  # change if you want a different name
+HF_DATASET_NAME = "naat-classifier"
 
 # ── Load manifest ─────────────────────────────────────────────
 with open(MANIFEST_PATH, "r") as f:
@@ -28,51 +31,72 @@ with open(MANIFEST_PATH, "r") as f:
 
 print(f"📋 Loaded {len(manifest)} chunks from manifest")
 
-# ── Build dataset rows ────────────────────────────────────────
-audio_paths = []
-labels = []
-sources = []
-starts = []
-ends = []
-
+# ── Validate files exist ──────────────────────────────────────
+valid = []
 for entry in manifest:
     filepath = os.path.join(TRAINING_DATA_DIR, entry["file"])
-    if not os.path.exists(filepath):
+    if os.path.exists(filepath):
+        valid.append(entry)
+    else:
         print(f"  ⚠️  Missing: {entry['file']}, skipping")
-        continue
-    audio_paths.append(filepath)
-    labels.append(entry["label"])
-    sources.append(entry["source"])
-    starts.append(entry["start"])
-    ends.append(entry["end"])
 
-print(f"✅ Found {len(audio_paths)} valid audio files")
-print(f"   Naat: {labels.count('naat')}, Explanation: {labels.count('explanation')}")
+naat_count = sum(1 for e in valid if e["label"] == "naat")
+expl_count = sum(1 for e in valid if e["label"] == "explanation")
+print(f"✅ Found {len(valid)} valid audio files")
+print(f"   Naat: {naat_count}, Explanation: {expl_count}")
 
-# ── Create HuggingFace Dataset ────────────────────────────────
-features = Features({
-    "audio": Audio(sampling_rate=16000),
-    "label": ClassLabel(names=["naat", "explanation"]),
-    "source": "string",
-    "start": "float32",
-    "end": "float32",
-})
+# ── Create HuggingFace repo ──────────────────────────────────
+api = HfApi()
+user = api.whoami()["name"]
+repo_id = f"{user}/{HF_DATASET_NAME}"
 
-dataset = Dataset.from_dict(
-    {
-        "audio": audio_paths,
-        "label": labels,
-        "source": sources,
-        "start": starts,
-        "end": ends,
-    },
-    features=features,
+print(f"\n📦 Creating dataset repo: {repo_id}")
+create_repo(repo_id, repo_type="dataset", private=True, exist_ok=True)
+
+# ── Build metadata CSV ────────────────────────────────────────
+csv_buffer = io.StringIO()
+writer = csv.writer(csv_buffer)
+writer.writerow(["file_name", "label", "source", "start", "end"])
+for entry in valid:
+    writer.writerow([
+        f"data/{entry['file']}",
+        entry["label"],
+        entry["source"],
+        entry["start"],
+        entry["end"],
+    ])
+
+# ── Upload files ──────────────────────────────────────────────
+print(f"\n🚀 Uploading {len(valid)} audio files...")
+
+# Collect all file paths for batch upload
+upload_files = []
+for entry in valid:
+    local_path = os.path.join(TRAINING_DATA_DIR, entry["file"])
+    remote_path = f"data/{entry['file']}"
+    upload_files.append((local_path, remote_path))
+
+# Upload audio files in a single commit using upload_folder approach
+# First upload metadata.csv
+api.upload_file(
+    path_or_fileobj=csv_buffer.getvalue().encode("utf-8"),
+    path_in_repo="metadata.csv",
+    repo_id=repo_id,
+    repo_type="dataset",
+    commit_message="Add metadata.csv",
 )
+print("  ✅ metadata.csv uploaded")
 
-# ── Push to HuggingFace Hub ───────────────────────────────────
-print(f"\n🚀 Uploading to HuggingFace as '{HF_DATASET_NAME}'...")
-dataset.push_to_hub(HF_DATASET_NAME, private=True)
+# Upload all audio files via upload_folder
+api.upload_folder(
+    folder_path=TRAINING_DATA_DIR,
+    path_in_repo="data",
+    repo_id=repo_id,
+    repo_type="dataset",
+    allow_patterns=["naat/*.wav", "explanation/*.wav"],
+    commit_message="Add training audio files",
+)
+print(f"  ✅ {len(valid)} audio files uploaded")
 
-print(f"\n✅ Done! Dataset uploaded.")
-print(f"   View it at: https://huggingface.co/datasets/<your-username>/{HF_DATASET_NAME}")
-print(f"   Use in Colab: dataset = load_dataset('<your-username>/{HF_DATASET_NAME}')")
+print(f"\n✅ Done! Dataset uploaded to: https://huggingface.co/datasets/{repo_id}")
+print(f"   Use in Colab: load_dataset('{repo_id}')")

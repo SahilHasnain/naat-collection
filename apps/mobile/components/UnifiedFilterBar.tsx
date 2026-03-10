@@ -1,9 +1,9 @@
 import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import type {
-  Channel,
-  DurationOption,
-  SortOption,
+    Channel,
+    DurationOption,
+    SortOption,
 } from "@naat-collection/shared";
 import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
@@ -21,6 +21,14 @@ interface UnifiedFilterBarProps {
   // Duration
   selectedDuration: DurationOption;
   onDurationChange: (duration: DurationOption) => void;
+  // Pure (cut audio only)
+  pureOnly?: boolean;
+  onPureOnlyChange?: (value: boolean) => void;
+  // External modal control (from header filter button)
+  externalOpen?: boolean;
+  onExternalClose?: () => void;
+  // Hide the chip bar (modal still available)
+  hideChips?: boolean;
 }
 
 const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
@@ -32,11 +40,29 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
   channelsLoading = false,
   selectedDuration,
   onDurationChange,
+  pureOnly = false,
+  onPureOnlyChange,
+  externalOpen = false,
+  onExternalClose,
+  hideChips = false,
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"sort" | "channel" | "duration">(
     "sort",
   );
+
+  // Open modal when header filter button is pressed
+  React.useEffect(() => {
+    if (externalOpen) {
+      setShowModal(true);
+    }
+  }, [externalOpen]);
+
+  // Notify parent when modal closes
+  const handleCloseModal = () => {
+    handleCloseModal();
+    onExternalClose?.();
+  };
 
   const sortFilters: {
     value: SortOption;
@@ -134,11 +160,13 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
   const hasActiveFilters =
     selectedSort !== "forYou" ||
     selectedChannelId !== null ||
-    selectedDuration !== "all";
+    selectedDuration !== "all" ||
+    pureOnly;
 
   return (
     <>
       {/* Compact Filter Bar */}
+      {!hideChips && (
       <View
         className="pt-0"
         style={{
@@ -245,6 +273,32 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
             </Text>
           </Pressable>
 
+          {/* Pure Toggle */}
+          <Pressable
+            onPress={() => onPureOnlyChange?.(!pureOnly)}
+            className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
+            style={{
+              backgroundColor: pureOnly
+                ? colors.accent.primary
+                : colors.background.tertiary,
+              minHeight: 44,
+            }}
+          >
+            <Ionicons
+              name="cut-outline"
+              size={16}
+              color={pureOnly ? "#fff" : "#d4d4d8"}
+            />
+            <Text
+              className="font-semibold text-sm ml-2"
+              style={{
+                color: pureOnly ? "#fff" : "#d4d4d8",
+              }}
+            >
+              Pure
+            </Text>
+          </Pressable>
+
           {/* Clear Filters Button (only show if filters are active) */}
           {hasActiveFilters && (
             <Pressable
@@ -252,6 +306,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                 onSortChange("forYou");
                 onChannelChange(null);
                 onDurationChange("all");
+                onPureOnlyChange?.(false);
               }}
               className="px-4 py-2.5 rounded-full flex-row items-center"
               style={{
@@ -267,18 +322,19 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
           )}
         </ScrollView>
       </View>
+      )}
 
       {/* Filter Modal */}
       <Modal
         visible={showModal}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowModal(false)}
+        onRequestClose={() => handleCloseModal()}
       >
         <Pressable
           className="flex-1"
           style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-          onPress={() => setShowModal(false)}
+          onPress={() => handleCloseModal()}
         >
           <SafeAreaView
             edges={["bottom"]}
@@ -301,7 +357,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                   Filters
                 </Text>
                 <Pressable
-                  onPress={() => setShowModal(false)}
+                  onPress={() => handleCloseModal()}
                   style={{
                     minHeight: 44,
                     minWidth: 44,
@@ -380,6 +436,37 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                 className="max-h-96"
                 showsVerticalScrollIndicator={false}
               >
+                {/* Pure Toggle */}
+                <Pressable
+                  onPress={() => onPureOnlyChange?.(!pureOnly)}
+                  className="flex-row items-center mx-4 mt-4 mb-2 p-4 rounded-xl"
+                  style={{
+                    backgroundColor: pureOnly
+                      ? colors.accent.primary
+                      : colors.background.tertiary,
+                    minHeight: 56,
+                  }}
+                >
+                  <Ionicons
+                    name="cut-outline"
+                    size={22}
+                    color={pureOnly ? "#fff" : colors.text.primary}
+                  />
+                  <Text
+                    className="flex-1 font-semibold text-base ml-3"
+                    style={{ color: pureOnly ? "#fff" : "#d4d4d4" }}
+                  >
+                    Pure Only
+                  </Text>
+                  {pureOnly && (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={22}
+                      color="#fff"
+                    />
+                  )}
+                </Pressable>
+
                 {activeTab === "sort" && (
                   <View className="p-4">
                     {sortFilters.map((filter) => {
@@ -389,7 +476,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                           key={filter.value}
                           onPress={() => {
                             onSortChange(filter.value);
-                            setShowModal(false);
+                            handleCloseModal();
                           }}
                           className="flex-row items-center p-4 rounded-xl mb-2"
                           style={{
@@ -448,7 +535,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                             } else {
                               onChannelChange(option.id);
                             }
-                            setShowModal(false);
+                            handleCloseModal();
                           }}
                           disabled={channelsLoading}
                           className="flex-row items-center p-4 rounded-xl mb-2"
@@ -496,7 +583,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                           key={filter.value}
                           onPress={() => {
                             onDurationChange(filter.value);
-                            setShowModal(false);
+                            handleCloseModal();
                           }}
                           className="flex-row items-center p-4 rounded-xl mb-2"
                           style={{

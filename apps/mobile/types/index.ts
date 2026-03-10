@@ -81,6 +81,7 @@ export interface NaatCardProps {
   isDownloaded?: boolean;
   isDownloading?: boolean;
   downloadProgress?: number;
+  isCut?: boolean;
 }
 
 export interface VideoPlayerProps {
