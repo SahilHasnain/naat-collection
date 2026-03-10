@@ -37,7 +37,11 @@
     "ai-cut:preview": "node scripts/audio-processing/ai-cut-audio.js preview",
     "ai-cut:process": "node scripts/audio-processing/ai-cut-audio.js process",
     "ai-cut:batch": "node scripts/audio-processing/ai-cut-audio.js batch",
-    "ai-cut:random": "node scripts/audio-processing/process-random.js"
+    "ai-cut:random": "node scripts/audio-processing/process-random.js",
+    "typecheck": "npx tsc --noEmit",
+    "typecheck:mobile": "cd apps/mobile && npx tsc --noEmit",
+    "typecheck:web": "cd apps/web && npx tsc --noEmit",
+    "typecheck:functions": "cd functions/cut-audio-cron && npx tsc --noEmit"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.39.0",

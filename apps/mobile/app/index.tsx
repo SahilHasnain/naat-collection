@@ -20,21 +20,22 @@ import { storageService } from "@/services/storage";
 import type { DurationOption, Naat, SortOption } from "@/types";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import {
-  filterNaatsByDuration,
-  getPreferredAudioId,
-  hasAudio,
+    filterNaatsByDuration,
+    getPreferredAudioId,
+    getPreferredDuration,
+    hasAudio
 } from "@naat-collection/shared";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  BackHandler,
-  FlatList,
-  RefreshControl,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    BackHandler,
+    FlatList,
+    RefreshControl,
+    Text,
+    View,
 } from "react-native";
 
 export default function HomeScreen() {
@@ -259,7 +260,7 @@ export default function HomeScreen() {
         response.audioUrl,
         naat.youtubeId || "",
         naat.title,
-        naat.duration,
+        getPreferredDuration(naat),
         naat.channelName || "Unknown Channel",
         naat.views || 0,
         (progress) => {
@@ -568,7 +569,7 @@ export default function HomeScreen() {
           id={item.$id}
           title={item.title}
           thumbnail={item.thumbnailUrl}
-          duration={item.duration}
+          duration={getPreferredDuration(item)}
           uploadDate={item.uploadDate}
           channelName={item.channelName}
           views={item.views}
