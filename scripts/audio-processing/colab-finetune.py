@@ -20,7 +20,7 @@ subprocess.check_call([sys.executable, "-m", "pip", "install", "-q",
 # ── 2. Login to HuggingFace ──────────────────────────────────
 from huggingface_hub import login, HfApi
 print("\n🔑 Logging in to HuggingFace...")
-login(token="REVOKED_TOKEN")
+login()  # Will prompt for token interactively — never hardcode tokens!
 
 api = HfApi()
 username = api.whoami()["name"]

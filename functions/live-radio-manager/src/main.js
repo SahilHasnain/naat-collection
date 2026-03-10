@@ -200,9 +200,14 @@ async function updateLiveRadioStateWithTimestamp(
   timestamp,
 ) {
   try {
+    // Serialize playlist items to JSON strings for Appwrite string[] attribute
+    const serializedPlaylist = playlist.map((item) =>
+      typeof item === 'string' ? item : JSON.stringify(item)
+    );
+
     const data = {
       currentTrackIndex,
-      playlist,
+      playlist: serializedPlaylist,
       updatedAt: timestamp,
     };
 
@@ -249,8 +254,11 @@ async function shouldAdvanceTrack(databases, databaseId, naatsCollectionId) {
       LIVE_RADIO_DOCUMENT_ID,
     );
 
-    // Get current track from playlist
-    const currentTrackData = currentState.playlist[currentState.currentTrackIndex];
+    // Get current track from playlist (parse JSON string if stored serialized)
+    const rawTrackData = currentState.playlist[currentState.currentTrackIndex];
+    const currentTrackData = typeof rawTrackData === 'string' && rawTrackData.startsWith('{')
+      ? JSON.parse(rawTrackData)
+      : rawTrackData;
 
     if (!currentTrackData) {
       console.log("No current track, needs initialization");
@@ -348,7 +356,10 @@ export default async ({ req, res, log, error }) => {
       );
 
       // Get current track to calculate when it actually started
-      const currentTrackData = currentState.playlist[currentState.currentTrackIndex];
+      const rawCurrentTrackData = currentState.playlist[currentState.currentTrackIndex];
+      const currentTrackData = typeof rawCurrentTrackData === 'string' && rawCurrentTrackData.startsWith('{')
+        ? JSON.parse(rawCurrentTrackData)
+        : rawCurrentTrackData;
       const currentTrackId = typeof currentTrackData === 'string' 
         ? currentTrackData 
         : currentTrackData.naatId;
@@ -358,7 +369,13 @@ export default async ({ req, res, log, error }) => {
         currentTrackId,
       );
 
-      playlist = currentState.playlist;
+      // Parse playlist items from JSON strings (Appwrite stores as string[])
+      playlist = currentState.playlist.map((item) => {
+        if (typeof item === 'string' && item.startsWith('{')) {
+          try { return JSON.parse(item); } catch { return item; }
+        }
+        return item;
+      });
       currentTrackIndex =
         (currentState.currentTrackIndex + 1) % playlist.length;
 
