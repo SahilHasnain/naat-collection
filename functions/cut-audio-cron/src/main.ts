@@ -9,6 +9,7 @@
  */
 
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
+import ffprobeInstaller from "@ffprobe-installer/ffprobe";
 import ffmpeg from "fluent-ffmpeg";
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs";
 import { Client, Databases, ID, Permission, Query, Role, Storage } from "node-appwrite";
@@ -16,6 +17,7 @@ import { InputFile } from "node-appwrite/file";
 import { join } from "path";
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+ffmpeg.setFfprobePath(ffprobeInstaller.path);
 
 const BATCH_SIZE = 3;
 const AUDIO_BUCKET = "audio-files";
