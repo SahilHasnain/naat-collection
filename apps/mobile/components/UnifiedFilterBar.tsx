@@ -1,9 +1,9 @@
 import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import type {
-    Channel,
-    DurationOption,
-    SortOption,
+  Channel,
+  DurationOption,
+  SortOption,
 } from "@naat-collection/shared";
 import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
@@ -60,7 +60,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
 
   // Notify parent when modal closes
   const handleCloseModal = () => {
-    handleCloseModal();
+    setShowModal(false);
     onExternalClose?.();
   };
 

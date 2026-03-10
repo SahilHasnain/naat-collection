@@ -5,7 +5,7 @@ import { useNaats } from "@/hooks/useNaats";
 import { useSearch } from "@/hooks/useSearch";
 import type { DurationOption, SortOption } from "@/types";
 import { filterNaatsByDuration } from "@naat-collection/shared";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 
 export function useHomeFilters() {
   // Home filters
@@ -24,8 +24,8 @@ export function useHomeFilters() {
 
   // Data fetching
   const { channels, loading: channelsLoading, refresh: refreshChannels } = useChannels();
-  const { naats, loading, error, hasMore, loadMore, refresh } = useNaats(selectedChannelId, selectedFilter);
-  const { results: searchResults, loading: searchLoading, setQuery } = useSearch(searchChannelId);
+  const { naats, loading, error, hasMore, loadMore, refresh } = useNaats(selectedChannelId, selectedFilter, pureOnly);
+  const { results: searchResults, loading: searchLoading, setQuery } = useSearch(searchChannelId, searchPureOnly);
 
   const isShowingSearchResults = isSearchActive && activeSearchQuery.length > 0;
 

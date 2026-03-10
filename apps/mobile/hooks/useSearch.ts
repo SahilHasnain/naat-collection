@@ -17,7 +17,7 @@ import type { Naat, UseSearchReturn } from "../types";
  * @param channelId - Optional channel ID to filter search results (null = all channels)
  * @returns UseSearchReturn object with search state and control functions
  */
-export function useSearch(channelId: string | null = null): UseSearchReturn {
+export function useSearch(channelId: string | null = null, pureOnly: boolean = false): UseSearchReturn {
   const [query, setQueryState] = useState<string>("");
   const [results, setResults] = useState<Naat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -45,6 +45,7 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
         0,
         "latest",
         channelId,
+        pureOnly,
       );
 
       if (isMountedRef.current) {
@@ -53,7 +54,7 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
     } catch (error) {
       console.error("Failed to load naats for search:", error);
     }
-  }, [channelId]);
+  }, [channelId, pureOnly]);
 
   /**
    * Perform semantic search using AI or fallback to client-side
@@ -74,9 +75,14 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
         const searchResults = await appwriteService.semanticSearch(searchQuery);
         
         // Filter by channel if specified
-        const filteredResults = channelId
+        let filteredResults = channelId
           ? searchResults.filter((naat) => naat.channelId === channelId)
           : searchResults;
+
+        // Filter by pure if specified
+        if (pureOnly) {
+          filteredResults = filteredResults.filter((naat) => !!naat.cutAudio);
+        }
 
         if (isMountedRef.current) {
           setResults(filteredResults);
@@ -117,7 +123,7 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
         setLoading(false);
       }
     }
-  }, [channelId, useSemanticSearch]);
+  }, [channelId, useSemanticSearch, pureOnly]);
 
   /**
    * Set search query with debouncing
@@ -179,7 +185,7 @@ export function useSearch(channelId: string | null = null): UseSearchReturn {
         performSemanticSearch(query);
       });
     }
-  }, [channelId]); // Only depend on channelId to avoid infinite loops
+  }, [channelId, pureOnly]); // Only depend on channelId/pureOnly to avoid infinite loops
 
   // Cleanup on unmount
   useEffect(() => {

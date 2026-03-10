@@ -7,19 +7,19 @@
 
 import { AppwriteService as BaseAppwriteService } from "@naat-collection/api-client";
 import type {
-  AudioUrlResponse,
-  Channel,
-  IAppwriteService,
-  Naat,
+    AudioUrlResponse,
+    Channel,
+    IAppwriteService,
+    Naat,
 } from "@naat-collection/shared";
 import { AppError, ErrorCode } from "@naat-collection/shared";
 import * as Sentry from "@sentry/react-native";
 import { appwriteConfig, validateAppwriteConfig } from "../config/appwrite";
 import {
-  DEFAULT_TIMEOUT,
-  logError,
-  withCacheFallback,
-  wrapError,
+    DEFAULT_TIMEOUT,
+    logError,
+    withCacheFallback,
+    wrapError,
 } from "../utils/errorHandling";
 
 /**
@@ -65,13 +65,15 @@ export class AppwriteService implements IAppwriteService {
     offset: number = 0,
     sortBy: "latest" | "popular" | "oldest" = "latest",
     channelId?: string | null,
+    pureOnly?: boolean,
   ): Promise<Naat[]> {
     const channelKey = channelId || "all";
-    const cacheKey = `naats_${channelKey}_${limit}_${offset}_${sortBy}`;
+    const pureKey = pureOnly ? "_pure" : "";
+    const cacheKey = `naats_${channelKey}_${limit}_${offset}_${sortBy}${pureKey}`;
 
     try {
       return await withCacheFallback(
-        () => this.baseService.getNaats(limit, offset, sortBy, channelId),
+        () => this.baseService.getNaats(limit, offset, sortBy, channelId, pureOnly),
         cacheKey,
         {
           timeoutMs: DEFAULT_TIMEOUT,
@@ -144,17 +146,18 @@ export class AppwriteService implements IAppwriteService {
   /**
    * Searches for naats matching the provided query string
    */
-  async searchNaats(query: string, channelId?: string | null): Promise<Naat[]> {
+  async searchNaats(query: string, channelId?: string | null, pureOnly?: boolean): Promise<Naat[]> {
     if (!query || query.trim() === "") {
       return [];
     }
 
     const channelKey = channelId || "all";
-    const cacheKey = `search_${channelKey}_${query}`;
+    const pureKey = pureOnly ? "_pure" : "";
+    const cacheKey = `search_${channelKey}_${query}${pureKey}`;
 
     try {
       return await withCacheFallback(
-        () => this.baseService.searchNaats(query, channelId),
+        () => this.baseService.searchNaats(query, channelId, pureOnly),
         cacheKey,
         {
           timeoutMs: DEFAULT_TIMEOUT,

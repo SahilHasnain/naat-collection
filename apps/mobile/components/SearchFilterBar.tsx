@@ -44,6 +44,38 @@ export function SearchFilterBar({
           paddingVertical: 8,
         }}
       >
+        {/* Pure Toggle */}
+        <Pressable
+          onPress={() => onPureOnlyChange?.(!pureOnly)}
+          className="mr-2 px-3 py-1.5 rounded-full flex-row items-center"
+          style={{
+            backgroundColor: pureOnly
+              ? colors.accent.primary
+              : colors.background.tertiary,
+          }}
+        >
+          <Ionicons
+            name="cut-outline"
+            size={14}
+            color={pureOnly ? "#fff" : "#d4d4d8"}
+          />
+          <Text
+            className="font-medium text-xs ml-1.5"
+            style={{ color: pureOnly ? "#fff" : "#d4d4d8" }}
+          >
+            Pure
+          </Text>
+        </Pressable>
+
+        {/* Divider */}
+        <View
+          style={{
+            width: 1,
+            backgroundColor: colors.background.tertiary,
+            marginHorizontal: 6,
+          }}
+        />
+
         {/* Channel Chips */}
         <Pressable
           onPress={() => onChannelChange(null)}
@@ -144,38 +176,6 @@ export function SearchFilterBar({
             </Text>
           </Pressable>
         ))}
-
-        {/* Divider */}
-        <View
-          style={{
-            width: 1,
-            backgroundColor: colors.background.tertiary,
-            marginHorizontal: 6,
-          }}
-        />
-
-        {/* Pure Toggle */}
-        <Pressable
-          onPress={() => onPureOnlyChange?.(!pureOnly)}
-          className="mr-2 px-3 py-1.5 rounded-full flex-row items-center"
-          style={{
-            backgroundColor: pureOnly
-              ? colors.accent.primary
-              : colors.background.tertiary,
-          }}
-        >
-          <Ionicons
-            name="cut-outline"
-            size={14}
-            color={pureOnly ? "#fff" : "#d4d4d8"}
-          />
-          <Text
-            className="font-medium text-xs ml-1.5"
-            style={{ color: pureOnly ? "#fff" : "#d4d4d8" }}
-          >
-            Pure
-          </Text>
-        </Pressable>
       </ScrollView>
     </View>
   );
