@@ -3,8 +3,8 @@ import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import Animated, {
-  SharedValue,
-  useAnimatedStyle,
+    SharedValue,
+    useAnimatedStyle,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
