@@ -7,28 +7,28 @@ import MiniPlayer from "@/components/MiniPlayer";
 import { colors } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
 import {
-    FilterModalProvider,
-    useFilterModal,
+  FilterModalProvider,
+  useFilterModal,
 } from "@/contexts/FilterModalContext";
 import {
-    HeaderVisibilityProvider,
-    useHeaderVisibility,
+  HeaderVisibilityProvider,
+  useHeaderVisibility,
 } from "@/contexts/HeaderVisibilityContext.animated";
 import {
-    LiveRadioProvider,
-    useLiveRadioPlayer,
+  LiveRadioProvider,
+  useLiveRadioPlayer,
 } from "@/contexts/LiveRadioContext";
 import {
-    PlaybackModeProvider,
-    usePlaybackMode,
+  PlaybackModeProvider,
+  usePlaybackMode,
 } from "@/contexts/PlaybackModeContext";
 import {
-    SearchProvider,
-    useSearch as useSearchContext,
+  SearchProvider,
+  useSearch as useSearchContext,
 } from "@/contexts/SearchContext";
 import {
-    TabBarVisibilityProvider,
-    useTabBarVisibility,
+  TabBarVisibilityProvider,
+  useTabBarVisibility,
 } from "@/contexts/TabBarVisibilityContext.animated";
 import { VideoProvider } from "@/contexts/VideoContext";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
@@ -37,9 +37,9 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Sentry from "@sentry/react-native";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import "../global.css";
 
 // Initialize Sentry
@@ -61,6 +61,7 @@ function RootLayoutContent() {
   const { translateY } = useTabBarVisibility();
   const { translateY: headerTranslateY } = useHeaderVisibility();
   const { setShowFilterModal } = useFilterModal();
+  const insets = useSafeAreaInsets();
   const {
     isSearchActive,
     activateSearch,
@@ -84,18 +85,42 @@ function RootLayoutContent() {
 
   // Network status for offline handling
   const { isConnected } = useNetworkStatus();
+  const isFirstRender = useRef(true);
   const hasNavigatedOffline = useRef(false);
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [showBackOnline, setShowBackOnline] = useState(false);
+  const prevConnected = useRef(isConnected);
 
-  // Auto-navigate to downloads when going offline
   useEffect(() => {
-    if (!isConnected && !isOnDownloadsTab && !hasNavigatedOffline.current) {
-      hasNavigatedOffline.current = true;
-      router.push("/downloads");
+    // On first render: if offline, navigate to downloads directly (app opened offline)
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      if (!isConnected) {
+        hasNavigatedOffline.current = true;
+        router.push("/downloads");
+      }
+      prevConnected.current = isConnected;
+      return;
     }
-    if (isConnected) {
+
+    // Went offline while using the app → show modal
+    if (!isConnected && prevConnected.current) {
+      setShowOfflineModal(true);
+      setShowBackOnline(false);
+    }
+
+    // Came back online → flash "Back online" bar
+    if (isConnected && !prevConnected.current) {
+      setShowOfflineModal(false);
       hasNavigatedOffline.current = false;
+      setShowBackOnline(true);
+      const timer = setTimeout(() => setShowBackOnline(false), 3000);
+      prevConnected.current = isConnected;
+      return () => clearTimeout(timer);
     }
-  }, [isConnected, isOnDownloadsTab, router]);
+
+    prevConnected.current = isConnected;
+  }, [isConnected, router]);
 
   // Shared value for header (must be called unconditionally)
   const isScrolledDownValue = useSharedValue(false);
@@ -178,32 +203,6 @@ function RootLayoutContent() {
           onSearchSubmit={() => submitSearch(searchInput)}
           onSearchClose={deactivateSearch}
         />
-      )}
-
-      {/* Offline banner */}
-      {!isConnected && (
-        <View
-          style={{
-            backgroundColor: colors.background.tertiary,
-            paddingVertical: 6,
-            paddingHorizontal: 16,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 6,
-          }}
-          accessibilityRole="alert"
-          accessibilityLabel="You are offline"
-        >
-          <Ionicons
-            name="cloud-offline-outline"
-            size={14}
-            color={colors.text.secondary}
-          />
-          <Text style={{ color: colors.text.secondary, fontSize: 12 }}>
-            You're offline
-          </Text>
-        </View>
       )}
 
       <Tabs
@@ -303,6 +302,107 @@ function RootLayoutContent() {
         onClose={() => setIsPlayerExpanded(false)}
         onSwitchToVideo={handleSwitchToVideo}
       />
+
+      {/* Connection status bar — sits below tab bar, above system nav */}
+      {(!isConnected || showBackOnline) && (
+        <View
+          style={{
+            position: "absolute",
+            bottom: insets.bottom,
+            left: 0,
+            right: 0,
+            backgroundColor: showBackOnline ? "#2e7d32" : colors.background.tertiary,
+            paddingVertical: 2,
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          accessibilityRole="alert"
+          accessibilityLabel={showBackOnline ? "Back online" : "No connection"}
+        >
+          <Text
+            style={{
+              color: showBackOnline ? "#ffffff" : colors.text.secondary,
+              fontSize: 12,
+              fontWeight: "500",
+            }}
+          >
+            {showBackOnline ? "Back online" : "No connection"}
+          </Text>
+        </View>
+      )}
+
+      {/* Offline modal — shown when connection drops while using the app */}
+      {showOfflineModal && (
+        <View
+          style={{
+            position: "absolute",
+            bottom: 56 + insets.bottom + 16,
+            left: 16,
+            right: 16,
+            backgroundColor: colors.background.secondary,
+            borderRadius: 12,
+            padding: 20,
+            zIndex: 1001,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 10,
+          }}
+        >
+          <Text
+            style={{
+              color: colors.text.primary,
+              fontSize: 16,
+              fontWeight: "600",
+              marginBottom: 4,
+            }}
+          >
+            You're offline
+          </Text>
+          <Text
+            style={{
+              color: colors.text.secondary,
+              fontSize: 13,
+              marginBottom: 16,
+            }}
+          >
+            Watch downloads without a connection.
+          </Text>
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 12 }}>
+            <Pressable
+              onPress={() => setShowOfflineModal(false)}
+              style={{ paddingVertical: 8, paddingHorizontal: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss offline prompt"
+            >
+              <Text style={{ color: colors.accent.secondary, fontSize: 14, fontWeight: "600" }}>
+                No thanks
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setShowOfflineModal(false);
+                router.push("/downloads");
+              }}
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: colors.text.secondary,
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Go to downloads"
+            >
+              <Text style={{ color: colors.text.primary, fontSize: 14, fontWeight: "600" }}>
+                See your downloads
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </>
   );
 }
