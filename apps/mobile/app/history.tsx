@@ -12,31 +12,31 @@ import type { Naat } from "@/types";
 import { DateGroup, groupByDate } from "@/utils/dateGrouping";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
-import { getPreferredAudioId } from "@naat-collection/shared";
+import { getPreferredAudioId, getPreferredDuration } from "@naat-collection/shared";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useRef } from "react";
 import {
-  AccessibilityInfo,
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  RefreshControl,
-  SectionList,
-  Text,
-  View,
+    AccessibilityInfo,
+    ActivityIndicator,
+    Alert,
+    Pressable,
+    RefreshControl,
+    SectionList,
+    Text,
+    View,
 } from "react-native";
 import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView,
+    Gesture,
+    GestureDetector,
+    GestureHandlerRootView,
 } from "react-native-gesture-handler";
 import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -124,7 +124,7 @@ function SwipeableHistoryCard({
           <HistoryCard
             title={item.title}
             thumbnail={item.thumbnailUrl}
-            duration={item.duration}
+            duration={getPreferredDuration(item)}
             channelName={item.channelName}
             views={item.views}
             watchedAt={item.watchedAt}

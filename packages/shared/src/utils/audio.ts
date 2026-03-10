@@ -21,3 +21,12 @@ export function hasAudio(naat: Naat): boolean {
 export function hasCutAudio(naat: Naat): boolean {
   return !!naat.cutAudio;
 }
+
+/**
+ * Get the preferred duration for a naat
+ * Prioritizes cutDuration (after cutting) over duration (original)
+ */
+export function getPreferredDuration(naat: Naat): number {
+  return naat.cutDuration || naat.duration;
+}
+
