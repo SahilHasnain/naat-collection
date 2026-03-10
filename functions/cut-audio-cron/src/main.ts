@@ -1,19 +1,19 @@
 /**
  * Cut Audio Cron Function
  *
- * Finds naats that have cutSegments but no cutAudio yet (cutStatus is null or "failed"),
- * marks them as "processing", cuts the audio with ffmpeg, uploads the result,
- * and sets cutAudio + cutStatus = "done". On failure, sets cutStatus = "failed".
+ * Finds naats with cutSegments but no cutAudio (cutStatus null or "failed"),
+ * marks as "processing", cuts audio with ffmpeg, uploads result,
+ * sets cutAudio + cutStatus = "done". On failure sets cutStatus = "failed".
  *
- * cutStatus values: null (pending), "processing", "done", "failed"
- *
- * This prevents race conditions — concurrent runs skip naats already being processed.
+ * Prevents race conditions — concurrent runs skip "processing" naats.
  */
 
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 import ffmpeg from "fluent-ffmpeg";
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs";
 import { Client, Databases, ID, Permission, Query, Role, Storage } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
+import { join } from "path";
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
@@ -21,9 +21,23 @@ const BATCH_SIZE = 3;
 const AUDIO_BUCKET = "audio-files";
 const FADE_DURATION = 0.3;
 
+interface Segment {
+  start: number;
+  end: number;
+}
+
+interface NaatDoc {
+  $id: string;
+  title?: string;
+  audioId: string;
+  cutSegments: string;
+}
+
+type LogFn = (msg: string) => void;
+
 // ── Helpers ───────────────────────────────────────────────────
 
-function getAudioDuration(filePath) {
+function getAudioDuration(filePath: string): Promise<number> {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(filePath, (err, metadata) => {
       if (err) reject(err);
@@ -32,9 +46,9 @@ function getAudioDuration(filePath) {
   });
 }
 
-function buildKeepSegments(cutSegments, audioDuration) {
+function buildKeepSegments(cutSegments: Segment[], audioDuration: number): Segment[] {
   const sorted = [...cutSegments].sort((a, b) => a.start - b.start);
-  const keep = [];
+  const keep: Segment[] = [];
   let cursor = 0;
 
   for (const cut of sorted) {
@@ -51,12 +65,12 @@ function buildKeepSegments(cutSegments, audioDuration) {
   return keep;
 }
 
-function cutAudio(inputPath, keepSegments, outputPath) {
+function cutAudio(inputPath: string, keepSegments: Segment[], outputPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
     if (keepSegments.length === 1) {
       const seg = keepSegments[0];
       const segDur = seg.end - seg.start;
-      const fadeFilters = [];
+      const fadeFilters: string[] = [];
 
       if (seg.start > 0) {
         fadeFilters.push(`afade=t=in:st=0:d=${FADE_DURATION}`);
@@ -75,11 +89,11 @@ function cutAudio(inputPath, keepSegments, outputPath) {
       if (fadeFilters.length > 0) cmd.audioFilters(fadeFilters);
 
       cmd.output(outputPath)
-        .on("end", resolve)
-        .on("error", reject)
+        .on("end", () => resolve())
+        .on("error", (err: Error) => reject(err))
         .run();
     } else {
-      const filterComplex = [];
+      const filterComplex: string[] = [];
 
       keepSegments.forEach((seg, i) => {
         const segDur = seg.end - seg.start;
@@ -105,14 +119,22 @@ function cutAudio(inputPath, keepSegments, outputPath) {
         .complexFilter(filterComplex)
         .outputOptions(["-map", "[out]", "-c:a", "aac", "-b:a", "256k", "-ar", "44100", "-ac", "2", "-q:a", "2"])
         .output(outputPath)
-        .on("end", resolve)
-        .on("error", reject)
+        .on("end", () => resolve())
+        .on("error", (err: Error) => reject(err))
         .run();
     }
   });
 }
 
-async function processNaat(naat, storage, databases, databaseId, collectionId, tmpDir, log) {
+async function processNaat(
+  naat: NaatDoc,
+  storage: Storage,
+  databases: Databases,
+  databaseId: string,
+  collectionId: string,
+  tmpDir: string,
+  log: LogFn,
+): Promise<boolean> {
   const naatId = naat.$id;
   const inputPath = join(tmpDir, `${naatId}_original.mp4`);
   const outputPath = join(tmpDir, `${naatId}_cut.mp4`);
@@ -123,7 +145,7 @@ async function processNaat(naat, storage, databases, databaseId, collectionId, t
   });
 
   try {
-    let cutSegments;
+    let cutSegments: Segment[];
     try {
       cutSegments = JSON.parse(naat.cutSegments);
     } catch {
@@ -135,7 +157,6 @@ async function processNaat(naat, storage, databases, databaseId, collectionId, t
     }
 
     if (!Array.isArray(cutSegments) || cutSegments.length === 0) {
-      // Empty array = no explanation, whole audio is naat
       await databases.updateDocument(databaseId, collectionId, naatId, {
         cutAudio: naat.audioId,
         cutStatus: "done",
@@ -144,7 +165,6 @@ async function processNaat(naat, storage, databases, databaseId, collectionId, t
       return true;
     }
 
-    // Download original audio
     log(`  Downloading audio for ${naat.title || naatId}...`);
     const audioBuffer = await storage.getFileDownload(AUDIO_BUCKET, naat.audioId);
     writeFileSync(inputPath, Buffer.from(audioBuffer));
@@ -180,7 +200,6 @@ async function processNaat(naat, storage, databases, databaseId, collectionId, t
     log(`  ✅ ${naatId}: cut audio saved as ${file.$id}`);
     return true;
   } catch (err) {
-    // Mark as failed so next run can retry
     await databases.updateDocument(databaseId, collectionId, naatId, {
       cutStatus: "failed",
     });
@@ -193,20 +212,27 @@ async function processNaat(naat, storage, databases, databaseId, collectionId, t
 
 // ── Main ──────────────────────────────────────────────────────
 
-export default async ({ res, log, error: logError }) => {
+interface AppwriteContext {
+  res: {
+    json: (body: Record<string, unknown>, statusCode?: number) => unknown;
+  };
+  log: LogFn;
+  error: LogFn;
+}
+
+export default async ({ res, log, error: logError }: AppwriteContext) => {
   try {
     const client = new Client()
-      .setEndpoint(process.env.APPWRITE_ENDPOINT || process.env.APPWRITE_FUNCTION_API_ENDPOINT)
-      .setProject(process.env.APPWRITE_PROJECT_ID || process.env.APPWRITE_FUNCTION_PROJECT_ID)
-      .setKey(process.env.APPWRITE_API_KEY);
+      .setEndpoint(process.env.APPWRITE_ENDPOINT || process.env.APPWRITE_FUNCTION_API_ENDPOINT || "")
+      .setProject(process.env.APPWRITE_PROJECT_ID || process.env.APPWRITE_FUNCTION_PROJECT_ID || "")
+      .setKey(process.env.APPWRITE_API_KEY || "");
 
     const databases = new Databases(client);
     const storage = new Storage(client);
 
-    const databaseId = process.env.APPWRITE_DATABASE_ID;
-    const collectionId = process.env.APPWRITE_NAATS_COLLECTION_ID;
+    const databaseId = process.env.APPWRITE_DATABASE_ID!;
+    const collectionId = process.env.APPWRITE_NAATS_COLLECTION_ID!;
 
-    // Find naats with cutSegments but no cutAudio, where cutStatus is null or "failed"
     const response = await databases.listDocuments(databaseId, collectionId, [
       Query.isNotNull("cutSegments"),
       Query.isNull("cutAudio"),
@@ -218,7 +244,7 @@ export default async ({ res, log, error: logError }) => {
       Query.limit(BATCH_SIZE),
     ]);
 
-    const naats = response.documents;
+    const naats = response.documents as unknown as NaatDoc[];
     log(`Found ${naats.length} naats to process`);
 
     if (naats.length === 0) {
@@ -237,16 +263,18 @@ export default async ({ res, log, error: logError }) => {
         const success = await processNaat(naat, storage, databases, databaseId, collectionId, tmpDir, log);
         if (success) processed++;
         else failed++;
-      } catch (err) {
-        logError(`Failed to process ${naat.$id}: ${err.message}`);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logError(`Failed to process ${naat.$id}: ${msg}`);
         failed++;
       }
     }
 
     log(`Done: ${processed} processed, ${failed} failed`);
     return res.json({ processed, failed, total: naats.length });
-  } catch (err) {
-    logError(`Cut audio cron error: ${err.message}`);
-    return res.json({ error: err.message }, 500);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logError(`Cut audio cron error: ${msg}`);
+    return res.json({ error: msg }, 500);
   }
 };
