@@ -10,7 +10,9 @@
     "test:local": "node extract-audio/test-local.js"
   },
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@supabase/supabase-js": "^2.39.0",
+    "fluent-ffmpeg": "^2.1.3",
     "node-appwrite": "^21.1.0",
     "youtube-dl-exec": "^2.4.13"
   },
