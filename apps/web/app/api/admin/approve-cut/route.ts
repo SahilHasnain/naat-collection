@@ -11,7 +11,7 @@ import { InputFile } from "node-appwrite/file";
 
 export async function POST(request: NextRequest) {
   try {
-    const { naatId, tempFileId, cutDuration } = await request.json();
+    const { naatId, tempFileId, cutDuration, cutSegments } = await request.json();
 
     if (!naatId || !tempFileId) {
       return NextResponse.json(
@@ -47,15 +47,22 @@ export async function POST(request: NextRequest) {
       [Permission.read(Role.any())],
     );
 
-    // Update naat document with cutAudio reference and cutDuration
+    // Update naat document with cutAudio reference, cutDuration, and cutSegments
+    const updateData: Record<string, unknown> = { 
+      cutAudio: mainFile.$id,
+      cutDuration: cutDuration,
+    };
+
+    // Save cut segments as JSON string for future AI training data
+    if (cutSegments && Array.isArray(cutSegments) && cutSegments.length > 0) {
+      updateData.cutSegments = JSON.stringify(cutSegments);
+    }
+
     await databases.updateDocument(
       process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
       process.env.NEXT_PUBLIC_APPWRITE_NAATS_COLLECTION_ID!,
       naatId,
-      { 
-        cutAudio: mainFile.$id,
-        cutDuration: cutDuration,
-      },
+      updateData,
     );
 
     // Delete temp file

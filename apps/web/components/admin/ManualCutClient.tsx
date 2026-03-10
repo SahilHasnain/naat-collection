@@ -46,11 +46,8 @@ export default function ManualCutClient() {
   ]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [cutting, setCutting] = useState(false);
-  const [approving, setApproving] = useState(false);
-  const [rejecting, setRejecting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [skipping, setSkipping] = useState(false);
-  const [tempFileId, setTempFileId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -71,11 +68,6 @@ export default function ManualCutClient() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [originalAudioRef, setOriginalAudioRef] =
     useState<HTMLAudioElement | null>(null);
-  const [previewAudioRef, setPreviewAudioRef] =
-    useState<HTMLAudioElement | null>(null);
-  const [cutDurationMinutes, setCutDurationMinutes] = useState<string>("");
-  const [cutDurationSeconds, setCutDurationSeconds] = useState<string>("");
-  const [autoCutDuration, setAutoCutDuration] = useState<number | null>(null);
   const [detecting, setDetecting] = useState(false);
   const [detectionResult, setDetectionResult] =
     useState<DetectionResult | null>(null);
@@ -99,7 +91,6 @@ export default function ManualCutClient() {
         JSON.stringify({
           naatId: selectedNaat.$id,
           segments: cutSegments,
-          tempFileId: tempFileId,
         }),
       );
     }
@@ -140,24 +131,7 @@ export default function ManualCutClient() {
   ]);
 
   useEffect(() => {
-    // Restore pending cut after naats are loaded
-    if (naats.length > 0 && !tempFileId) {
-      const savedState = localStorage.getItem("pendingCut");
-      if (savedState) {
-        try {
-          const { naatId, tempFileId: savedTempFileId } =
-            JSON.parse(savedState);
-          setTempFileId(savedTempFileId);
-          const naat = naats.find((n) => n.$id === naatId);
-          if (naat) {
-            setSelectedNaat(naat);
-          }
-        } catch (err) {
-          console.error("Failed to restore pending cut:", err);
-          localStorage.removeItem("pendingCut");
-        }
-      }
-    }
+    // Restore pending cut after naats are loaded — no longer needed
   }, [naats]);
 
   useEffect(() => {
@@ -255,7 +229,7 @@ export default function ManualCutClient() {
         Query.limit(LIMIT),
         Query.offset(currentOffset),
         Query.isNotNull("audioId"),
-        Query.isNull("cutAudio"),
+        Query.isNull("cutSegments"),
         Query.or([Query.equal("exclude", false), Query.isNull("exclude")]),
       ];
 
@@ -319,16 +293,11 @@ export default function ManualCutClient() {
         const saved = localStorage.getItem("adminCutState");
         if (saved) {
           try {
-            const {
-              naatId,
-              segments,
-              tempFileId: savedTempFileId,
-            } = JSON.parse(saved);
+            const { naatId, segments } = JSON.parse(saved);
             const naat = newNaats.find((n) => n.$id === naatId);
             if (naat) {
               setSelectedNaat(naat);
               if (segments?.length > 0) setCutSegments(segments);
-              if (savedTempFileId) setTempFileId(savedTempFileId);
             }
           } catch (err) {
             console.error("Failed to restore:", err);
@@ -386,167 +355,50 @@ export default function ManualCutClient() {
     return Math.floor(totalSeconds % 60);
   }
 
-  async function handleCut() {
+  async function handleSaveTimestamps() {
     if (!selectedNaat) return;
 
-    setCutting(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/admin/cut-audio", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          naatId: selectedNaat.$id,
-          cutSegments: cutSegments.filter((seg) => seg.start < seg.end),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to cut audio");
-      }
-
-      // Poll for job completion
-      const jobId = data.jobId;
-      await pollJobStatus(jobId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to cut audio");
-      setCutting(false);
-    }
-  }
-
-  async function pollJobStatus(jobId: string) {
-    const maxAttempts = 120; // 10 minutes max (5 sec intervals)
-    let attempts = 0;
-
-    const poll = async () => {
-      attempts++;
-
-      try {
-        const response = await fetch(`/api/admin/cut-audio?jobId=${jobId}`);
-        const data = await response.json();
-
-        if (data.status === "completed") {
-          setTempFileId(data.tempFileId);
-          setCutting(false);
-          // Save to localStorage for later approval
-          if (selectedNaat) {
-            localStorage.setItem(
-              "pendingCut",
-              JSON.stringify({
-                naatId: selectedNaat.$id,
-                tempFileId: data.tempFileId,
-              }),
-            );
-          }
-        } else if (data.status === "failed") {
-          throw new Error(data.error || "Processing failed");
-        } else if (attempts >= maxAttempts) {
-          throw new Error("Processing timeout");
-        } else {
-          // Continue polling
-          setTimeout(poll, 5000);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to check status");
-        setCutting(false);
-      }
-    };
-
-    poll();
-  }
-
-  async function handleApprove() {
-    if (!selectedNaat || !tempFileId) return;
-
-    // Use auto-calculated duration if available, otherwise use manual input
-    let totalSeconds = autoCutDuration || 0;
-
-    if (!autoCutDuration) {
-      const minutes = parseInt(cutDurationMinutes) || 0;
-      const seconds = parseInt(cutDurationSeconds) || 0;
-      totalSeconds = minutes * 60 + seconds;
-    }
-
-    if (totalSeconds <= 0) {
-      setError(
-        "Unable to determine cut audio duration. Please wait for the audio to load.",
-      );
+    const validSegments = cutSegments.filter((seg) => seg.start < seg.end);
+    if (validSegments.length === 0) {
+      setError("Add at least one valid segment (start must be less than end)");
       return;
     }
 
-    setApproving(true);
+    setSaving(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/admin/approve-cut", {
+      const response = await fetch("/api/admin/save-timestamps", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           naatId: selectedNaat.$id,
-          tempFileId,
-          cutDuration: totalSeconds,
+          cutSegments: validSegments,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to approve cut");
+        throw new Error(data.error || "Failed to save timestamps");
       }
 
-      alert("Audio cut approved and saved!");
+      alert("Timestamps saved!");
 
       clearState();
 
       setSelectedNaat(null);
-      setTempFileId(null);
       setCutSegments([{ start: 0, end: 0 }]);
-      setCutDurationMinutes("");
-      setCutDurationSeconds("");
-      setAutoCutDuration(null);
+      setDetectionResult(null);
       // Reload the list
       setNaats([]);
       setOffset(0);
       setHasMore(true);
       loadNaats(0, true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to approve cut");
+      setError(err instanceof Error ? err.message : "Failed to save timestamps");
     } finally {
-      setApproving(false);
-    }
-  }
-
-  async function handleReject() {
-    if (!tempFileId) return;
-
-    setRejecting(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/admin/reject-cut", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tempFileId }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to reject cut");
-      }
-
-      alert("Cut rejected and temp file deleted");
-
-      clearState();
-
-      setTempFileId(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reject cut");
-    } finally {
-      setRejecting(false);
+      setSaving(false);
     }
   }
 
@@ -582,7 +434,6 @@ export default function ManualCutClient() {
       clearState();
 
       setSelectedNaat(null);
-      setTempFileId(null);
       setCutSegments([{ start: 0, end: 0 }]);
       // Reload the list
       setNaats([]);
@@ -786,7 +637,6 @@ export default function ManualCutClient() {
                   key={naat.$id}
                   onClick={() => {
                     setSelectedNaat(naat);
-                    setTempFileId(null);
                     setCutSegments([{ start: 0, end: 0 }]);
                     setDetectionResult(null);
                   }}
@@ -919,7 +769,6 @@ export default function ManualCutClient() {
             <button
               onClick={() => {
                 setSelectedNaat(null);
-                setTempFileId(null);
                 setCutSegments([{ start: 0, end: 0 }]);
                 setDetectionResult(null);
               }}
@@ -1402,11 +1251,11 @@ export default function ManualCutClient() {
 
               <div className="flex gap-4 mt-4">
                 <button
-                  onClick={handleCut}
-                  disabled={cutting}
+                  onClick={handleSaveTimestamps}
+                  disabled={saving}
                   className="flex-1 px-6 py-3 font-semibold bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
                 >
-                  {cutting ? "Processing..." : "Cut Audio"}
+                  {saving ? "Saving..." : "💾 Save Timestamps"}
                 </button>
                 <button
                   onClick={handleSkipNoExplanation}
@@ -1418,154 +1267,6 @@ export default function ManualCutClient() {
               </div>
             </div>
 
-            {tempFileId && (
-              <div className="p-6 mb-6 bg-gray-800 rounded-lg">
-                <h2 className="mb-4 text-xl font-semibold">
-                  Preview (Cut Audio)
-                </h2>
-                <audio
-                  ref={(el) => {
-                    setPreviewAudioRef(el);
-                    if (el) {
-                      el.onloadedmetadata = () => {
-                        const duration = Math.floor(el.duration);
-                        setAutoCutDuration(duration);
-                        setCutDurationMinutes(
-                          Math.floor(duration / 60).toString(),
-                        );
-                        setCutDurationSeconds((duration % 60).toString());
-                      };
-                    }
-                  }}
-                  controls
-                  className="w-full mb-3"
-                  src={getAudioUrl(tempFileId, "tempbucket")}
-                />
-                <div className="flex justify-center gap-2 mb-4">
-                  <button
-                    onClick={() => seekAudio(previewAudioRef, -10)}
-                    className="flex items-center gap-2 px-4 py-2 font-medium transition-colors bg-gray-700 rounded hover:bg-gray-600"
-                    title="Rewind 10 seconds"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"
-                      />
-                    </svg>
-                    -10s
-                  </button>
-                  <button
-                    onClick={() => seekAudio(previewAudioRef, 10)}
-                    className="flex items-center gap-2 px-4 py-2 font-medium transition-colors bg-gray-700 rounded hover:bg-gray-600"
-                    title="Forward 10 seconds"
-                  >
-                    +10s
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z"
-                      />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="p-4 mb-4 bg-gray-700 rounded-lg">
-                  <label className="block mb-2 text-sm font-medium">
-                    Cut Audio Duration{" "}
-                    {autoCutDuration && (
-                      <span className="text-green-400">(Auto-detected)</span>
-                    )}
-                  </label>
-                  <p className="mb-3 text-xs text-gray-400">
-                    {autoCutDuration
-                      ? "Duration automatically detected from the audio file"
-                      : "Waiting for audio to load..."}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <label className="block mb-1 text-xs text-gray-400">
-                        Minutes
-                      </label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded"
-                        value={cutDurationMinutes}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, "");
-                          setCutDurationMinutes(val);
-                          setAutoCutDuration(null); // Clear auto value if manually edited
-                        }}
-                        placeholder="0"
-                        readOnly={!!autoCutDuration}
-                      />
-                    </div>
-                    <span className="pb-2 mt-5 text-2xl">:</span>
-                    <div className="flex-1">
-                      <label className="block mb-1 text-xs text-gray-400">
-                        Seconds
-                      </label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded"
-                        value={cutDurationSeconds}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, "");
-                          const seconds = Math.min(parseInt(val) || 0, 59);
-                          setCutDurationSeconds(seconds.toString());
-                          setAutoCutDuration(null); // Clear auto value if manually edited
-                        }}
-                        placeholder="0"
-                        readOnly={!!autoCutDuration}
-                      />
-                    </div>
-                    <div className="flex-1 mt-5">
-                      <div className="px-3 py-2 text-center bg-gray-800 rounded">
-                        <span className="text-xs text-gray-400">Total: </span>
-                        <span className="font-semibold">
-                          {(parseInt(cutDurationMinutes) || 0) * 60 +
-                            (parseInt(cutDurationSeconds) || 0)}{" "}
-                          sec
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleApprove}
-                    disabled={approving}
-                    className="flex-1 px-6 py-3 font-semibold bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
-                  >
-                    {approving ? "Approving..." : "✓ Approve"}
-                  </button>
-                  <button
-                    onClick={handleReject}
-                    disabled={rejecting}
-                    className="flex-1 px-6 py-3 font-semibold bg-red-600 rounded hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {rejecting ? "Rejecting..." : "✗ Reject"}
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
