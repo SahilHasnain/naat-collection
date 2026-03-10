@@ -414,7 +414,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
           setLiveState(updatedState);
 
           // Get the next track
-          const nextTrackId = state.playlist[nextIndex];
+          const nextTrackId = liveRadioService.getCurrentTrackId({ ...state, currentTrackIndex: nextIndex } as any);
           if (!nextTrackId) {
             throw new Error("Next track not found in playlist");
           }
