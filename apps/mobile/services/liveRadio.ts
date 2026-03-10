@@ -75,14 +75,37 @@ class LiveRadioService {
   }
 
   /**
+   * Parse a playlist entry to extract the naat ID.
+   * Supports pipe-delimited format (naatId|audioId|hasCutAudio) and plain naat ID strings.
+   */
+  private parseNaatId(entry: string): string {
+    if (entry.includes('|')) {
+      return entry.split('|')[0];
+    }
+    return entry;
+  }
+
+  /**
    * Get current track ID from state
    */
   getCurrentTrackId(state: LiveRadioState): string | null {
     if (!state.playlist || state.playlist.length === 0) {
       return null;
     }
-    return state.playlist[state.currentTrackIndex] || null;
+    const entry = state.playlist[state.currentTrackIndex];
+    return entry ? this.parseNaatId(entry) : null;
   }
+  /**
+   * Parse a playlist entry to extract the naat ID.
+   * Supports pipe-delimited format (naatId|audioId|hasCutAudio) and plain naat ID strings.
+   */
+  private parseNaatId(entry: string): string {
+    if (entry.includes('|')) {
+      return entry.split('|')[0];
+    }
+    return entry;
+  }
+
 
   /**
    * Get next track ID from state
@@ -92,7 +115,8 @@ class LiveRadioService {
       return null;
     }
     const nextIndex = (state.currentTrackIndex + 1) % state.playlist.length;
-    return state.playlist[nextIndex] || null;
+    const entry = state.playlist[nextIndex];
+    return entry ? this.parseNaatId(entry) : null;
   }
 
   /**
@@ -319,7 +343,7 @@ class LiveRadioService {
 
       for (let i = 1; i <= count && i < playlistLength; i++) {
         const index = (state.currentTrackIndex + i) % playlistLength;
-        const naatId = state.playlist[index];
+        const naatId = this.parseNaatId(state.playlist[index]);
         const naat = await this.getCurrentNaat(naatId);
         if (naat) {
           naats.push(naat);

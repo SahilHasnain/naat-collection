@@ -200,10 +200,13 @@ async function updateLiveRadioStateWithTimestamp(
   timestamp,
 ) {
   try {
-    // Serialize playlist items to JSON strings for Appwrite string[] attribute
-    const serializedPlaylist = playlist.map((item) =>
-      typeof item === 'string' ? item : JSON.stringify(item)
-    );
+    // Serialize playlist items as pipe-delimited strings for Appwrite string[] attribute
+    // Format: naatId|audioId|hasCutAudio (avoids comma issues with JSON in Appwrite arrays)
+    const serializedPlaylist = playlist.map((item) => {
+      if (typeof item === 'string' && !item.includes('|')) return item;
+      if (typeof item === 'string' && item.includes('|')) return item;
+      return `${item.naatId}|${item.audioId}|${item.hasCutAudio ? '1' : '0'}`;
+    });
 
     const data = {
       currentTrackIndex,
@@ -254,11 +257,15 @@ async function shouldAdvanceTrack(databases, databaseId, naatsCollectionId) {
       LIVE_RADIO_DOCUMENT_ID,
     );
 
-    // Get current track from playlist (parse JSON string if stored serialized)
+    // Parse playlist item (pipe-delimited: naatId|audioId|hasCutAudio)
     const rawTrackData = currentState.playlist[currentState.currentTrackIndex];
-    const currentTrackData = typeof rawTrackData === 'string' && rawTrackData.startsWith('{')
-      ? JSON.parse(rawTrackData)
-      : rawTrackData;
+    let currentTrackData;
+    if (typeof rawTrackData === 'string' && rawTrackData.includes('|')) {
+      const [naatId, audioId, hasCutAudio] = rawTrackData.split('|');
+      currentTrackData = { naatId, audioId, hasCutAudio: hasCutAudio === '1' };
+    } else {
+      currentTrackData = rawTrackData;
+    }
 
     if (!currentTrackData) {
       console.log("No current track, needs initialization");
@@ -355,11 +362,15 @@ export default async ({ req, res, log, error }) => {
         LIVE_RADIO_DOCUMENT_ID,
       );
 
-      // Get current track to calculate when it actually started
+      // Parse current track (pipe-delimited: naatId|audioId|hasCutAudio)
       const rawCurrentTrackData = currentState.playlist[currentState.currentTrackIndex];
-      const currentTrackData = typeof rawCurrentTrackData === 'string' && rawCurrentTrackData.startsWith('{')
-        ? JSON.parse(rawCurrentTrackData)
-        : rawCurrentTrackData;
+      let currentTrackData;
+      if (typeof rawCurrentTrackData === 'string' && rawCurrentTrackData.includes('|')) {
+        const [naatId, audioId, hasCutAudio] = rawCurrentTrackData.split('|');
+        currentTrackData = { naatId, audioId, hasCutAudio: hasCutAudio === '1' };
+      } else {
+        currentTrackData = rawCurrentTrackData;
+      }
       const currentTrackId = typeof currentTrackData === 'string' 
         ? currentTrackData 
         : currentTrackData.naatId;
@@ -369,10 +380,11 @@ export default async ({ req, res, log, error }) => {
         currentTrackId,
       );
 
-      // Parse playlist items from JSON strings (Appwrite stores as string[])
+      // Parse playlist items from pipe-delimited strings
       playlist = currentState.playlist.map((item) => {
-        if (typeof item === 'string' && item.startsWith('{')) {
-          try { return JSON.parse(item); } catch { return item; }
+        if (typeof item === 'string' && item.includes('|')) {
+          const [naatId, audioId, hasCutAudio] = item.split('|');
+          return { naatId, audioId, hasCutAudio: hasCutAudio === '1' };
         }
         return item;
       });
