@@ -94,7 +94,7 @@ export default function HomeScreen() {
   useEffect(() => {
     loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.selectedFilter, filters.selectedChannelId]);
+  }, [filters.selectedFilter, filters.selectedChannelId, filters.pureOnly]);
 
   // Android back button
   useEffect(() => {
@@ -118,11 +118,8 @@ export default function HomeScreen() {
 
   // --- Render helpers ---
 
-  const activePureOnly = isShowingSearchResults ? filters.searchPureOnly : filters.pureOnly;
-
   const renderNaatCard = React.useCallback(
     ({ item }: { item: Naat }) => {
-      if (activePureOnly && !item.cutAudio) return null;
       const ds = downloadStates[item.$id];
       return (
         <NaatCard
@@ -142,7 +139,7 @@ export default function HomeScreen() {
         />
       );
     },
-    [handleNaatPress, handleDownload, downloadStates, activePureOnly],
+    [handleNaatPress, handleDownload, downloadStates],
   );
 
   const renderFooter = () => {

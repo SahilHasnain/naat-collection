@@ -6,12 +6,12 @@
  */
 
 import type {
-    AppwriteConfig,
-    AudioUrlResponse,
-    Channel,
-    ChannelDocument,
-    IAppwriteService,
-    Naat,
+  AppwriteConfig,
+  AudioUrlResponse,
+  Channel,
+  ChannelDocument,
+  IAppwriteService,
+  Naat,
 } from "@naat-collection/shared";
 import { Client, Databases, Query } from "appwrite";
 
@@ -60,6 +60,7 @@ export class AppwriteService implements IAppwriteService {
     offset: number = 0,
     sortBy: "latest" | "popular" | "oldest" = "latest",
     channelId?: string | null,
+    pureOnly?: boolean,
   ): Promise<Naat[]> {
     this.initialize();
 
@@ -74,6 +75,11 @@ export class AppwriteService implements IAppwriteService {
 
       if (channelId) {
         queries.push(Query.equal("channelId", channelId));
+      }
+
+      // Filter to only naats with cut audio
+      if (pureOnly) {
+        queries.push(Query.isNotNull("cutAudio"));
       }
 
       switch (sortBy) {
@@ -158,7 +164,7 @@ export class AppwriteService implements IAppwriteService {
   /**
    * Searches for naats matching the provided query string
    */
-  async searchNaats(query: string, channelId?: string | null): Promise<Naat[]> {
+  async searchNaats(query: string, channelId?: string | null, pureOnly?: boolean): Promise<Naat[]> {
     this.initialize();
 
     if (!query || query.trim() === "") {
@@ -179,6 +185,11 @@ export class AppwriteService implements IAppwriteService {
 
       if (channelId) {
         queries.push(Query.equal("channelId", channelId));
+      }
+
+      // Filter to only naats with cut audio
+      if (pureOnly) {
+        queries.push(Query.isNotNull("cutAudio"));
       }
 
       const response = await this.database.listDocuments(
