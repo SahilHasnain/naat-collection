@@ -10,16 +10,16 @@ import Slider from "@react-native-community/slider";
 import * as ScreenOrientation from "expo-screen-orientation";
 import React from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Pressable,
-  StatusBar,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    StatusBar,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import YoutubePlayer from "react-native-youtube-iframe";
+import Pressable from "./ResponsivePressable";
 
 interface VideoModalProps extends VideoPlayerProps {
   visible: boolean;

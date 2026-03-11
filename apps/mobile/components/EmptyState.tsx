@@ -2,7 +2,8 @@ import { colors, shadows } from "@/constants/theme";
 import { EmptyStateProps } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import Pressable from "./ResponsivePressable";
 
 const EmptyState: React.FC<EmptyStateProps> = ({
   message,

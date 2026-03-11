@@ -6,12 +6,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
 import {
-    ActivityIndicator,
-    Pressable,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import Pressable from "./ResponsivePressable";
 
 const formatDuration = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);

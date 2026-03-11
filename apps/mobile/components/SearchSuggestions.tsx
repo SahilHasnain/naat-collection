@@ -2,7 +2,8 @@ import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
-import { FlatList, Keyboard, Pressable, Text, View } from "react-native";
+import { FlatList, Keyboard, Text, View } from "react-native";
+import Pressable from "./ResponsivePressable";
 
 export interface SearchSuggestion {
   id: string;

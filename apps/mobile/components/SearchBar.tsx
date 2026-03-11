@@ -2,7 +2,8 @@ import { colors } from "@/constants/theme";
 import { SearchBarProps } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
+import Pressable from "./ResponsivePressable";
 
 const SearchBar: React.FC<SearchBarProps> = ({
   value,
