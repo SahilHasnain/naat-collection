@@ -7,28 +7,28 @@ import MiniPlayer from "@/components/MiniPlayer";
 import { colors, layout } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
 import {
-    FilterModalProvider,
-    useFilterModal,
+  FilterModalProvider,
+  useFilterModal,
 } from "@/contexts/FilterModalContext";
 import {
-    HeaderVisibilityProvider,
-    useHeaderVisibility,
+  HeaderVisibilityProvider,
+  useHeaderVisibility,
 } from "@/contexts/HeaderVisibilityContext.animated";
 import {
-    LiveRadioProvider,
-    useLiveRadioPlayer,
+  LiveRadioProvider,
+  useLiveRadioPlayer,
 } from "@/contexts/LiveRadioContext";
 import {
-    PlaybackModeProvider,
-    usePlaybackMode,
+  PlaybackModeProvider,
+  usePlaybackMode,
 } from "@/contexts/PlaybackModeContext";
 import {
-    SearchProvider,
-    useSearch as useSearchContext,
+  SearchProvider,
+  useSearch as useSearchContext,
 } from "@/contexts/SearchContext";
 import {
-    TabBarVisibilityProvider,
-    useTabBarVisibility,
+  TabBarVisibilityProvider,
+  useTabBarVisibility,
 } from "@/contexts/TabBarVisibilityContext.animated";
 import { VideoProvider } from "@/contexts/VideoContext";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
@@ -38,9 +38,11 @@ import * as Sentry from "@sentry/react-native";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import "../global.css";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 // Initialize Sentry
 Sentry.init({
@@ -422,27 +424,31 @@ function RootLayoutContent() {
 
 function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <PlaybackModeProvider>
-        <AudioProvider>
-          <LiveRadioProvider>
-            <VideoProvider>
-              <ErrorBoundary>
-                <SearchProvider>
-                  <FilterModalProvider>
-                    <HeaderVisibilityProvider headerHeight={140}>
-                      <TabBarVisibilityProvider tabBarHeight={150}>
-                        <RootLayoutContent />
-                      </TabBarVisibilityProvider>
-                    </HeaderVisibilityProvider>
-                  </FilterModalProvider>
-                </SearchProvider>
-              </ErrorBoundary>
-            </VideoProvider>
-          </LiveRadioProvider>
-        </AudioProvider>
-      </PlaybackModeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <SafeAreaProvider>
+          <PlaybackModeProvider>
+            <AudioProvider>
+              <LiveRadioProvider>
+                <VideoProvider>
+                  <ErrorBoundary>
+                    <SearchProvider>
+                      <FilterModalProvider>
+                        <HeaderVisibilityProvider headerHeight={140}>
+                          <TabBarVisibilityProvider tabBarHeight={150}>
+                            <RootLayoutContent />
+                          </TabBarVisibilityProvider>
+                        </HeaderVisibilityProvider>
+                      </FilterModalProvider>
+                    </SearchProvider>
+                  </ErrorBoundary>
+                </VideoProvider>
+              </LiveRadioProvider>
+            </AudioProvider>
+          </PlaybackModeProvider>
+        </SafeAreaProvider>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
 
