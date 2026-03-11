@@ -211,8 +211,9 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
       // Switch to live radio mode
       setMode("live");
 
-      // Get audio URL
-      const audioResponse = await appwriteService.getAudioUrl(naat.audioId);
+      // Get audio URL — use cutAudio from playlist entry if available
+      const radioAudioId = liveRadioService.getCurrentAudioId(state, naat.audioId);
+      const audioResponse = await appwriteService.getAudioUrl(radioAudioId);
       if (!audioResponse.success || !audioResponse.audioUrl) {
         throw new Error("Failed to get audio URL");
       }
@@ -353,8 +354,9 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
           timing.remainingSeconds = naat.duration;
         }
 
-        // Get audio URL and play
-        const audioResponse = await appwriteService.getAudioUrl(naat.audioId);
+        // Get audio URL and play — use cutAudio from playlist entry if available
+        const radioAudioId = liveRadioService.getCurrentAudioId(state, naat.audioId);
+        const audioResponse = await appwriteService.getAudioUrl(radioAudioId);
         if (!audioResponse.success || !audioResponse.audioUrl) {
           throw new Error("Failed to get audio URL");
         }
@@ -433,9 +435,10 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
           );
           setUpcomingNaats(upcoming);
 
-          // Get audio URL and play
+          // Get audio URL and play — use cutAudio from playlist entry if available
+          const radioAudioId = liveRadioService.getAudioIdAtIndex(updatedState, nextIndex, nextNaat.audioId);
           const audioResponse = await appwriteService.getAudioUrl(
-            nextNaat.audioId,
+            radioAudioId,
           );
           if (!audioResponse.success || !audioResponse.audioUrl) {
             throw new Error("Failed to get audio URL");

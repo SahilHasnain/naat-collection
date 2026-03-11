@@ -75,14 +75,15 @@ class LiveRadioService {
   }
 
   /**
-   * Parse a playlist entry to extract the naat ID.
+   * Parse a playlist entry into its components.
    * Supports pipe-delimited format (naatId|audioId|hasCutAudio) and plain naat ID strings.
    */
-  private parseNaatId(entry: string): string {
+  parsePlaylistEntry(entry: string): { naatId: string; audioId: string | null; hasCutAudio: boolean } {
     if (entry.includes('|')) {
-      return entry.split('|')[0];
+      const [naatId, audioId, hasCutAudio] = entry.split('|');
+      return { naatId, audioId, hasCutAudio: hasCutAudio === '1' };
     }
-    return entry;
+    return { naatId: entry, audioId: null, hasCutAudio: false };
   }
 
   /**
@@ -93,19 +94,39 @@ class LiveRadioService {
       return null;
     }
     const entry = state.playlist[state.currentTrackIndex];
-    return entry ? this.parseNaatId(entry) : null;
-  }
-  /**
-   * Parse a playlist entry to extract the naat ID.
-   * Supports pipe-delimited format (naatId|audioId|hasCutAudio) and plain naat ID strings.
-   */
-  private parseNaatId(entry: string): string {
-    if (entry.includes('|')) {
-      return entry.split('|')[0];
-    }
-    return entry;
+    return entry ? this.parsePlaylistEntry(entry).naatId : null;
   }
 
+  /**
+   * Get the audio ID to use for the current track.
+   * Returns the cutAudio ID from the playlist entry if available, otherwise falls back to the naat's audioId.
+   */
+  getCurrentAudioId(state: LiveRadioState, fallbackAudioId: string): string {
+    if (!state.playlist || state.playlist.length === 0) {
+      return fallbackAudioId;
+    }
+    const entry = state.playlist[state.currentTrackIndex];
+    if (entry) {
+      const parsed = this.parsePlaylistEntry(entry);
+      if (parsed.audioId) return parsed.audioId;
+    }
+    return fallbackAudioId;
+  }
+
+  /**
+   * Get the audio ID for a specific playlist index.
+   */
+  getAudioIdAtIndex(state: LiveRadioState, index: number, fallbackAudioId: string): string {
+    if (!state.playlist || state.playlist.length === 0) {
+      return fallbackAudioId;
+    }
+    const entry = state.playlist[index];
+    if (entry) {
+      const parsed = this.parsePlaylistEntry(entry);
+      if (parsed.audioId) return parsed.audioId;
+    }
+    return fallbackAudioId;
+  }
 
   /**
    * Get next track ID from state
@@ -116,7 +137,7 @@ class LiveRadioService {
     }
     const nextIndex = (state.currentTrackIndex + 1) % state.playlist.length;
     const entry = state.playlist[nextIndex];
-    return entry ? this.parseNaatId(entry) : null;
+    return entry ? this.parsePlaylistEntry(entry).naatId : null;
   }
 
   /**
@@ -343,7 +364,7 @@ class LiveRadioService {
 
       for (let i = 1; i <= count && i < playlistLength; i++) {
         const index = (state.currentTrackIndex + i) % playlistLength;
-        const naatId = this.parseNaatId(state.playlist[index]);
+        const naatId = this.parsePlaylistEntry(state.playlist[index]).naatId;
         const naat = await this.getCurrentNaat(naatId);
         if (naat) {
           naats.push(naat);

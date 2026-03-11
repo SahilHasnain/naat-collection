@@ -13,11 +13,13 @@ import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect } from "react";
 import {
   ActivityIndicator,
+  ImageBackground,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -116,114 +118,150 @@ export default function LiveScreen() {
   }
 
   return (
-    <SafeAreaView
-      className="flex-1 mt-2"
-      style={{ backgroundColor: colors.background.primary }}
-      edges={["top"]}
-    >
-      {/* Listener Count Badge - Top Right, below header */}
-      {listenerCount > 0 && (
-        <View className="flex-row justify-end px-4 pt-16">
-          <View
-            className="flex-row items-center px-3 py-1.5 rounded-full"
-            style={{ backgroundColor: "rgba(239, 68, 68, 0.2)" }}
-          >
-            <Text
-              className="text-sm font-semibold mr-1.5"
-              style={{ color: colors.text.primary }}
-            >
-              {listenerCount}
-            </Text>
-            <Ionicons name="people" size={16} color={colors.accent.error} />
-          </View>
-        </View>
-      )}
-
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          flexGrow: 1,
-          justifyContent: "flex-end",
-          marginBottom: 150,
-        }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={refresh}
-            tintColor={colors.accent.error}
-            colors={[colors.accent.error]}
-          />
-        }
+    <View style={styles.container}>
+      <ImageBackground
+        source={require("@/assets/images/gumbad.jpeg")}
+        style={styles.backgroundImage}
+        resizeMode="cover"
       >
-        {/* Current Track */}
-        <View className="px-4 mb-6">
-          {/* Radio Icon and Track Info - Inline */}
-          <View className="flex-row items-center mb-4">
-            <View className="mr-4">
-              <Ionicons name="radio" size={64} color={colors.accent.error} />
-            </View>
-            <View className="flex-1">
-              <Text
-                className="text-lg font-bold"
-                numberOfLines={2}
-                style={{ color: colors.text.primary }}
+        {/* Smooth gradient overlay */}
+        <LinearGradient
+          colors={[
+            "rgba(15, 15, 15, 0.3)",
+            "rgba(15, 15, 15, 0.55)",
+            "rgba(15, 15, 15, 0.85)",
+            colors.background.primary,
+          ]}
+          locations={[0, 0.35, 0.65, 0.9]}
+          style={StyleSheet.absoluteFill}
+        />
+
+        <SafeAreaView className="flex-1" edges={["top"]}>
+          {/* Listener Count Badge - Top Right */}
+          {listenerCount > 0 && (
+            <View className="flex-row justify-end px-4 pt-16">
+              <View
+                className="flex-row items-center px-3 py-1.5 rounded-full"
+                style={{ backgroundColor: "rgba(239, 68, 68, 0.25)" }}
               >
-                {currentNaat.title}
-              </Text>
-            </View>
-          </View>
-
-          {/* Play/Pause Button */}
-          <TouchableOpacity
-            onPress={isPlaying ? handleStopLive : handlePlayLive}
-            className="items-center justify-center"
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: 36,
-              backgroundColor: colors.accent.error,
-              alignSelf: "center",
-            }}
-          >
-            <Ionicons
-              name={isPlaying ? "pause" : "play"}
-              size={32}
-              color={colors.text.primary}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Up Next Section */}
-        {upcomingNaats.length > 0 && (
-          <View className="px-4 mb-6">
-            <Text
-              className="mb-3 text-lg font-bold"
-              style={{ color: colors.text.primary }}
-            >
-              Next
-            </Text>
-            <View className="flex-row items-center">
-              <View className="mr-3">
+                <Text
+                  className="text-sm font-semibold mr-1.5"
+                  style={{ color: colors.text.primary }}
+                >
+                  {listenerCount}
+                </Text>
                 <Ionicons
-                  name="play-skip-forward"
-                  size={24}
+                  name="people"
+                  size={16}
                   color={colors.accent.error}
                 />
               </View>
-              <View className="flex-1">
-                <Text
-                  className="text-sm font-semibold"
-                  style={{ color: colors.text.primary }}
-                  numberOfLines={2}
-                >
-                  {upcomingNaats[0].title}
-                </Text>
-              </View>
             </View>
-          </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+          )}
+
+          <ScrollView
+            className="flex-1"
+            contentContainerStyle={{
+              flexGrow: 1,
+              justifyContent: "flex-end",
+              marginBottom: 150,
+            }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isLoading}
+                onRefresh={refresh}
+                tintColor={colors.accent.error}
+                colors={[colors.accent.error]}
+              />
+            }
+          >
+            {/* Current Track */}
+            <View className="px-4 mb-6">
+              {/* Radio Icon and Track Info - Inline */}
+              <View className="flex-row items-center mb-4">
+                <View className="mr-4">
+                  <Ionicons
+                    name="radio"
+                    size={64}
+                    color={colors.accent.error}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text
+                    className="text-lg font-bold"
+                    numberOfLines={2}
+                    style={{ color: colors.text.primary }}
+                  >
+                    {currentNaat.title}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Play/Pause Button */}
+              <TouchableOpacity
+                onPress={isPlaying ? handleStopLive : handlePlayLive}
+                className="items-center justify-center"
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 36,
+                  backgroundColor: colors.accent.error,
+                  alignSelf: "center",
+                }}
+              >
+                <Ionicons
+                  name={isPlaying ? "pause" : "play"}
+                  size={32}
+                  color={colors.text.primary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Up Next Section */}
+            {upcomingNaats.length > 0 && (
+              <View className="px-4 mb-6">
+                <Text
+                  className="mb-3 text-lg font-bold"
+                  style={{ color: colors.text.primary }}
+                >
+                  Next
+                </Text>
+                <View className="flex-row items-center">
+                  <View className="mr-3">
+                    <Ionicons
+                      name="play-skip-forward"
+                      size={24}
+                      color={colors.accent.error}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text
+                      className="text-sm font-semibold"
+                      style={{ color: colors.text.primary }}
+                      numberOfLines={2}
+                    >
+                      {upcomingNaats[0].title}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </ImageBackground>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background.primary,
+  },
+  backgroundImage: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+  },
+});
