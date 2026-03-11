@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface AnimatedTabBarProps extends BottomTabBarProps {
   translateY: SharedValue<number>;
+  networkIndicatorOffset: SharedValue<number>;
 }
 
 export function AnimatedTabBar({
@@ -17,12 +18,15 @@ export function AnimatedTabBar({
   descriptors,
   navigation,
   translateY,
+  networkIndicatorOffset,
 }: AnimatedTabBarProps) {
   const insets = useSafeAreaInsets();
   const TAB_BAR_HEIGHT = 56; // Reduced height for cleaner look
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
+    // Shift up by network indicator height when tab bar is visible
+    bottom: translateY.value > 0 ? 0 : networkIndicatorOffset.value,
   }));
 
   // Filter out routes that should be hidden

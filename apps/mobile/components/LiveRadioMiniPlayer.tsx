@@ -11,19 +11,22 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect } from "react";
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
+  SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
+  withTiming
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface LiveRadioMiniPlayerProps {
   onExpand: () => void;
+  networkIndicatorOffset: SharedValue<number>;
 }
 
 const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
   onExpand,
+  networkIndicatorOffset,
 }) => {
   const { currentNaat, isPlaying, stop } = useLiveRadioPlayer();
   const { translateY: tabBarTranslateY } = useTabBarVisibility();
@@ -56,11 +59,11 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
 
     // Smoothly animate bottom position based on tab bar visibility
     // When tab bar is hidden (translateY > 0), position above system buttons
-    // When tab bar is visible (translateY = 0), position above tab bar
+    // When tab bar is visible (translateY = 0), position above tab bar + network indicator
     const targetBottom =
       tabBarTranslateY.value > 0
         ? insets.bottom + MINI_PLAYER_OFFSET_WHEN_HIDDEN // Above system buttons
-        : TAB_BAR_HEIGHT + insets.bottom; // Above tab bar
+        : TAB_BAR_HEIGHT + insets.bottom + networkIndicatorOffset.value; // Above tab bar + indicator
 
     return {
       transform: [{ translateY: slideAnim.value }],
