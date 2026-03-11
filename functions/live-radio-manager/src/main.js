@@ -81,7 +81,7 @@ function isTooSimilar(title, seenTitles, threshold = 85) {
 /**
  * Generate a random playlist of naats
  * Returns array of objects with: { naatId, audioId, hasCutAudio }
- * Prioritizes cutAudio (processed) over audioId when available
+ * Only includes documents that have cutAudio (processed audio)
  */
 async function generatePlaylist(databases, databaseId, naatsCollectionId) {
   const playlist = [];
@@ -90,7 +90,7 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
   const MAX_DURATION = 1200; // 20 minutes in seconds
   const MAX_ATTEMPTS = PLAYLIST_SIZE * 3; // Prevent infinite loops
 
-  // Get total count of naats under 20 minutes that are not excluded, have radio enabled, and have audioId
+  // Get total count of naats under 20 minutes that are not excluded, have radio enabled, and have cutAudio
   const countResponse = await databases.listDocuments(
     databaseId,
     naatsCollectionId,
@@ -98,7 +98,7 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
       Query.limit(1),
       Query.lessThanEqual("duration", MAX_DURATION),
       Query.equal("radio", true),
-      Query.isNotNull("audioId"),
+      Query.isNotNull("cutAudio"),
       Query.or([
         Query.equal("exclude", false),
         Query.isNull("exclude")
@@ -109,7 +109,7 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
   const totalNaats = countResponse.total;
 
   if (totalNaats === 0) {
-    throw new Error("No naats found with radio enabled, audioId present, under 20 minutes duration, and not excluded");
+    throw new Error("No naats found with radio enabled, cutAudio present, under 20 minutes duration, and not excluded");
   }
 
   let attempts = 0;
@@ -127,12 +127,12 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
         Query.offset(randomOffset),
         Query.lessThanEqual("duration", MAX_DURATION),
         Query.equal("radio", true),
-        Query.isNotNull("audioId"),
+        Query.isNotNull("cutAudio"),
         Query.or([
           Query.equal("exclude", false),
           Query.isNull("exclude")
         ]),
-        Query.select(["$id", "title", "cutAudio", "audioId"]),
+        Query.select(["$id", "title", "cutAudio"]),
       ],
     );
 
@@ -152,12 +152,10 @@ async function generatePlaylist(databases, databaseId, naatsCollectionId) {
         continue;
       }
 
-      // Add to playlist with preferred audio ID (cutAudio if available, otherwise audioId)
-      const preferredAudioId = naat.cutAudio || naat.audioId;
       playlist.push({
         naatId,
-        audioId: preferredAudioId,
-        hasCutAudio: !!naat.cutAudio
+        audioId: naat.cutAudio,
+        hasCutAudio: true
       });
       seenIds.add(naatId);
       seenTitles.push(normalizeTitle(naatTitle));
