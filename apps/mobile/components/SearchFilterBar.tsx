@@ -2,7 +2,8 @@ import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import type { Channel, DurationOption } from "@naat-collection/shared";
 import React from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
+import Pressable from "./ResponsivePressable";
 
 const durationFilters: {
   value: DurationOption;

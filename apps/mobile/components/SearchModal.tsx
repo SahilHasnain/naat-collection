@@ -3,16 +3,16 @@ import { Ionicons } from "@expo/vector-icons";
 import type { Channel, DurationOption } from "@naat-collection/shared";
 import React, { useEffect, useRef } from "react";
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Pressable from "./ResponsivePressable";
 import { SearchSuggestion, SearchSuggestions } from "./SearchSuggestions";
 
 interface SearchModalProps {

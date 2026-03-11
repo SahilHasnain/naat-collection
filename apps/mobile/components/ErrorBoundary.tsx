@@ -1,7 +1,8 @@
 import { colors, shadows } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React, { Component, ReactNode } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import Pressable from "./ResponsivePressable";
 
 interface ErrorBoundaryProps {
   children: ReactNode;

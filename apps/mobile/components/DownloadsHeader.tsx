@@ -3,7 +3,8 @@ import { DownloadsHeaderProps } from "@/types";
 import { formatFileSize } from "@/utils/formatters";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import Pressable from "./ResponsivePressable";
 
 const DownloadsHeader: React.FC<DownloadsHeaderProps> = ({
   totalSize,

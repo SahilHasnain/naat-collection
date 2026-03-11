@@ -11,7 +11,8 @@ import type {
   SortOption,
 } from "@naat-collection/shared";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
+import Pressable from "./ResponsivePressable";
 
 interface UnifiedFilterBarProps {
   selectedSort: SortOption;

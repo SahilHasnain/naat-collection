@@ -3,11 +3,12 @@ import type { Channel, DurationOption, SortOption } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { useEffect, useRef } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Text, TextInput, View } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  type SharedValue,
+    useAnimatedStyle,
+    type SharedValue,
 } from "react-native-reanimated";
+import Pressable from "./ResponsivePressable";
 
 interface AnimatedHeaderProps {
   translateY: SharedValue<number>;

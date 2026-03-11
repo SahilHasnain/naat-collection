@@ -4,7 +4,8 @@ import { formatRelativeTime } from "@/utils/dateGrouping";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import Pressable from "./ResponsivePressable";
 
 const formatDuration = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
