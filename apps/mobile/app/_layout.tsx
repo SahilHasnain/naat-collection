@@ -4,31 +4,31 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import FullPlayerModal from "@/components/FullPlayerModal";
 import LiveRadioMiniPlayer from "@/components/LiveRadioMiniPlayer";
 import MiniPlayer from "@/components/MiniPlayer";
-import { colors } from "@/constants/theme";
+import { colors, layout } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
 import {
-  FilterModalProvider,
-  useFilterModal,
+    FilterModalProvider,
+    useFilterModal,
 } from "@/contexts/FilterModalContext";
 import {
-  HeaderVisibilityProvider,
-  useHeaderVisibility,
+    HeaderVisibilityProvider,
+    useHeaderVisibility,
 } from "@/contexts/HeaderVisibilityContext.animated";
 import {
-  LiveRadioProvider,
-  useLiveRadioPlayer,
+    LiveRadioProvider,
+    useLiveRadioPlayer,
 } from "@/contexts/LiveRadioContext";
 import {
-  PlaybackModeProvider,
-  usePlaybackMode,
+    PlaybackModeProvider,
+    usePlaybackMode,
 } from "@/contexts/PlaybackModeContext";
 import {
-  SearchProvider,
-  useSearch as useSearchContext,
+    SearchProvider,
+    useSearch as useSearchContext,
 } from "@/contexts/SearchContext";
 import {
-  TabBarVisibilityProvider,
-  useTabBarVisibility,
+    TabBarVisibilityProvider,
+    useTabBarVisibility,
 } from "@/contexts/TabBarVisibilityContext.animated";
 import { VideoProvider } from "@/contexts/VideoContext";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
@@ -38,7 +38,7 @@ import * as Sentry from "@sentry/react-native";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { useSharedValue } from "react-native-reanimated";
+import { useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import "../global.css";
 
@@ -124,6 +124,18 @@ function RootLayoutContent() {
 
   // Shared value for header (must be called unconditionally)
   const isScrolledDownValue = useSharedValue(false);
+
+  // Shared value for network indicator offset — drives tab bar / mini player shift
+  const networkIndicatorOffset = useSharedValue(0);
+
+  // Animate the network indicator offset when visibility changes
+  const isIndicatorVisible = !isConnected || showBackOnline;
+  useEffect(() => {
+    networkIndicatorOffset.value = withTiming(
+      isIndicatorVisible ? layout.networkIndicatorHeight : 0,
+      { duration: 200 },
+    );
+  }, [isIndicatorVisible, networkIndicatorOffset]);
 
   // Handle switching from audio to video mode
   const handleSwitchToVideo = async () => {
@@ -212,7 +224,7 @@ function RootLayoutContent() {
           tabBarInactiveTintColor: colors.text.secondary,
         }}
         tabBar={(props) => (
-          <AnimatedTabBar {...props} translateY={translateY} />
+          <AnimatedTabBar {...props} translateY={translateY} networkIndicatorOffset={networkIndicatorOffset} />
         )}
       >
         <Tabs.Screen
@@ -283,7 +295,7 @@ function RootLayoutContent() {
 
       {/* Mini Player - Persistent across all screens (only show when normal audio is active and NOT on live tab or video screen) */}
       {isNormalAudioActive && currentAudio && !isOnLiveTab && !isOnVideoScreen && (
-        <MiniPlayer onExpand={() => setIsPlayerExpanded(true)} />
+        <MiniPlayer onExpand={() => setIsPlayerExpanded(true)} networkIndicatorOffset={networkIndicatorOffset} />
       )}
 
       {/* Live Radio Mini Player - Shows when live radio is active and user is NOT on live tab or video screen */}
@@ -293,6 +305,7 @@ function RootLayoutContent() {
             // Navigate to live tab when miniplayer is tapped
             router.push("/live");
           }}
+          networkIndicatorOffset={networkIndicatorOffset}
         />
       )}
 

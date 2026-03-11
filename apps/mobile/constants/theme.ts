@@ -124,6 +124,12 @@ export const shadows = {
   },
 } as const;
 
+// Layout constants
+export const layout = {
+  tabBarHeight: 56,
+  networkIndicatorHeight: 20, // "No connection" / "Back online" bar height
+} as const;
+
 // Common spacing values
 export const spacing = {
   xs: 4,
