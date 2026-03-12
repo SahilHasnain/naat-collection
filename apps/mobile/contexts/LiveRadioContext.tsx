@@ -37,7 +37,9 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [error, setError] = useState<string | null>(null);
   
   const metadataIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const trackCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isInitialized = useRef(false);
+  const lastTrackId = useRef<string | null>(null);
 
   // Initialize TrackPlayer
   useEffect(() => {
@@ -55,7 +57,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     initializePlayer();
   }, []);
 
-  // Fetch current track metadata
+  // Fetch current track metadata and check for track changes
   const fetchMetadata = async () => {
     try {
       const response = await fetch(`${LIVE_RADIO_BASE_URL}/api/current`);
@@ -66,12 +68,39 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setUpcomingNaats(data.upcomingTracks || []);
         setListenerCount(data.listenerCount || 0);
         setError(null);
+        
+        // Check if track changed
+        if (data.currentTrack.id !== lastTrackId.current && isPlaying) {
+          console.log('🔄 Track changed, switching audio...');
+          lastTrackId.current = data.currentTrack.id;
+          await switchToCurrentTrack();
+        }
       } else {
         setError(data.error || 'Failed to fetch metadata');
       }
     } catch (err) {
       console.error('Error fetching metadata:', err);
       setError('Network error');
+    }
+  };
+
+  // Switch to current track
+  const switchToCurrentTrack = async () => {
+    try {
+      await TrackPlayer.reset();
+      
+      const track = {
+        id: 'live-radio-current',
+        url: `${LIVE_RADIO_BASE_URL}/live/current.mp3?t=${Date.now()}`, // Cache busting
+        title: currentTrack?.title || 'Live Radio',
+        artist: 'Owais Raza Qadri Radio',
+      };
+      
+      await TrackPlayer.add(track);
+      await TrackPlayer.play();
+      console.log('✅ Switched to new track');
+    } catch (error) {
+      console.error('❌ Error switching track:', error);
     }
   };
 
@@ -99,33 +128,69 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  // Test MP3 stream accessibility
+  const testStreamUrl = async () => {
+    try {
+      console.log('🔍 Testing MP3 stream accessibility...');
+      const response = await fetch(`${LIVE_RADIO_BASE_URL}/live/current.mp3`, { method: 'HEAD' });
+      console.log('📡 MP3 response status:', response.status);
+      return response.ok;
+    } catch (error) {
+      console.error('❌ Error testing MP3 stream:', error);
+      return false;
+    }
+  };
+
   const play = async () => {
     try {
       setIsLoading(true);
       setError(null);
+      
+      console.log('🎵 Starting live radio...');
+
+      // Test stream accessibility first
+      const streamAccessible = await testStreamUrl();
+      if (!streamAccessible) {
+        throw new Error('MP3 stream is not accessible from this device');
+      }
+
+      // Get current track info
+      await fetchMetadata();
+      
+      if (!currentTrack) {
+        throw new Error('No track currently available');
+      }
 
       // Clear any existing tracks
       await TrackPlayer.reset();
+      console.log('✅ TrackPlayer reset');
 
-      // Add the HLS stream
-      await TrackPlayer.add({
-        id: 'live-radio',
-        url: `${LIVE_RADIO_BASE_URL}/live/master.m3u8`,
-        title: 'Live Radio',
+      // Add the current MP3 stream
+      const track = {
+        id: 'live-radio-current',
+        url: `${LIVE_RADIO_BASE_URL}/live/current.mp3?t=${Date.now()}`,
+        title: currentTrack.title,
         artist: 'Owais Raza Qadri Radio',
-        isLiveStream: true,
-      });
+      };
+      
+      console.log('🎵 Adding track:', track.url);
+      await TrackPlayer.add(track);
+      console.log('✅ Track added');
 
       // Start playing
+      console.log('▶️ Starting playback...');
       await TrackPlayer.play();
-      setIsPlaying(true);
+      console.log('✅ Playback started');
       
-      // Start polling for metadata
+      setIsPlaying(true);
+      lastTrackId.current = currentTrack.id;
+      
+      // Start polling for metadata and track changes
       startMetadataPolling();
 
     } catch (error) {
-      console.error('Error starting live radio:', error);
-      setError('Failed to start live radio');
+      console.error('❌ Error starting live radio:', error);
+      setError(`Failed to start live radio: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -156,10 +221,20 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Monitor TrackPlayer state changes
   useEffect(() => {
     const subscription = TrackPlayer.addEventListener('playback-state' as any, (state: any) => {
+      console.log('🎵 TrackPlayer state changed:', state);
       setIsPlaying(state.state === State.Playing);
     });
 
-    return () => subscription?.remove();
+    // Also listen for errors
+    const errorSubscription = TrackPlayer.addEventListener('playback-error' as any, (error: any) => {
+      console.error('❌ TrackPlayer error:', error);
+      setError(`Playback error: ${error.message || 'Unknown error'}`);
+    });
+
+    return () => {
+      subscription?.remove();
+      errorSubscription?.remove();
+    };
   }, []);
 
   // Cleanup on unmount
