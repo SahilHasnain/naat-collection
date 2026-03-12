@@ -102,7 +102,7 @@ export default function LiveScreen() {
           Live Radio Unavailable
         </Text>
         <Text className="mt-2 text-center text-neutral-400">
-          {error?.message || "Unable to load live radio"}
+          {error || "Unable to load live radio"}
         </Text>
         <TouchableOpacity
           onPress={refresh}
