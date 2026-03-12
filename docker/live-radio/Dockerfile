@@ -6,7 +6,12 @@ RUN apk add --no-cache \
     icecast \
     ffmpeg \
     curl \
-    bash
+    bash \
+    shadow
+
+# Create icecast user and group
+RUN addgroup -g 1000 icecast && \
+    adduser -D -s /bin/bash -u 1000 -G icecast icecast
 
 # Create app directory
 WORKDIR /app
@@ -25,11 +30,13 @@ RUN mkdir -p \
     /config \
     /usr/share/icecast/web \
     /usr/share/icecast/admin \
+    /tmp/icecast \
+    && chown -R icecast:icecast /var/log/icecast /config /usr/share/icecast /tmp/icecast /app \
     && chmod -R 755 /var/log/icecast /config /usr/share/icecast
 
 # Copy and set up Icecast configuration
 COPY icecast.xml /config/icecast.xml
-RUN chmod 644 /config/icecast.xml
+RUN chown icecast:icecast /config/icecast.xml && chmod 644 /config/icecast.xml
 
 # Expose ports
 EXPOSE 8000 3000

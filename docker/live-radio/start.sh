@@ -2,7 +2,10 @@
 
 echo "🎵 Starting Live Radio Services..."
 
-# Start Icecast in background with proper config path
+# Ensure proper permissions for icecast user
+chown -R icecast:icecast /var/log/icecast /config /app/audio-cache /tmp/icecast
+
+# Start Icecast as root (it will drop privileges automatically due to changeowner directive)
 echo "📡 Starting Icecast server..."
 icecast -c /config/icecast.xml -b &
 ICECAST_PID=$!
