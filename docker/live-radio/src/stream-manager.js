@@ -34,24 +34,42 @@ class StreamManager {
     try {
       console.log('Updating playlist...');
       
-      // TODO: Replace with your actual API endpoint
-      // For now, using a mock playlist
-      const mockPlaylist = [
-        {
-          id: '1',
-          title: 'Sample Naat 1',
-          audioUrl: 'https://example.com/audio1.mp3',
-          duration: 180
-        },
-        {
-          id: '2', 
-          title: 'Sample Naat 2',
-          audioUrl: 'https://example.com/audio2.mp3',
-          duration: 240
-        }
-      ];
+      const { Client, Databases, Query } = require('node-appwrite');
       
-      this.currentPlaylist = mockPlaylist;
+      // Initialize Appwrite client
+      const client = new Client()
+        .setEndpoint(process.env.APPWRITE_ENDPOINT)
+        .setProject(process.env.APPWRITE_PROJECT_ID)
+        .setKey(process.env.APPWRITE_API_KEY);
+
+      const databases = new Databases(client);
+      
+      // Fetch naats with radio enabled and cutAudio
+      const response = await databases.listDocuments(
+        process.env.DATABASE_ID,
+        '695bc8e70038db72df5b', // naats collection ID
+        [
+          Query.limit(50),
+          Query.lessThanEqual("duration", 1200), // 20 minutes max
+          Query.equal("radio", true),
+          Query.isNotNull("cutAudio"),
+          Query.or([
+            Query.equal("exclude", false),
+            Query.isNull("exclude")
+          ]),
+          Query.select(["$id", "title", "cutAudio", "duration"])
+        ]
+      );
+      
+      // Convert to playlist format
+      this.currentPlaylist = response.documents.map(naat => ({
+        id: naat.$id,
+        title: naat.title,
+        audioUrl: `https://sgp.cloud.appwrite.io/v1/storage/buckets/audio/files/${naat.cutAudio}/view?project=695bb97700213f4ef5dd`,
+        duration: naat.duration
+      }));
+      
+      console.log(`Loaded ${this.currentPlaylist.length} naats for playlist`);
       await this.generateFFmpegPlaylist();
       
     } catch (error) {
