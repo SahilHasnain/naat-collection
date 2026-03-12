@@ -261,101 +261,70 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
    * Only advances if live radio is currently active
    */
   const checkAndAdvanceTrack = useCallback(async () => {
-    // Only advance if live radio is currently active
-    if (!isLiveRadioActive) {
-      console.log("[LiveRadio] Not advancing - live radio is not active");
-      return;
-    }
-
-    // Prevent concurrent execution (mutex)
-    if (isAdvancingRef.current) {
-      console.log("[LiveRadio] Already advancing track, skipping...");
-      return;
-    }
-
-    try {
-      isAdvancingRef.current = true;
-      setIsLoading(true);
-      const state = await liveRadioService.getCurrentState();
-      if (!state) {
-        setIsLoading(false);
+      // Only advance if live radio is currently active
+      if (!isLiveRadioActive) {
+        console.log("[LiveRadio] Not advancing - live radio is not active");
         return;
       }
 
-      // If server has advanced to next track, check if we need to sync
-      if (state.currentTrackIndex !== currentTrackIndexRef.current) {
-        console.log(
-          `[LiveRadio] Server at index ${state.currentTrackIndex}, client at ${currentTrackIndexRef.current}`,
-        );
+      // Prevent concurrent execution (mutex)
+      if (isAdvancingRef.current) {
+        console.log("[LiveRadio] Already advancing track, skipping...");
+        return;
+      }
 
-        // Check if server is just one track ahead (normal progression)
-        const expectedNextIndex =
+      try {
+        isAdvancingRef.current = true;
+        setIsLoading(true);
+        const state = await liveRadioService.getCurrentState();
+        if (!state) {
+          setIsLoading(false);
+          return;
+        }
+
+        // Calculate next track index
+        const nextIndex =
           (currentTrackIndexRef.current + 1) % state.playlist.length;
-        if (state.currentTrackIndex === expectedNextIndex) {
-          console.log(
-            "[LiveRadio] Server one track ahead, this is normal - staying with current track",
-          );
-          // Don't sync - we'll naturally advance when our track finishes
-          setIsLoading(false);
-          return;
-        }
 
-        // Check if we're significantly out of sync (more than 1 track difference)
-        const trackDifference = Math.abs(
-          state.currentTrackIndex - currentTrackIndexRef.current,
-        );
-        const isSignificantDrift =
-          trackDifference > 1 && trackDifference < state.playlist.length - 1;
-
-        if (!isSignificantDrift) {
-          console.log(
-            "[LiveRadio] Minor drift or playlist wrap, staying with current track",
-          );
-          setIsLoading(false);
-          return;
-        }
-
-        // Significant drift detected - resync with server
         console.log(
-          "[LiveRadio] Significant drift detected, resyncing with server...",
+          `[LiveRadio] Advancing from index ${currentTrackIndexRef.current} to ${nextIndex}`,
         );
-        currentTrackIndexRef.current = state.currentTrackIndex;
-        setLiveState(state);
 
-        // Get the new track
-        const currentTrackId = liveRadioService.getCurrentTrackId(state);
-        if (!currentTrackId) {
-          throw new Error("No current track in playlist");
+        // Update our local reference
+        currentTrackIndexRef.current = nextIndex;
+
+        const updatedState = { ...state, currentTrackIndex: nextIndex };
+        setLiveState(updatedState);
+
+        // Get the next track
+        const nextTrackId = liveRadioService.getCurrentTrackId({
+          ...state,
+          currentTrackIndex: nextIndex,
+        } as any);
+        if (!nextTrackId) {
+          throw new Error("Next track not found in playlist");
         }
 
-        const naat = await liveRadioService.getCurrentNaat(currentTrackId);
-        if (!naat) {
-          throw new Error("Current naat not found");
+        const nextNaat = await liveRadioService.getCurrentNaat(nextTrackId);
+        if (!nextNaat) {
+          throw new Error("Next naat not found");
         }
 
-        setCurrentNaat(naat);
+        setCurrentNaat(nextNaat);
 
         // Get upcoming tracks
-        const upcoming = await liveRadioService.getUpcomingNaats(state, 5);
+        const upcoming = await liveRadioService.getUpcomingNaats(
+          updatedState,
+          5,
+        );
         setUpcomingNaats(upcoming);
 
-        // Calculate elapsed time to sync with backend
-        const timing = calculateElapsedTime(state, naat.duration);
-
-        // If track should have already finished, this might be a race condition
-        // where we got the new track index but old updatedAt timestamp
-        // In this case, just start from beginning
-        if (timing.shouldAdvance) {
-          console.log(
-            "[LiveRadio] Timing mismatch detected (race condition), starting from beginning",
-          );
-          timing.elapsedSeconds = 0;
-          timing.shouldAdvance = false;
-          timing.remainingSeconds = naat.duration;
-        }
-
-        // Get audio URL and play — use cutAudio from playlist entry if available
-        const radioAudioId = liveRadioService.getCurrentAudioId(state, naat.audioId);
+        // Get audio URL and play
+        const radioAudioId = liveRadioService.getAudioIdAtIndex(
+          updatedState,
+          nextIndex,
+          nextNaat.audioId,
+        );
         const audioResponse = await appwriteService.getAudioUrl(radioAudioId);
         if (!audioResponse.success || !audioResponse.audioUrl) {
           throw new Error("Failed to get audio URL");
@@ -364,117 +333,25 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
         await TrackPlayer.reset();
         await TrackPlayer.add({
           url: audioResponse.audioUrl,
-          title: naat.title,
-          artwork: naat.thumbnailUrl,
+          title: nextNaat.title,
+          artwork: nextNaat.thumbnailUrl,
         });
 
         await updateNotificationCapabilities(true);
 
-        // Seek to correct position to sync with backend
-        if (timing.elapsedSeconds > 0) {
-          console.log(
-            `[LiveRadio] Seeking to ${timing.elapsedSeconds}s to sync with backend`,
-          );
-          await TrackPlayer.seekTo(timing.elapsedSeconds);
-        }
-
+        // Start from beginning of next track
         await TrackPlayer.play();
 
-        console.log(
-          `[LiveRadio] Now playing: ${naat.title} (${timing.remainingSeconds}s remaining)`,
-        );
+        console.log(`[LiveRadio] Now playing: ${nextNaat.title}`);
         setIsLoading(false);
-      } else {
-        // Server hasn't advanced yet, check if current track should have finished
-        const currentTrackId = liveRadioService.getCurrentTrackId(state);
-        if (!currentTrackId) {
-          throw new Error("No current track in playlist");
-        }
-
-        const naat = await liveRadioService.getCurrentNaat(currentTrackId);
-        if (!naat) {
-          throw new Error("Current naat not found");
-        }
-
-        const timing = calculateElapsedTime(state, naat.duration);
-
-        if (timing.shouldAdvance) {
-          // Track finished but server hasn't updated yet, advance locally
-          console.log(
-            "[LiveRadio] Track finished locally, advancing to next...",
-          );
-
-          // Calculate next track index
-          const nextIndex =
-            (currentTrackIndexRef.current + 1) % state.playlist.length;
-
-          // Update our local reference BEFORE making any changes
-          // This prevents the polling from detecting a mismatch
-          currentTrackIndexRef.current = nextIndex;
-
-          const updatedState = { ...state, currentTrackIndex: nextIndex };
-          setLiveState(updatedState);
-
-          // Get the next track
-          const nextTrackId = liveRadioService.getCurrentTrackId({ ...state, currentTrackIndex: nextIndex } as any);
-          if (!nextTrackId) {
-            throw new Error("Next track not found in playlist");
-          }
-
-          const nextNaat = await liveRadioService.getCurrentNaat(nextTrackId);
-          if (!nextNaat) {
-            throw new Error("Next naat not found");
-          }
-
-          setCurrentNaat(nextNaat);
-
-          // Get upcoming tracks
-          const upcoming = await liveRadioService.getUpcomingNaats(
-            updatedState,
-            5,
-          );
-          setUpcomingNaats(upcoming);
-
-          // Get audio URL and play — use cutAudio from playlist entry if available
-          const radioAudioId = liveRadioService.getAudioIdAtIndex(updatedState, nextIndex, nextNaat.audioId);
-          const audioResponse = await appwriteService.getAudioUrl(
-            radioAudioId,
-          );
-          if (!audioResponse.success || !audioResponse.audioUrl) {
-            throw new Error("Failed to get audio URL");
-          }
-
-          await TrackPlayer.reset();
-          await TrackPlayer.add({
-            url: audioResponse.audioUrl,
-            title: nextNaat.title,
-            artwork: nextNaat.thumbnailUrl,
-          });
-
-          await updateNotificationCapabilities(true);
-          await TrackPlayer.play();
-
-          console.log(
-            "[LiveRadio] Now playing (local advance):",
-            nextNaat.title,
-          );
-          setIsLoading(false);
-        } else {
-          // Track still playing, no action needed
-          console.log(
-            `[LiveRadio] Track still playing (${timing.remainingSeconds}s remaining)`,
-          );
-          setIsLoading(false);
-        }
+      } catch (err) {
+        console.error("[LiveRadio] Error checking track advancement:", err);
+        setError(err as Error);
+        setIsLoading(false);
+      } finally {
+        isAdvancingRef.current = false; // Release mutex
       }
-    } catch (err) {
-      console.error("[LiveRadio] Error checking track advancement:", err);
-      setError(err as Error);
-      setIsLoading(false);
-    } finally {
-      isAdvancingRef.current = false; // Release mutex
-    }
-  }, [isLiveRadioActive, calculateElapsedTime]);
+    }, [isLiveRadioActive]);
 
   /**
    * Subscribe to realtime updates when playing

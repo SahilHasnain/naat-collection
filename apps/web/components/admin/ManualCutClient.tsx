@@ -13,6 +13,8 @@ interface Naat {
   views?: number;
   uploadDate?: string;
   radio?: boolean;
+  cutSegments?: string;
+  cutAudioId?: string;
 }
 
 interface CutSegment {
@@ -58,6 +60,9 @@ export default function ManualCutClient() {
   const [filterDuration, setFilterDuration] = useState<
     "all" | "<=10min" | ">15min" | ">20min"
   >("<=10min");
+  const [filterProcessed, setFilterProcessed] = useState<
+    "unprocessed" | "all" | "processed"
+  >("unprocessed");
   const [sortBy, setSortBy] = useState<"latest" | "popular" | "oldest">(
     "popular",
   );
@@ -126,6 +131,7 @@ export default function ManualCutClient() {
     filterRadio,
     filterChannel,
     filterDuration,
+    filterProcessed,
     searchQuery,
     selectedNaat,
   ]);
@@ -229,9 +235,16 @@ export default function ManualCutClient() {
         Query.limit(LIMIT),
         Query.offset(currentOffset),
         Query.isNotNull("audioId"),
-        Query.isNull("cutSegments"),
         Query.or([Query.equal("exclude", false), Query.isNull("exclude")]),
       ];
+
+      // Filter by processed status
+      if (filterProcessed === "unprocessed") {
+        queries.push(Query.isNull("cutSegments"));
+      } else if (filterProcessed === "processed") {
+        queries.push(Query.isNotNull("cutSegments"));
+      }
+      // "all" means no filter on cutSegments
 
       // Sort query
       if (sortBy === "latest") {
@@ -383,7 +396,7 @@ export default function ManualCutClient() {
         throw new Error(data.error || "Failed to save timestamps");
       }
 
-      alert("Timestamps saved!");
+      alert(selectedNaat.cutSegments ? "Timestamps updated successfully!" : "Timestamps saved!");
 
       clearState();
 
@@ -622,6 +635,19 @@ export default function ManualCutClient() {
                     <option value=">15min">Longer than 15 min</option>
                     <option value=">20min">Longer than 20 min</option>
                   </select>
+                  <select
+                    className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded"
+                    value={filterProcessed}
+                    onChange={(e) =>
+                      setFilterProcessed(
+                        e.target.value as "unprocessed" | "all" | "processed",
+                      )
+                    }
+                  >
+                    <option value="unprocessed">Unprocessed Only</option>
+                    <option value="all">All (Include Processed)</option>
+                    <option value="processed">Processed Only</option>
+                  </select>
                 </div>
               </div>
 
@@ -632,66 +658,92 @@ export default function ManualCutClient() {
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredNaats.map((naat) => (
-                <button
-                  key={naat.$id}
-                  onClick={() => {
-                    setSelectedNaat(naat);
-                    setCutSegments([{ start: 0, end: 0 }]);
-                    setDetectionResult(null);
-                  }}
-                  className="p-4 text-left transition-all duration-200 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg hover:bg-gray-750 hover:border-blue-500 group hover:shadow-blue-500/20"
-                >
-                  <div className="relative mb-3 overflow-hidden bg-gray-700 rounded-lg aspect-video">
-                    <img
-                      src={`https://img.youtube.com/vi/${naat.youtubeId}/mqdefault.jpg`}
-                      alt={naat.title}
-                      className="object-cover w-full h-full transition-transform group-hover:scale-105"
-                      onError={(e) => {
-                        e.currentTarget.src = `https://img.youtube.com/vi/${naat.youtubeId}/default.jpg`;
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute px-2 py-1 text-xs rounded bottom-2 right-2 bg-black/80">
-                      {naat.duration
-                        ? `${Math.floor(naat.duration / 60)}:${String(Math.floor(naat.duration % 60)).padStart(2, "0")}`
-                        : "N/A"}
+              {filteredNaats.map((naat) => {
+                const hasTimestamps = !!naat.cutSegments;
+                return (
+                  <button
+                    key={naat.$id}
+                    onClick={() => {
+                      setSelectedNaat(naat);
+                      // If naat has existing timestamps, load them
+                      if (hasTimestamps) {
+                        try {
+                          const segments = JSON.parse(naat.cutSegments!);
+                          setCutSegments(segments);
+                        } catch (err) {
+                          console.error("Failed to parse cutSegments:", err);
+                          setCutSegments([{ start: 0, end: 0 }]);
+                        }
+                      } else {
+                        setCutSegments([{ start: 0, end: 0 }]);
+                      }
+                      setDetectionResult(null);
+                    }}
+                    className="p-4 text-left transition-all duration-200 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg hover:bg-gray-750 hover:border-blue-500 group hover:shadow-blue-500/20"
+                  >
+                    <div className="relative mb-3 overflow-hidden bg-gray-700 rounded-lg aspect-video">
+                      <img
+                        src={`https://img.youtube.com/vi/${naat.youtubeId}/mqdefault.jpg`}
+                        alt={naat.title}
+                        className="object-cover w-full h-full transition-transform group-hover:scale-105"
+                        onError={(e) => {
+                          e.currentTarget.src = `https://img.youtube.com/vi/${naat.youtubeId}/default.jpg`;
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <div className="absolute px-2 py-1 text-xs rounded bottom-2 right-2 bg-black/80">
+                        {naat.duration
+                          ? `${Math.floor(naat.duration / 60)}:${String(Math.floor(naat.duration % 60)).padStart(2, "0")}`
+                          : "N/A"}
+                      </div>
+                      {naat.radio && (
+                        <div className="absolute px-2 py-1 bg-green-600 rounded top-2 right-2">
+                          <span className="text-xs font-bold text-white">
+                            📻 RADIO
+                          </span>
+                        </div>
+                      )}
+                      {hasTimestamps && (
+                        <div className="absolute px-2 py-1 bg-blue-600 rounded top-2 left-2">
+                          <span className="text-xs font-bold text-white">
+                            ✂️ EDITED
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    {naat.radio && (
-                      <div className="absolute px-2 py-1 bg-green-600 rounded top-2 right-2">
-                        <span className="text-xs font-bold text-white">
-                          📻 RADIO
-                        </span>
+                    <h3 className="mb-2 font-semibold text-white transition-colors group-hover:text-blue-400 line-clamp-2">
+                      {naat.title}
+                    </h3>
+                    {naat.channelName && (
+                      <div className="flex items-center gap-2 mb-2 text-sm text-gray-400">
+                        <svg
+                          className="flex-shrink-0 w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                        </svg>
+                        <span className="truncate">{naat.channelName}</span>
                       </div>
                     )}
-                  </div>
-                  <h3 className="mb-2 font-semibold text-white transition-colors group-hover:text-blue-400 line-clamp-2">
-                    {naat.title}
-                  </h3>
-                  {naat.channelName && (
-                    <div className="flex items-center gap-2 mb-2 text-sm text-gray-400">
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
                       <svg
-                        className="flex-shrink-0 w-4 h-4"
+                        className="w-4 h-4"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                       >
                         <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                       </svg>
-                      <span className="truncate">{naat.channelName}</span>
+                      <span className="truncate">{naat.youtubeId}</span>
                     </div>
-                  )}
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <svg
-                      className="w-4 h-4"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                    </svg>
-                    <span className="truncate">{naat.youtubeId}</span>
-                  </div>
-                </button>
-              ))}
+                    {hasTimestamps && (
+                      <div className="mt-2 text-xs text-blue-400">
+                        Click to edit timestamps
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {filteredNaats.length === 0 && !loading && (
@@ -816,10 +868,31 @@ export default function ManualCutClient() {
                     </svg>
                     <span>{selectedNaat.youtubeId}</span>
                   </div>
-                  <p className="text-sm text-yellow-400">
-                    💡 If this naat has no explanation parts, click "Skip - No
-                    Explanation" below
-                  </p>
+                  {selectedNaat.cutSegments ? (
+                    <div className="flex items-center gap-2 p-3 mb-2 border border-blue-700 rounded-lg bg-blue-900/30">
+                      <svg
+                        className="w-5 h-5 text-blue-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                      <p className="text-sm text-blue-300">
+                        <span className="font-semibold">Editing Mode:</span> This naat already has timestamps. You can modify them below.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-yellow-400">
+                      💡 If this naat has no explanation parts, click "Skip - No
+                      Explanation" below
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1022,7 +1095,7 @@ export default function ManualCutClient() {
                   disabled={saving}
                   className="flex-1 px-6 py-3 font-semibold bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
                 >
-                  {saving ? "Saving..." : "💾 Save Timestamps"}
+                  {saving ? "Saving..." : selectedNaat.cutSegments ? "💾 Update Timestamps" : "💾 Save Timestamps"}
                 </button>
                 <button
                   onClick={handleSkipNoExplanation}
