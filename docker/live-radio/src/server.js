@@ -48,7 +48,7 @@ app.get('/api/current', (req, res) => {
       elapsedSeconds: Math.min(elapsedSeconds, currentTrack.duration || 0),
       startedAt: trackStartTime?.toISOString()
     },
-    streamUrl: '/live/current.mp3' // Direct MP3 URL
+    streamUrl: 'http://owaisrazaqadri.duckdns.org:8000/live' // Icecast stream URL
   });
 });
 

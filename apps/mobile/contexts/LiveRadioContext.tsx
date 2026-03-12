@@ -128,15 +128,15 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  // Test MP3 stream accessibility
+  // Test Icecast stream accessibility
   const testStreamUrl = async () => {
     try {
-      console.log('🔍 Testing MP3 stream accessibility...');
-      const response = await fetch(`${LIVE_RADIO_BASE_URL}/live/current.mp3`, { method: 'HEAD' });
-      console.log('📡 MP3 response status:', response.status);
+      console.log('🔍 Testing Icecast stream accessibility...');
+      const response = await fetch(`http://owaisrazaqadri.duckdns.org:8000/live`, { method: 'HEAD' });
+      console.log('📡 Icecast response status:', response.status);
       return response.ok;
     } catch (error) {
-      console.error('❌ Error testing MP3 stream:', error);
+      console.error('❌ Error testing Icecast stream:', error);
       return false;
     }
   };
@@ -151,7 +151,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // Test stream accessibility first
       const streamAccessible = await testStreamUrl();
       if (!streamAccessible) {
-        throw new Error('MP3 stream is not accessible from this device');
+        throw new Error('Icecast stream is not accessible from this device');
       }
 
       // Get current track info
@@ -165,11 +165,11 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       await TrackPlayer.reset();
       console.log('✅ TrackPlayer reset');
 
-      // Add the current MP3 stream
+      // Add the Icecast stream
       const track = {
-        id: 'live-radio-current',
-        url: `${LIVE_RADIO_BASE_URL}/live/current.mp3?t=${Date.now()}`,
-        title: currentTrack.title,
+        id: 'live-radio-icecast',
+        url: `http://owaisrazaqadri.duckdns.org:8000/live`,
+        title: currentTrack?.title || 'Live Radio',
         artist: 'Owais Raza Qadri Radio',
       };
       
