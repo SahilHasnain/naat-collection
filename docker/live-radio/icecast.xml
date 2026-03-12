@@ -2,6 +2,12 @@
     <location>Earth</location>
     <admin>admin@localhost</admin>
     
+    <!-- Security: Run as non-root user -->
+    <changeowner>
+        <user>icecast</user>
+        <group>icecast</group>
+    </changeowner>
+    
     <limits>
         <clients>100</clients>
         <sources>10</sources>
@@ -51,6 +57,7 @@
         <logdir>/var/log/icecast</logdir>
         <webroot>/usr/share/icecast/web</webroot>
         <adminroot>/usr/share/icecast/admin</adminroot>
+        <pidfile>/tmp/icecast/icecast.pid</pidfile>
         <alias source="/" destination="/status.xsl"/>
     </paths>
 
