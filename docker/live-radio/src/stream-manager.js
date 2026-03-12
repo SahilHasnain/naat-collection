@@ -90,7 +90,7 @@ class StreamManager {
       // Fetch naats with radio enabled and cutAudio
       const response = await databases.listDocuments(
         process.env.DATABASE_ID,
-        '695bc8e70038db72df5b', // naats collection ID
+        process.env.NAATS_COLLECTION_ID, // Use environment variable for collection ID
         [
           Query.limit(50),
           Query.lessThanEqual("duration", 1200), // 20 minutes max
