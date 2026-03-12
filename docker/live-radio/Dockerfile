@@ -1,8 +1,8 @@
-# Live Radio Docker Container
+# Live Radio Docker Container with Icecast
 FROM node:18-alpine
 
-# Install FFmpeg
-RUN apk add --no-cache ffmpeg nginx
+# Install FFmpeg and Icecast
+RUN apk add --no-cache ffmpeg icecast
 
 # Create app directory
 WORKDIR /app
@@ -13,14 +13,13 @@ RUN npm install
 
 # Copy source code
 COPY src/ ./src/
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY icecast.xml /etc/icecast2/icecast.xml
 
-# Create directories for HLS output
-RUN mkdir -p /var/www/html/live
+# Create directories
 RUN mkdir -p /app/audio-cache
 
 # Expose ports
-EXPOSE 80 3000
+EXPOSE 8000 3000
 
 # Start script
 COPY start.sh ./

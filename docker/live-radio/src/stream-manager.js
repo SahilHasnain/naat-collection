@@ -17,11 +17,13 @@ class StreamManager {
 
   async initialize() {
     // Ensure directories exist
-    await fs.ensureDir(this.outputDir);
     await fs.ensureDir(this.audioCacheDir);
     
     // Load initial playlist
     await this.updatePlaylist();
+    
+    // Start Icecast streaming
+    this.startStream();
     
     // Update playlist every 3 minutes
     setInterval(() => {
@@ -177,7 +179,7 @@ class StreamManager {
       this.ffmpegProcess.kill();
     }
 
-    console.log('Starting FFmpeg HLS stream...');
+    console.log('Starting FFmpeg Icecast stream...');
     
     const ffmpegArgs = [
       '-re',                          // Read input at native frame rate
@@ -185,14 +187,14 @@ class StreamManager {
       '-safe', '0',                   // Allow unsafe file paths
       '-stream_loop', '-1',           // Loop playlist infinitely
       '-i', this.playlistFile,        // Input playlist
-      '-c:a', 'aac',                  // Audio codec
+      '-c:a', 'mp3',                  // Audio codec MP3 (better Icecast support)
       '-b:a', '128k',                 // Audio bitrate
-      '-f', 'hls',                    // HLS format
-      '-hls_time', '10',              // Segment duration (10 seconds)
-      '-hls_list_size', '6',          // Keep 6 segments in playlist
-      '-hls_flags', 'delete_segments', // Delete old segments
-      '-hls_segment_filename', path.join(this.outputDir, 'segment_%03d.ts'),
-      path.join(this.outputDir, 'master.m3u8')
+      '-f', 'mp3',                    // MP3 format for Icecast
+      '-content_type', 'audio/mpeg',  // Content type
+      '-ice_name', 'Owais Raza Qadri Live Radio',
+      '-ice_description', 'Live Naat Radio Stream',
+      '-ice_genre', 'Islamic',
+      'icecast://source:hackme@localhost:8000/live'  // Icecast URL
     ];
 
     this.ffmpegProcess = spawn('ffmpeg', ffmpegArgs);
