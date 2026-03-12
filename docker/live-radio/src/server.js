@@ -54,10 +54,21 @@ app.get('/api/current', (req, res) => {
 
 // Serve current MP3 file
 app.get('/live/current.mp3', (req, res) => {
-  if (!currentTrackFile || !fs.existsSync(currentTrackFile)) {
+  console.log('📡 MP3 request received');
+  console.log('🎵 Current track file:', currentTrackFile);
+  
+  if (!currentTrackFile) {
+    console.log('❌ No current track file set');
     return res.status(404).json({ error: 'No audio file currently playing' });
   }
+  
+  if (!fs.existsSync(currentTrackFile)) {
+    console.log('❌ Audio file does not exist:', currentTrackFile);
+    return res.status(404).json({ error: 'Audio file not found' });
+  }
 
+  console.log('✅ Serving audio file:', currentTrackFile);
+  
   const stat = fs.statSync(currentTrackFile);
   const fileSize = stat.size;
   const range = req.headers.range;
