@@ -8,6 +8,7 @@ class StreamManager {
     this.ffmpegProcess = null;
     this.currentPlaylist = [];
     this.currentIndex = 0;
+    this.lastNotifiedTrack = null;
     this.playlistFile = path.join(__dirname, '../playlist.txt');
     this.outputDir = '/var/www/html/live';
     this.audioCacheDir = path.join(__dirname, '../audio-cache');
@@ -90,6 +91,12 @@ class StreamManager {
     
     await fs.writeFile(this.playlistFile, playlistContent.join('\n'));
     console.log(`Generated playlist with ${playlistContent.length} tracks`);
+    
+    // Set the first track as current if we don't have one
+    if (this.currentPlaylist.length > 0 && !this.lastNotifiedTrack) {
+      console.log('Setting initial track...');
+      this.notifyTrackChange(this.currentPlaylist[0]);
+    }
   }
 
   async cacheAudioFile(track) {
@@ -173,14 +180,27 @@ class StreamManager {
   }
 
   parseFFmpegOutput(output) {
-    // Look for file changes in FFmpeg output
-    const fileMatch = output.match(/Opening '([^']+)' for reading/);
-    if (fileMatch) {
-      const filename = path.basename(fileMatch[1], '.mp3');
-      const track = this.currentPlaylist.find(t => t.id === filename);
-      
-      if (track) {
-        this.notifyTrackChange(track);
+    // Look for file changes in FFmpeg output - more comprehensive patterns
+    const filePatterns = [
+      /Opening '([^']+)' for reading/,
+      /Input #0, mp3, from '([^']+)':/,
+      /Stream #0:0.*Audio.*from '([^']+)'/,
+      /\[mp3 @ [^\]]+\] Estimating duration from bitrate, this may be inaccurate for '([^']+)'/
+    ];
+    
+    for (const pattern of filePatterns) {
+      const match = output.match(pattern);
+      if (match) {
+        const filePath = match[1];
+        const filename = path.basename(filePath, '.mp3');
+        const track = this.currentPlaylist.find(t => t.id === filename);
+        
+        if (track && track !== this.lastNotifiedTrack) {
+          console.log(`Track changed detected: ${track.title}`);
+          this.lastNotifiedTrack = track;
+          this.notifyTrackChange(track);
+        }
+        break;
       }
     }
   }
