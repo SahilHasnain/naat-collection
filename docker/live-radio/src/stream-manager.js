@@ -12,6 +12,7 @@ class StreamManager {
     this.playlistFile = path.join(__dirname, '../playlist.txt');
     this.outputDir = '/var/www/html/live';
     this.audioCacheDir = path.join(__dirname, '../audio-cache');
+    this.trackRotationInterval = null;
   }
 
   async initialize() {
@@ -22,13 +23,55 @@ class StreamManager {
     // Load initial playlist
     await this.updatePlaylist();
     
-    // Start streaming
-    this.startStream();
+    // Start track rotation instead of FFmpeg
+    this.startTrackRotation();
     
     // Update playlist every 3 minutes
     setInterval(() => {
       this.updatePlaylist();
     }, 3 * 60 * 1000);
+  }
+
+  startTrackRotation() {
+    if (this.currentPlaylist.length === 0) return;
+    
+    // Start with first track
+    this.currentIndex = 0;
+    this.playCurrentTrack();
+    
+    console.log('🎵 Started track rotation');
+  }
+
+  async playCurrentTrack() {
+    if (this.currentPlaylist.length === 0) return;
+    
+    const track = this.currentPlaylist[this.currentIndex];
+    const filePath = path.join(this.audioCacheDir, `${track.id}.mp3`);
+    
+    if (await fs.pathExists(filePath)) {
+      console.log(`🎵 Now playing: ${track.title}`);
+      
+      // Notify API server
+      await this.notifyTrackChange(track, filePath);
+      
+      // Schedule next track
+      const duration = (track.duration || 180) * 1000; // Convert to milliseconds
+      this.trackRotationInterval = setTimeout(() => {
+        this.nextTrack();
+      }, duration);
+    } else {
+      console.error(`❌ Audio file not found: ${filePath}`);
+      this.nextTrack();
+    }
+  }
+
+  nextTrack() {
+    if (this.trackRotationInterval) {
+      clearTimeout(this.trackRotationInterval);
+    }
+    
+    this.currentIndex = (this.currentIndex + 1) % this.currentPlaylist.length;
+    this.playCurrentTrack();
   }
 
   async updatePlaylist() {
@@ -205,11 +248,12 @@ class StreamManager {
     }
   }
 
-  async notifyTrackChange(track) {
+  async notifyTrackChange(track, filePath) {
     try {
       // Notify the API server about track change
       await axios.post('http://localhost:3000/api/update-track', {
-        track: track
+        track: track,
+        filePath: filePath
       });
     } catch (error) {
       console.error('Error notifying track change:', error);
