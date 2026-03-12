@@ -1,45 +1,40 @@
+import { usePlaybackMode } from '@/contexts/PlaybackModeContext';
 import TrackPlayer, { State } from '@weights-ai/react-native-track-player';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 
-interface CurrentTrack {
-  id: string;
-  title: string;
-  duration: number;
-  elapsedSeconds: number;
-  startedAt: string;
-}
-
 interface LiveRadioContextType {
   isPlaying: boolean;
-  currentTrack: CurrentTrack | null;
-  currentNaat: CurrentTrack | null; // Alias for compatibility
-  upcomingNaats: CurrentTrack[];
+  currentNaat: { title: string }; // Static title, never null
+  upcomingNaats: never[];
   listenerCount: number;
   isLoading: boolean;
   error: string | null;
+  showMiniPlayer: boolean; // Controls mini player visibility
   play: () => Promise<void>;
-  pause: () => Promise<void>;
+  pause: (fromLivePage?: boolean) => Promise<void>;
+  pauseFromMiniPlayer: () => Promise<void>; // Special pause that keeps mini player visible
   stop: () => Promise<void>;
   refresh: () => Promise<void>;
 }
 
 const LiveRadioContext = createContext<LiveRadioContextType | undefined>(undefined);
 
-// Your Docker container URL
-const LIVE_RADIO_BASE_URL = 'http://owaisrazaqadri.duckdns.org:8080';
+// Your Docker container URL - only used for stream URL
+const LIVE_RADIO_STREAM_URL = 'http://owaisrazaqadri.duckdns.org:8000/live';
 
 export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { setMode } = usePlaybackMode();
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState<CurrentTrack | null>(null);
-  const [upcomingNaats, setUpcomingNaats] = useState<CurrentTrack[]>([]);
-  const [listenerCount, setListenerCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showMiniPlayer, setShowMiniPlayer] = useState(false);
   
-  const metadataIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const trackCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isInitialized = useRef(false);
-  const lastTrackId = useRef<string | null>(null);
+
+  // Static data - no metadata fetching
+  const currentNaat = { title: 'Naat Radio' };
+  const upcomingNaats: never[] = [];
+  const listenerCount = 0;
 
   // Initialize TrackPlayer
   useEffect(() => {
@@ -57,48 +52,9 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     initializePlayer();
   }, []);
 
-  // Fetch current track metadata and check for track changes
-  const fetchMetadata = async () => {
-    try {
-      const response = await fetch(`${LIVE_RADIO_BASE_URL}/api/current`);
-      const data = await response.json();
-      
-      if (data.success) {
-        setCurrentTrack(data.currentTrack);
-        setUpcomingNaats(data.upcomingTracks || []);
-        setListenerCount(data.listenerCount || 0);
-        setError(null);
-      } else {
-        setError(data.error || 'Failed to fetch metadata');
-      }
-    } catch (err) {
-      console.error('Error fetching metadata:', err);
-      setError('Network error');
-    }
-  };
-
-  // Refresh function
+  // Refresh function - no-op since we don't fetch metadata
   const refresh = async () => {
-    await fetchMetadata();
-  };
-
-  // Start metadata polling
-  const startMetadataPolling = () => {
-    if (metadataIntervalRef.current) return;
-    
-    // Fetch immediately
-    fetchMetadata();
-    
-    // Then poll every 10 seconds
-    metadataIntervalRef.current = setInterval(fetchMetadata, 10000);
-  };
-
-  // Stop metadata polling
-  const stopMetadataPolling = () => {
-    if (metadataIntervalRef.current) {
-      clearInterval(metadataIntervalRef.current);
-      metadataIntervalRef.current = null;
-    }
+    // No metadata to refresh
   };
 
   const play = async () => {
@@ -108,55 +64,71 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       
       console.log('🎵 Starting live radio...');
 
-      // Get current track info first
-      await fetchMetadata();
+      // Check if we already have a track loaded (resume scenario)
+      const currentTrack = await TrackPlayer.getActiveTrack();
       
-      if (!currentTrack) {
-        throw new Error('No track currently available');
+      if (currentTrack && currentTrack.id === 'live-radio-icecast') {
+        // Resume existing track
+        console.log('▶️ Resuming playback...');
+        await TrackPlayer.play();
+        console.log('✅ Playback resumed');
+      } else {
+        // Initial play - clear and add new track
+        await TrackPlayer.reset();
+        console.log('✅ TrackPlayer reset');
+
+        // Add the Icecast stream directly
+        const track = {
+          id: 'live-radio-icecast',
+          url: LIVE_RADIO_STREAM_URL,
+          title: 'Naat Radio',
+          artwork: require('@/assets/images/gumbad.png'),
+        };
+        
+        console.log('🎵 Adding Icecast stream:', track.url);
+        await TrackPlayer.add(track);
+        console.log('✅ Track added');
+
+        // Start playing
+        console.log('▶️ Starting playback...');
+        await TrackPlayer.play();
+        console.log('✅ Playback started');
       }
-
-      // Clear any existing tracks
-      await TrackPlayer.reset();
-      console.log('✅ TrackPlayer reset');
-
-      // Add the Icecast stream directly
-      const track = {
-        id: 'live-radio-icecast',
-        url: `http://owaisrazaqadri.duckdns.org:8000/live`,
-        title: currentTrack?.title || 'Live Radio',
-        artist: 'Owais Raza Qadri Radio',
-      };
-      
-      console.log('🎵 Adding Icecast stream:', track.url);
-      await TrackPlayer.add(track);
-      console.log('✅ Track added');
-
-      // Start playing
-      console.log('▶️ Starting playback...');
-      await TrackPlayer.play();
-      console.log('✅ Playback started');
       
       setIsPlaying(true);
-      lastTrackId.current = currentTrack.id;
+      setShowMiniPlayer(true);
       
-      // Start polling for metadata updates
-      startMetadataPolling();
+      // Set playback mode to live
+      setMode("live");
 
     } catch (error) {
       console.error('❌ Error starting live radio:', error);
-      setError(`Failed to start live radio: ${error.message}`);
+      setError(`Failed to start live radio: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const pause = async () => {
+  const pause = async (fromLivePage = false) => {
     try {
       await TrackPlayer.pause();
       setIsPlaying(false);
-      stopMetadataPolling();
+      
+      // Hide mini player when paused from live page or notification
+      setShowMiniPlayer(false);
+      setMode("none");
     } catch (error) {
       console.error('Error pausing live radio:', error);
+    }
+  };
+
+  const pauseFromMiniPlayer = async () => {
+    try {
+      await TrackPlayer.pause();
+      setIsPlaying(false);
+      // Keep mini player visible and mode as "live" when paused from mini player
+    } catch (error) {
+      console.error('Error pausing live radio from mini player:', error);
     }
   };
 
@@ -165,8 +137,8 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       await TrackPlayer.stop();
       await TrackPlayer.reset();
       setIsPlaying(false);
-      setCurrentTrack(null);
-      stopMetadataPolling();
+      setShowMiniPlayer(false);
+      setMode("none");
     } catch (error) {
       console.error('Error stopping live radio:', error);
     }
@@ -191,23 +163,17 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   }, []);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopMetadataPolling();
-    };
-  }, []);
-
   const value: LiveRadioContextType = {
     isPlaying,
-    currentTrack,
-    currentNaat: currentTrack, // Alias for compatibility
+    currentNaat,
     upcomingNaats,
     listenerCount,
     isLoading,
     error,
+    showMiniPlayer,
     play,
     pause,
+    pauseFromMiniPlayer,
     stop,
     refresh,
   };

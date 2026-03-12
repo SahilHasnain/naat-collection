@@ -9,7 +9,7 @@ import { useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
   SharedValue,
   useAnimatedStyle,
@@ -29,7 +29,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
   onExpand,
   networkIndicatorOffset,
 }) => {
-  const { currentNaat, isPlaying, stop } = useLiveRadioPlayer();
+  const { currentNaat, isPlaying, showMiniPlayer, play, pauseFromMiniPlayer, stop } = useLiveRadioPlayer();
   const { translateY: tabBarTranslateY } = useTabBarVisibility();
   const insets = useSafeAreaInsets();
 
@@ -37,20 +37,20 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
   const slideAnim = useSharedValue(100);
 
   useEffect(() => {
-    if (currentNaat && isPlaying) {
-      // Slide up when playing
+    if (showMiniPlayer) {
+      // Slide up when mini player should be shown
       slideAnim.value = withSpring(0, {
         damping: 20,
         stiffness: 90,
       });
     } else {
-      // Slide down when not playing or no naat
+      // Slide down when mini player should be hidden
       slideAnim.value = withSpring(100, {
         damping: 20,
         stiffness: 90,
       });
     }
-  }, [currentNaat, isPlaying, slideAnim]);
+  }, [showMiniPlayer, slideAnim]);
 
   // Animated style that responds to both slide animation and tab bar position
   const animatedStyle = useAnimatedStyle(() => {
@@ -87,7 +87,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
     };
   });
 
-  if (!currentNaat || !isPlaying) return null;
+  if (!showMiniPlayer) return null;
 
   return (
     <>
@@ -134,16 +134,23 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
           accessibilityRole="button"
           accessibilityLabel={`Live radio playing: ${currentNaat.title}. Double tap to expand.`}
         >
-          {/* Live indicator bar */}
+          {/* Live indicator bar - red when playing, gray when paused */}
           <View
             className="absolute top-0 left-0 right-0"
-            style={{ height: 2, backgroundColor: "#ef4444" }}
+            style={{ 
+              height: 2, 
+              backgroundColor: isPlaying ? "#ef4444" : colors.text.disabled 
+            }}
           />
 
           <View className="flex-row items-center h-full px-4">
-            {/* Radio Icon */}
+            {/* Headphone Icon */}
             <View className="mr-3 items-center justify-center">
-              <Ionicons name="radio" size={32} color={colors.accent.error} />
+              <Image
+                source={require("@/assets/images/headphone-v1.png")}
+                style={{ width: 32, height: 32 }}
+                resizeMode="contain"
+              />
             </View>
 
             {/* Title */}
@@ -157,6 +164,27 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
                 {currentNaat.title}
               </Text>
             </View>
+
+            {/* Play/Pause Button */}
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation();
+                if (isPlaying) {
+                  pauseFromMiniPlayer();
+                } else {
+                  play();
+                }
+              }}
+              className="h-9 w-9 items-center justify-center mr-2"
+              accessibilityRole="button"
+              accessibilityLabel={isPlaying ? "Pause live radio" : "Play live radio"}
+            >
+              <Ionicons 
+                name={isPlaying ? "pause" : "play"} 
+                size={20} 
+                color={colors.text.primary} 
+              />
+            </TouchableOpacity>
 
             {/* Close Button */}
             <TouchableOpacity
