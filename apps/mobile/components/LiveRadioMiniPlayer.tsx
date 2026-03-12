@@ -1,7 +1,7 @@
 /**
- * Live Radio Mini Player
+ * Naat Radio Mini Player
  *
- * Dedicated mini player for live radio (separate from regular audio player)
+ * Dedicated mini player for naat radio (separate from regular audio player)
  */
 
 import { colors } from "@/constants/theme";
@@ -108,7 +108,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
         ]}
       />
 
-      {/* Live Radio Mini Player */}
+      {/* Naat Radio Mini Player */}
       <Animated.View
         style={[
           {
@@ -132,7 +132,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
             elevation: 8,
           }}
           accessibilityRole="button"
-          accessibilityLabel={`Live radio playing: ${currentNaat.title}. Double tap to expand.`}
+          accessibilityLabel={`Naat radio playing: ${currentNaat.title}. Double tap to expand.`}
         >
           {/* Live indicator bar - red when playing, gray when paused */}
           <View
@@ -177,7 +177,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
               }}
               className="h-9 w-9 items-center justify-center mr-2"
               accessibilityRole="button"
-              accessibilityLabel={isPlaying ? "Pause live radio" : "Play live radio"}
+              accessibilityLabel={isPlaying ? "Pause naat radio" : "Play naat radio"}
             >
               <Ionicons 
                 name={isPlaying ? "pause" : "play"} 
@@ -194,7 +194,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
               }}
               className="h-9 w-9 items-center justify-center"
               accessibilityRole="button"
-              accessibilityLabel="Stop live radio"
+              accessibilityLabel="Stop naat radio"
             >
               <Ionicons name="close" size={22} color={colors.text.secondary} />
             </TouchableOpacity>

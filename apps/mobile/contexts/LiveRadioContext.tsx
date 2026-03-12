@@ -62,7 +62,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setIsLoading(true);
       setError(null);
       
-      console.log('🎵 Starting live radio...');
+      console.log('🎵 Starting naat radio...');
 
       // Check if we already have a track loaded (resume scenario)
       const currentTrack = await TrackPlayer.getActiveTrack();
@@ -102,8 +102,8 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setMode("live");
 
     } catch (error) {
-      console.error('❌ Error starting live radio:', error);
-      setError(`Failed to start live radio: ${(error as Error).message}`);
+      console.error('❌ Error starting naat radio:', error);
+      setError(`Failed to start naat radio: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +118,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setShowMiniPlayer(false);
       setMode("none");
     } catch (error) {
-      console.error('Error pausing live radio:', error);
+      console.error('Error pausing naat radio:', error);
     }
   };
 
@@ -128,7 +128,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setIsPlaying(false);
       // Keep mini player visible and mode as "live" when paused from mini player
     } catch (error) {
-      console.error('Error pausing live radio from mini player:', error);
+      console.error('Error pausing naat radio from mini player:', error);
     }
   };
 
@@ -140,7 +140,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setShowMiniPlayer(false);
       setMode("none");
     } catch (error) {
-      console.error('Error stopping live radio:', error);
+      console.error('Error stopping naat radio:', error);
     }
   };
 
