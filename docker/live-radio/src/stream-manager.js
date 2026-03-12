@@ -65,7 +65,7 @@ class StreamManager {
       this.currentPlaylist = response.documents.map(naat => ({
         id: naat.$id,
         title: naat.title,
-        audioUrl: `https://sgp.cloud.appwrite.io/v1/storage/buckets/audio/files/${naat.cutAudio}/view?project=695bb97700213f4ef5dd`,
+        audioUrl: `https://sgp.cloud.appwrite.io/v1/storage/buckets/audio-files/files/${naat.cutAudio}/view?project=695bb97700213f4ef5dd`,
         duration: naat.duration
       }));
       
