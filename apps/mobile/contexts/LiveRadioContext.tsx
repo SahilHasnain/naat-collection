@@ -229,16 +229,19 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
       // Update notification capabilities for live mode (no seek) AFTER adding track
       await updateNotificationCapabilities(true);
 
-      // Seek to correct position to sync with backend
+      // Play first
+      await TrackPlayer.play();
+
+      // Then seek to correct position to sync with backend (after playback starts)
       if (timing.elapsedSeconds > 0) {
         console.log(
           `[LiveRadio] Seeking to ${timing.elapsedSeconds}s to sync with backend`,
         );
+        // Small delay to ensure playback has started
+        await new Promise(resolve => setTimeout(resolve, 200));
         await TrackPlayer.seekTo(timing.elapsedSeconds);
+        console.log(`[LiveRadio] Seek completed to ${timing.elapsedSeconds}s`);
       }
-
-      // Play
-      await TrackPlayer.play();
 
       // Start heartbeat to track active listening
       liveRadioService.startHeartbeat();

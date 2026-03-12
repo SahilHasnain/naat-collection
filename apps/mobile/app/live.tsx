@@ -10,6 +10,7 @@ import { useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect } from "react";
 import {
@@ -184,16 +185,16 @@ export default function LiveScreen() {
           >
             {/* Current Track */}
             <View className="px-4 mb-6">
-              {/* Radio Icon and Track Info - Inline */}
+              {/* Headphone Image and Track Info - Inline */}
               <View className="flex-row items-center mb-4">
-                <View className="mr-4">
-                  <Ionicons
-                    name="radio"
-                    size={64}
-                    color={colors.accent.error}
+                <View className="mr-3">
+                  <Image
+                    source={require("@/assets/images/headphone-v1.png")}
+                    style={{ width: 120, height: 120 }}
+                    resizeMode="contain"
                   />
                 </View>
-                <View className="flex-1">
+                <View className="flex-1 -ml-3">
                   <Text
                     className="text-lg font-bold"
                     numberOfLines={2}
