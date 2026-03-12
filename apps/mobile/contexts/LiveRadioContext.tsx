@@ -1,503 +1,181 @@
-import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
-import { appwriteService } from "@/services/appwrite";
-import { liveRadioService } from "@/services/liveRadio";
-import {
-    setupPlayer,
-    updateNotificationCapabilities,
-} from "@/services/trackPlayerService";
-import { LiveRadioState } from "@/types/live-radio";
-import { Naat } from "@naat-collection/shared";
-import TrackPlayer, {
-    Event,
-    State,
-    useTrackPlayerEvents,
-} from "@weights-ai/react-native-track-player";
-import React, {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useRef,
-    useState,
-} from "react";
+import TrackPlayer, { State } from '@weights-ai/react-native-track-player';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+
+interface CurrentTrack {
+  id: string;
+  title: string;
+  duration: number;
+  elapsedSeconds: number;
+  startedAt: string;
+}
 
 interface LiveRadioContextType {
-  // State
   isPlaying: boolean;
-  isLoading: boolean;
-  currentNaat: Naat | null;
-  upcomingNaats: Naat[];
+  currentTrack: CurrentTrack | null;
+  currentNaat: CurrentTrack | null; // Alias for compatibility
+  upcomingNaats: CurrentTrack[];
   listenerCount: number;
-  error: Error | null;
-
-  // Actions
+  isLoading: boolean;
+  error: string | null;
   play: () => Promise<void>;
   pause: () => Promise<void>;
   stop: () => Promise<void>;
   refresh: () => Promise<void>;
 }
 
-const LiveRadioContext = createContext<LiveRadioContextType | undefined>(
-  undefined,
-);
+const LiveRadioContext = createContext<LiveRadioContextType | undefined>(undefined);
 
-export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const { mode, setMode, isLiveRadioActive, isNormalAudioActive } =
-    usePlaybackMode();
+// Your Docker container URL
+const LIVE_RADIO_BASE_URL = 'http://owaisrazaqadri.duckdns.org:8080';
+
+export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentNaat, setCurrentNaat] = useState<Naat | null>(null);
-  const [upcomingNaats, setUpcomingNaats] = useState<Naat[]>([]);
+  const [currentTrack, setCurrentTrack] = useState<CurrentTrack | null>(null);
+  const [upcomingNaats, setUpcomingNaats] = useState<CurrentTrack[]>([]);
   const [listenerCount, setListenerCount] = useState(0);
-  const [error, setError] = useState<Error | null>(null);
-  const [liveState, setLiveState] = useState<LiveRadioState | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const metadataIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isInitialized = useRef(false);
 
-  const currentTrackIndexRef = useRef<number>(-1);
-  const realtimeUnsubscribeRef = useRef<(() => void) | null>(null);
-  const isSetupRef = useRef(false);
-  const isAdvancingRef = useRef(false); // Mutex to prevent concurrent track advances
-
-  // Setup Track Player on mount
+  // Initialize TrackPlayer
   useEffect(() => {
-    const initPlayer = async () => {
-      if (isSetupRef.current) return;
-
+    const initializePlayer = async () => {
+      if (isInitialized.current) return;
+      
       try {
-        await setupPlayer();
-        isSetupRef.current = true;
-        console.log("[LiveRadio] Track Player initialized");
-      } catch (err) {
-        console.error("[LiveRadio] Error initializing Track Player:", err);
+        await TrackPlayer.setupPlayer();
+        isInitialized.current = true;
+      } catch (error) {
+        console.error('Error initializing TrackPlayer:', error);
       }
     };
 
-    initPlayer();
+    initializePlayer();
   }, []);
 
-  // Stop live radio when normal audio becomes active
-  useEffect(() => {
-    if (isNormalAudioActive && isPlaying) {
-      console.log("[LiveRadio] Normal audio active, pausing live radio");
-      setIsPlaying(false);
-      // Don't clear currentNaat - keep the UI visible
-    }
-  }, [isNormalAudioActive, isPlaying]);
-
-  // Listen to playback state changes and track end - only when live radio is active
-  useTrackPlayerEvents(
-    [Event.PlaybackState, Event.PlaybackQueueEnded],
-    async (event) => {
-      if (!isLiveRadioActive) return;
-
-      if (event.type === Event.PlaybackState) {
-        const state = event.state;
-
-        // Intercept pause from notification — treat it as stop for live radio
-        if (state === State.Paused) {
-          console.log("[LiveRadio] Pause detected, treating as stop");
-          await TrackPlayer.reset();
-          setIsPlaying(false);
-          await liveRadioService.stopHeartbeat();
-          return;
-        }
-
-        setIsPlaying(state === State.Playing);
-        setIsLoading(state === State.Buffering || state === State.Loading);
-
-        // When player is reset (e.g. from notification stop), stop heartbeat
-        if (state === State.None) {
-          await liveRadioService.stopHeartbeat();
-        }
-      } else if (event.type === Event.PlaybackQueueEnded) {
-        // Track ended - automatically advance to next
-        console.log("[LiveRadio] Track ended, auto-advancing to next...");
-        await checkAndAdvanceTrack();
-      }
-    },
-  );
-
-  /**
-   * Load current live state from server
-   */
-  const loadLiveState = useCallback(async () => {
+  // Fetch current track metadata
+  const fetchMetadata = async () => {
     try {
-      const state = await liveRadioService.getCurrentState();
-      if (!state) {
-        throw new Error("Live radio is not available");
+      const response = await fetch(`${LIVE_RADIO_BASE_URL}/api/current`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setCurrentTrack(data.currentTrack);
+        setUpcomingNaats(data.upcomingTracks || []);
+        setListenerCount(data.listenerCount || 0);
+        setError(null);
+      } else {
+        setError(data.error || 'Failed to fetch metadata');
       }
-
-      setLiveState(state);
-      currentTrackIndexRef.current = state.currentTrackIndex;
-
-      // Get current track
-      const currentTrackId = liveRadioService.getCurrentTrackId(state);
-      if (!currentTrackId) {
-        throw new Error("No current track in playlist");
-      }
-
-      const naat = await liveRadioService.getCurrentNaat(currentTrackId);
-      if (!naat) {
-        throw new Error("Current naat not found");
-      }
-
-      setCurrentNaat(naat);
-
-      // Get upcoming tracks
-      const upcoming = await liveRadioService.getUpcomingNaats(state, 5);
-      setUpcomingNaats(upcoming);
-
-      // Get listener count
-      const count = await liveRadioService.getListenerCount();
-      setListenerCount(count);
-
-      return { state, naat };
     } catch (err) {
-      console.error("[LiveRadio] Error loading state:", err);
-      throw err;
+      console.error('Error fetching metadata:', err);
+      setError('Network error');
     }
-  }, []);
+  };
 
-  /**
-   * Calculate elapsed time since track started on backend
-   */
-  const calculateElapsedTime = useCallback(
-    (state: LiveRadioState, trackDuration: number) => {
-      const trackStartTime = new Date(state.updatedAt).getTime();
-      const now = Date.now();
-      const elapsedMs = now - trackStartTime;
-      const elapsedSeconds = Math.floor(elapsedMs / 1000);
+  // Refresh function
+  const refresh = async () => {
+    await fetchMetadata();
+  };
 
-      const shouldAdvance = elapsedSeconds >= trackDuration;
-      const remainingSeconds = Math.max(0, trackDuration - elapsedSeconds);
+  // Start metadata polling
+  const startMetadataPolling = () => {
+    if (metadataIntervalRef.current) return;
+    
+    // Fetch immediately
+    fetchMetadata();
+    
+    // Then poll every 10 seconds
+    metadataIntervalRef.current = setInterval(fetchMetadata, 10000);
+  };
 
-      console.log(
-        `[LiveRadio] Track started at ${state.updatedAt}, elapsed: ${elapsedSeconds}s / ${trackDuration}s`,
-      );
+  // Stop metadata polling
+  const stopMetadataPolling = () => {
+    if (metadataIntervalRef.current) {
+      clearInterval(metadataIntervalRef.current);
+      metadataIntervalRef.current = null;
+    }
+  };
 
-      return {
-        elapsedSeconds: Math.min(elapsedSeconds, trackDuration), // Cap at track duration
-        shouldAdvance,
-        remainingSeconds,
-      };
-    },
-    [],
-  );
-
-  /**
-   * Load and play current track
-   */
-  const loadAndPlayCurrentTrack = useCallback(async () => {
+  const play = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const { state, naat } = await loadLiveState();
-
-      // Calculate elapsed time to sync with backend
-      const timing = calculateElapsedTime(state, naat.duration);
-
-      // If track should have already finished, advance to next
-      if (timing.shouldAdvance) {
-        console.log(
-          "[LiveRadio] Track already finished on backend, advancing...",
-        );
-        setIsLoading(false);
-        await checkAndAdvanceTrack();
-        return;
-      }
-
-      // Switch to live radio mode
-      setMode("live");
-
-      // Get audio URL — use cutAudio from playlist entry if available
-      const radioAudioId = liveRadioService.getCurrentAudioId(state, naat.audioId);
-      const audioResponse = await appwriteService.getAudioUrl(radioAudioId);
-      if (!audioResponse.success || !audioResponse.audioUrl) {
-        throw new Error("Failed to get audio URL");
-      }
-
-      // Reset queue and add new track
+      // Clear any existing tracks
       await TrackPlayer.reset();
+
+      // Add the HLS stream
       await TrackPlayer.add({
-        url: audioResponse.audioUrl,
-        title: naat.title,
-        artwork: naat.thumbnailUrl,
+        id: 'live-radio',
+        url: `${LIVE_RADIO_BASE_URL}/live/master.m3u8`,
+        title: 'Live Radio',
+        artist: 'Owais Raza Qadri Radio',
+        isLiveStream: true,
       });
 
-      // Update notification capabilities for live mode (no seek) AFTER adding track
-      await updateNotificationCapabilities(true);
-
-      // Play first
+      // Start playing
       await TrackPlayer.play();
-
-      // Then seek to correct position to sync with backend (after playback starts)
-      if (timing.elapsedSeconds > 0) {
-        console.log(
-          `[LiveRadio] Seeking to ${timing.elapsedSeconds}s to sync with backend`,
-        );
-        // Small delay to ensure playback has started
-        await new Promise(resolve => setTimeout(resolve, 200));
-        await TrackPlayer.seekTo(timing.elapsedSeconds);
-        console.log(`[LiveRadio] Seek completed to ${timing.elapsedSeconds}s`);
-      }
-
-      // Start heartbeat to track active listening
-      liveRadioService.startHeartbeat();
-
       setIsPlaying(true);
-      setIsLoading(false);
+      
+      // Start polling for metadata
+      startMetadataPolling();
 
-      console.log(
-        `[LiveRadio] Now playing: ${naat.title} (${timing.remainingSeconds}s remaining)`,
-      );
-    } catch (err) {
-      console.error("[LiveRadio] Error loading track:", err);
-      setError(err as Error);
+    } catch (error) {
+      console.error('Error starting live radio:', error);
+      setError('Failed to start live radio');
+    } finally {
       setIsLoading(false);
     }
-  }, [loadLiveState, setMode, calculateElapsedTime]);
+  };
 
-  /**
-   * Check if server has advanced to next track, or advance locally
-   * Only advances if live radio is currently active
-   */
-  const checkAndAdvanceTrack = useCallback(async () => {
-      // Only advance if live radio is currently active
-      if (!isLiveRadioActive) {
-        console.log("[LiveRadio] Not advancing - live radio is not active");
-        return;
-      }
-
-      // Prevent concurrent execution (mutex)
-      if (isAdvancingRef.current) {
-        console.log("[LiveRadio] Already advancing track, skipping...");
-        return;
-      }
-
-      try {
-        isAdvancingRef.current = true;
-        setIsLoading(true);
-        const state = await liveRadioService.getCurrentState();
-        if (!state) {
-          setIsLoading(false);
-          return;
-        }
-
-        // Calculate next track index
-        const nextIndex =
-          (currentTrackIndexRef.current + 1) % state.playlist.length;
-
-        console.log(
-          `[LiveRadio] Advancing from index ${currentTrackIndexRef.current} to ${nextIndex}`,
-        );
-
-        // Update our local reference
-        currentTrackIndexRef.current = nextIndex;
-
-        const updatedState = { ...state, currentTrackIndex: nextIndex };
-        setLiveState(updatedState);
-
-        // Get the next track
-        const nextTrackId = liveRadioService.getCurrentTrackId({
-          ...state,
-          currentTrackIndex: nextIndex,
-        } as any);
-        if (!nextTrackId) {
-          throw new Error("Next track not found in playlist");
-        }
-
-        const nextNaat = await liveRadioService.getCurrentNaat(nextTrackId);
-        if (!nextNaat) {
-          throw new Error("Next naat not found");
-        }
-
-        setCurrentNaat(nextNaat);
-
-        // Get upcoming tracks
-        const upcoming = await liveRadioService.getUpcomingNaats(
-          updatedState,
-          5,
-        );
-        setUpcomingNaats(upcoming);
-
-        // Get audio URL and play
-        const radioAudioId = liveRadioService.getAudioIdAtIndex(
-          updatedState,
-          nextIndex,
-          nextNaat.audioId,
-        );
-        const audioResponse = await appwriteService.getAudioUrl(radioAudioId);
-        if (!audioResponse.success || !audioResponse.audioUrl) {
-          throw new Error("Failed to get audio URL");
-        }
-
-        await TrackPlayer.reset();
-        await TrackPlayer.add({
-          url: audioResponse.audioUrl,
-          title: nextNaat.title,
-          artwork: nextNaat.thumbnailUrl,
-        });
-
-        await updateNotificationCapabilities(true);
-
-        // Start from beginning of next track
-        await TrackPlayer.play();
-
-        console.log(`[LiveRadio] Now playing: ${nextNaat.title}`);
-        setIsLoading(false);
-      } catch (err) {
-        console.error("[LiveRadio] Error checking track advancement:", err);
-        setError(err as Error);
-        setIsLoading(false);
-      } finally {
-        isAdvancingRef.current = false; // Release mutex
-      }
-    }, [isLiveRadioActive]);
-
-  /**
-   * Subscribe to realtime updates when playing
-   * Instantly sync when server advances tracks
-   */
-  useEffect(() => {
-    if (!isPlaying || !liveState) return;
-
-    console.log("[LiveRadio] Setting up realtime subscription");
-
-    const unsubscribe = liveRadioService.subscribeToChanges(
-      async (updatedState) => {
-        // Check if server has advanced to a different track
-        if (updatedState.currentTrackIndex !== currentTrackIndexRef.current) {
-          console.log(
-            `[LiveRadio] Realtime: Server at index ${updatedState.currentTrackIndex}, client at ${currentTrackIndexRef.current}`,
-          );
-
-          // Check if we're significantly out of sync (more than 1 track difference)
-          const trackDifference = Math.abs(
-            updatedState.currentTrackIndex - currentTrackIndexRef.current,
-          );
-          const isSignificantDrift =
-            trackDifference > 1 &&
-            trackDifference < updatedState.playlist.length - 1;
-
-          if (isSignificantDrift) {
-            console.log(
-              "[LiveRadio] Significant drift detected via realtime, resyncing...",
-            );
-            await checkAndAdvanceTrack();
-          } else {
-            console.log(
-              "[LiveRadio] Minor drift, will naturally sync on track end",
-            );
-          }
-        }
-      },
-    );
-
-    realtimeUnsubscribeRef.current = unsubscribe;
-
-    return () => {
-      console.log("[LiveRadio] Cleaning up realtime subscription");
-      if (realtimeUnsubscribeRef.current) {
-        realtimeUnsubscribeRef.current();
-        realtimeUnsubscribeRef.current = null;
-      }
-    };
-  }, [isPlaying, liveState, checkAndAdvanceTrack]);
-
-  /**
-   * Refresh listener count every 30 seconds when playing
-   */
-  useEffect(() => {
-    if (!isPlaying) return;
-
-    const refreshListenerCount = async () => {
-      const count = await liveRadioService.getListenerCount();
-      setListenerCount(count);
-    };
-
-    // Refresh immediately
-    refreshListenerCount();
-
-    // Then refresh every 30 seconds
-    const interval = setInterval(
-      refreshListenerCount,
-      30000,
-    ) as unknown as NodeJS.Timeout;
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [isPlaying]);
-
-  /**
-   * Play live radio - always loads fresh from backend to stay in sync
-   */
-  const play = useCallback(async () => {
-    await loadAndPlayCurrentTrack();
-  }, [loadAndPlayCurrentTrack]);
-
-  /**
-   * Stop live radio playback (keeps UI visible so user can resume fresh)
-   */
-  const pause = useCallback(async () => {
+  const pause = async () => {
     try {
-      await TrackPlayer.reset();
-    } catch (err) {
-      console.error("[LiveRadio] Error resetting player:", err);
+      await TrackPlayer.pause();
+      setIsPlaying(false);
+      stopMetadataPolling();
+    } catch (error) {
+      console.error('Error pausing live radio:', error);
     }
-    setIsPlaying(false);
-    await liveRadioService.stopHeartbeat();
+  };
+
+  const stop = async () => {
+    try {
+      await TrackPlayer.stop();
+      await TrackPlayer.reset();
+      setIsPlaying(false);
+      setCurrentTrack(null);
+      stopMetadataPolling();
+    } catch (error) {
+      console.error('Error stopping live radio:', error);
+    }
+  };
+
+  // Monitor TrackPlayer state changes
+  useEffect(() => {
+    const subscription = TrackPlayer.addEventListener('playback-state' as any, (state: any) => {
+      setIsPlaying(state.state === State.Playing);
+    });
+
+    return () => subscription?.remove();
   }, []);
-
-  /**
-   * Stop live radio
-   */
-  const stop = useCallback(async () => {
-    try {
-      await TrackPlayer.reset();
-      // Stop heartbeat when stopping
-      await liveRadioService.stopHeartbeat();
-    } catch (err) {
-      console.error("[LiveRadio] Error stopping:", err);
-    }
-    setIsPlaying(false);
-    setCurrentNaat(null);
-    setMode("none");
-  }, [setMode]);
-
-  /**
-   * Refresh live state
-   */
-  const refresh = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      await loadLiveState();
-      setIsLoading(false);
-    } catch (err) {
-      setError(err as Error);
-      setIsLoading(false);
-    }
-  }, [loadLiveState]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      TrackPlayer.reset();
-      liveRadioService.stopHeartbeat();
-      if (realtimeUnsubscribeRef.current) {
-        realtimeUnsubscribeRef.current();
-      }
+      stopMetadataPolling();
     };
   }, []);
 
   const value: LiveRadioContextType = {
     isPlaying,
-    isLoading,
-    currentNaat,
+    currentTrack,
+    currentNaat: currentTrack, // Alias for compatibility
     upcomingNaats,
     listenerCount,
+    isLoading,
     error,
     play,
     pause,
@@ -515,7 +193,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
 export const useLiveRadioPlayer = () => {
   const context = useContext(LiveRadioContext);
   if (context === undefined) {
-    throw new Error("useLiveRadioPlayer must be used within LiveRadioProvider");
+    throw new Error('useLiveRadioPlayer must be used within a LiveRadioProvider');
   }
   return context;
 };
