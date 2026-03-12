@@ -301,7 +301,7 @@ function RootLayoutContent() {
         <MiniPlayer onExpand={() => setIsPlayerExpanded(true)} networkIndicatorOffset={networkIndicatorOffset} />
       )}
 
-      {/* Live Radio Mini Player - Shows when showMiniPlayer is true and user is NOT on live tab or video screen */}
+      {/* Naat Radio Mini Player - Shows when showMiniPlayer is true and user is NOT on live tab or video screen */}
       {showMiniPlayer && !isOnLiveTab && !isOnVideoScreen && (
         <LiveRadioMiniPlayer
           onExpand={() => {

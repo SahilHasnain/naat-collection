@@ -1,7 +1,7 @@
 /**
- * Live Radio Screen
+ * Naat Radio Screen
  *
- * 24/7 live naat radio with synchronized playback
+ * 24/7 naat radio with synchronized playback
  */
 
 import { colors } from "@/constants/theme";
@@ -55,14 +55,14 @@ export default function LiveScreen() {
   }, []);
 
   /**
-   * Handle play live radio
+   * Handle play naat radio
    */
   const handlePlayLive = async () => {
     await play();
   };
 
   /**
-   * Handle pause live radio from live page
+   * Handle pause naat radio from live page
    */
   const handleStopLive = async () => {
     await pause(true); // Pass true to indicate pause from live page
@@ -78,7 +78,7 @@ export default function LiveScreen() {
       >
         <ActivityIndicator size="large" color={colors.accent.error} />
         <Text className="mt-4 text-base" style={{ color: colors.text.primary }}>
-          Loading Live Radio...
+          Loading Naat Radio...
         </Text>
       </SafeAreaView>
     );
@@ -97,7 +97,7 @@ export default function LiveScreen() {
           className="mt-4 text-xl font-bold"
           style={{ color: colors.text.primary }}
         >
-          Live Radio Unavailable
+          Naat Radio Unavailable
         </Text>
         <Text className="mt-2 text-center text-neutral-400">
           {error}
