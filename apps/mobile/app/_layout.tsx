@@ -59,7 +59,7 @@ function RootLayoutContent() {
   const segments = useSegments();
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
   const { currentAudio, stop } = useAudioPlayer();
-  const { currentNaat } = useLiveRadioPlayer();
+  const { currentNaat, showMiniPlayer } = useLiveRadioPlayer();
   const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
   const { translateY } = useTabBarVisibility();
   const { translateY: headerTranslateY } = useHeaderVisibility();
@@ -301,8 +301,8 @@ function RootLayoutContent() {
         <MiniPlayer onExpand={() => setIsPlayerExpanded(true)} networkIndicatorOffset={networkIndicatorOffset} />
       )}
 
-      {/* Live Radio Mini Player - Shows when live radio is active and user is NOT on live tab or video screen */}
-      {isLiveRadioActive && currentNaat && !isOnLiveTab && !isOnVideoScreen && (
+      {/* Live Radio Mini Player - Shows when showMiniPlayer is true and user is NOT on live tab or video screen */}
+      {showMiniPlayer && !isOnLiveTab && !isOnVideoScreen && (
         <LiveRadioMiniPlayer
           onExpand={() => {
             // Navigate to live tab when miniplayer is tapped

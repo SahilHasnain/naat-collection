@@ -31,8 +31,6 @@ export default function LiveScreen() {
     isLoading,
     error,
     currentNaat,
-    upcomingNaats,
-    listenerCount,
     isPlaying,
     play,
     pause,
@@ -64,10 +62,10 @@ export default function LiveScreen() {
   };
 
   /**
-   * Handle stop live radio (stops playback; next play will sync fresh)
+   * Handle pause live radio from live page
    */
   const handleStopLive = async () => {
-    await pause();
+    await pause(true); // Pass true to indicate pause from live page
   };
 
   // Loading state
@@ -87,7 +85,7 @@ export default function LiveScreen() {
   }
 
   // Error state
-  if (error || !currentNaat) {
+  if (error) {
     return (
       <SafeAreaView
         className="items-center justify-center flex-1 px-6"
@@ -102,7 +100,7 @@ export default function LiveScreen() {
           Live Radio Unavailable
         </Text>
         <Text className="mt-2 text-center text-neutral-400">
-          {error || "Unable to load live radio"}
+          {error}
         </Text>
         <TouchableOpacity
           onPress={refresh}
@@ -140,32 +138,6 @@ export default function LiveScreen() {
         />
 
         <SafeAreaView className="flex-1" edges={["top"]}>
-          {/* Listener Count Badge - Top Right */}
-          {listenerCount > 0 && (
-            <View className="flex-row justify-end px-4 pt-24">
-              <View
-                className="flex-row items-center px-4 py-2 rounded-full"
-                style={{ 
-                  backgroundColor: "rgba(15, 15, 15, 0.85)",
-                  borderWidth: 1,
-                  borderColor: "rgba(239, 68, 68, 0.5)"
-                }}
-              >
-                <Text
-                  className="text-sm font-semibold mr-1.5"
-                  style={{ color: colors.text.primary }}
-                >
-                  {listenerCount}
-                </Text>
-                <Ionicons
-                  name="people"
-                  size={16}
-                  color={colors.accent.error}
-                />
-              </View>
-            </View>
-          )}
-
           <ScrollView
             className="flex-1"
             contentContainerStyle={{
@@ -185,7 +157,7 @@ export default function LiveScreen() {
           >
             {/* Current Track */}
             <View className="px-4 mb-6">
-              {/* Headphone Image and Track Info - Inline */}
+              {/* Headphone Image and Play Button - Inline */}
               <View className="flex-row items-center mb-4">
                 <View className="mr-3">
                   <Image
@@ -194,35 +166,26 @@ export default function LiveScreen() {
                     resizeMode="contain"
                   />
                 </View>
-                <View className="flex-1 -ml-3">
-                  <Text
-                    className="text-lg font-bold"
-                    numberOfLines={2}
-                    style={{ color: colors.text.primary }}
+                <View className="flex-1 -ml-3 items-center justify-center">
+                  {/* Play/Pause Button */}
+                  <TouchableOpacity
+                    onPress={isPlaying ? handleStopLive : handlePlayLive}
+                    className="items-center justify-center"
+                    style={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: 36,
+                      backgroundColor: "transparent",
+                    }}
                   >
-                    {currentNaat.title}
-                  </Text>
+                    <Ionicons
+                      name={isPlaying ? "pause" : "play"}
+                      size={32}
+                      color={colors.text.primary}
+                    />
+                  </TouchableOpacity>
                 </View>
               </View>
-
-              {/* Play/Pause Button */}
-              <TouchableOpacity
-                onPress={isPlaying ? handleStopLive : handlePlayLive}
-                className="items-center justify-center"
-                style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: 36,
-                  backgroundColor: colors.accent.error,
-                  alignSelf: "center",
-                }}
-              >
-                <Ionicons
-                  name={isPlaying ? "pause" : "play"}
-                  size={32}
-                  color={colors.text.primary}
-                />
-              </TouchableOpacity>
             </View>
           </ScrollView>
         </SafeAreaView>
