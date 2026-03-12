@@ -1,23 +1,23 @@
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import {
-  setupPlayer,
-  updateNotificationCapabilities,
+    setupPlayer,
+    updateNotificationCapabilities,
 } from "@/services/trackPlayerService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import TrackPlayer, {
-  Event,
-  RepeatMode,
-  State,
-  useProgress,
-  useTrackPlayerEvents,
+    Event,
+    RepeatMode,
+    State,
+    useProgress,
+    useTrackPlayerEvents,
 } from "@weights-ai/react-native-track-player";
 import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useRef,
+    useState,
 } from "react";
 
 export interface AudioMetadata {
@@ -167,14 +167,16 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     initPlayer();
   }, []);
 
-  // Stop normal audio when live radio becomes active
+  // Note: Live radio stopping is handled by LiveRadioContext when isNormalAudioActive changes
+  // No need to stop normal audio here when live radio becomes active
+
+  // Reset loading state when live radio becomes active (in case loading was interrupted)
   useEffect(() => {
-    if (isLiveRadioActive && currentAudio) {
-      console.log("[AudioContext] Live radio active, stopping normal audio");
-      setIsPlaying(false);
-      setCurrentAudio(null);
+    if (isLiveRadioActive && isLoading) {
+      console.log("[AudioContext] Live radio active, resetting loading state");
+      setIsLoading(false);
     }
-  }, [isLiveRadioActive, currentAudio]);
+  }, [isLiveRadioActive, isLoading]);
 
   // Use Track Player hooks for progress
   const { position: trackPosition, duration: trackDuration } = useProgress();
@@ -259,6 +261,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Switch to normal audio mode
         setMode("normal");
+
+        // Give LiveRadioContext a moment to stop if it's active
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Reset queue and add new track
         await TrackPlayer.reset();
