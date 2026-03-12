@@ -1,0 +1,58 @@
+# DigitalOcean App Platform configuration
+name: live-radio-stream
+services:
+- name: live-radio
+  source_dir: /
+  github:
+    repo: your-username/your-repo-name
+    branch: main
+  dockerfile_path: docker/live-radio/Dockerfile
+  
+  # Resource allocation
+  instance_count: 1
+  instance_size_slug: basic-xxs  # $5/month - upgrade to basic-xs ($12) for more traffic
+  
+  # Health check
+  health_check:
+    http_path: /health
+    initial_delay_seconds: 60
+    period_seconds: 30
+    timeout_seconds: 10
+    success_threshold: 1
+    failure_threshold: 3
+  
+  # Environment variables
+  envs:
+  - key: NODE_ENV
+    value: production
+  - key: APPWRITE_ENDPOINT
+    value: ${APPWRITE_ENDPOINT}
+    type: SECRET
+  - key: APPWRITE_PROJECT_ID
+    value: ${APPWRITE_PROJECT_ID}
+    type: SECRET
+  - key: APPWRITE_API_KEY
+    value: ${APPWRITE_API_KEY}
+    type: SECRET
+  - key: DATABASE_ID
+    value: ${DATABASE_ID}
+    type: SECRET
+  
+  # Port configuration
+  http_port: 80
+  
+  # Routes
+  routes:
+  - path: /live
+    preserve_path_prefix: true
+  - path: /api
+    preserve_path_prefix: true
+  - path: /health
+    preserve_path_prefix: true
+
+# Optional: Add a database if you want to move away from Appwrite
+# databases:
+# - name: live-radio-db
+#   engine: PG
+#   version: "14"
+#   size: db-s-1vcpu-1gb  # $15/month
