@@ -2,8 +2,8 @@
 
 echo "🎵 Starting Live Radio Services..."
 
-# Ensure proper permissions for icecast user
-chown -R icecast:icecast /var/log/icecast /config /app/audio-cache /tmp/icecast
+# Ensure proper permissions for nobody user
+chown -R nobody:nobody /var/log/icecast /config /app/audio-cache /tmp
 
 # Start Icecast as root (it will drop privileges automatically due to changeowner directive)
 echo "📡 Starting Icecast server..."
