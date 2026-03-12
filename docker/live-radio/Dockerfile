@@ -9,9 +9,13 @@ RUN apk add --no-cache \
     bash \
     shadow
 
-# Create icecast user and group
-RUN addgroup -g 1000 icecast && \
-    adduser -D -s /bin/bash -u 1000 -G icecast icecast
+# Create icecast user if it doesn't exist, or use existing one
+RUN if ! getent group icecast > /dev/null 2>&1; then \
+        addgroup -g 1001 icecast; \
+    fi && \
+    if ! getent passwd icecast > /dev/null 2>&1; then \
+        adduser -D -s /bin/bash -u 1001 -G icecast icecast; \
+    fi
 
 # Create app directory
 WORKDIR /app
