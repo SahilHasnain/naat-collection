@@ -3,10 +3,13 @@
     <admin>admin@localhost</admin>
     
     <!-- Security: Run as non-root user -->
-    <changeowner>
-        <user>icecast</user>
-        <group>icecast</group>
-    </changeowner>
+    <security>
+        <chroot>0</chroot>
+        <changeowner>
+            <user>nobody</user>
+            <group>nobody</group>
+        </changeowner>
+    </security>
     
     <limits>
         <clients>100</clients>
@@ -57,7 +60,7 @@
         <logdir>/var/log/icecast</logdir>
         <webroot>/usr/share/icecast/web</webroot>
         <adminroot>/usr/share/icecast/admin</adminroot>
-        <pidfile>/tmp/icecast/icecast.pid</pidfile>
+        <pidfile>/tmp/icecast.pid</pidfile>
         <alias source="/" destination="/status.xsl"/>
     </paths>
 
