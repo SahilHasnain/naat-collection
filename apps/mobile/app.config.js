@@ -40,7 +40,8 @@ export default {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/android-icon-foreground.png"
+        foregroundImage: "./assets/images/android-icon-foreground.png",
+          backgroundColor: "#000000",
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
@@ -83,7 +84,7 @@ export default {
     extra: {
       router: {},
       eas: {
-        "projectId": "f5025967-41a5-4d6d-b430-c89bada9c40b"  
+          "projectId": "5702ec15-1748-452d-908c-d3d6d96dff67"
       },
     },
   },  
