@@ -1,8 +1,12 @@
-# Live Radio Docker Container with Icecast
+# Use Node.js Alpine as base and install Icecast directly
 FROM node:18-alpine
 
-# Install FFmpeg and Icecast
-RUN apk add --no-cache ffmpeg icecast curl
+# Install Icecast, FFmpeg, curl and other dependencies
+RUN apk add --no-cache \
+    icecast \
+    ffmpeg \
+    curl \
+    bash
 
 # Create app directory
 WORKDIR /app
@@ -11,13 +15,21 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Copy source code and config
+# Copy source code
 COPY src/ ./src/
-COPY icecast.xml /etc/icecast.xml
 
-# Create directories and set permissions
-RUN mkdir -p /app/audio-cache /var/log/icecast /tmp
-RUN chmod 755 /var/log/icecast
+# Create directories with proper permissions
+RUN mkdir -p \
+    /app/audio-cache \
+    /var/log/icecast \
+    /config \
+    /usr/share/icecast/web \
+    /usr/share/icecast/admin \
+    && chmod -R 755 /var/log/icecast /config /usr/share/icecast
+
+# Copy and set up Icecast configuration
+COPY icecast.xml /config/icecast.xml
+RUN chmod 644 /config/icecast.xml
 
 # Expose ports
 EXPOSE 8000 3000

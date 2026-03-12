@@ -68,39 +68,12 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setUpcomingNaats(data.upcomingTracks || []);
         setListenerCount(data.listenerCount || 0);
         setError(null);
-        
-        // Check if track changed
-        if (data.currentTrack.id !== lastTrackId.current && isPlaying) {
-          console.log('🔄 Track changed, switching audio...');
-          lastTrackId.current = data.currentTrack.id;
-          await switchToCurrentTrack();
-        }
       } else {
         setError(data.error || 'Failed to fetch metadata');
       }
     } catch (err) {
       console.error('Error fetching metadata:', err);
       setError('Network error');
-    }
-  };
-
-  // Switch to current track
-  const switchToCurrentTrack = async () => {
-    try {
-      await TrackPlayer.reset();
-      
-      const track = {
-        id: 'live-radio-current',
-        url: `${LIVE_RADIO_BASE_URL}/live/current.mp3?t=${Date.now()}`, // Cache busting
-        title: currentTrack?.title || 'Live Radio',
-        artist: 'Owais Raza Qadri Radio',
-      };
-      
-      await TrackPlayer.add(track);
-      await TrackPlayer.play();
-      console.log('✅ Switched to new track');
-    } catch (error) {
-      console.error('❌ Error switching track:', error);
     }
   };
 
@@ -128,19 +101,6 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  // Test Icecast stream accessibility
-  const testStreamUrl = async () => {
-    try {
-      console.log('🔍 Testing Icecast stream accessibility...');
-      const response = await fetch(`http://owaisrazaqadri.duckdns.org:8000/live`, { method: 'HEAD' });
-      console.log('📡 Icecast response status:', response.status);
-      return response.ok;
-    } catch (error) {
-      console.error('❌ Error testing Icecast stream:', error);
-      return false;
-    }
-  };
-
   const play = async () => {
     try {
       setIsLoading(true);
@@ -148,13 +108,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       
       console.log('🎵 Starting live radio...');
 
-      // Test stream accessibility first
-      const streamAccessible = await testStreamUrl();
-      if (!streamAccessible) {
-        throw new Error('Icecast stream is not accessible from this device');
-      }
-
-      // Get current track info
+      // Get current track info first
       await fetchMetadata();
       
       if (!currentTrack) {
@@ -165,7 +119,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       await TrackPlayer.reset();
       console.log('✅ TrackPlayer reset');
 
-      // Add the Icecast stream
+      // Add the Icecast stream directly
       const track = {
         id: 'live-radio-icecast',
         url: `http://owaisrazaqadri.duckdns.org:8000/live`,
@@ -173,7 +127,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         artist: 'Owais Raza Qadri Radio',
       };
       
-      console.log('🎵 Adding track:', track.url);
+      console.log('🎵 Adding Icecast stream:', track.url);
       await TrackPlayer.add(track);
       console.log('✅ Track added');
 
@@ -185,7 +139,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setIsPlaying(true);
       lastTrackId.current = currentTrack.id;
       
-      // Start polling for metadata and track changes
+      // Start polling for metadata updates
       startMetadataPolling();
 
     } catch (error) {

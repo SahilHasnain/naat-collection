@@ -1,11 +1,11 @@
 {
   "name": "live-radio-server",
   "version": "1.0.0",
-  "description": "HLS Live Radio Server",
+  "description": "Live Radio Docker Container with Icecast and Node.js",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "stream": "node src/stream-manager.js"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -14,7 +14,7 @@
     "fs-extra": "^11.1.1",
     "node-appwrite": "^13.0.0"
   },
-  "devDependencies": {
-    "nodemon": "^3.0.1"
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
