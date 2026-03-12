@@ -23,9 +23,6 @@ class StreamManager {
     // Load initial playlist
     await this.updatePlaylist();
     
-    // Start track rotation instead of FFmpeg
-    this.startTrackRotation();
-    
     // Update playlist every 3 minutes
     setInterval(() => {
       this.updatePlaylist();
@@ -51,7 +48,7 @@ class StreamManager {
     if (await fs.pathExists(filePath)) {
       console.log(`🎵 Now playing: ${track.title}`);
       
-      // Notify API server
+      // Notify API server with file path
       await this.notifyTrackChange(track, filePath);
       
       // Schedule next track
@@ -135,10 +132,10 @@ class StreamManager {
     await fs.writeFile(this.playlistFile, playlistContent.join('\n'));
     console.log(`Generated playlist with ${playlistContent.length} tracks`);
     
-    // Set the first track as current if we don't have one
-    if (this.currentPlaylist.length > 0 && !this.lastNotifiedTrack) {
-      console.log('Setting initial track...');
-      this.notifyTrackChange(this.currentPlaylist[0]);
+    // Start track rotation if not already started
+    if (this.currentPlaylist.length > 0 && !this.trackRotationInterval) {
+      console.log('Starting track rotation...');
+      this.startTrackRotation();
     }
   }
 
