@@ -12,20 +12,26 @@ import { useHomeFilters } from "@/hooks/useHomeFilters";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { useSearchSuggestions } from "@/hooks/useSearchSuggestions";
 import type { Naat } from "@/types";
+import { Ionicons } from "@expo/vector-icons";
 import { getPreferredDuration } from "@naat-collection/shared";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   BackHandler,
   FlatList,
   RefreshControl,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 
 export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
+
+  // First-time hint state
+  const [showDownloadHint, setShowDownloadHint] = useState(false);
 
   // Contexts
   const {
@@ -50,6 +56,38 @@ export default function HomeScreen() {
   });
 
   const showSuggestionsOverlay = isSearchActive && !activeSearchQuery;
+
+  // Check for first-time hint on mount
+  useEffect(() => {
+    checkFirstTimeHint();
+  }, []);
+
+  const checkFirstTimeHint = async () => {
+    try {
+      const hasSeenHint = await AsyncStorage.getItem('naat_card_download_hint-shown');
+      if (!hasSeenHint && filters.displayData.length > 0) {
+        // Show hint after a short delay to let the UI settle
+        setTimeout(() => {
+          setShowDownloadHint(true);
+          // Auto-hide hint after 5 seconds
+          setTimeout(() => {
+            setShowDownloadHint(false);
+          }, 5000);
+        }, 1000);
+      }
+    } catch (error) {
+      console.log('Error checking first-time hint:', error);
+    }
+  };
+
+  const dismissHint = async () => {
+    try {
+      await AsyncStorage.setItem('naat_card_download_hint-shown', 'true');
+      setShowDownloadHint(false);
+    } catch (error) {
+      console.log('Error saving hint preference:', error);
+    }
+  };
 
   // --- Search orchestration effects ---
 
@@ -119,27 +157,52 @@ export default function HomeScreen() {
   // --- Render helpers ---
 
   const renderNaatCard = React.useCallback(
-    ({ item }: { item: Naat }) => {
+    ({ item, index }: { item: Naat; index: number }) => {
       const ds = downloadStates[item.$id];
+      const isFirstCard = index === 0;
+      
       return (
-        <NaatCard
-          id={item.$id}
-          title={item.title}
-          thumbnail={item.thumbnailUrl}
-          duration={getPreferredDuration(item)}
-          uploadDate={item.uploadDate}
-          channelName={item.channelName}
-          views={item.views}
-          onPress={() => handleNaatPress(item.$id)}
-          onDownload={() => handleDownload(item)}
-          isDownloaded={ds?.isDownloaded}
-          isDownloading={ds?.isDownloading}
-          downloadProgress={ds?.progress}
-          isCut={!!item.cutAudio}
-        />
+        <View>
+          {/* First-time hint - only on first card */}
+          {isFirstCard && showDownloadHint && (
+            <View className="mx-4 mb-3">
+              <View 
+                className="rounded-lg px-3 py-2.5 flex-row items-center"
+                style={{ backgroundColor: colors.accent.primary }}
+              >
+                <Ionicons name="information-circle" size={18} color={colors.text.primary} />
+                <Text 
+                  className="text-xs font-medium ml-2 flex-1"
+                  style={{ color: colors.text.primary }}
+                >
+                  Long press any card to download for offline listening
+                </Text>
+                <TouchableOpacity onPress={dismissHint} className="ml-2 p-1">
+                  <Ionicons name="close" size={18} color={colors.text.primary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+          
+          <NaatCard
+            id={item.$id}
+            title={item.title}
+            thumbnail={item.thumbnailUrl}
+            duration={getPreferredDuration(item)}
+            uploadDate={item.uploadDate}
+            channelName={item.channelName}
+            views={item.views}
+            onPress={() => handleNaatPress(item.$id)}
+            onDownload={() => handleDownload(item)}
+            isDownloaded={ds?.isDownloaded}
+            isDownloading={ds?.isDownloading}
+            downloadProgress={ds?.progress}
+            isCut={!!item.cutAudio}
+          />
+        </View>
       );
     },
-    [handleNaatPress, handleDownload, downloadStates],
+    [handleNaatPress, handleDownload, downloadStates, showDownloadHint, dismissHint],
   );
 
   const renderFooter = () => {

@@ -12,27 +12,117 @@ import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import {
-    AccessibilityInfo,
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    Text,
-    View,
+  AccessibilityInfo,
+  Alert,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View
 } from "react-native";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type SortBy = "date" | "title";
 type SortOrder = "asc" | "desc";
+
+// Swipeable card component
+function SwipeableDownloadCard({
+  item,
+  onPress,
+  onDelete,
+}: {
+  item: DownloadMetadata;
+  onPress: () => void;
+  onDelete: () => void;
+}) {
+  const translateX = useSharedValue(0);
+  const itemHeight = useSharedValue(1);
+  const opacity = useSharedValue(1);
+
+  const handleDelete = useCallback(() => {
+    // Animate out and delete
+    translateX.value = withTiming(-500, { duration: 300 });
+    opacity.value = withTiming(0, { duration: 300 });
+    itemHeight.value = withTiming(0, { duration: 300 }, (finished) => {
+      "worklet";
+      if (finished) {
+        runOnJS(onDelete)();
+      }
+    });
+  }, [onDelete, translateX, opacity, itemHeight]);
+
+  const panGesture = Gesture.Pan()
+    .activeOffsetX([-10, 10])
+    .onUpdate((event) => {
+      // Only allow left swipe (negative translation)
+      if (event.translationX < 0) {
+        translateX.value = Math.max(event.translationX, -60);
+      }
+    })
+    .onEnd((event) => {
+      const shouldRevealDelete = event.translationX < -30;
+
+      if (shouldRevealDelete) {
+        // Snap to reveal delete icon
+        translateX.value = withSpring(-60);
+      } else {
+        // Snap back
+        translateX.value = withSpring(0);
+      }
+    });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+    height: itemHeight.value === 0 ? 0 : undefined,
+    opacity: opacity.value,
+  }));
+
+  const deleteButtonStyle = useAnimatedStyle(() => ({
+    opacity: translateX.value < -20 ? 1 : 0,
+  }));
+
+  return (
+    <View className="relative -mb-1">
+      {/* Delete icon */}
+      <Animated.View
+        style={deleteButtonStyle}
+        className="absolute right-4 top-0 bottom-0 justify-center"
+      >
+        <Pressable
+          onPress={handleDelete}
+          className="p-2"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="trash-outline" size={24} color="#ef4444" />
+        </Pressable>
+      </Animated.View>
+
+      {/* Swipeable card */}
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={animatedStyle}>
+          <DownloadedAudioCard
+            audio={item}
+            onPress={onPress}
+          />
+        </Animated.View>
+      </GestureDetector>
+    </View>
+  );
+}
 
 export default function DownloadsScreen() {
   // Downloads hook
@@ -63,9 +153,6 @@ export default function DownloadsScreen() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   const flatListRef = useRef<FlatList>(null);
-
-  // Delete loading state
-  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   // Filter and sort downloads
   const displayData = useMemo(() => {
@@ -127,54 +214,22 @@ export default function DownloadsScreen() {
   // Handle delete with confirmation
   const handleDelete = useCallback(
     async (audioId: string, title: string) => {
-      Alert.alert(
-        "Delete Download",
-        `Are you sure you want to delete "${title}"?`,
-        [
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-          {
-            text: "Delete",
-            style: "destructive",
-            onPress: async () => {
-              // Add to deleting set
-              setDeletingIds((prev) => new Set(prev).add(audioId));
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-              try {
-                await deleteAudio(audioId);
-                // Success haptic and toast
-                await Haptics.notificationAsync(
-                  Haptics.NotificationFeedbackType.Success,
-                );
-                showSuccessToast("Audio deleted successfully");
-                // Announce to screen reader
-                AccessibilityInfo.announceForAccessibility(
-                  "Audio deleted successfully",
-                );
-              } catch (err) {
-                // Error haptic and toast
-                await Haptics.notificationAsync(
-                  Haptics.NotificationFeedbackType.Error,
-                );
-                const errorMessage =
-                  err instanceof Error
-                    ? err.message
-                    : "Unable to delete the audio file";
-                showErrorToast(errorMessage);
-              } finally {
-                // Remove from deleting set
-                setDeletingIds((prev) => {
-                  const next = new Set(prev);
-                  next.delete(audioId);
-                  return next;
-                });
-              }
-            },
-          },
-        ],
-      );
+      try {
+        await deleteAudio(audioId);
+        showSuccessToast("Audio deleted successfully");
+        AccessibilityInfo.announceForAccessibility(
+          `${title} deleted successfully`,
+        );
+      } catch (err) {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "Unable to delete the audio file";
+        showErrorToast(errorMessage);
+      }
     },
     [deleteAudio],
   );
@@ -256,7 +311,7 @@ export default function DownloadsScreen() {
   );
 
   // Optimize FlatList performance with getItemLayout
-  const ITEM_HEIGHT = 110; // Card height (94 + 16 padding)
+  const ITEM_HEIGHT = 102; // Card height (94 + 8 padding) - reduced from 110
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
       length: ITEM_HEIGHT,
@@ -268,38 +323,16 @@ export default function DownloadsScreen() {
 
   // Render individual download card
   const renderDownloadCard = useCallback(
-    ({ item }: { item: DownloadMetadata }) => {
-      const isDeleting = deletingIds.has(item.audioId);
-
-      return (
-        <View className="px-4">
-          <View className="relative">
-            <DownloadedAudioCard
-              audio={item}
-              onPress={() => !isDeleting && handleAudioPress(item)}
-              onDelete={() =>
-                !isDeleting && handleDelete(item.audioId, item.title)
-              }
-            />
-            {isDeleting && (
-              <View className="absolute inset-0 items-center justify-center bg-black/50 rounded-2xl">
-                <ActivityIndicator
-                  size="large"
-                  color={colors.accent.secondary}
-                />
-                <Text
-                  className="mt-2 text-sm"
-                  style={{ color: colors.text.primary }}
-                >
-                  Deleting...
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-      );
-    },
-    [handleAudioPress, handleDelete, deletingIds],
+    ({ item }: { item: DownloadMetadata }) => (
+      <View className="px-4">
+        <SwipeableDownloadCard
+          item={item}
+          onPress={() => handleAudioPress(item)}
+          onDelete={() => handleDelete(item.audioId, item.title)}
+        />
+      </View>
+    ),
+    [handleAudioPress, handleDelete],
   );
 
   // Render empty state
@@ -431,59 +464,61 @@ export default function DownloadsScreen() {
   };
 
   return (
-    <SafeAreaView
-      className="flex-1"
-      style={{ backgroundColor: colors.background.primary }}
-      edges={["top"]}
-    >
-      <View
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView
         className="flex-1"
-        accessible={false}
-        accessibilityLabel="Downloads screen"
+        style={{ backgroundColor: colors.background.primary }}
+        edges={["top"]}
       >
-        {/* Downloads List with Header */}
-        <FlatList
-          ref={flatListRef}
-          data={displayData}
-          renderItem={renderDownloadCard}
-          keyExtractor={(item) => item.audioId}
-          getItemLayout={getItemLayout}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={renderListHeader}
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingTop: 0,
-            paddingBottom: 50,
-          }}
-          ListEmptyComponent={renderEmptyState}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          refreshControl={
-            <RefreshControl
-              refreshing={loading && downloads.length > 0}
-              onRefresh={refresh}
-              colors={[colors.accent.secondary]}
-              tintColor={colors.accent.secondary}
-              accessibilityLabel="Pull to refresh downloads"
-            />
-          }
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          initialNumToRender={10}
-          accessibilityLabel={`${displayData.length} downloaded audio ${displayData.length === 1 ? "file" : "files"}`}
-          stickyHeaderIndices={[]}
-        />
-      </View>
+        <View
+          className="flex-1"
+          accessible={false}
+          accessibilityLabel="Downloads screen"
+        >
+          {/* Downloads List with Header */}
+          <FlatList
+            ref={flatListRef}
+            data={displayData}
+            renderItem={renderDownloadCard}
+            keyExtractor={(item) => item.audioId}
+            getItemLayout={getItemLayout}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={renderListHeader}
+            contentContainerStyle={{
+              flexGrow: 1,
+              paddingTop: 0,
+              paddingBottom: 50,
+            }}
+            ListEmptyComponent={renderEmptyState}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            refreshControl={
+              <RefreshControl
+                refreshing={loading && downloads.length > 0}
+                onRefresh={refresh}
+                colors={[colors.accent.secondary]}
+                tintColor={colors.accent.secondary}
+                accessibilityLabel="Pull to refresh downloads"
+              />
+            }
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={10}
+            initialNumToRender={10}
+            accessibilityLabel={`${displayData.length} downloaded audio ${displayData.length === 1 ? "file" : "files"}`}
+            stickyHeaderIndices={[]}
+          />
+        </View>
 
-      {/* Audio Playback Modal */}
-      {selectedAudio && (
-        <DownloadedAudioModal
-          visible={modalVisible}
-          onClose={handleCloseModal}
-          audio={selectedAudio}
-        />
-      )}
-    </SafeAreaView>
+        {/* Audio Playback Modal */}
+        {selectedAudio && (
+          <DownloadedAudioModal
+            visible={modalVisible}
+            onClose={handleCloseModal}
+            audio={selectedAudio}
+          />
+        )}
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
