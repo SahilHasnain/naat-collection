@@ -11,7 +11,7 @@ import Pressable from "./ResponsivePressable";
 const textPrimary = "rgba(255, 255, 255, 0.92)";
 
 const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
-  ({ audio, onPress, onDelete }) => {
+  ({ audio, onPress }) => {
     const [imageError, setImageError] = React.useState(false);
 
     // Use local thumbnail if available, fall back to remote URL
@@ -19,7 +19,7 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
       ? { uri: audio.thumbnailLocalUri }
       : { uri: `https://img.youtube.com/vi/${audio.youtubeId}/mqdefault.jpg` };
 
-    // Format duration from seconds to MM:SS
+    // Format duration from seconds to DD:MM:SS
     const duration = formatDuration(audio.duration);
 
     return (
@@ -89,24 +89,6 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
               {formatRelativeTime(audio.downloadedAt)}
             </Text>
           </View>
-        </View>
-
-        {/* Delete Button */}
-        <View className="justify-start pt-1" accessible={false}>
-          <Pressable
-            onPress={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="h-10 w-10 items-center justify-center"
-            style={{ minWidth: 44, minHeight: 44 }}
-            accessibilityRole="button"
-            accessibilityLabel={`Delete ${audio.title}`}
-            accessibilityHint="Double tap to delete this downloaded audio"
-            accessible={true}
-          >
-            <Ionicons name="trash-outline" size={20} color="#aaaaaa" />
-          </Pressable>
         </View>
       </Pressable>
     );

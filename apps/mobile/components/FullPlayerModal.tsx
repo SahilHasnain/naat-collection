@@ -570,7 +570,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
               <View className="w-full mt-10 px-2">
                 <Text
                   className="text-xl font-semibold text-center"
-                  numberOfLines={2}
+                  numberOfLines={1}
                   ellipsizeMode="tail"
                   style={{ color: colors.text.primary }}
                 >

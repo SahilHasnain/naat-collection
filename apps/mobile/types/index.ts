@@ -114,7 +114,6 @@ export interface EmptyStateProps {
 export interface DownloadedAudioCardProps {
   audio: DownloadMetadata;
   onPress: () => void;
-  onDelete: () => void;
 }
 
 export interface DownloadedAudioModalProps {
