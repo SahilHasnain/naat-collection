@@ -1,0 +1,61 @@
+services:
+  live-radio:
+    build: .
+    container_name: live-radio
+    restart: unless-stopped
+    # Expose ports only internally when using nginx proxy
+    expose:
+      - "8000"  # Icecast
+      - "3000"  # API Server
+    environment:
+      - APPWRITE_ENDPOINT=https://sgp.cloud.appwrite.io/v1
+      - APPWRITE_PROJECT_ID=695bb97700213f4ef5dd
+      - APPWRITE_API_KEY=${APPWRITE_API_KEY}
+      - DATABASE_ID=695bba86001b50478ed4
+      - NAATS_COLLECTION_ID=695bc8e70038db72df5b
+    volumes:
+      - ./audio-cache:/app/audio-cache
+      - ./logs:/var/log/icecast
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - radio-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: live-radio-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-ssl.conf:/etc/nginx/nginx.conf:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - live-radio
+    networks:
+      - radio-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  certbot:
+    image: certbot/certbot
+    container_name: live-radio-certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - radio-network
+
+networks:
+  radio-network:
+    driver: bridge
