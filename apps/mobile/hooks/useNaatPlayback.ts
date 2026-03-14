@@ -4,7 +4,7 @@ import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
 import type { Naat } from "@/types";
 import { showErrorToast } from "@/utils/toast";
-import { getPreferredAudioId, hasAudio } from "@naat-collection/shared";
+import { hasAudio } from "@naat-collection/shared";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { Alert } from "react-native";
@@ -51,7 +51,9 @@ export function useNaatPlayback(displayData: Naat[]) {
   const loadAudioDirectly = React.useCallback(
     async (naat: Naat) => {
       await storageService.addToWatchHistory(naat.$id);
-      const audioId = getPreferredAudioId(naat);
+      
+      // Always prioritize cutAudio over audioId
+      const audioId = naat.cutAudio || naat.audioId;
 
       if (!audioId) {
         showVideoFallbackAlert(
@@ -61,6 +63,12 @@ export function useNaatPlayback(displayData: Naat[]) {
         return;
       }
 
+      console.log(`[useNaatPlayback] Playing audio for "${naat.title}":`, {
+        audioId,
+        isCutAudio: !!naat.cutAudio,
+        hasOriginalAudio: !!naat.audioId,
+      });
+
       try {
         let audioUrl: string;
         let isLocalFile = false;
@@ -69,10 +77,12 @@ export function useNaatPlayback(displayData: Naat[]) {
         if (downloaded) {
           audioUrl = audioDownloadService.getLocalPath(audioId);
           isLocalFile = true;
+          console.log(`[useNaatPlayback] Using downloaded audio: ${audioUrl}`);
         } else {
           const response = await appwriteService.getAudioUrl(audioId);
           if (response.success && response.audioUrl) {
             audioUrl = response.audioUrl;
+            console.log(`[useNaatPlayback] Fetched audio URL from server`);
           } else {
             showVideoFallbackAlert(
               naat, audioId,
@@ -119,12 +129,20 @@ export function useNaatPlayback(displayData: Naat[]) {
     async (naatId: string) => {
       const naat = naatsMapRef.current.get(naatId);
       if (!naat) return;
+      
+      console.log(`[useNaatPlayback] Naat pressed: "${naat.title}"`, {
+        cutAudio: naat.cutAudio,
+        audioId: naat.audioId,
+      });
+      
       await storageService.addToWatchHistory(naat.$id);
 
       try {
         const savedMode = await storageService.loadPlaybackMode();
         if (savedMode === "video") {
-          navigateToVideo(naat, naat.audioId, false);
+          // For video mode, use cutAudio if available
+          const preferredAudioId = naat.cutAudio || naat.audioId;
+          navigateToVideo(naat, preferredAudioId, false);
         } else {
           await loadAudioDirectly(naat);
         }
