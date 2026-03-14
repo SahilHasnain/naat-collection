@@ -12,3 +12,5 @@ scripts/
 .vscode/
 .idea/
 temp-audio
+training-data/
+docker
