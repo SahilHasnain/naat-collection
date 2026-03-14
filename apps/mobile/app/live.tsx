@@ -138,25 +138,6 @@ export default function LiveScreen() {
         />
 
         <SafeAreaView className="flex-1" edges={["top"]}>
-          {/* LIVE Badge - Top Left */}
-          <View className="absolute top-32 left-4 z-10">
-            <View 
-              className="flex-row items-center px-2 py-1 rounded-full"
-              style={{ backgroundColor: colors.accent.primary }}
-            >
-              <View 
-                className="w-1.5 h-1.5 rounded-full mr-1.5"
-                style={{ backgroundColor: colors.text.primary }}
-              />
-              <Text 
-                className="text-[10px] font-semibold tracking-wide"
-                style={{ color: colors.text.primary }}
-              >
-                LIVE
-              </Text>
-            </View>
-          </View>
-
           <ScrollView
             className="flex-1"
             contentContainerStyle={{
