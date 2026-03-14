@@ -7,10 +7,10 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import React from "react";
 import {
-  ActivityIndicator,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import Pressable from "./ResponsivePressable";
@@ -123,11 +123,16 @@ const NaatCard: React.FC<NaatCardProps> = ({
               style={{ backgroundColor: colors.background.tertiary }}
             >
               <View className="items-center">
-                <Image
-                  source={require("@/assets/images/headphone-v1.png")}
-                  style={{ width: 48, height: 48 }}
-                  contentFit="contain"
-                />
+                <View 
+                  className="rounded-full p-3"
+                  style={{ backgroundColor: colors.accent.primary + '20' }}
+                >
+                  <Image
+                    source={require("@/assets/images/headphone-v1.png")}
+                    style={{ width: 48, height: 48 }}
+                    contentFit="contain"
+                  />
+                </View>
                 <Text
                   className="text-sm font-medium mt-2"
                   style={{ color: colors.text.tertiary }}
@@ -201,15 +206,6 @@ const NaatCard: React.FC<NaatCardProps> = ({
         {/* Content Section - With horizontal padding */}
         <View className="pt-3 px-4">
           <View className="flex-row gap-3">
-            {/* Icon */}
-            <View className="flex-shrink-0">
-              <Image
-                source={require("@/assets/images/headphone-v1.png")}
-                style={{ width: 36, height: 36 }}
-                contentFit="contain"
-              />
-            </View>
-
             {/* Title and Metadata */}
             <View className="flex-1">
               {/* Title */}
