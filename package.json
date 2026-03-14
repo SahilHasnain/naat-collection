@@ -15,7 +15,7 @@
     "mobile:lint": "npm run lint --workspace=mobile",
     "mobile:test": "npm run test --workspace=mobile",
     "mobile:build:dev": "cd apps/mobile && eas build --platform android --profile development",
-    "mobile:build:preview": "cd apps/mobile && eas build --platform android --profile preview",
+    "mobile:build:prev": "cd apps/mobile && eas build --platform android --profile preview",
     "mobile:build:prod": "cd apps/mobile && eas build --platform android --profile production",
     "web": "cd apps/web && npm run dev",
     "web:build": "cd apps/web && npm run build",

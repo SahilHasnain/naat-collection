@@ -1,0 +1,23 @@
+# Environment variables
+.env
+
+# Audio cache
+audio-cache/
+
+# Logs
+logs/
+
+# Playlist files
+playlist.txt
+
+# Node modules
+node_modules/
+
+# Generated Icecast config
+icecast.xml
+
+# Docker volumes
+*.log
+
+# SSL certificates
+certbot/
