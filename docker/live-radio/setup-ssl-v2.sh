@@ -18,7 +18,7 @@ if [ -d "certbot/conf/live/$DOMAIN" ]; then
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         echo "Using existing certificates..."
-        docker compose -f docker-compose-ssl.yml up -d
+        docker-compose -f docker-compose-ssl.yml up -d
         echo "✓ Services started with existing SSL"
         exit 0
     fi
@@ -73,7 +73,7 @@ if [ $? -eq 0 ]; then
     docker rm -f nginx-temp
     
     # Start full docker-compose stack with SSL
-    docker compose -f docker-compose-ssl.yml up -d
+    docker-compose -f docker-compose-ssl.yml up -d
     
     # Wait for services
     sleep 5
