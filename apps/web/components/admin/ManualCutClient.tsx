@@ -63,9 +63,10 @@ export default function ManualCutClient() {
   const [filterProcessed, setFilterProcessed] = useState<
     "unprocessed" | "all" | "processed"
   >("unprocessed");
-  const [sortBy, setSortBy] = useState<"latest" | "popular" | "oldest">(
+  const [sortBy, setSortBy] = useState<"latest" | "popular" | "oldest" | "random">(
     "popular",
   );
+  const [randomSeed, setRandomSeed] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -133,6 +134,7 @@ export default function ManualCutClient() {
     filterDuration,
     filterProcessed,
     searchQuery,
+    randomSeed,
     selectedNaat,
   ]);
 
@@ -253,6 +255,8 @@ export default function ManualCutClient() {
         queries.push(Query.orderAsc("uploadDate"));
       } else if (sortBy === "popular") {
         queries.push(Query.orderDesc("views"));
+      } else if (sortBy === "random") {
+        queries.push(Query.orderRandom());
       }
 
       // Filter by radio status
@@ -333,6 +337,10 @@ export default function ManualCutClient() {
 
   function scrollToTop() {
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function shuffleResults() {
+    setRandomSeed((prev) => prev + 1);
   }
 
   function handleSearchSubmit(e: React.FormEvent) {
@@ -441,8 +449,6 @@ export default function ManualCutClient() {
       if (!response.ok) {
         throw new Error(data.error || "Failed to skip naat");
       }
-
-      alert("Naat marked as having no explanation parts!");
 
       clearState();
 
@@ -582,14 +588,38 @@ export default function ManualCutClient() {
                     value={sortBy}
                     onChange={(e) =>
                       setSortBy(
-                        e.target.value as "latest" | "popular" | "oldest",
+                        e.target.value as "latest" | "popular" | "oldest" | "random",
                       )
                     }
                   >
                     <option value="latest">Latest</option>
                     <option value="popular">Most Popular</option>
                     <option value="oldest">Oldest</option>
+                    <option value="random">Random</option>
                   </select>
+                  {sortBy === "random" && (
+                    <button
+                      onClick={shuffleResults}
+                      disabled={loading || loadingMore}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      title="Shuffle results"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      Shuffle
+                    </button>
+                  )}
                   <select
                     className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded"
                     value={filterChannel}
@@ -623,10 +653,10 @@ export default function ManualCutClient() {
                     onChange={(e) =>
                       setFilterDuration(
                         e.target.value as
-                          | "all"
-                          | "<=10min"
-                          | ">15min"
-                          | ">20min",
+                        | "all"
+                        | "<=10min"
+                        | ">15min"
+                        | ">20min",
                       )
                     }
                   >
