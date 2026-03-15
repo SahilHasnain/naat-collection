@@ -10,6 +10,7 @@ import { DownloadMetadata } from "@/services/audioDownload";
 import { sortDownloads } from "@/utils/formatters";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import React, {
   useCallback,
@@ -153,6 +154,13 @@ export default function DownloadsScreen() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   const flatListRef = useRef<FlatList>(null);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
 
   // Filter and sort downloads
   const displayData = useMemo(() => {
@@ -385,9 +393,9 @@ export default function DownloadsScreen() {
       label: string;
       iconName: keyof typeof Ionicons.glyphMap;
     }[] = [
-      { value: "date", label: "Date", iconName: "calendar" },
-      { value: "title", label: "Title", iconName: "text" },
-    ];
+        { value: "date", label: "Date", iconName: "calendar" },
+        { value: "title", label: "Title", iconName: "text" },
+      ];
 
     return (
       <View className="bg-neutral-800 border-b border-neutral-700">
@@ -407,9 +415,8 @@ export default function DownloadsScreen() {
               <Pressable
                 key={option.value}
                 onPress={() => handleSortChange(option.value)}
-                className={`mr-3 px-4 py-2 rounded-full flex-row items-center ${
-                  isSelected ? "bg-blue-500" : "bg-neutral-700"
-                }`}
+                className={`mr-3 px-4 py-2 rounded-full flex-row items-center ${isSelected ? "bg-blue-500" : "bg-neutral-700"
+                  }`}
                 style={{ minHeight: 44 }}
                 accessibilityRole="button"
                 accessibilityLabel={`Sort by ${option.label}${isSelected ? `, ${sortOrderLabel}` : ""}`}
