@@ -160,18 +160,18 @@ export default function HomeScreen() {
     ({ item, index }: { item: Naat; index: number }) => {
       const ds = downloadStates[item.$id];
       const isFirstCard = index === 0;
-      
+
       return (
         <View>
           {/* First-time hint - only on first card */}
           {isFirstCard && showDownloadHint && (
             <View className="mx-4 mb-3">
-              <View 
+              <View
                 className="rounded-lg px-3 py-2.5 flex-row items-center"
                 style={{ backgroundColor: colors.accent.primary }}
               >
                 <Ionicons name="information-circle" size={18} color={colors.text.primary} />
-                <Text 
+                <Text
                   className="text-xs font-medium ml-2 flex-1"
                   style={{ color: colors.text.primary }}
                 >
@@ -183,7 +183,7 @@ export default function HomeScreen() {
               </View>
             </View>
           )}
-          
+
           <NaatCard
             id={item.$id}
             title={item.title}
@@ -255,7 +255,7 @@ export default function HomeScreen() {
           renderItem={renderNaatCard}
           keyExtractor={(item) => item.$id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1, paddingTop: 100, paddingBottom: 50 }}
+          contentContainerStyle={{ flexGrow: 1, paddingTop: 100, paddingBottom: 120 }}
           ListHeaderComponent={
             <>
               {filters.isShowingSearchResults ? (

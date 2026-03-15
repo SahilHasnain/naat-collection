@@ -13,11 +13,11 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import React from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    StatusBar,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  StatusBar,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import YoutubePlayer from "react-native-youtube-iframe";
@@ -222,7 +222,7 @@ export default function VideoScreen() {
     };
   }, [isFullscreen]);
 
-  // Update video position periodically
+  // Update video position periodically and check duration
   React.useEffect(() => {
     const interval = setInterval(async () => {
       if (playerRef.current) {
@@ -231,6 +231,20 @@ export default function VideoScreen() {
           setVideoPosition(currentTime);
           // Update context position
           setContextPosition(currentTime);
+
+          // If duration is still 0, try to get it
+          if (videoDuration === 0) {
+            try {
+              const duration = await playerRef.current.getDuration();
+              if (duration > 0) {
+                console.log("[VideoScreen] Video duration from interval:", duration);
+                setVideoDuration(duration);
+                setContextDuration(duration);
+              }
+            } catch (durationError) {
+              // Ignore duration errors in interval
+            }
+          }
         } catch {
           // Ignore errors
         }
@@ -238,7 +252,7 @@ export default function VideoScreen() {
     }, 500);
 
     return () => clearInterval(interval);
-  }, [setContextPosition]);
+  }, [setContextPosition, videoDuration, setContextDuration]);
 
   // Handle video state changes
   const onStateChange = React.useCallback(
@@ -248,6 +262,22 @@ export default function VideoScreen() {
         setIsLoading(false);
         setVideoPlaying(true);
         setPlaying(true);
+
+        // Fallback: Get duration when video starts playing if not already set
+        if (videoDuration === 0 && playerRef.current) {
+          setTimeout(async () => {
+            try {
+              const duration = await playerRef.current.getDuration();
+              console.log("[VideoScreen] Video duration from playing state:", duration);
+              if (duration > 0) {
+                setVideoDuration(duration);
+                setContextDuration(duration);
+              }
+            } catch (error) {
+              console.error("[VideoScreen] Error getting duration from playing state:", error);
+            }
+          }, 1000);
+        }
       } else if (state === "paused") {
         setVideoPlaying(false);
         setPlaying(false);
@@ -274,7 +304,7 @@ export default function VideoScreen() {
         }
       }
     },
-    [setPlaying, handleVideoEnd, isRepeatEnabled],
+    [setPlaying, handleVideoEnd, isRepeatEnabled, videoDuration, setContextDuration],
   );
 
   // Seek to position in video
@@ -311,15 +341,32 @@ export default function VideoScreen() {
                   videoId={videoId}
                   play={videoPlaying}
                   onReady={() => {
+                    console.log("[VideoScreen] Video ready, getting duration...");
                     setIsLoading(false);
                     if (playerRef.current) {
-                      playerRef.current
-                        .getDuration()
-                        .then((duration: number) => {
+                      // Add a small delay to ensure video is fully loaded
+                      setTimeout(async () => {
+                        try {
+                          const duration = await playerRef.current.getDuration();
+                          console.log("[VideoScreen] Video duration:", duration);
                           setVideoDuration(duration);
                           // Update context duration
                           setContextDuration(duration);
-                        });
+                        } catch (error) {
+                          console.error("[VideoScreen] Error getting duration:", error);
+                          // Fallback: try again after another delay
+                          setTimeout(async () => {
+                            try {
+                              const duration = await playerRef.current.getDuration();
+                              console.log("[VideoScreen] Video duration (retry):", duration);
+                              setVideoDuration(duration);
+                              setContextDuration(duration);
+                            } catch (retryError) {
+                              console.error("[VideoScreen] Error getting duration (retry):", retryError);
+                            }
+                          }, 1000);
+                        }
+                      }, 500);
                     }
                   }}
                   onChangeState={onStateChange}
@@ -374,7 +421,7 @@ export default function VideoScreen() {
                       {formatTime(videoPosition)}
                     </Text>
                     <Text className="text-sm text-neutral-400">
-                      {formatTime(videoDuration)}
+                      {videoDuration > 0 ? formatTime(videoDuration) : "--:--"}
                     </Text>
                   </View>
                 </View>
