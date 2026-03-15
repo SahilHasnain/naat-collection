@@ -145,9 +145,9 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
 
           <View className="flex-row items-center h-full px-4">
             {/* Headphone Icon */}
-            <View className="mr-3 items-center justify-center">
+            <View className="items-center justify-center mr-3">
               <Image
-                source={require("@/assets/images/headphone-v1.png")}
+                source={require("@/assets/images/gumbad.png")}
                 style={{ width: 32, height: 32 }}
                 resizeMode="contain"
               />
@@ -156,7 +156,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
             {/* Title */}
             <View className="flex-1 mr-3">
               <Text
-                className="font-semibold text-sm"
+                className="text-sm font-semibold"
                 numberOfLines={1}
                 ellipsizeMode="tail"
                 style={{ color: colors.text.primary }}
@@ -175,7 +175,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
                   play();
                 }
               }}
-              className="h-9 w-9 items-center justify-center mr-2"
+              className="items-center justify-center mr-2 h-9 w-9"
               accessibilityRole="button"
               accessibilityLabel={isPlaying ? "Pause naat radio" : "Play naat radio"}
             >
@@ -192,7 +192,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
                 e.stopPropagation();
                 stop();
               }}
-              className="h-9 w-9 items-center justify-center"
+              className="items-center justify-center h-9 w-9"
               accessibilityRole="button"
               accessibilityLabel="Stop naat radio"
             >
