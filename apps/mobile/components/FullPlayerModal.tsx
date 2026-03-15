@@ -79,6 +79,9 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     };
 
     checkDownloadStatus();
+
+    // Reset A/B repeat mode UI when new audio loads
+    setIsABRepeatMode(false);
   }, [currentAudio]);
 
   // Download audio
@@ -467,7 +470,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                           : colors.text.primary,
                       }}
                     >
-                      A/B Repeat Mode
+                      A/B Repeat
                     </Text>
                   </View>
                 </TouchableOpacity>

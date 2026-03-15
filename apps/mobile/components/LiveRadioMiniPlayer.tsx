@@ -139,7 +139,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
             className="absolute top-0 left-0 right-0"
             style={{ 
               height: 2, 
-              backgroundColor: isPlaying ? "#ef4444" : colors.text.disabled 
+              backgroundColor: isPlaying ? colors.accent.primary : colors.text.disabled 
             }}
           />
 

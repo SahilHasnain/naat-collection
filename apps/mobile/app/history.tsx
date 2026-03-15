@@ -13,30 +13,31 @@ import { DateGroup, groupByDate } from "@/utils/dateGrouping";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import { getPreferredAudioId, getPreferredDuration } from "@naat-collection/shared";
+import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useRef } from "react";
 import {
-    AccessibilityInfo,
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    RefreshControl,
-    SectionList,
-    Text,
-    View,
+  AccessibilityInfo,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  SectionList,
+  Text,
+  View,
 } from "react-native";
 import {
-    Gesture,
-    GestureDetector,
-    GestureHandlerRootView,
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
 } from "react-native-gesture-handler";
 import Animated, {
-    runOnJS,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -161,6 +162,13 @@ export default function HistoryScreen() {
     clearHistory,
     removeFromHistory,
   } = useHistory();
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
 
   // Group history by date
   const groupedHistory = useMemo(() => {

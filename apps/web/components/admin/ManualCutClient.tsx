@@ -67,6 +67,7 @@ export default function ManualCutClient() {
     "popular",
   );
   const [randomSeed, setRandomSeed] = useState(0);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -341,6 +342,38 @@ export default function ManualCutClient() {
 
   function shuffleResults() {
     setRandomSeed((prev) => prev + 1);
+  }
+
+  function handleDragStart(e: React.DragEvent, index: number) {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  }
+
+  function handleDrop(e: React.DragEvent, dropIndex: number) {
+    e.preventDefault();
+
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      return;
+    }
+
+    const newSegments = [...cutSegments];
+    const draggedSegment = newSegments[draggedIndex];
+
+    // Remove the dragged segment
+    newSegments.splice(draggedIndex, 1);
+
+    // Insert at the new position
+    const adjustedDropIndex = draggedIndex < dropIndex ? dropIndex - 1 : dropIndex;
+    newSegments.splice(adjustedDropIndex, 0, draggedSegment);
+
+    setCutSegments(newSegments);
+    setDraggedIndex(null);
   }
 
   function handleSearchSubmit(e: React.FormEvent) {
@@ -993,13 +1026,39 @@ export default function ManualCutClient() {
                 onClick={addSegment}
                 className="px-4 py-2 mb-4 bg-blue-600 rounded hover:bg-blue-700"
               >
-                + Add Segment
+                + Add Segment at Top
               </button>
 
               {[...cutSegments].reverse().map((segment, reversedIndex) => {
                 const index = cutSegments.length - 1 - reversedIndex;
                 return (
-                  <div key={index} className="p-4 mb-4 bg-gray-700 rounded-lg">
+                  <div
+                    key={index}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, index)}
+                    className={`p-4 mb-4 bg-gray-700 rounded-lg cursor-move hover:bg-gray-650 transition-colors ${draggedIndex === index ? 'opacity-50' : ''
+                      }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                        </svg>
+                        <h4 className="text-sm font-medium text-gray-300">
+                          Segment {index + 1} (drag to reorder)
+                        </h4>
+                      </div>
+                      <button
+                        onClick={() => removeSegment(index)}
+                        className="px-3 py-1 text-xs bg-red-600 rounded hover:bg-red-700"
+                        disabled={cutSegments.length === 1}
+                        title="Remove this segment"
+                      >
+                        Remove
+                      </button>
+                    </div>
                     <div className="flex items-end gap-6">
                       <div className="flex-1">
                         <label className="block mb-2 text-sm font-medium">
