@@ -6,13 +6,13 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import React from "react";
-import {
-    ActivityIndicator,
-    Text,
-    TouchableOpacity,
-    View
-} from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import Pressable from "./ResponsivePressable";
 
 const formatDuration = (seconds: number): string => {
@@ -119,13 +119,13 @@ const NaatCard: React.FC<NaatCardProps> = ({
         >
           {imageError || !thumbnail ? (
             <View
-              className="h-full w-full items-center justify-center"
+              className="items-center justify-center w-full h-full"
               style={{ backgroundColor: colors.background.tertiary }}
             >
               <View className="items-center">
-                <View 
-                  className="rounded-full p-3"
-                  style={{ backgroundColor: colors.accent.primary + '20' }}
+                <View
+                  className="p-3 rounded-full"
+                  style={{ backgroundColor: colors.accent.primary + "20" }}
                 >
                   <Image
                     source={require("@/assets/images/headphone-v1.png")}
@@ -134,7 +134,7 @@ const NaatCard: React.FC<NaatCardProps> = ({
                   />
                 </View>
                 <Text
-                  className="text-sm font-medium mt-2"
+                  className="mt-2 text-sm font-medium"
                   style={{ color: colors.text.tertiary }}
                 >
                   No Thumbnail
@@ -204,19 +204,25 @@ const NaatCard: React.FC<NaatCardProps> = ({
         </View>
 
         {/* Content Section - With horizontal padding */}
-        <View className="pt-3 px-4">
+        <View className="px-4 pt-3">
           <View className="flex-row gap-3">
             {/* Title and Metadata */}
             <View className="flex-1">
-              {/* Title */}
-              <Text
-                className="text-sm font-medium leading-tight mb-1.5"
-                numberOfLines={2}
-                ellipsizeMode="tail"
-                style={{ color: colors.text.primary }}
-              >
-                {title}
-              </Text>
+              {/* Title with placeholder icon */}
+              <View className="mb-1.5 flex-row items-start gap-2">
+                <View
+                  className="mt-0.5 h-10 w-10 rounded-full border"
+                  style={{ borderColor: colors.text.tertiary, opacity: 0.35 }}
+                />
+                <Text
+                  className="flex-1 text-sm font-medium leading-tight"
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                  style={{ color: colors.text.primary }}
+                >
+                  {title}
+                </Text>
+              </View>
 
               {/* Views • Upload date OR Download hint */}
               <View className="flex-row justify-end">
@@ -233,7 +239,8 @@ const NaatCard: React.FC<NaatCardProps> = ({
                     style={{ color: colors.text.secondary }}
                     numberOfLines={1}
                   >
-                    {formatViews(views)} views · {formatRelativeTime(uploadDate)}
+                    {formatViews(views)} views ·{" "}
+                    {formatRelativeTime(uploadDate)}
                   </Text>
                 )}
               </View>
@@ -241,18 +248,21 @@ const NaatCard: React.FC<NaatCardProps> = ({
 
             {/* Animated Download Button */}
             {showDownloadControls && onDownload && (
-              <Animated.View 
+              <Animated.View
                 style={downloadButtonAnimatedStyle}
-                className="flex-shrink-0 self-center"
+                className="self-center flex-shrink-0"
               >
                 <TouchableOpacity
                   onPress={handleDownloadPress}
-                  className="w-10 h-10 rounded-full items-center justify-center"
+                  className="items-center justify-center w-10 h-10 rounded-full"
                   style={{ backgroundColor: colors.accent.primary }}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   {isDownloading ? (
-                    <ActivityIndicator size="small" color={colors.text.primary} />
+                    <ActivityIndicator
+                      size="small"
+                      color={colors.text.primary}
+                    />
                   ) : (
                     <Ionicons
                       name={isDownloaded ? "checkmark" : "download"}
