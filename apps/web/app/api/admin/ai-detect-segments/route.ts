@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       execFile(
         "python",
         [scriptPath, inputPath],
-        { timeout: 600000, maxBuffer: 10 * 1024 * 1024 },
+        { timeout: 6000000, maxBuffer: 10 * 1024 * 1024 },
         (error, stdout, stderr) => {
           if (stderr) {
             console.log("[ai-detect-segments] stderr:", stderr);
