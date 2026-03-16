@@ -59,8 +59,8 @@ function RootLayoutContent() {
   const segments = useSegments();
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
   const { currentAudio, stop } = useAudioPlayer();
-  const { currentNaat, showMiniPlayer } = useLiveRadioPlayer();
-  const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
+  const { showMiniPlayer } = useLiveRadioPlayer();
+  const { isNormalAudioActive } = usePlaybackMode();
   const { translateY } = useTabBarVisibility();
   const { translateY: headerTranslateY } = useHeaderVisibility();
   const { setShowFilterModal } = useFilterModal();
