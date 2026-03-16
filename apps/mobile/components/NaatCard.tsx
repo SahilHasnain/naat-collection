@@ -209,11 +209,7 @@ const NaatCard: React.FC<NaatCardProps> = ({
             {/* Title and Metadata */}
             <View className="flex-1">
               {/* Title with placeholder icon */}
-              <View className="mb-1.5 flex-row items-start gap-2">
-                <View
-                  className="mt-0.5 h-10 w-10 rounded-full border"
-                  style={{ borderColor: colors.text.tertiary, opacity: 0.35 }}
-                />
+              <View className="mb-1.5">
                 <Text
                   className="flex-1 text-sm font-medium leading-tight"
                   numberOfLines={2}
