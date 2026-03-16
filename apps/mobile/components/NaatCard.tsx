@@ -211,7 +211,7 @@ const NaatCard: React.FC<NaatCardProps> = ({
               {/* Title with placeholder icon */}
               <View className="mb-1.5">
                 <Text
-                  className="flex-1 text-sm font-medium leading-tight"
+                  className="text-sm font-medium leading-tight"
                   numberOfLines={2}
                   ellipsizeMode="tail"
                   style={{ color: colors.text.primary }}
