@@ -148,7 +148,7 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
             <View className="items-center justify-center mr-3">
               <Image
                 source={require("@/assets/images/gumbad.png")}
-                style={{ width: 32, height: 32 }}
+                style={{ width: 64, height: 36 }}
                 resizeMode="contain"
               />
             </View>
