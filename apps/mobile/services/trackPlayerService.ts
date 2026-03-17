@@ -17,8 +17,16 @@ export async function PlaybackService() {
     TrackPlayer.play();
   });
 
-  TrackPlayer.addEventListener(Event.RemotePause, () => {
-    TrackPlayer.pause();
+  TrackPlayer.addEventListener(Event.RemotePause, async () => {
+    const currentTrack = await TrackPlayer.getActiveTrack();
+
+    // Live radio pause should behave as stop, so replay reconnects to stream server.
+    if (currentTrack?.id === "live-radio-icecast") {
+      await TrackPlayer.stop();
+      return;
+    }
+
+    await TrackPlayer.pause();
   });
 
   TrackPlayer.addEventListener(Event.RemoteStop, () => {
