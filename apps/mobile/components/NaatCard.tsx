@@ -212,7 +212,7 @@ const NaatCard: React.FC<NaatCardProps> = ({
               <View className="mb-1.5">
                 <Text
                   className="text-sm font-medium leading-tight"
-                  numberOfLines={2}
+                  numberOfLines={1}
                   ellipsizeMode="tail"
                   style={{ color: colors.text.primary }}
                 >
