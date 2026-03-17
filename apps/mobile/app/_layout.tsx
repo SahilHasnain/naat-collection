@@ -42,7 +42,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSharedValue, withTiming } from "react-native-reanimated";
-import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import "../global.css";
 
 // Initialize Sentry
@@ -60,7 +63,7 @@ function RootLayoutContent() {
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
   const { currentAudio, stop } = useAudioPlayer();
   const { showMiniPlayer } = useLiveRadioPlayer();
-  const { isNormalAudioActive } = usePlaybackMode();
+  const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
   const { translateY } = useTabBarVisibility();
   const { translateY: headerTranslateY } = useHeaderVisibility();
   const { setShowFilterModal } = useFilterModal();
@@ -80,11 +83,8 @@ function RootLayoutContent() {
   // Check if user is on video screen
   const isOnVideoScreen = segments[0] === "video";
 
-  // Check if user is on homepage (index) - only enable filter on homepage
-  const isOnHomepage = segments[0] === undefined;
-
-  // Check if user is on downloads tab
-  const isOnDownloadsTab = segments[0] === "downloads";
+  // Check if user is on homepage (home route) - only enable filter on homepage
+  const isOnHomepage = segments[0] === "home" || segments[0] === undefined;
 
   // Network status for offline handling
   const { isConnected } = useNetworkStatus();
@@ -208,7 +208,7 @@ function RootLayoutContent() {
           onSearchPress={() => {
             activateSearch();
             if (!isOnHomepage) {
-              router.push("/");
+              router.push("/home");
             }
           }}
           disableFilter={!isOnHomepage || isSearchActive}
@@ -227,11 +227,15 @@ function RootLayoutContent() {
           tabBarInactiveTintColor: colors.text.secondary,
         }}
         tabBar={(props) => (
-          <AnimatedTabBar {...props} translateY={translateY} networkIndicatorOffset={networkIndicatorOffset} />
+          <AnimatedTabBar
+            {...props}
+            translateY={translateY}
+            networkIndicatorOffset={networkIndicatorOffset}
+          />
         )}
       >
         <Tabs.Screen
-          name="index"
+          name="home"
           options={{
             title: "Home",
             tabBarIcon: ({ color, focused }) => (
@@ -289,6 +293,12 @@ function RootLayoutContent() {
           }}
         />
         <Tabs.Screen
+          name="index"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
           name="+not-found"
           options={{
             href: null,
@@ -297,20 +307,28 @@ function RootLayoutContent() {
       </Tabs>
 
       {/* Mini Player - Persistent across all screens (only show when normal audio is active and NOT on live tab or video screen) */}
-      {isNormalAudioActive && currentAudio && !isOnLiveTab && !isOnVideoScreen && (
-        <MiniPlayer onExpand={() => setIsPlayerExpanded(true)} networkIndicatorOffset={networkIndicatorOffset} />
-      )}
+      {isNormalAudioActive &&
+        currentAudio &&
+        !isOnLiveTab &&
+        !isOnVideoScreen && (
+          <MiniPlayer
+            onExpand={() => setIsPlayerExpanded(true)}
+            networkIndicatorOffset={networkIndicatorOffset}
+          />
+        )}
 
       {/* Naat Radio Mini Player - Shows when showMiniPlayer is true and user is NOT on live tab or video screen */}
-      {showMiniPlayer && !isOnLiveTab && !isOnVideoScreen && (
-        <LiveRadioMiniPlayer
-          onExpand={() => {
-            // Navigate to live tab when miniplayer is tapped
-            router.push("/live");
-          }}
-          networkIndicatorOffset={networkIndicatorOffset}
-        />
-      )}
+      {(showMiniPlayer || isLiveRadioActive) &&
+        !isOnLiveTab &&
+        !isOnVideoScreen && (
+          <LiveRadioMiniPlayer
+            onExpand={() => {
+              // Navigate to live tab when miniplayer is tapped
+              router.push("/live");
+            }}
+            networkIndicatorOffset={networkIndicatorOffset}
+          />
+        )}
 
       {/* Full Player Modal */}
       <FullPlayerModal
@@ -327,7 +345,9 @@ function RootLayoutContent() {
             bottom: insets.bottom,
             left: 0,
             right: 0,
-            backgroundColor: showBackOnline ? "#2e7d32" : colors.background.tertiary,
+            backgroundColor: showBackOnline
+              ? "#2e7d32"
+              : colors.background.tertiary,
             paddingVertical: 2,
             alignItems: "center",
             justifyContent: "center",
@@ -375,7 +395,7 @@ function RootLayoutContent() {
               marginBottom: 4,
             }}
           >
-            You're offline
+            You are offline
           </Text>
           <Text
             style={{
@@ -386,14 +406,26 @@ function RootLayoutContent() {
           >
             Watch downloads without a connection.
           </Text>
-          <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 12 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              gap: 12,
+            }}
+          >
             <Pressable
               onPress={() => setShowOfflineModal(false)}
               style={{ paddingVertical: 8, paddingHorizontal: 12 }}
               accessibilityRole="button"
               accessibilityLabel="Dismiss offline prompt"
             >
-              <Text style={{ color: colors.accent.secondary, fontSize: 14, fontWeight: "600" }}>
+              <Text
+                style={{
+                  color: colors.accent.secondary,
+                  fontSize: 14,
+                  fontWeight: "600",
+                }}
+              >
                 No thanks
               </Text>
             </Pressable>
@@ -412,7 +444,13 @@ function RootLayoutContent() {
               accessibilityRole="button"
               accessibilityLabel="Go to downloads"
             >
-              <Text style={{ color: colors.text.primary, fontSize: 14, fontWeight: "600" }}>
+              <Text
+                style={{
+                  color: colors.text.primary,
+                  fontSize: 14,
+                  fontWeight: "600",
+                }}
+              >
                 See your downloads
               </Text>
             </Pressable>

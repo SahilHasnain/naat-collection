@@ -21,21 +21,15 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-
 export default function LiveScreen() {
-  const {
-    isLoading,
-    error,
-    currentNaat,
-    isPlaying,
-    play,
-    pause,
-    refresh,
-  } = useLiveRadioPlayer();
+  const { isLoading, error, isPlaying, play, pause, refresh } =
+    useLiveRadioPlayer();
+
+  const isBuffering = isLoading && !isPlaying;
 
   const { showTabBar } = useTabBarVisibility();
   const { showHeader } = useHeaderVisibility();
@@ -52,7 +46,7 @@ export default function LiveScreen() {
   // Load initial state
   useEffect(() => {
     refresh();
-  }, []);
+  }, [refresh]);
 
   /**
    * Handle play naat radio
@@ -67,22 +61,6 @@ export default function LiveScreen() {
   const handleStopLive = async () => {
     await pause(true); // Pass true to indicate pause from live page
   };
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <SafeAreaView
-        className="items-center justify-center flex-1"
-        style={{ backgroundColor: colors.background.primary }}
-        edges={["top"]}
-      >
-        <ActivityIndicator size="large" color={colors.accent.error} />
-        <Text className="mt-4 text-base" style={{ color: colors.text.primary }}>
-          Loading Naat Radio...
-        </Text>
-      </SafeAreaView>
-    );
-  }
 
   // Error state
   if (error) {
@@ -99,9 +77,7 @@ export default function LiveScreen() {
         >
           Naat Radio Unavailable
         </Text>
-        <Text className="mt-2 text-center text-neutral-400">
-          {error}
-        </Text>
+        <Text className="mt-2 text-center text-neutral-400">{error}</Text>
         <TouchableOpacity
           onPress={refresh}
           className="px-6 py-3 mt-6 rounded-full"
@@ -166,21 +142,12 @@ export default function LiveScreen() {
                     resizeMode="contain"
                   />
                 </View>
-                
-                {/* Simple buffering indicator in center */}
-                {isLoading && (
-                  <View className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <ActivityIndicator 
-                      size="small" 
-                      color={colors.text.secondary}
-                    />
-                  </View>
-                )}
-                
-                <View className="flex-1 -ml-3 items-center justify-center">
+
+                <View className="items-center justify-center flex-1 -ml-3">
                   {/* Play/Pause Button */}
                   <TouchableOpacity
                     onPress={isPlaying ? handleStopLive : handlePlayLive}
+                    disabled={isBuffering}
                     className="items-center justify-center"
                     style={{
                       width: 72,
@@ -189,11 +156,18 @@ export default function LiveScreen() {
                       backgroundColor: "transparent",
                     }}
                   >
-                    <Ionicons
-                      name={isPlaying ? "pause" : "play"}
-                      size={32}
-                      color={colors.text.primary}
-                    />
+                    {isBuffering ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={colors.text.primary}
+                      />
+                    ) : (
+                      <Ionicons
+                        name={isPlaying ? "pause" : "play"}
+                        size={32}
+                        color={colors.text.primary}
+                      />
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>

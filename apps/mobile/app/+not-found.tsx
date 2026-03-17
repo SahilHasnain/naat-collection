@@ -13,8 +13,8 @@ export default function NotFoundRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    // Replace the unknown route with the root route
-    router.replace("/");
+    // Replace the unknown route with the Home route
+    router.replace("/home");
   }, [router]);
 
   return (

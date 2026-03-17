@@ -204,7 +204,7 @@ const NaatCard: React.FC<NaatCardProps> = ({
         </View>
 
         {/* Content Section - With horizontal padding */}
-        <View className="px-4 pt-3">
+        <View className="px-2 pt-3">
           <View className="flex-row gap-3">
             {/* Title and Metadata */}
             <View className="flex-1">
