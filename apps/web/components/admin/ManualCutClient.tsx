@@ -12,6 +12,7 @@ interface Naat {
   channelName?: string;
   views?: number;
   uploadDate?: string;
+  exclude?: boolean;
   radio?: boolean;
   cutSegments?: string;
   cutAudioId?: string;
@@ -73,6 +74,10 @@ export default function ManualCutClient() {
   const [totalCount, setTotalCount] = useState(0);
   const [channels, setChannels] = useState<string[]>([]);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [updatingExclude, setUpdatingExclude] = useState<string | null>(null);
+  const [updatingRadio, setUpdatingRadio] = useState<string | null>(null);
+  const [playingNaatId, setPlayingNaatId] = useState<string | null>(null);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   const [originalAudioRef, setOriginalAudioRef] =
     useState<HTMLAudioElement | null>(null);
   const [detecting, setDetecting] = useState(false);
@@ -117,7 +122,17 @@ export default function ManualCutClient() {
     };
 
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+
+    const audio = new Audio();
+    audio.addEventListener("ended", () => setPlayingNaatId(null));
+    audio.addEventListener("error", () => setPlayingNaatId(null));
+    setAudioElement(audio);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      audio.pause();
+      audio.src = "";
+    };
   }, []);
 
   useEffect(() => {
@@ -238,7 +253,6 @@ export default function ManualCutClient() {
         Query.limit(LIMIT),
         Query.offset(currentOffset),
         Query.isNotNull("audioId"),
-        Query.or([Query.equal("exclude", false), Query.isNull("exclude")]),
       ];
 
       // Filter by processed status
@@ -374,6 +388,57 @@ export default function ManualCutClient() {
 
     setCutSegments(newSegments);
     setDraggedIndex(null);
+  }
+
+  async function toggleExclude(naatId: string, currentExcludeStatus: boolean) {
+    setUpdatingExclude(naatId);
+    try {
+      const response = await fetch("/api/admin/toggle-exclude", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ naatId, exclude: !currentExcludeStatus }),
+      });
+      if (!response.ok) throw new Error((await response.json()).error);
+      setNaats(naats.map((n) => n.$id === naatId ? { ...n, exclude: !currentExcludeStatus } : n));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update naat");
+    } finally {
+      setUpdatingExclude(null);
+    }
+  }
+
+  async function toggleRadio(naatId: string, currentRadioStatus: boolean) {
+    setUpdatingRadio(naatId);
+    try {
+      const response = await fetch("/api/admin/toggle-radio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ naatId, radio: !currentRadioStatus }),
+      });
+      if (!response.ok) throw new Error((await response.json()).error);
+      setNaats(naats.map((n) => n.$id === naatId ? { ...n, radio: !currentRadioStatus } : n));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update naat");
+    } finally {
+      setUpdatingRadio(null);
+    }
+  }
+
+  async function togglePlayAudio(naat: Naat) {
+    if (!audioElement || !naat.audioId) return;
+    if (playingNaatId === naat.$id) {
+      audioElement.paused ? audioElement.play() : audioElement.pause();
+      if (!audioElement.paused) setPlayingNaatId(null);
+      return;
+    }
+    audioElement.pause();
+    setPlayingNaatId(naat.$id);
+    try {
+      audioElement.src = `/api/stream-audio?audioId=${naat.audioId}`;
+      await audioElement.play();
+    } catch {
+      setPlayingNaatId(null);
+    }
   }
 
   function handleSearchSubmit(e: React.FormEvent) {
@@ -724,87 +789,120 @@ export default function ManualCutClient() {
               {filteredNaats.map((naat) => {
                 const hasTimestamps = !!naat.cutSegments;
                 return (
-                  <button
+                  <div
                     key={naat.$id}
-                    onClick={() => {
-                      setSelectedNaat(naat);
-                      // If naat has existing timestamps, load them
-                      if (hasTimestamps) {
-                        try {
-                          const segments = JSON.parse(naat.cutSegments!);
-                          setCutSegments(segments);
-                        } catch (err) {
-                          console.error("Failed to parse cutSegments:", err);
+                    className={`text-left transition-all duration-200 bg-gray-800 border-2 rounded-lg shadow-lg group ${
+                      naat.exclude ? "border-red-900/50 opacity-60" : "border-gray-700"
+                    } ${playingNaatId === naat.$id ? "border-blue-500" : "hover:border-blue-500"}`}
+                  >
+                    <button
+                      onClick={() => {
+                        setSelectedNaat(naat);
+                        if (hasTimestamps) {
+                          try {
+                            const segments = JSON.parse(naat.cutSegments!);
+                            setCutSegments(segments);
+                          } catch {
+                            setCutSegments([{ start: 0, end: 0 }]);
+                          }
+                        } else {
                           setCutSegments([{ start: 0, end: 0 }]);
                         }
-                      } else {
-                        setCutSegments([{ start: 0, end: 0 }]);
-                      }
-                      setDetectionResult(null);
-                    }}
-                    className="p-4 text-left transition-all duration-200 bg-gray-800 border-2 border-gray-700 rounded-lg shadow-lg hover:bg-gray-750 hover:border-blue-500 group hover:shadow-blue-500/20"
-                  >
-                    <div className="relative mb-3 overflow-hidden bg-gray-700 rounded-lg aspect-video">
-                      <img
-                        src={`https://img.youtube.com/vi/${naat.youtubeId}/mqdefault.jpg`}
-                        alt={naat.title}
-                        className="object-cover w-full h-full transition-transform group-hover:scale-105"
-                        onError={(e) => {
-                          e.currentTarget.src = `https://img.youtube.com/vi/${naat.youtubeId}/default.jpg`;
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      <div className="absolute px-2 py-1 text-xs rounded bottom-2 right-2 bg-black/80">
-                        {naat.duration
-                          ? `${Math.floor(naat.duration / 60)}:${String(Math.floor(naat.duration % 60)).padStart(2, "0")}`
-                          : "N/A"}
+                        setDetectionResult(null);
+                      }}
+                      className="w-full p-4 text-left"
+                    >
+                      <div
+                        className="relative mb-3 overflow-hidden bg-gray-700 rounded-lg aspect-video cursor-pointer"
+                        onClick={(e) => { e.stopPropagation(); togglePlayAudio(naat); }}
+                      >
+                        <img
+                          src={`https://img.youtube.com/vi/${naat.youtubeId}/mqdefault.jpg`}
+                          alt={naat.title}
+                          className="object-cover w-full h-full transition-transform group-hover:scale-105"
+                          onError={(e) => {
+                            e.currentTarget.src = `https://img.youtube.com/vi/${naat.youtubeId}/default.jpg`;
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                          {playingNaatId === naat.$id && !audioElement?.paused ? (
+                            <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                        <div className="absolute px-2 py-1 text-xs rounded bottom-2 right-2 bg-black/80">
+                          {naat.duration
+                            ? `${Math.floor(naat.duration / 60)}:${String(Math.floor(naat.duration % 60)).padStart(2, "0")}`
+                            : "N/A"}
+                        </div>
+                        {naat.exclude && (
+                          <div className="absolute px-2 py-1 bg-red-600 rounded top-2 left-2">
+                            <span className="text-xs font-bold text-white">EXCLUDED</span>
+                          </div>
+                        )}
+                        {hasTimestamps && (
+                          <div className={`absolute px-2 py-1 bg-blue-600 rounded ${naat.exclude ? "top-8" : "top-2"} left-2`}>
+                            <span className="text-xs font-bold text-white">✂️ EDITED</span>
+                          </div>
+                        )}
+                        {naat.radio && (
+                          <div className="absolute px-2 py-1 bg-green-600 rounded top-2 right-2">
+                            <span className="text-xs font-bold text-white">📻 RADIO</span>
+                          </div>
+                        )}
                       </div>
-                      {naat.radio && (
-                        <div className="absolute px-2 py-1 bg-green-600 rounded top-2 right-2">
-                          <span className="text-xs font-bold text-white">
-                            📻 RADIO
-                          </span>
+                      <h3 className="mb-2 font-semibold text-white transition-colors group-hover:text-blue-400 line-clamp-2">
+                        {naat.title}
+                      </h3>
+                      {naat.channelName && (
+                        <div className="flex items-center gap-2 mb-2 text-sm text-gray-400">
+                          <svg className="flex-shrink-0 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                          </svg>
+                          <span className="truncate">{naat.channelName}</span>
                         </div>
                       )}
-                      {hasTimestamps && (
-                        <div className="absolute px-2 py-1 bg-blue-600 rounded top-2 left-2">
-                          <span className="text-xs font-bold text-white">
-                            ✂️ EDITED
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <h3 className="mb-2 font-semibold text-white transition-colors group-hover:text-blue-400 line-clamp-2">
-                      {naat.title}
-                    </h3>
-                    {naat.channelName && (
-                      <div className="flex items-center gap-2 mb-2 text-sm text-gray-400">
-                        <svg
-                          className="flex-shrink-0 w-4 h-4"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                         </svg>
-                        <span className="truncate">{naat.channelName}</span>
+                        <span className="truncate">{naat.youtubeId}</span>
                       </div>
-                    )}
-                    <div className="flex items-center gap-2 text-sm text-gray-400">
-                      <svg
-                        className="w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
+                      {hasTimestamps && (
+                        <div className="mt-2 text-xs text-blue-400">Click to edit timestamps</div>
+                      )}
+                    </button>
+                    <div className="flex gap-2 px-4 pb-4" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => toggleExclude(naat.$id, naat.exclude || false)}
+                        disabled={updatingExclude === naat.$id}
+                        className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
+                          naat.exclude
+                            ? "bg-green-600 hover:bg-green-700 text-white"
+                            : "bg-red-600 hover:bg-red-700 text-white"
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
-                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                      </svg>
-                      <span className="truncate">{naat.youtubeId}</span>
+                        {updatingExclude === naat.$id ? "..." : naat.exclude ? "✓ Include" : "✗ Exclude"}
+                      </button>
+                      <button
+                        onClick={() => toggleRadio(naat.$id, naat.radio || false)}
+                        disabled={updatingRadio === naat.$id}
+                        className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
+                          naat.radio
+                            ? "bg-green-600 hover:bg-green-700 text-white"
+                            : "bg-gray-600 hover:bg-gray-700 text-white"
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {updatingRadio === naat.$id ? "..." : naat.radio ? "📻 ON" : "📻 OFF"}
+                      </button>
                     </div>
-                    {hasTimestamps && (
-                      <div className="mt-2 text-xs text-blue-400">
-                        Click to edit timestamps
-                      </div>
-                    )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
