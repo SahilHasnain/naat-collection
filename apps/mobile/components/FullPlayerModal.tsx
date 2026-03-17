@@ -308,7 +308,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   accessibilityRole="button"
                 >
                   <View
-                    className="w-9 h-9 items-center justify-center rounded-full mr-3"
+                    className="items-center justify-center mr-3 rounded-full w-9 h-9"
                     style={{ backgroundColor: colors.background.elevated }}
                   >
                     <Ionicons
@@ -363,7 +363,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 accessibilityRole="button"
               >
                 <View
-                  className="w-9 h-9 items-center justify-center rounded-full mr-3"
+                  className="items-center justify-center mr-3 rounded-full w-9 h-9"
                   style={{
                     backgroundColor: isRepeatEnabled
                       ? colors.accent.primary + "20"
@@ -404,7 +404,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 accessibilityRole="button"
               >
                 <View
-                  className="w-9 h-9 items-center justify-center rounded-full mr-3"
+                  className="items-center justify-center mr-3 rounded-full w-9 h-9"
                   style={{
                     backgroundColor: isAutoplayEnabled
                       ? colors.accent.primary + "20"
@@ -448,7 +448,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   accessibilityRole="button"
                 >
                   <View
-                    className="w-9 h-9 items-center justify-center rounded-full mr-3"
+                    className="items-center justify-center mr-3 rounded-full w-9 h-9"
                     style={{
                       backgroundColor: isABRepeatMode
                         ? colors.accent.primary + "20"
@@ -488,7 +488,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     disabled
                   >
                     <View
-                      className="w-9 h-9 items-center justify-center rounded-full mr-3"
+                      className="items-center justify-center mr-3 rounded-full w-9 h-9"
                       style={{ backgroundColor: colors.accent.primary + "20" }}
                     >
                       <Ionicons
@@ -519,7 +519,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     accessibilityRole="button"
                   >
                     <View
-                      className="w-9 h-9 items-center justify-center rounded-full mr-3"
+                      className="items-center justify-center mr-3 rounded-full w-9 h-9"
                       style={{ backgroundColor: colors.background.elevated }}
                     >
                       <Ionicons
@@ -567,18 +567,6 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   contentFit="cover"
                   cachePolicy="memory-disk"
                 />
-              </View>
-
-              {/* Title */}
-              <View className="w-full mt-10 px-2">
-                <Text
-                  className="text-xl font-semibold text-center"
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                  style={{ color: colors.text.primary }}
-                >
-                  {currentAudio.title}
-                </Text>
               </View>
             </View>
 
@@ -635,7 +623,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 {/* Seek Backward 15s */}
                 <TouchableOpacity
                   onPress={seekBackward}
-                  className="relative items-center justify-center h-16 w-16"
+                  className="relative items-center justify-center w-16 h-16"
                   accessibilityLabel="Seek backward 15 seconds"
                   accessibilityRole="button"
                 >
@@ -680,7 +668,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 {/* Seek Forward 15s */}
                 <TouchableOpacity
                   onPress={seekForward}
-                  className="relative items-center justify-center h-16 w-16"
+                  className="relative items-center justify-center w-16 h-16"
                   accessibilityLabel="Seek forward 15 seconds"
                   accessibilityRole="button"
                 >
