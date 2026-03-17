@@ -46,7 +46,7 @@ export default function AiDetectionPanel({ detecting, detectionResult, onDetect,
             </svg>
             <div>
               <p className="font-medium text-purple-300">Analyzing audio...</p>
-              <p className="text-sm text-gray-400">Running Wav2Vec2 model to detect speech vs singing</p>
+              <p className="text-sm text-gray-400">Running Wav2Vec2 model — this can take up to 20 minutes. You can leave this page open.</p>
             </div>
           </div>
         </div>
