@@ -88,13 +88,17 @@ api.upload_file(
 print("  ✅ metadata.csv uploaded")
 
 # Upload all audio files via upload_large_folder
-api.upload_large_folder(
-    folder_path=TRAINING_DATA_DIR,
-    repo_id=repo_id,
-    repo_type="dataset",
-    allow_patterns=["naat/*.wav", "explanation/*.wav"],
-    path_in_repo="data",
-)
+# Note: upload_large_folder uploads from folder root, so we upload subdirectories
+for subdir in ["naat", "explanation"]:
+    subdir_path = os.path.join(TRAINING_DATA_DIR, subdir)
+    if os.path.exists(subdir_path):
+        api.upload_large_folder(
+            folder_path=subdir_path,
+            repo_id=repo_id,
+            repo_type="dataset",
+            allow_patterns=["*.wav"],
+            repo_path_in_folder=f"data/{subdir}",
+        )
 print(f"  ✅ {len(valid)} audio files uploaded")
 
 print(f"\n✅ Done! Dataset uploaded to: https://huggingface.co/datasets/{repo_id}")
