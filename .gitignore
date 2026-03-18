@@ -49,3 +49,5 @@ training-data/naat
 training-data/explanation
 ref/secret.md
 inspiration/
+naat-collection_key.json
+sentry.properties
