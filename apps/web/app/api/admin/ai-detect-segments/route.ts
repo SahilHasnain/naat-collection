@@ -2,21 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { Client, Databases, Storage } from "node-appwrite";
 import { createJob, getJob, pruneOldJobs, updateJob } from "@/lib/ai-detect-jobs";
 
+// Disable Next.js timeout for this route
+export const maxDuration = 300; // 5 minutes (Vercel limit)
+export const dynamic = 'force-dynamic';
+
 const AI_SERVICE_URL = "https://naat-ai.duckdns.org";
 
 function runJob(jobId: string, naatId: string) {
-  updateJob(jobId, { status: "running" });
-
-  const client = new Client()
-    .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-    .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!)
-    .setKey(process.env.APPWRITE_API_KEY!);
-
-  const databases = new Databases(client);
-  const storage = new Storage(client);
-
+  // Fire and forget - don't await
   (async () => {
     try {
+      updateJob(jobId, { status: "running" });
+
+      const client = new Client()
+        .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
+        .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!)
+        .setKey(process.env.APPWRITE_API_KEY!);
+
+      const databases = new Databases(client);
+
       const naat = await databases.getDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_NAATS_COLLECTION_ID!,
@@ -30,12 +34,13 @@ function runJob(jobId: string, naatId: string) {
 
       console.log(`[ai-detect] Calling AI service for naat ${naatId}`);
 
-      // Call external AI service
+      // Call external AI service with no timeout (let it run as long as needed)
+      const controller = new AbortController();
       const response = await fetch(`${AI_SERVICE_URL}/detect-segments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ audio_url: audioUrl }),
-        signal: AbortSignal.timeout(30 * 60 * 1000), // 30 min timeout
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -51,7 +56,9 @@ function runJob(jobId: string, naatId: string) {
       console.error(`[ai-detect] job ${jobId} failed:`, error);
       updateJob(jobId, { status: "failed", error });
     }
-  })();
+  })().catch(err => {
+    console.error(`[ai-detect] Unhandled error in job ${jobId}:`, err);
+  });
 }
 
 export async function POST(request: NextRequest) {
