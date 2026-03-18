@@ -28,22 +28,32 @@ def health():
 
 @app.route('/detect-segments', methods=['POST'])
 def detect_segments():
+    tmp_path = None
     try:
-        data = request.json
-        audio_url = data.get('audio_url')
-        
-        if not audio_url:
-            return jsonify({"error": "audio_url required"}), 400
-        
-        logger.info(f"Processing audio from: {audio_url}")
-        
-        # Download audio
-        response = requests.get(audio_url, timeout=30)
-        response.raise_for_status()
-        
-        with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp_file:
-            tmp_file.write(response.content)
-            tmp_path = tmp_file.name
+        uploaded_audio = request.files.get('audio')
+
+        if uploaded_audio:
+            suffix = os.path.splitext(uploaded_audio.filename or '')[1] or '.mp3'
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp_file:
+                uploaded_audio.save(tmp_file)
+                tmp_path = tmp_file.name
+            logger.info("Processing uploaded audio file")
+        else:
+            data = request.get_json(silent=True) or {}
+            audio_url = data.get('audio_url')
+
+            if not audio_url:
+                return jsonify({"error": "audio_url or audio file required"}), 400
+
+            logger.info(f"Processing audio from: {audio_url}")
+
+            # Download audio
+            response = requests.get(audio_url, timeout=30)
+            response.raise_for_status()
+
+            with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp_file:
+                tmp_file.write(response.content)
+                tmp_path = tmp_file.name
         
         try:
             # Load and preprocess audio
