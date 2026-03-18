@@ -35,9 +35,9 @@ sudo apt install -y nginx
 echo "Installing Certbot..."
 sudo apt install -y certbot python3-certbot-nginx
 
-# Copy nginx config
-echo "Configuring Nginx..."
-sudo cp nginx.conf /etc/nginx/sites-available/naat-ai
+# Copy initial HTTP-only nginx config
+echo "Configuring Nginx (HTTP only for now)..."
+sudo cp nginx-http.conf /etc/nginx/sites-available/naat-ai
 sudo ln -sf /etc/nginx/sites-available/naat-ai /etc/nginx/sites-enabled/naat-ai
 sudo rm -f /etc/nginx/sites-enabled/default
 
@@ -76,10 +76,13 @@ sudo systemctl reload nginx
 echo ""
 echo "=== Setup SSL Certificate ==="
 echo "Run the following command to setup HTTPS:"
-echo "sudo certbot --nginx -d naat-ai.duckdns.org"
+echo "./setup-ssl.sh"
 echo ""
 echo "After SSL setup, your service will be available at:"
 echo "https://naat-ai.duckdns.org"
+echo ""
+echo "For now, service is available at:"
+echo "http://naat-ai.duckdns.org"
 echo ""
 echo "=== Useful Commands ==="
 echo "View logs: docker-compose logs -f"
