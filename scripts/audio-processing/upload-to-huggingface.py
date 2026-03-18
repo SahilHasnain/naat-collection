@@ -59,7 +59,7 @@ writer = csv.writer(csv_buffer)
 writer.writerow(["file_name", "label", "source", "start", "end"])
 for entry in valid:
     writer.writerow([
-        f"data/{entry['file']}",
+        entry["file"],
         entry["label"],
         entry["source"],
         entry["start"],
@@ -69,15 +69,7 @@ for entry in valid:
 # ── Upload files ──────────────────────────────────────────────
 print(f"\n🚀 Uploading {len(valid)} audio files...")
 
-# Collect all file paths for batch upload
-upload_files = []
-for entry in valid:
-    local_path = os.path.join(TRAINING_DATA_DIR, entry["file"])
-    remote_path = f"data/{entry['file']}"
-    upload_files.append((local_path, remote_path))
-
-# Upload audio files in a single commit using upload_folder approach
-# First upload metadata.csv
+# Upload metadata.csv first.
 api.upload_file(
     path_or_fileobj=csv_buffer.getvalue().encode("utf-8"),
     path_in_repo="metadata.csv",
@@ -87,18 +79,14 @@ api.upload_file(
 )
 print("  ✅ metadata.csv uploaded")
 
-# Upload all audio files via upload_large_folder
-# Note: upload_large_folder uploads from folder root, so we upload subdirectories
-for subdir in ["naat", "explanation"]:
-    subdir_path = os.path.join(TRAINING_DATA_DIR, subdir)
-    if os.path.exists(subdir_path):
-        api.upload_large_folder(
-            folder_path=subdir_path,
-            repo_id=repo_id,
-            repo_type="dataset",
-            allow_patterns=["*.wav"],
-            repo_path_in_folder=f"data/{subdir}",
-        )
+# Upload all WAVs via resumable large-folder upload.
+# This is more robust for thousands of files and can resume progress.
+api.upload_large_folder(
+    repo_id=repo_id,
+    repo_type="dataset",
+    folder_path=TRAINING_DATA_DIR,
+    allow_patterns=["naat/*.wav", "explanation/*.wav"],
+)
 print(f"  ✅ {len(valid)} audio files uploaded")
 
 print(f"\n✅ Done! Dataset uploaded to: https://huggingface.co/datasets/{repo_id}")

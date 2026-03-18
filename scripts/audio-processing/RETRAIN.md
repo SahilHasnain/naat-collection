@@ -18,7 +18,8 @@ Outputs 5-sec WAV chunks to `training-data/` with `manifest.json`.
 huggingface-cli login
 python scripts/audio-processing/upload-to-huggingface.py
 ```
-Pushes to `sahilhasnain07/naat-classifier` (overwrites previous data).
+Pushes to `sahilhasnain07/naat-classifier` using resumable large-folder upload.
+This is safe for large datasets and can continue after transient network failures.
 
 ### 3. Fine-tune on Colab
 1. Open [Google Colab](https://colab.research.google.com), set runtime to T4 GPU
