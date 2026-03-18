@@ -2,6 +2,7 @@
 
 # dependencies
 node_modules/
+apps/mobile/node_modules/
 
 # Expo
 .expo/
@@ -37,6 +38,9 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# workspace installs should be locked at the repo root
+apps/mobile/package-lock.json
 
 app-example
 
