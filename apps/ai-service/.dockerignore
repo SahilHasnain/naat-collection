@@ -1,0 +1,1 @@
+__pycache__/\n*.pyc\n*.pyo\n*.pyd\n.Python\n*.so\n.pytest_cache/\n.coverage\n.env\n.venv\nenv/\nvenv/\n.git/\n.gitignore\nREADME.md\n*.md\nlogs/\n*.log\n.DS_Store\nThumbs.db
