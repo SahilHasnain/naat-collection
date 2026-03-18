@@ -49,8 +49,18 @@ function runJob(jobId: string, naatId: string) {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-        throw new Error(errorData.error || `AI service returned ${response.status}`);
+        const rawError = await response.text();
+        let parsedError = "";
+
+        try {
+          const errorData = JSON.parse(rawError);
+          parsedError = errorData.error || "";
+        } catch {
+          parsedError = rawError.slice(0, 300).trim();
+        }
+
+        const message = parsedError || `AI service returned ${response.status}`;
+        throw new Error(`AI service returned ${response.status}: ${message}`);
       }
 
       const result = await response.json();
