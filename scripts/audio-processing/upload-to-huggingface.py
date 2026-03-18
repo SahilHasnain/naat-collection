@@ -18,7 +18,7 @@ import json
 import os
 import csv
 import io
-from huggingface_hub import HfApi, create_repo, upload_large_folder
+from huggingface_hub import HfApi, create_repo
 
 # ── Config ────────────────────────────────────────────────────
 TRAINING_DATA_DIR = os.path.join(os.getcwd(), "training-data")
@@ -88,12 +88,12 @@ api.upload_file(
 print("  ✅ metadata.csv uploaded")
 
 # Upload all audio files via upload_large_folder
-upload_large_folder(
+api.upload_large_folder(
     folder_path=TRAINING_DATA_DIR,
-    path_in_repo="data",
     repo_id=repo_id,
     repo_type="dataset",
     allow_patterns=["naat/*.wav", "explanation/*.wav"],
+    path_in_repo="data",
 )
 print(f"  ✅ {len(valid)} audio files uploaded")
 
