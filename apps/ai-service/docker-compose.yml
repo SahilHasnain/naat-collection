@@ -1,1 +1,25 @@
-version: '3.8'\n\nservices:\n  naat-ai:\n    build: .\n    ports:\n      - \"8000:8000\"\n    environment:\n      - FLASK_ENV=production\n      - PYTHONUNBUFFERED=1\n    volumes:\n      - ./logs:/app/logs\n    restart: unless-stopped\n    healthcheck:\n      test: [\"CMD\", \"curl\", \"-f\", \"http://localhost:8000/health\"]\n      interval: 30s\n      timeout: 10s\n      retries: 3\n      start_period: 40s\n    deploy:\n      resources:\n        limits:\n          memory: 800M\n        reservations:\n          memory: 400M
+version: '3.8'
+
+services:
+  naat-ai:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 800M
+        reservations:
+          memory: 400M
