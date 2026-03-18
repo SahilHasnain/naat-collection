@@ -6,7 +6,7 @@ import { createJob, getJob, pruneOldJobs, updateJob } from "@/lib/ai-detect-jobs
 export const maxDuration = 300; // 5 minutes (Vercel limit)
 export const dynamic = 'force-dynamic';
 
-const AI_SERVICE_URL = "https://naat-ai.duckdns.org";
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "https://naat-ai.duckdns.org";
 
 function runJob(jobId: string, naatId: string) {
   // Fire and forget - don't await
@@ -20,6 +20,7 @@ function runJob(jobId: string, naatId: string) {
         .setKey(process.env.APPWRITE_API_KEY!);
 
       const databases = new Databases(client);
+      const storage = new Storage(client);
 
       const naat = await databases.getDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
@@ -29,18 +30,22 @@ function runJob(jobId: string, naatId: string) {
 
       if (!naat.audioId) throw new Error("Naat has no audio file");
 
-      // Get audio file URL
-      const audioUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/audio-files/files/${naat.audioId}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
+      console.log(`[ai-detect] Downloading source audio for naat ${naatId}`);
 
-      console.log(`[ai-detect] Calling AI service for naat ${naatId}`);
+      const audioBuffer = await storage.getFileDownload("audio-files", naat.audioId);
+      const fileBuffer = Buffer.from(audioBuffer);
+      const formData = new FormData();
+      formData.append(
+        "audio",
+        new Blob([fileBuffer], { type: "audio/mp4" }),
+        `${naatId}.mp4`,
+      );
 
-      // Call external AI service with no timeout (let it run as long as needed)
-      const controller = new AbortController();
+      console.log(`[ai-detect] Uploading source audio to AI service for naat ${naatId}`);
+
       const response = await fetch(`${AI_SERVICE_URL}/detect-segments`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ audio_url: audioUrl }),
-        signal: controller.signal,
+        body: formData,
       });
 
       if (!response.ok) {
