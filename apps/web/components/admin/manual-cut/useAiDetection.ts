@@ -64,8 +64,8 @@ export function useAiDetection(
   function applyDetected() {
     if (!detectionResult?.speechSegments.length) return;
     setCutSegments(detectionResult.speechSegments.map((s) => ({
-      start: Math.round(s.start),
-      end: Math.round(s.end),
+      start: Math.round(s.start) + 2,
+      end: Math.round(s.end) - 2,
     })));
   }
 

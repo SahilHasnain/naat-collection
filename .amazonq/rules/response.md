@@ -1,0 +1,1 @@
+Whenver i ask a question other than writing code. Keep your response short and sweet.
