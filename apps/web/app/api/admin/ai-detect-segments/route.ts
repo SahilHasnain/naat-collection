@@ -1,19 +1,10 @@
-import { execFile } from "child_process";
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs";
 import { NextRequest, NextResponse } from "next/server";
 import { Client, Databases, Storage } from "node-appwrite";
-import { join } from "path";
 import { createJob, getJob, pruneOldJobs, updateJob } from "@/lib/ai-detect-jobs";
 
-const TEMP_DIR = join(process.cwd(), "temp-ai-detect");
-
-if (!existsSync(TEMP_DIR)) {
-  mkdirSync(TEMP_DIR, { recursive: true });
-}
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "https://naat-ai.duckdns.org";
 
 function runJob(jobId: string, naatId: string) {
-  const inputPath = join(TEMP_DIR, `${naatId}_detect.mp4`);
-
   updateJob(jobId, { status: "running" });
 
   const client = new Client()
@@ -34,35 +25,31 @@ function runJob(jobId: string, naatId: string) {
 
       if (!naat.audioId) throw new Error("Naat has no audio file");
 
-      const audioBuffer = await storage.getFileDownload("audio-files", naat.audioId);
-      writeFileSync(inputPath, Buffer.from(audioBuffer));
+      // Get audio file URL
+      const audioUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/audio-files/files/${naat.audioId}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
 
-      const scriptPath = join(
-        process.cwd(), "..", "..",
-        "scripts", "audio-processing", "classify-chunks.py",
-      );
+      console.log(`[ai-detect] Calling AI service for naat ${naatId}`);
 
-      const stdout = await new Promise<string>((resolve, reject) => {
-        execFile(
-          "python",
-          [scriptPath, inputPath],
-          { timeout: 30 * 60 * 1000, maxBuffer: 10 * 1024 * 1024 }, // 30 min
-          (error, stdout, stderr) => {
-            if (stderr) console.log("[ai-detect] stderr:", stderr);
-            if (error) reject(new Error(stderr || error.message));
-            else resolve(stdout);
-          },
-        );
+      // Call external AI service
+      const response = await fetch(`${AI_SERVICE_URL}/detect-segments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audio_url: audioUrl }),
+        signal: AbortSignal.timeout(30 * 60 * 1000), // 30 min timeout
       });
 
-      const result = JSON.parse(stdout);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errorData.error || `AI service returned ${response.status}`);
+      }
+
+      const result = await response.json();
       updateJob(jobId, { status: "done", result });
+      console.log(`[ai-detect] Job ${jobId} completed successfully`);
     } catch (err) {
       const error = err instanceof Error ? err.message : "AI detection failed";
       console.error(`[ai-detect] job ${jobId} failed:`, error);
       updateJob(jobId, { status: "failed", error });
-    } finally {
-      try { if (existsSync(inputPath)) unlinkSync(inputPath); } catch { /* ignore */ }
     }
   })();
 }
