@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Client, Databases, Storage } from "node-appwrite";
+import { Client, Databases } from "node-appwrite";
 import { createJob, getJob, pruneOldJobs, updateJob } from "@/lib/ai-detect-jobs";
+import { createAiAudioToken } from "@/lib/ai-audio-token";
 
 // Disable Next.js timeout for this route
 export const maxDuration = 300; // 5 minutes (Vercel limit)
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "https://naat-ai.duckdns.org";
 
-function runJob(jobId: string, naatId: string) {
+function runJob(jobId: string, naatId: string, origin: string) {
   // Fire and forget - don't await
   (async () => {
     try {
@@ -20,7 +21,6 @@ function runJob(jobId: string, naatId: string) {
         .setKey(process.env.APPWRITE_API_KEY!);
 
       const databases = new Databases(client);
-      const storage = new Storage(client);
 
       const naat = await databases.getDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
@@ -30,23 +30,21 @@ function runJob(jobId: string, naatId: string) {
 
       if (!naat.audioId) throw new Error("Naat has no audio file");
 
-      console.log(`[ai-detect] Downloading source audio for naat ${naatId}`);
+      const { expires, signature } = createAiAudioToken(naat.audioId);
+      const audioUrl =
+        `${origin}/api/admin/ai-audio-source?audioId=${encodeURIComponent(naat.audioId)}` +
+        `&expires=${expires}&signature=${signature}`;
 
-      const audioBuffer = await storage.getFileDownload("audio-files", naat.audioId);
-      const fileBuffer = Buffer.from(audioBuffer);
-      const formData = new FormData();
-      formData.append(
-        "audio",
-        new Blob([fileBuffer], { type: "audio/mp4" }),
-        `${naatId}.mp4`,
-      );
-
-      console.log(`[ai-detect] Uploading source audio to AI service for naat ${naatId}`);
+      console.log(`[ai-detect] Calling AI service for naat ${naatId} with signed source URL`);
 
       const response = await fetch(`${AI_SERVICE_URL}/detect-segments`, {
         method: "POST",
-        body: formData,
-      });
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          naat_id: naatId,
+          audio_url: audioUrl,
+        }),
+      );
 
       if (!response.ok) {
         const rawError = await response.text();
@@ -85,7 +83,7 @@ export async function POST(request: NextRequest) {
   }
 
   const job = createJob(naatId);
-  runJob(job.id, naatId); // fire and forget
+  runJob(job.id, naatId, request.nextUrl.origin); // fire and forget
 
   return NextResponse.json({ jobId: job.id });
 }
