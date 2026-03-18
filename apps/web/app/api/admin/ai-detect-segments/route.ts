@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Client, Databases, Storage } from "node-appwrite";
 import { createJob, getJob, pruneOldJobs, updateJob } from "@/lib/ai-detect-jobs";
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "https://naat-ai.duckdns.org";
+const AI_SERVICE_URL = "https://naat-ai.duckdns.org";
 
 function runJob(jobId: string, naatId: string) {
   updateJob(jobId, { status: "running" });
