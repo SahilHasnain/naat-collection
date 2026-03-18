@@ -1,14 +1,11 @@
 import librosa
 import numpy as np
-import webrtcvad
-import struct
 from scipy import signal
 from typing import List, Tuple, Dict
 
 class AudioProcessor:
     def __init__(self, sample_rate: int = 16000):
         self.sample_rate = sample_rate
-        self.vad = webrtcvad.Vad(2)  # Aggressiveness level 0-3
         
     def load_audio(self, file_path: str) -> Tuple[np.ndarray, float]:
         """Load audio file and return audio array and duration"""
@@ -27,38 +24,31 @@ class AudioProcessor:
         return audio
     
     def detect_voice_activity(self, audio: np.ndarray) -> List[Tuple[float, float]]:
-        """Use WebRTC VAD to detect voice activity"""
-        # Convert to 16-bit PCM
-        audio_int16 = (audio * 32767).astype(np.int16)
+        """Simple energy-based voice activity detection"""
+        # Use RMS energy for voice detection
+        frame_length = int(0.03 * self.sample_rate)  # 30ms frames
+        hop_length = frame_length // 2
         
-        # Frame size for VAD (10, 20, or 30 ms)
-        frame_duration = 30  # ms
-        frame_size = int(self.sample_rate * frame_duration / 1000)
+        rms = librosa.feature.rms(y=audio, frame_length=frame_length, hop_length=hop_length)[0]
+        
+        # Threshold based on mean energy
+        threshold = np.mean(rms) * 0.5
         
         voice_segments = []
         current_start = None
         
-        for i in range(0, len(audio_int16) - frame_size, frame_size):
-            frame = audio_int16[i:i + frame_size]
+        for i, energy in enumerate(rms):
+            time_stamp = i * hop_length / self.sample_rate
             
-            # Convert to bytes for VAD
-            frame_bytes = struct.pack(f'{len(frame)}h', *frame)
-            
-            try:
-                is_speech = self.vad.is_speech(frame_bytes, self.sample_rate)
-                time_stamp = i / self.sample_rate
-                
-                if is_speech and current_start is None:
-                    current_start = time_stamp
-                elif not is_speech and current_start is not None:
-                    voice_segments.append((current_start, time_stamp))
-                    current_start = None
-            except:
-                continue
+            if energy > threshold and current_start is None:
+                current_start = time_stamp
+            elif energy <= threshold and current_start is not None:
+                voice_segments.append((current_start, time_stamp))
+                current_start = None
         
         # Handle case where speech continues to end
         if current_start is not None:
-            voice_segments.append((current_start, len(audio_int16) / self.sample_rate))
+            voice_segments.append((current_start, len(audio) / self.sample_rate))
         
         return voice_segments
     
