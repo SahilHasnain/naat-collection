@@ -6,8 +6,7 @@ import tempfile
 import os
 import logging
 from audio_processor import AudioProcessor
-from classifier import AudioClassifier
-from segment_detector import SegmentDetector
+from classifier_fixed import AudioClassifier
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -17,8 +16,7 @@ app = Flask(__name__)
 
 # Initialize components
 audio_processor = AudioProcessor(sample_rate=16000)
-audio_classifier = AudioClassifier(model_name="sahilhasnain07/naat-classifier-model")  # Your trained model
-segment_detector = SegmentDetector(min_segment_duration=5.0, merge_threshold=10.0)  # Match your script settings
+audio_classifier = AudioClassifier(model_name="sahilhasnain07/naat-classifier-model")
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -55,35 +53,15 @@ def detect_segments():
             
             logger.info(f"Audio duration: {duration:.2f} seconds")
             
-            # Classify audio segments using sliding window (like your script)
-            logger.info("Classifying audio segments with sliding window")
-            raw_segments = audio_classifier.classify_audio_sliding_window(
-                audio, 
-                sample_rate=16000, 
-                chunk_duration=5.0,
-                hop_duration=1.0
-            )
+            # Classify audio using EXACT original script logic
+            logger.info("Classifying audio segments")
+            result = audio_classifier.classify_audio(audio)
             
-            logger.info(f"Found {len(raw_segments)} raw segments")
+            logger.info(f"Detected {len(result['speechSegments'])} speech segments")
+            logger.info(f"Speech: {result['totalSpeechDuration']}s, "
+                       f"Singing: {result['totalSingingDuration']}s")
             
-            # Process segments
-            result = segment_detector.process_segments(raw_segments, duration)
-            
-            # Format response to match expected structure
-            response_data = {
-                "duration": duration,
-                "speechSegments": result['speech_segments'],
-                "allSegments": result['all_segments'],
-                "totalSpeechDuration": result['statistics']['total_speech_duration'],
-                "totalSingingDuration": result['statistics']['total_singing_duration'],
-                "statistics": result['statistics']
-            }
-            
-            logger.info(f"Detected {len(result['speech_segments'])} speech segments")
-            logger.info(f"Speech: {result['statistics']['total_speech_duration']:.1f}s, "
-                       f"Singing: {result['statistics']['total_singing_duration']:.1f}s")
-            
-            return jsonify(response_data)
+            return jsonify(result)
             
         finally:
             # Cleanup temp file
@@ -103,7 +81,6 @@ def test_classification():
     try:
         data = request.json
         audio_url = data.get('audio_url')
-        segment_length = data.get('segment_length', 5.0)
         
         if not audio_url:
             return jsonify({"error": "audio_url required"}), 400
@@ -116,37 +93,11 @@ def test_classification():
         
         try:
             audio, duration = audio_processor.load_audio(tmp_path)
-            
-            # Get detailed segment analysis
-            segments = audio_classifier.classify_audio(audio, segment_length=segment_length)
-            
-            # Add feature analysis for first few segments
-            detailed_segments = []
-            for i, segment in enumerate(segments[:5]):  # First 5 segments only
-                start_sample = int(segment['start'] * 16000)
-                end_sample = int(segment['end'] * 16000)
-                segment_audio = audio[start_sample:end_sample]
-                
-                features = audio_processor.extract_features(segment_audio)
-                
-                detailed_segments.append({
-                    **segment,
-                    'features': {
-                        'mfcc_mean': features['mfccs'].mean(axis=1).tolist(),
-                        'spectral_centroid_mean': float(features['spectral_centroids'].mean()),
-                        'zcr_mean': float(features['zcr'].mean()),
-                        'tempo': float(features['tempo'])
-                    }
-                })
+            result = audio_classifier.classify_audio(audio)
             
             return jsonify({
                 'duration': duration,
-                'total_segments': len(segments),
-                'detailed_segments': detailed_segments,
-                'summary': {
-                    'speech_count': len([s for s in segments if s['type'] == 'speech']),
-                    'singing_count': len([s for s in segments if s['type'] == 'singing'])
-                }
+                'result': result
             })
             
         finally:
