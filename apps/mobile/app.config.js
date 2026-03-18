@@ -41,7 +41,7 @@ export default {
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/images/android-icon-foreground.png",
-          backgroundColor: "#000000",
+        backgroundColor: "#000000",
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
@@ -76,6 +76,7 @@ export default {
           project: "ubaid-raza-naats",
         },
       ],
+      "./plugins/withFastlaneAndroid",
     ],
     experiments: {
       typedRoutes: true,
@@ -84,8 +85,8 @@ export default {
     extra: {
       router: {},
       eas: {
-          "projectId": "57f2d5c4-0391-4cc0-9b50-163449b1d20b"
+        "projectId": "57f2d5c4-0391-4cc0-9b50-163449b1d20b"
       },
     },
-  },  
+  },
 };
