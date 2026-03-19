@@ -60,7 +60,7 @@ export default function ManualCutClient() {
 
   async function handleQueueVisibleForAi() {
     const eligibleNaatIds = list.naats
-      .filter((naat) => naat.audioId && !naat.cutSegments)
+      .filter((naat) => naat.audioId && !naat.cutSegments && !naat.isAiCut)
       .map((naat) => naat.$id);
 
     if (eligibleNaatIds.length === 0) {
@@ -90,7 +90,7 @@ export default function ManualCutClient() {
   }
 
   async function handleQueueSingleForAi(naat: Naat) {
-    if (!naat.audioId || naat.cutSegments) return;
+    if (!naat.audioId || naat.cutSegments || naat.isAiCut) return;
 
     setQueueingSingleAi(naat.$id);
     list.setError(null);
@@ -150,6 +150,7 @@ export default function ManualCutClient() {
             filterRadio={list.filterRadio}
             filterDuration={list.filterDuration}
             filterProcessed={list.filterProcessed}
+            filterAiCut={list.filterAiCut}
             sortBy={list.sortBy}
             updatingExclude={list.updatingExclude}
             updatingRadio={list.updatingRadio}
@@ -164,6 +165,7 @@ export default function ManualCutClient() {
             onFilterRadioChange={list.setFilterRadio}
             onFilterDurationChange={list.setFilterDuration}
             onFilterProcessedChange={list.setFilterProcessed}
+            onFilterAiCutChange={list.setFilterAiCut}
             onSortByChange={list.setSortBy}
             onShuffle={list.shuffleResults}
             onLoadMore={list.loadMore}
