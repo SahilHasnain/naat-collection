@@ -21,6 +21,7 @@
     "web:build": "cd apps/web && npm run build",
     "web:start": "cd apps/web && npm run start",
     "web:lint": "cd apps/web && npm run lint",
+    "setup:ai-jobs": "node scripts/setup/setup-ai-jobs-collection.js",
     "setup:appwrite": "npm run setup:appwrite --workspace=mobile",
     "ingest:videos": "npm run ingest:videos --workspace=mobile",
     "batch:embed": "node scripts/batch-embed-naats.js",
