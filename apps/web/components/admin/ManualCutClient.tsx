@@ -11,6 +11,8 @@ import CutEditorView from "./manual-cut/CutEditorView";
 export default function ManualCutClient() {
   const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [queueingAiBatch, setQueueingAiBatch] = useState(false);
+  const [queueingSingleAi, setQueueingSingleAi] = useState<string | null>(null);
 
   const list = useNaatList(selectedNaat?.$id ?? null);
 
@@ -55,6 +57,55 @@ export default function ManualCutClient() {
     ai.resetDetection();
   }
 
+  async function handleQueueVisibleForAi() {
+    const eligibleNaatIds = list.naats
+      .filter((naat) => naat.audioId && !naat.cutSegments)
+      .map((naat) => naat.$id);
+
+    if (eligibleNaatIds.length === 0) {
+      list.setError("No eligible naats in the current list");
+      return;
+    }
+
+    setQueueingAiBatch(true);
+    list.setError(null);
+    try {
+      const response = await fetch("/api/admin/ai-detect-bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ naatIds: eligibleNaatIds }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to queue AI jobs");
+      list.setError(`Queued ${data.queuedCount} naats for AI detection. Skipped ${data.skippedCount}.`);
+    } catch (error) {
+      list.setError(error instanceof Error ? error.message : "Failed to queue AI jobs");
+    } finally {
+      setQueueingAiBatch(false);
+    }
+  }
+
+  async function handleQueueSingleForAi(naat: Naat) {
+    if (!naat.audioId || naat.cutSegments) return;
+
+    setQueueingSingleAi(naat.$id);
+    list.setError(null);
+    try {
+      const response = await fetch("/api/admin/ai-detect-bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ naatIds: [naat.$id] }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to queue AI job");
+      list.setError(`Queued ${data.queuedCount} naat. Skipped ${data.skippedCount}.`);
+    } catch (error) {
+      list.setError(error instanceof Error ? error.message : "Failed to queue AI job");
+    } finally {
+      setQueueingSingleAi(null);
+    }
+  }
+
   if (list.loading) {
     return (
       <div className="min-h-screen p-8 text-white bg-gray-900">
@@ -95,8 +146,10 @@ export default function ManualCutClient() {
             sortBy={list.sortBy}
             updatingExclude={list.updatingExclude}
             updatingRadio={list.updatingRadio}
+            queueingSingleAi={queueingSingleAi}
             playingNaatId={list.playingNaatId}
             audioElement={list.audioElement}
+            queueingAiBatch={queueingAiBatch}
             onSearchTermChange={list.setSearchTerm}
             onSearchSubmit={list.handleSearchSubmit}
             onFilterChannelChange={list.setFilterChannel}
@@ -111,7 +164,9 @@ export default function ManualCutClient() {
             onTogglePlay={list.togglePlayAudio}
             onToggleExclude={list.toggleExclude}
             onToggleRadio={list.toggleRadio}
+            onQueueSingleForAi={handleQueueSingleForAi}
             onClearSearch={() => { list.setSearchTerm(""); list.setSearchQuery(""); }}
+            onQueueVisibleForAi={handleQueueVisibleForAi}
           />
         ) : (
           <CutEditorView

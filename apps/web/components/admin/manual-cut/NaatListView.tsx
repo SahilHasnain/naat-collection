@@ -22,8 +22,10 @@ interface Props {
   sortBy: SortBy;
   updatingExclude: string | null;
   updatingRadio: string | null;
+  queueingSingleAi: string | null;
   playingNaatId: string | null;
   audioElement: HTMLAudioElement | null;
+  queueingAiBatch: boolean;
   onSearchTermChange: (v: string) => void;
   onSearchSubmit: (e: React.FormEvent) => void;
   onFilterChannelChange: (v: string) => void;
@@ -38,22 +40,24 @@ interface Props {
   onTogglePlay: (naat: Naat) => void;
   onToggleExclude: (id: string, current: boolean) => void;
   onToggleRadio: (id: string, current: boolean) => void;
+  onQueueSingleForAi: (naat: Naat) => void;
   onClearSearch: () => void;
+  onQueueVisibleForAi: () => void;
 }
 
 export default function NaatListView({
   naats, loading, loadingMore, hasMore, totalCount, channels, showBackToTop,
   searchTerm, searchQuery, filterChannel, filterRadio, filterDuration, filterProcessed, sortBy,
-  updatingExclude, updatingRadio, playingNaatId, audioElement,
+  updatingExclude, updatingRadio, queueingSingleAi, playingNaatId, audioElement, queueingAiBatch,
   onSearchTermChange, onSearchSubmit, onFilterChannelChange, onFilterRadioChange,
   onFilterDurationChange, onFilterProcessedChange, onSortByChange, onShuffle,
-  onLoadMore, onScrollToTop, onSelectNaat, onTogglePlay, onToggleExclude, onToggleRadio, onClearSearch,
+  onLoadMore, onScrollToTop, onSelectNaat, onTogglePlay, onToggleExclude, onToggleRadio, onQueueSingleForAi, onClearSearch,
+  onQueueVisibleForAi,
 }: Props) {
   const [viewingStatusNaat, setViewingStatusNaat] = useState<Naat | null>(null);
 
   return (
     <div>
-      {/* Filters */}
       <div className="p-6 mb-6 bg-gray-800 rounded-lg">
         <div className="grid grid-cols-1 gap-4 mb-4 md:grid-cols-2">
           <div className="p-4 bg-gray-700 rounded-lg">
@@ -92,7 +96,7 @@ export default function NaatListView({
             </select>
             {sortBy === "random" && (
               <button onClick={onShuffle} disabled={loading || loadingMore}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                className="flex items-center gap-2 px-4 py-2 font-medium text-white transition-colors bg-purple-600 rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
@@ -129,11 +133,19 @@ export default function NaatListView({
         </div>
 
         <p className="flex items-center gap-2 mt-4 text-sm text-yellow-400">
-          <span>💡</span><span>Click a card to start editing</span>
+          <span>Click a card to start editing</span>
         </p>
+        <div className="mt-4">
+          <button
+            onClick={onQueueVisibleForAi}
+            disabled={queueingAiBatch || naats.length === 0}
+            className="px-4 py-2 font-medium text-white transition-colors rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {queueingAiBatch ? "Queueing..." : `Queue Visible for AI (${naats.length})`}
+          </button>
+        </div>
       </div>
 
-      {/* Grid */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {naats.map((naat) => (
           <NaatCard
@@ -143,11 +155,13 @@ export default function NaatListView({
             audioPaused={audioElement?.paused ?? true}
             updatingExclude={updatingExclude}
             updatingRadio={updatingRadio}
+            queueingAi={queueingSingleAi}
             onSelect={() => onSelectNaat(naat)}
             onTogglePlay={() => onTogglePlay(naat)}
             onToggleExclude={() => onToggleExclude(naat.$id, naat.exclude || false)}
             onToggleRadio={() => onToggleRadio(naat.$id, naat.radio || false)}
             onViewStatus={() => setViewingStatusNaat(naat)}
+            onQueueAi={() => onQueueSingleForAi(naat)}
           />
         ))}
       </div>
@@ -164,7 +178,7 @@ export default function NaatListView({
           ) : (
             <>
               <p className="text-lg">No naats available for cutting</p>
-              <p className="mt-2 text-sm">All naats have been processed or don&apos;t have audio files</p>
+              <p className="mt-2 text-sm">All naats have been processed or do not have audio files</p>
             </>
           )}
         </div>
