@@ -34,17 +34,18 @@ function runJob(jobId: string, naatId: string, origin: string) {
       const audioUrl =
         `${origin}/api/admin/ai-audio-source?audioId=${encodeURIComponent(naat.audioId)}` +
         `&expires=${expires}&signature=${signature}`;
+      const payload = JSON.stringify({
+        naat_id: naatId,
+        audio_url: audioUrl,
+      });
 
       console.log(`[ai-detect] Calling AI service for naat ${naatId} with signed source URL`);
 
       const response = await fetch(`${AI_SERVICE_URL}/detect-segments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          naat_id: naatId,
-          audio_url: audioUrl,
-        }),
-      );
+        body: payload,
+      });
 
       if (!response.ok) {
         const rawError = await response.text();

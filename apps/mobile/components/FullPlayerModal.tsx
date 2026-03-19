@@ -5,12 +5,14 @@ import { showErrorToast, showSuccessToast } from "@/utils";
 import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Modal,
   StatusBar,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -559,13 +561,35 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
           <View className="flex-1">
             {/* Album Art / Thumbnail */}
             <View className="items-center justify-center flex-1 px-6">
-              <View className="relative">
+              <View
+                className="relative overflow-hidden rounded-xl"
+                style={{
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 12 },
+                  shadowOpacity: 0.35,
+                  shadowRadius: 24,
+                  elevation: 10,
+                }}
+              >
                 <Image
                   source={{ uri: currentAudio.thumbnailUrl }}
                   style={{ width: 340, height: 191 }}
                   className="rounded-xl"
                   contentFit="cover"
                   cachePolicy="memory-disk"
+                />
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={[
+                    "rgba(0, 0, 0, 0.12)",
+                    "rgba(0, 0, 0, 0.04)",
+                    "rgba(0, 0, 0, 0.22)",
+                    "rgba(0, 0, 0, 0.42)",
+                  ]}
+                  locations={[0, 0.32, 0.72, 1]}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={StyleSheet.absoluteFill}
                 />
               </View>
             </View>

@@ -12,6 +12,7 @@ import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import React, {
   useCallback,
   useEffect,
@@ -26,6 +27,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   View
 } from "react-native";
@@ -477,6 +479,20 @@ export default function DownloadsScreen() {
         style={{ backgroundColor: colors.background.primary }}
         edges={["top"]}
       >
+        <LinearGradient
+          pointerEvents="none"
+          colors={[
+            "rgba(0, 0, 0, 0.44)",
+            "rgba(6, 10, 20, 0.22)",
+            "rgba(0, 0, 0, 0.08)",
+            "rgba(0, 0, 0, 0.3)",
+          ]}
+          locations={[0, 0.2, 0.58, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+
         <View
           className="flex-1"
           accessible={false}

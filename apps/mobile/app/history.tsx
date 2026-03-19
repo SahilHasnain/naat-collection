@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { getPreferredAudioId, getPreferredDuration } from "@naat-collection/shared";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useRef } from "react";
 import {
@@ -24,6 +25,7 @@ import {
   Pressable,
   RefreshControl,
   SectionList,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -577,6 +579,20 @@ export default function HistoryScreen() {
         style={{ backgroundColor: colors.background.primary }}
         edges={["top"]}
       >
+        <LinearGradient
+          pointerEvents="none"
+          colors={[
+            "rgba(0, 0, 0, 0.46)",
+            "rgba(6, 10, 20, 0.24)",
+            "rgba(0, 0, 0, 0.1)",
+            "rgba(0, 0, 0, 0.32)",
+          ]}
+          locations={[0, 0.2, 0.58, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+
         <View className="flex-1">
           {/* History List */}
           {groupedHistory.length > 0 ? (
