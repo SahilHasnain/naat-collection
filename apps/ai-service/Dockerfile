@@ -15,6 +15,7 @@ RUN mkdir -p /app/models
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.0.1 torchaudio==2.0.2
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
