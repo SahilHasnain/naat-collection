@@ -37,6 +37,7 @@ import { storageService } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import * as Sentry from "@sentry/react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
@@ -370,92 +371,114 @@ function RootLayoutContent() {
 
       {/* Offline modal — shown when connection drops while using the app */}
       {showOfflineModal && (
-        <View
-          style={{
-            position: "absolute",
-            bottom: 56 + insets.bottom + 16,
-            left: 16,
-            right: 16,
-            backgroundColor: colors.background.secondary,
-            borderRadius: 12,
-            padding: 20,
-            zIndex: 1001,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            elevation: 10,
-          }}
-        >
-          <Text
-            style={{
-              color: colors.text.primary,
-              fontSize: 16,
-              fontWeight: "600",
-              marginBottom: 4,
-            }}
-          >
-            You are offline
-          </Text>
-          <Text
-            style={{
-              color: colors.text.secondary,
-              fontSize: 13,
-              marginBottom: 16,
-            }}
-          >
-            Watch downloads without a connection.
-          </Text>
+        <>
           <View
             style={{
-              flexDirection: "row",
-              justifyContent: "flex-end",
-              gap: 12,
+              position: "absolute",
+              inset: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.18)",
+              zIndex: 1000,
+            }}
+          </View>
+
+          <View
+            style={{
+              position: "absolute",
+              bottom: 56 + insets.bottom + 16,
+              left: 16,
+              right: 16,
+              borderRadius: 12,
+              overflow: "hidden",
+              zIndex: 1001,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 10,
             }}
           >
-            <Pressable
-              onPress={() => setShowOfflineModal(false)}
-              style={{ paddingVertical: 8, paddingHorizontal: 12 }}
-              accessibilityRole="button"
-              accessibilityLabel="Dismiss offline prompt"
-            >
-              <Text
-                style={{
-                  color: colors.accent.secondary,
-                  fontSize: 14,
-                  fontWeight: "600",
-                }}
-              >
-                No thanks
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setShowOfflineModal(false);
-                router.push("/downloads");
-              }}
-              style={{
-                paddingVertical: 8,
-                paddingHorizontal: 16,
-                borderRadius: 20,
-                borderWidth: 1,
-                borderColor: colors.text.secondary,
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Go to downloads"
+            <LinearGradient
+              colors={[
+                "rgba(36, 36, 36, 0.98)",
+                "rgba(24, 24, 24, 0.98)",
+                "rgba(18, 18, 18, 0.98)",
+              ]}
+              locations={[0, 0.45, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={{ padding: 20 }}
             >
               <Text
                 style={{
                   color: colors.text.primary,
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: "600",
+                  marginBottom: 4,
                 }}
               >
-                See your downloads
+                You are offline
               </Text>
-            </Pressable>
+              <Text
+                style={{
+                  color: colors.text.secondary,
+                  fontSize: 13,
+                  marginBottom: 16,
+                }}
+              >
+                Watch downloads without a connection.
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "flex-end",
+                  gap: 12,
+                }}
+              >
+                <Pressable
+                  onPress={() => setShowOfflineModal(false)}
+                  style={{ paddingVertical: 8, paddingHorizontal: 12 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Dismiss offline prompt"
+                >
+                  <Text
+                    style={{
+                      color: colors.accent.secondary,
+                      fontSize: 14,
+                      fontWeight: "600",
+                    }}
+                  >
+                    No thanks
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setShowOfflineModal(false);
+                    router.push("/downloads");
+                  }}
+                  style={{
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    borderColor: colors.text.secondary,
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Go to downloads"
+                >
+                  <Text
+                    style={{
+                      color: colors.text.primary,
+                      fontSize: 14,
+                      fontWeight: "600",
+                    }}
+                  >
+                    See your downloads
+                  </Text>
+                </Pressable>
+              </View>
+            </LinearGradient>
           </View>
-        </View>
+        </>
       )}
     </>
   );

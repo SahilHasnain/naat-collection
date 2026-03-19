@@ -1,12 +1,14 @@
 import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import type { Channel, DurationOption } from "@naat-collection/shared";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
 import {
     KeyboardAvoidingView,
     Modal,
     Platform,
     ScrollView,
+    StyleSheet,
     Text,
     TextInput,
     View,
@@ -101,6 +103,20 @@ export function SearchModal({
         style={{ backgroundColor: colors.background.primary }}
         edges={["top"]}
       >
+        <LinearGradient
+          pointerEvents="none"
+          colors={[
+            "rgba(0, 0, 0, 0.44)",
+            "rgba(6, 10, 20, 0.22)",
+            "rgba(0, 0, 0, 0.08)",
+            "rgba(0, 0, 0, 0.28)",
+          ]}
+          locations={[0, 0.2, 0.58, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+
         <KeyboardAvoidingView
           className="flex-1"
           behavior={Platform.OS === "ios" ? "padding" : "height"}
