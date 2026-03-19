@@ -42,7 +42,8 @@
     "typecheck": "npx tsc --noEmit",
     "typecheck:mobile": "cd apps/mobile && npx tsc --noEmit",
     "typecheck:web": "cd apps/web && npx tsc --noEmit",
-    "typecheck:functions": "cd functions/cut-audio-cron && npx tsc --noEmit"
+    "typecheck:functions": "cd functions/cut-audio-cron && npx tsc --noEmit",
+    "prebuild": "cd apps/mobile && npx expo prebuild --clean"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.39.0",

@@ -89,6 +89,7 @@ def update_naat_cut_segments(naat_id, result):
         APPWRITE_NAATS_COLLECTION_ID,
         naat_id,
         {
+            "isAiCut": True,
             "cutSegments": json.dumps(cut_segments),
             "cutStatus": None,
             "cutAudio": None,

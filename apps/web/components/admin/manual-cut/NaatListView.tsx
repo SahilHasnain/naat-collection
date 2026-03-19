@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Naat, SortBy, FilterRadio, FilterDuration, FilterProcessed } from "./types";
+import { Naat, SortBy, FilterRadio, FilterDuration, FilterProcessed, FilterAiCut } from "./types";
 import NaatCard from "./NaatCard";
 import DbStatusModal from "./DbStatusModal";
 
@@ -19,6 +19,7 @@ interface Props {
   filterRadio: FilterRadio;
   filterDuration: FilterDuration;
   filterProcessed: FilterProcessed;
+  filterAiCut: FilterAiCut;
   sortBy: SortBy;
   updatingExclude: string | null;
   updatingRadio: string | null;
@@ -33,6 +34,7 @@ interface Props {
   onFilterRadioChange: (v: FilterRadio) => void;
   onFilterDurationChange: (v: FilterDuration) => void;
   onFilterProcessedChange: (v: FilterProcessed) => void;
+  onFilterAiCutChange: (v: FilterAiCut) => void;
   onSortByChange: (v: SortBy) => void;
   onShuffle: () => void;
   onLoadMore: () => void;
@@ -48,10 +50,10 @@ interface Props {
 
 export default function NaatListView({
   naats, loading, loadingMore, hasMore, totalCount, channels, showBackToTop,
-  searchTerm, searchQuery, filterChannel, filterRadio, filterDuration, filterProcessed, sortBy,
+  searchTerm, searchQuery, filterChannel, filterRadio, filterDuration, filterProcessed, filterAiCut, sortBy,
   updatingExclude, updatingRadio, queueingSingleAi, queuedAiIds, playingNaatId, audioElement, queueingAiBatch,
   onSearchTermChange, onSearchSubmit, onFilterChannelChange, onFilterRadioChange,
-  onFilterDurationChange, onFilterProcessedChange, onSortByChange, onShuffle,
+  onFilterDurationChange, onFilterProcessedChange, onFilterAiCutChange, onSortByChange, onShuffle,
   onLoadMore, onScrollToTop, onSelectNaat, onTogglePlay, onToggleExclude, onToggleRadio, onQueueSingleForAi, onClearSearch,
   onQueueVisibleForAi,
 }: Props) {
@@ -129,6 +131,12 @@ export default function NaatListView({
               <option value="unprocessed">Unprocessed Only</option>
               <option value="all">All (Include Processed)</option>
               <option value="processed">Processed Only</option>
+            </select>
+            <select className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded" value={filterAiCut}
+              onChange={(e) => onFilterAiCutChange(e.target.value as FilterAiCut)}>
+              <option value="all">All AI Cut Status</option>
+              <option value="ai-cut">AI Cut Only</option>
+              <option value="non-ai-cut">Non-AI Cut Only</option>
             </select>
           </div>
         </div>
