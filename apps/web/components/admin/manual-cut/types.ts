@@ -14,6 +14,7 @@ export interface Naat {
   videoUrl?: string;
   exclude?: boolean;
   radio?: boolean;
+  isAiCut?: boolean;
   cutSegments?: string;
   cutAudioId?: string;
   cutAudio?: string;
@@ -49,3 +50,4 @@ export type SortBy = "latest" | "popular" | "oldest" | "random";
 export type FilterRadio = "all" | "radio" | "non-radio";
 export type FilterDuration = "all" | "<=10min" | ">15min" | ">20min";
 export type FilterProcessed = "unprocessed" | "all" | "processed";
+export type FilterAiCut = "all" | "ai-cut" | "non-ai-cut";

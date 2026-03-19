@@ -2,7 +2,7 @@
 
 import { Client, Databases, Query } from "appwrite";
 import { useEffect, useState } from "react";
-import { Naat, SortBy, FilterRadio, FilterDuration, FilterProcessed } from "./types";
+import { Naat, SortBy, FilterRadio, FilterDuration, FilterProcessed, FilterAiCut } from "./types";
 
 const LIMIT = 50;
 
@@ -29,6 +29,7 @@ export function useNaatList(selectedNaatId: string | null) {
   const [filterRadio, setFilterRadio] = useState<FilterRadio>("radio");
   const [filterDuration, setFilterDuration] = useState<FilterDuration>("<=10min");
   const [filterProcessed, setFilterProcessed] = useState<FilterProcessed>("unprocessed");
+  const [filterAiCut, setFilterAiCut] = useState<FilterAiCut>("all");
   const [sortBy, setSortBy] = useState<SortBy>("popular");
   const [randomSeed, setRandomSeed] = useState(0);
 
@@ -57,7 +58,7 @@ export function useNaatList(selectedNaatId: string | null) {
     setHasMore(true);
     loadNaats(0, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy, filterRadio, filterChannel, filterDuration, filterProcessed, searchQuery, randomSeed, selectedNaatId]);
+  }, [sortBy, filterRadio, filterChannel, filterDuration, filterProcessed, filterAiCut, searchQuery, randomSeed, selectedNaatId]);
 
   async function loadInitialData() {
     try {
@@ -91,6 +92,10 @@ export function useNaatList(selectedNaatId: string | null) {
 
       if (filterProcessed === "unprocessed") queries.push(Query.isNull("cutSegments"));
       else if (filterProcessed === "processed") queries.push(Query.isNotNull("cutSegments"));
+
+      if (filterAiCut === "ai-cut") queries.push(Query.equal("isAiCut", true));
+      else if (filterAiCut === "non-ai-cut")
+        queries.push(Query.or([Query.equal("isAiCut", false), Query.isNull("isAiCut")]));
 
       if (sortBy === "latest") queries.push(Query.orderDesc("uploadDate"));
       else if (sortBy === "oldest") queries.push(Query.orderAsc("uploadDate"));
@@ -202,6 +207,7 @@ export function useNaatList(selectedNaatId: string | null) {
     filterRadio, setFilterRadio,
     filterDuration, setFilterDuration,
     filterProcessed, setFilterProcessed,
+    filterAiCut, setFilterAiCut,
     sortBy, setSortBy,
     loadMore, shuffleResults, handleSearchSubmit, loadNaats,
     updatingExclude, updatingRadio, toggleExclude, toggleRadio,
