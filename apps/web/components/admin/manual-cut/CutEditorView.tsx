@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { CutSegment, DetectionResult, Naat } from "./types";
 import AiDetectionPanel from "./AiDetectionPanel";
 
@@ -38,6 +38,7 @@ export default function CutEditorView({
   getMinutes, getSeconds,
 }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [copied, setCopied] = useState(false);
 
   function seekAudio(seconds: number) {
     if (audioRef.current) {
@@ -46,6 +47,23 @@ export default function CutEditorView({
         Math.min(audioRef.current.currentTime + seconds, audioRef.current.duration || 0),
       );
     }
+  }
+
+  async function copyTimestampsJson() {
+    const formattedSegments = cutSegments.map((segment, index) => ({
+      segment: index + 1,
+      start: {
+        minutes: getMinutes(segment.start),
+        seconds: getSeconds(segment.start),
+      },
+      end: {
+        minutes: getMinutes(segment.end),
+        seconds: getSeconds(segment.end),
+      },
+    }));
+    await navigator.clipboard.writeText(JSON.stringify(formattedSegments, null, 2));
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
   }
 
   return (
@@ -57,7 +75,6 @@ export default function CutEditorView({
         Back to list
       </button>
 
-      {/* Naat header */}
       <div className="p-6 mb-6 bg-gray-800 rounded-lg">
         <div className="flex gap-4">
           <div className="flex-shrink-0 w-48 h-32 overflow-hidden bg-gray-700 rounded-lg">
@@ -85,14 +102,13 @@ export default function CutEditorView({
               </div>
             ) : (
               <p className="text-sm text-yellow-400">
-                💡 If this naat has no explanation parts, click &quot;Skip - No Explanation&quot; below
+                If this naat has no explanation parts, click "Skip - No Explanation" below
               </p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Audio player */}
       <div className="p-6 mb-6 bg-gray-800 rounded-lg">
         <h2 className="mb-4 text-xl font-semibold">Original Audio</h2>
         <audio
@@ -102,15 +118,19 @@ export default function CutEditorView({
           src={`/api/stream-audio?audioId=${naat.audioId}`}
         />
         <div className="flex justify-center gap-2">
-          <button onClick={() => seekAudio(-10)}
-            className="flex items-center gap-2 px-4 py-2 font-medium transition-colors bg-gray-700 rounded hover:bg-gray-600">
+          <button
+            onClick={() => seekAudio(-10)}
+            className="flex items-center gap-2 px-4 py-2 font-medium transition-colors bg-gray-700 rounded hover:bg-gray-600"
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
             </svg>
             -10s
           </button>
-          <button onClick={() => seekAudio(10)}
-            className="flex items-center gap-2 px-4 py-2 font-medium transition-colors bg-gray-700 rounded hover:bg-gray-600">
+          <button
+            onClick={() => seekAudio(10)}
+            className="flex items-center gap-2 px-4 py-2 font-medium transition-colors bg-gray-700 rounded hover:bg-gray-600"
+          >
             +10s
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" />
@@ -119,7 +139,6 @@ export default function CutEditorView({
         </div>
       </div>
 
-      {/* Cut segments */}
       <div className="p-6 mb-6 bg-gray-800 rounded-lg">
         <h2 className="mb-4 text-xl font-semibold">Cut Segments (Parts to Remove)</h2>
         <p className="mb-4 text-sm text-gray-400">Enter the start and end times for the explanation parts you want to remove</p>
@@ -146,8 +165,11 @@ export default function CutEditorView({
                   </svg>
                   <h4 className="text-sm font-medium text-gray-300">Segment {index + 1} (drag to reorder)</h4>
                 </div>
-                <button onClick={() => onRemoveSegment(index)} disabled={cutSegments.length === 1}
-                  className="px-3 py-1 text-xs bg-red-600 rounded hover:bg-red-700 disabled:opacity-50">
+                <button
+                  onClick={() => onRemoveSegment(index)}
+                  disabled={cutSegments.length === 1}
+                  className="px-3 py-1 text-xs bg-red-600 rounded hover:bg-red-700 disabled:opacity-50"
+                >
                   Remove
                 </button>
               </div>
@@ -159,7 +181,9 @@ export default function CutEditorView({
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
                         <label className="block mb-1 text-xs text-gray-400">Minutes</label>
-                        <input type="text" inputMode="numeric"
+                        <input
+                          type="text"
+                          inputMode="numeric"
                           className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded"
                           value={getMinutes(segment[field])}
                           onChange={(e) => {
@@ -171,7 +195,9 @@ export default function CutEditorView({
                       <span className="pb-2 text-2xl">:</span>
                       <div className="flex-1">
                         <label className="block mb-1 text-xs text-gray-400">Seconds</label>
-                        <input type="text" inputMode="numeric"
+                        <input
+                          type="text"
+                          inputMode="numeric"
                           className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded"
                           value={getSeconds(segment[field])}
                           onChange={(e) => {
@@ -183,8 +209,11 @@ export default function CutEditorView({
                     </div>
                   </div>
                 ))}
-                <button onClick={() => onRemoveSegment(index)} disabled={cutSegments.length === 1}
-                  className="h-10 px-4 py-2 bg-red-600 rounded hover:bg-red-700 disabled:opacity-50">
+                <button
+                  onClick={() => onRemoveSegment(index)}
+                  disabled={cutSegments.length === 1}
+                  className="h-10 px-4 py-2 bg-red-600 rounded hover:bg-red-700 disabled:opacity-50"
+                >
                   Remove
                 </button>
               </div>
@@ -193,12 +222,24 @@ export default function CutEditorView({
         })}
 
         <div className="flex gap-4 mt-4">
-          <button onClick={onSave} disabled={saving}
-            className="flex-1 px-6 py-3 font-semibold bg-green-600 rounded hover:bg-green-700 disabled:opacity-50">
-            {saving ? "Saving..." : naat.cutSegments ? "💾 Update Timestamps" : "💾 Save Timestamps"}
+          <button
+            onClick={() => void copyTimestampsJson()}
+            className="px-6 py-3 font-semibold bg-gray-600 rounded hover:bg-gray-500"
+          >
+            {copied ? "Copied JSON" : "Copy JSON"}
           </button>
-          <button onClick={onSkip} disabled={skipping}
-            className="flex-1 px-6 py-3 font-semibold bg-yellow-600 rounded hover:bg-yellow-700 disabled:opacity-50">
+          <button
+            onClick={onSave}
+            disabled={saving}
+            className="flex-1 px-6 py-3 font-semibold bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
+          >
+            {saving ? "Saving..." : naat.cutSegments ? "Update Timestamps" : "Save Timestamps"}
+          </button>
+          <button
+            onClick={onSkip}
+            disabled={skipping}
+            className="flex-1 px-6 py-3 font-semibold bg-yellow-600 rounded hover:bg-yellow-700 disabled:opacity-50"
+          >
             {skipping ? "Skipping..." : "Skip - No Explanation"}
           </button>
         </div>
