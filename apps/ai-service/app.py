@@ -13,6 +13,10 @@ from datetime import datetime, timedelta, timezone
 from audio_processor import AudioProcessor
 from classifier_fixed import AudioClassifier
 from dotenv import load_dotenv
+from appwrite.client import Client
+from appwrite.query import Query
+from appwrite.services.databases import Databases
+from appwrite.services.storage import Storage
 
 load_dotenv()
 
@@ -36,16 +40,9 @@ POLL_INTERVAL_SECONDS = int(os.getenv("AI_JOB_POLL_INTERVAL_SECONDS", "10"))
 LEASE_SECONDS = int(os.getenv("AI_JOB_LEASE_SECONDS", "120"))
 WORKER_ID = os.getenv("AI_WORKER_ID", f"{socket.gethostname()}-manual-cut")
 worker_lock = threading.Lock()
-
-def appwrite_headers():
-    return {
-        "X-Appwrite-Project": APPWRITE_PROJECT_ID,
-        "X-Appwrite-Key": APPWRITE_API_KEY,
-        "Content-Type": "application/json",
-    }
-
-def appwrite_base_url():
-    return f"{APPWRITE_ENDPOINT}/databases/{APPWRITE_DATABASE_ID}/collections/{APPWRITE_AI_JOBS_COLLECTION_ID}/documents"
+appwrite_client = None
+appwrite_databases = None
+appwrite_storage = None
 
 def iso_now():
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -53,43 +50,53 @@ def iso_now():
 def iso_in(seconds):
     return (datetime.now(timezone.utc) + timedelta(seconds=seconds)).isoformat().replace("+00:00", "Z")
 
-def fetch_documents(queries):
-    response = requests.get(
-        appwrite_base_url(),
-        headers=appwrite_headers(),
-        params=[("queries[]", query) for query in queries],
-        timeout=30,
-    )
-    if not response.ok:
-        logger.error(f"[worker] Appwrite listDocuments failed: {response.status_code} {response.text}")
-        response.raise_for_status()
-    return response.json().get("documents", [])
+def init_appwrite():
+    global appwrite_client, appwrite_databases, appwrite_storage
+
+    if appwrite_databases and appwrite_storage:
+        return
+
+    appwrite_client = Client()
+    appwrite_client.set_endpoint(APPWRITE_ENDPOINT)
+    appwrite_client.set_project(APPWRITE_PROJECT_ID)
+    appwrite_client.set_key(APPWRITE_API_KEY)
+    appwrite_databases = Databases(appwrite_client)
+    appwrite_storage = Storage(appwrite_client)
 
 def update_job(job_id, payload):
-    response = requests.patch(
-        f"{appwrite_base_url()}/{job_id}",
-        headers=appwrite_headers(),
-        data=json.dumps(payload),
-        timeout=30,
+    return appwrite_databases.update_document(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_AI_JOBS_COLLECTION_ID,
+        job_id,
+        payload,
     )
-    response.raise_for_status()
-    return response.json()
 
 def claim_next_job():
-    pending_queries = [
-        'equal("type",["manual-cut-detect"])',
-        'equal("status",["pending"])',
-        'limit(25)',
-    ]
-    documents = fetch_documents(pending_queries)
+    pending_response = appwrite_databases.list_documents(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_AI_JOBS_COLLECTION_ID,
+        [
+            Query.equal("type", "manual-cut-detect"),
+            Query.equal("status", "pending"),
+            Query.limit(25),
+        ],
+    )
+    documents = pending_response["documents"]
     if not documents:
-        expired_queries = [
-            'equal("type",["manual-cut-detect"])',
-            'equal("status",["running"])',
-            f'lessThan("leaseUntil","{iso_now()}")',
-            'limit(25)',
+        running_response = appwrite_databases.list_documents(
+            APPWRITE_DATABASE_ID,
+            APPWRITE_AI_JOBS_COLLECTION_ID,
+            [
+                Query.equal("type", "manual-cut-detect"),
+                Query.equal("status", "running"),
+                Query.limit(25),
+            ],
+        )
+        now = iso_now()
+        documents = [
+            doc for doc in running_response["documents"]
+            if doc.get("leaseUntil") and doc.get("leaseUntil") < now
         ]
-        documents = fetch_documents(expired_queries)
 
     if not documents:
         return None
@@ -122,16 +129,11 @@ def heartbeat(job_id, progress=None):
     update_job(job_id, payload)
 
 def download_audio_from_appwrite(audio_id):
-    response = requests.get(
-        f"{APPWRITE_ENDPOINT}/storage/buckets/{APPWRITE_AUDIO_BUCKET_ID}/files/{audio_id}/download",
-        headers={
-            "X-Appwrite-Project": APPWRITE_PROJECT_ID,
-            "X-Appwrite-Key": APPWRITE_API_KEY,
-        },
-        timeout=120,
+    file_bytes = appwrite_storage.get_file_download(
+        APPWRITE_AUDIO_BUCKET_ID,
+        audio_id,
     )
-    response.raise_for_status()
-    return response.content
+    return bytes(file_bytes)
 
 def process_job(job):
     job_id = job["$id"]
@@ -187,6 +189,7 @@ def worker_loop():
         logger.warning("[worker] Appwrite job worker disabled: missing Appwrite env vars")
         return
 
+    init_appwrite()
     logger.info(f"[worker] AI job worker started as {WORKER_ID}")
 
     while True:
