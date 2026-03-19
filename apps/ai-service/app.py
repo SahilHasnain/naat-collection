@@ -36,6 +36,7 @@ APPWRITE_PROJECT_ID = os.getenv("APPWRITE_PROJECT_ID", "")
 APPWRITE_API_KEY = os.getenv("APPWRITE_API_KEY", "")
 APPWRITE_DATABASE_ID = os.getenv("APPWRITE_DATABASE_ID", "")
 APPWRITE_AI_JOBS_COLLECTION_ID = os.getenv("APPWRITE_AI_JOBS_COLLECTION_ID", "ai_jobs")
+APPWRITE_NAATS_COLLECTION_ID = os.getenv("APPWRITE_NAATS_COLLECTION_ID", "")
 APPWRITE_AUDIO_BUCKET_ID = os.getenv("APPWRITE_AUDIO_BUCKET_ID", "audio-files")
 POLL_INTERVAL_SECONDS = int(os.getenv("AI_JOB_POLL_INTERVAL_SECONDS", "10"))
 LEASE_SECONDS = int(os.getenv("AI_JOB_LEASE_SECONDS", "120"))
@@ -70,6 +71,29 @@ def update_job(job_id, payload):
         APPWRITE_AI_JOBS_COLLECTION_ID,
         job_id,
         payload,
+    )
+
+def update_naat_cut_segments(naat_id, result):
+    speech_segments = result.get("speechSegments", [])
+    cut_segments = [
+        {
+            "start": round(segment["start"]) + 2,
+            "end": round(segment["end"]) - 2,
+        }
+        for segment in speech_segments
+        if round(segment["start"]) + 2 < round(segment["end"]) - 2
+    ]
+
+    return appwrite_databases.update_document(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_NAATS_COLLECTION_ID,
+        naat_id,
+        {
+            "cutSegments": json.dumps(cut_segments),
+            "cutStatus": None,
+            "cutAudio": None,
+            "cutDuration": None,
+        },
     )
 
 def claim_next_job():
@@ -209,6 +233,7 @@ def process_job(job):
 
         heartbeat(job_id, 70)
         result = audio_classifier.classify_audio(audio)
+        update_naat_cut_segments(job["naatId"], result)
 
         update_job(job_id, {
             "status": "done",
@@ -239,6 +264,7 @@ def worker_loop():
         APPWRITE_PROJECT_ID,
         APPWRITE_API_KEY,
         APPWRITE_DATABASE_ID,
+        APPWRITE_NAATS_COLLECTION_ID,
         APPWRITE_AI_JOBS_COLLECTION_ID,
     ]
     if not all(required):
