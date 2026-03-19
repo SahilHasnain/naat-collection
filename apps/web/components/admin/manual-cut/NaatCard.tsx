@@ -8,17 +8,19 @@ interface Props {
   audioPaused: boolean;
   updatingExclude: string | null;
   updatingRadio: string | null;
+  queueingAi: string | null;
   onSelect: () => void;
   onTogglePlay: () => void;
   onToggleExclude: () => void;
   onToggleRadio: () => void;
   onViewStatus: () => void;
+  onQueueAi: () => void;
 }
 
 export default function NaatCard({
   naat, isPlaying, audioPaused,
-  updatingExclude, updatingRadio,
-  onSelect, onTogglePlay, onToggleExclude, onToggleRadio, onViewStatus,
+  updatingExclude, updatingRadio, queueingAi,
+  onSelect, onTogglePlay, onToggleExclude, onToggleRadio, onViewStatus, onQueueAi,
 }: Props) {
   const hasTimestamps = !!naat.cutSegments;
 
@@ -80,6 +82,14 @@ export default function NaatCard({
       </button>
 
       <div className="flex gap-2 px-4 pb-4" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onQueueAi}
+          disabled={queueingAi === naat.$id || !naat.audioId || hasTimestamps}
+          className="px-3 py-2 rounded font-medium text-sm bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Queue this naat for AI detection"
+        >
+          {queueingAi === naat.$id ? "..." : "AI"}
+        </button>
         <button
           onClick={onToggleExclude}
           disabled={updatingExclude === naat.$id}
