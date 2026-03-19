@@ -13,6 +13,7 @@ export default function ManualCutClient() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [queueingAiBatch, setQueueingAiBatch] = useState(false);
   const [queueingSingleAi, setQueueingSingleAi] = useState<string | null>(null);
+  const [queuedAiIds, setQueuedAiIds] = useState<Set<string>>(new Set());
 
   const list = useNaatList(selectedNaat?.$id ?? null);
 
@@ -77,6 +78,9 @@ export default function ManualCutClient() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to queue AI jobs");
+      if (data.queuedCount > 0) {
+        setQueuedAiIds((prev) => new Set([...prev, ...eligibleNaatIds]));
+      }
       list.setError(`Queued ${data.queuedCount} naats for AI detection. Skipped ${data.skippedCount}.`);
     } catch (error) {
       list.setError(error instanceof Error ? error.message : "Failed to queue AI jobs");
@@ -98,6 +102,9 @@ export default function ManualCutClient() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to queue AI job");
+      if (data.queuedCount > 0) {
+        setQueuedAiIds((prev) => new Set([...prev, naat.$id]));
+      }
       list.setError(`Queued ${data.queuedCount} naat. Skipped ${data.skippedCount}.`);
     } catch (error) {
       list.setError(error instanceof Error ? error.message : "Failed to queue AI job");
@@ -147,6 +154,7 @@ export default function ManualCutClient() {
             updatingExclude={list.updatingExclude}
             updatingRadio={list.updatingRadio}
             queueingSingleAi={queueingSingleAi}
+            queuedAiIds={queuedAiIds}
             playingNaatId={list.playingNaatId}
             audioElement={list.audioElement}
             queueingAiBatch={queueingAiBatch}

@@ -23,6 +23,7 @@ interface Props {
   updatingExclude: string | null;
   updatingRadio: string | null;
   queueingSingleAi: string | null;
+  queuedAiIds: Set<string>;
   playingNaatId: string | null;
   audioElement: HTMLAudioElement | null;
   queueingAiBatch: boolean;
@@ -48,7 +49,7 @@ interface Props {
 export default function NaatListView({
   naats, loading, loadingMore, hasMore, totalCount, channels, showBackToTop,
   searchTerm, searchQuery, filterChannel, filterRadio, filterDuration, filterProcessed, sortBy,
-  updatingExclude, updatingRadio, queueingSingleAi, playingNaatId, audioElement, queueingAiBatch,
+  updatingExclude, updatingRadio, queueingSingleAi, queuedAiIds, playingNaatId, audioElement, queueingAiBatch,
   onSearchTermChange, onSearchSubmit, onFilterChannelChange, onFilterRadioChange,
   onFilterDurationChange, onFilterProcessedChange, onSortByChange, onShuffle,
   onLoadMore, onScrollToTop, onSelectNaat, onTogglePlay, onToggleExclude, onToggleRadio, onQueueSingleForAi, onClearSearch,
@@ -156,6 +157,7 @@ export default function NaatListView({
             updatingExclude={updatingExclude}
             updatingRadio={updatingRadio}
             queueingAi={queueingSingleAi}
+            isQueuedForAi={queuedAiIds.has(naat.$id)}
             onSelect={() => onSelectNaat(naat)}
             onTogglePlay={() => onTogglePlay(naat)}
             onToggleExclude={() => onToggleExclude(naat.$id, naat.exclude || false)}
