@@ -379,8 +379,7 @@ function RootLayoutContent() {
               backgroundColor: "rgba(0, 0, 0, 0.18)",
               zIndex: 1000,
             }}
-          </View>
-
+          ></View>
           <View
             style={{
               position: "absolute",
