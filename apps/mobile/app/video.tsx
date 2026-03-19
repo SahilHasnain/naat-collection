@@ -9,6 +9,7 @@ import { storageService } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useFocusEffect } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import React from "react";
@@ -16,6 +17,7 @@ import {
   ActivityIndicator,
   Alert,
   StatusBar,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -327,6 +329,20 @@ export default function VideoScreen() {
       />
 
       <SafeAreaView edges={["bottom", "top"]} className="flex-1 bg-black">
+        <LinearGradient
+          pointerEvents="none"
+          colors={[
+            "rgba(0, 0, 0, 0.46)",
+            "rgba(6, 10, 20, 0.24)",
+            "rgba(0, 0, 0, 0.12)",
+            "rgba(0, 0, 0, 0.36)",
+          ]}
+          locations={[0, 0.18, 0.58, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+
         <View className="flex-1">
           <View
             className="flex-1 bg-neutral-900 overflow-hidden"

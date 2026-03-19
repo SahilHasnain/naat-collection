@@ -1,8 +1,9 @@
 import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { FlatList, Keyboard, Text, View } from "react-native";
+import { FlatList, Keyboard, StyleSheet, Text, View } from "react-native";
 import Pressable from "./ResponsivePressable";
 
 export interface SearchSuggestion {
@@ -110,6 +111,20 @@ export function SearchSuggestions({
       className="flex-1"
       style={{ backgroundColor: colors.background.primary }}
     >
+      <LinearGradient
+        pointerEvents="none"
+        colors={[
+          "rgba(0, 0, 0, 0.32)",
+          "rgba(6, 10, 20, 0.14)",
+          "rgba(0, 0, 0, 0.04)",
+          "rgba(0, 0, 0, 0.2)",
+        ]}
+        locations={[0, 0.18, 0.58, 1]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
       <FlatList
         data={suggestions}
         renderItem={renderSuggestion}

@@ -16,12 +16,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { getPreferredDuration } from "@naat-collection/shared";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   BackHandler,
   FlatList,
   RefreshControl,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -301,6 +303,20 @@ export default function HomeScreen() {
       className="flex-1"
       style={{ backgroundColor: colors.background.primary }}
     >
+      <LinearGradient
+        pointerEvents="none"
+        colors={[
+          "rgba(0, 0, 0, 0.52)",
+          "rgba(6, 10, 20, 0.3)",
+          "rgba(0, 0, 0, 0.12)",
+          "rgba(0, 0, 0, 0.4)",
+        ]}
+        locations={[0, 0.2, 0.56, 1]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
       <View className="flex-1">
         <FlatList
           ref={flatListRef}
@@ -394,6 +410,16 @@ export default function HomeScreen() {
             zIndex: 40,
           }}
         >
+          <LinearGradient
+            pointerEvents="none"
+            colors={[
+              "rgba(0, 0, 0, 0.42)",
+              colors.background.primary,
+              colors.background.primary,
+            ]}
+            locations={[0, 0.16, 1]}
+            style={StyleSheet.absoluteFill}
+          />
           <SearchSuggestions
             suggestions={suggestions}
             onSuggestionPress={(s) => {
