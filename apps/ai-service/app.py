@@ -57,10 +57,12 @@ def fetch_documents(queries):
     response = requests.get(
         appwrite_base_url(),
         headers=appwrite_headers(),
-        params={"queries[]": queries},
+        params=[("queries[]", query) for query in queries],
         timeout=30,
     )
-    response.raise_for_status()
+    if not response.ok:
+        logger.error(f"[worker] Appwrite listDocuments failed: {response.status_code} {response.text}")
+        response.raise_for_status()
     return response.json().get("documents", [])
 
 def update_job(job_id, payload):
@@ -77,8 +79,7 @@ def claim_next_job():
     pending_queries = [
         'equal("type",["manual-cut-detect"])',
         'equal("status",["pending"])',
-        'orderAsc("$createdAt")',
-        'limit(1)',
+        'limit(25)',
     ]
     documents = fetch_documents(pending_queries)
     if not documents:
@@ -86,14 +87,14 @@ def claim_next_job():
             'equal("type",["manual-cut-detect"])',
             'equal("status",["running"])',
             f'lessThan("leaseUntil","{iso_now()}")',
-            'orderAsc("$createdAt")',
-            'limit(1)',
+            'limit(25)',
         ]
         documents = fetch_documents(expired_queries)
 
     if not documents:
         return None
 
+    documents.sort(key=lambda item: item.get("$createdAt", ""))
     job = documents[0]
     now = iso_now()
     lease_until = iso_in(LEASE_SECONDS)
