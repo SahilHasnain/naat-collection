@@ -7,6 +7,7 @@ import os
 import logging
 import json
 import socket
+import subprocess
 import threading
 import time
 from datetime import datetime, timedelta, timezone
@@ -128,6 +129,24 @@ def heartbeat(job_id, progress=None):
         payload["progress"] = progress
     update_job(job_id, payload)
 
+def get_audio_file_info(audio_id):
+    return appwrite_storage.get_file(APPWRITE_AUDIO_BUCKET_ID, audio_id)
+
+def detect_extension(file_info):
+    name = file_info.get("name") or ""
+    _, ext = os.path.splitext(name)
+    if ext:
+        return ext
+
+    mime_type = (file_info.get("mimeType") or "").lower()
+    if "mp4" in mime_type or "m4a" in mime_type:
+        return ".m4a"
+    if "mpeg" in mime_type or "mp3" in mime_type:
+        return ".mp3"
+    if "wav" in mime_type:
+        return ".wav"
+    return ".bin"
+
 def download_audio_from_appwrite(audio_id):
     file_bytes = appwrite_storage.get_file_download(
         APPWRITE_AUDIO_BUCKET_ID,
@@ -135,21 +154,57 @@ def download_audio_from_appwrite(audio_id):
     )
     return bytes(file_bytes)
 
+def normalize_audio(input_path, output_path):
+    command = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        input_path,
+        "-vn",
+        "-acodec",
+        "pcm_s16le",
+        "-ar",
+        "16000",
+        "-ac",
+        "1",
+        output_path,
+    ]
+
+    result = subprocess.run(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+        text=True,
+    )
+
+    if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg normalization failed: {result.stderr[-1000:]}")
+
 def process_job(job):
     job_id = job["$id"]
-    tmp_path = None
+    source_path = None
+    normalized_path = None
 
     try:
         logger.info(f"[worker] Processing job {job_id} for naat {job['naatId']}")
         heartbeat(job_id, 10)
 
+        file_info = get_audio_file_info(job["audioId"])
+        extension = detect_extension(file_info)
         audio_bytes = download_audio_from_appwrite(job["audioId"])
-        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_file:
+        with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as tmp_file:
             tmp_file.write(audio_bytes)
-            tmp_path = tmp_file.name
+            source_path = tmp_file.name
 
         heartbeat(job_id, 35)
-        audio, duration = audio_processor.load_audio(tmp_path)
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
+            normalized_path = tmp_file.name
+
+        normalize_audio(source_path, normalized_path)
+
+        heartbeat(job_id, 50)
+        audio, duration = audio_processor.load_audio(normalized_path)
         audio = audio_processor.preprocess_audio(audio)
 
         heartbeat(job_id, 70)
@@ -174,8 +229,9 @@ def process_job(job):
             "leaseUntil": iso_now(),
         })
     finally:
-        if tmp_path and os.path.exists(tmp_path):
-            os.unlink(tmp_path)
+        for path in [source_path, normalized_path]:
+            if path and os.path.exists(path):
+                os.unlink(path)
 
 def worker_loop():
     required = [
