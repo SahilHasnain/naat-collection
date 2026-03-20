@@ -154,6 +154,7 @@ export default function ManualCutClient() {
             sortBy={list.sortBy}
             updatingExclude={list.updatingExclude}
             updatingRadio={list.updatingRadio}
+            updatingAiTrain={list.updatingAiTrain}
             queueingSingleAi={queueingSingleAi}
             queuedAiIds={queuedAiIds}
             playingNaatId={list.playingNaatId}
@@ -174,6 +175,7 @@ export default function ManualCutClient() {
             onTogglePlay={list.togglePlayAudio}
             onToggleExclude={list.toggleExclude}
             onToggleRadio={list.toggleRadio}
+            onToggleAiTrain={list.toggleAiTrain}
             onQueueSingleForAi={handleQueueSingleForAi}
             onClearSearch={() => { list.setSearchTerm(""); list.setSearchQuery(""); }}
             onQueueVisibleForAi={handleQueueVisibleForAi}

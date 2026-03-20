@@ -14,6 +14,7 @@ export interface Naat {
   videoUrl?: string;
   exclude?: boolean;
   radio?: boolean;
+  aiTrain?: boolean;
   isAiCut?: boolean;
   cutSegments?: string;
   cutAudioId?: string;
