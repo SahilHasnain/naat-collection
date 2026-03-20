@@ -29,6 +29,7 @@ const {
   writeFileSync,
   unlinkSync,
   readdirSync,
+  rmSync,
 } = require("fs");
 const { join } = require("path");
 const ffmpeg = require("fluent-ffmpeg");
@@ -65,8 +66,12 @@ const storage = new Storage(client);
 // ── Helpers ───────────────────────────────────────────────────
 
 function ensureDirs() {
+  if (existsSync(OUTPUT_DIR)) {
+    rmSync(OUTPUT_DIR, { recursive: true, force: true });
+  }
+
   [OUTPUT_DIR, TEMP_DIR, NAAT_DIR, EXPLANATION_DIR].forEach((dir) => {
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    mkdirSync(dir, { recursive: true });
   });
 }
 
