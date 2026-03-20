@@ -77,11 +77,11 @@ def update_naat_cut_segments(naat_id, result):
     speech_segments = result.get("speechSegments", [])
     cut_segments = [
         {
-            "start": round(segment["start"]) + 2,
-            "end": round(segment["end"]) - 2,
+            "start": round(segment["start"]),
+            "end": round(segment["end"]),
         }
         for segment in speech_segments
-        if round(segment["start"]) + 2 < round(segment["end"]) - 2
+        if round(segment["start"]) < round(segment["end"])
     ]
 
     return appwrite_databases.update_document(

@@ -25,6 +25,30 @@ TRAINING_DATA_DIR = os.path.join(os.getcwd(), "training-data")
 MANIFEST_PATH = os.path.join(TRAINING_DATA_DIR, "manifest.json")
 HF_DATASET_NAME = "naat-classifier"
 
+
+def clear_existing_dataset(api: HfApi, repo_id: str):
+    """
+    Remove previously uploaded dataset files so each run replaces the repo contents.
+    """
+    print("\n🧹 Clearing previous dataset files from HuggingFace...")
+    try:
+        api.delete_files(
+            repo_id=repo_id,
+            repo_type="dataset",
+            delete_patterns=[
+                "metadata.csv",
+                "naat/",
+                "explanation/",
+                "data/",
+                "data/naat/",
+                "data/explanation/",
+            ],
+            commit_message="Clear previous training dataset files",
+        )
+        print("  ✅ Previous dataset files deleted")
+    except Exception as error:
+        print(f"  ℹ️  Nothing to clear or delete skipped: {error}")
+
 # ── Load manifest ─────────────────────────────────────────────
 with open(MANIFEST_PATH, "r") as f:
     manifest = json.load(f)
@@ -52,6 +76,7 @@ repo_id = f"{user}/{HF_DATASET_NAME}"
 
 print(f"\n📦 Creating dataset repo: {repo_id}")
 create_repo(repo_id, repo_type="dataset", private=True, exist_ok=True)
+clear_existing_dataset(api, repo_id)
 
 # ── Build metadata CSV ────────────────────────────────────────
 csv_buffer = io.StringIO()

@@ -30,7 +30,11 @@ print(f"   Logged in as: {username}")
 from datasets import load_dataset, Audio, ClassLabel
 print("\n📋 Loading dataset...")
 
-dataset = load_dataset(f"{username}/naat-classifier")
+dataset = load_dataset(
+    f"{username}/naat-classifier",
+    revision="main",
+    download_mode="force_redownload",
+)
 
 # Ensure audio column is 16kHz
 dataset = dataset.cast_column("audio", Audio(sampling_rate=16000))
