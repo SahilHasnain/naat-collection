@@ -23,6 +23,7 @@ interface Props {
   sortBy: SortBy;
   updatingExclude: string | null;
   updatingRadio: string | null;
+  updatingAiTrain: string | null;
   queueingSingleAi: string | null;
   queuedAiIds: Set<string>;
   playingNaatId: string | null;
@@ -43,6 +44,7 @@ interface Props {
   onTogglePlay: (naat: Naat) => void;
   onToggleExclude: (id: string, current: boolean) => void;
   onToggleRadio: (id: string, current: boolean) => void;
+  onToggleAiTrain: (id: string, current: boolean) => void;
   onQueueSingleForAi: (naat: Naat) => void;
   onClearSearch: () => void;
   onQueueVisibleForAi: () => void;
@@ -51,10 +53,10 @@ interface Props {
 export default function NaatListView({
   naats, loading, loadingMore, hasMore, totalCount, channels, showBackToTop,
   searchTerm, searchQuery, filterChannel, filterRadio, filterDuration, filterProcessed, filterAiCut, sortBy,
-  updatingExclude, updatingRadio, queueingSingleAi, queuedAiIds, playingNaatId, audioElement, queueingAiBatch,
+  updatingExclude, updatingRadio, updatingAiTrain, queueingSingleAi, queuedAiIds, playingNaatId, audioElement, queueingAiBatch,
   onSearchTermChange, onSearchSubmit, onFilterChannelChange, onFilterRadioChange,
   onFilterDurationChange, onFilterProcessedChange, onFilterAiCutChange, onSortByChange, onShuffle,
-  onLoadMore, onScrollToTop, onSelectNaat, onTogglePlay, onToggleExclude, onToggleRadio, onQueueSingleForAi, onClearSearch,
+  onLoadMore, onScrollToTop, onSelectNaat, onTogglePlay, onToggleExclude, onToggleRadio, onToggleAiTrain, onQueueSingleForAi, onClearSearch,
   onQueueVisibleForAi,
 }: Props) {
   const [viewingStatusNaat, setViewingStatusNaat] = useState<Naat | null>(null);
@@ -164,12 +166,14 @@ export default function NaatListView({
             audioPaused={audioElement?.paused ?? true}
             updatingExclude={updatingExclude}
             updatingRadio={updatingRadio}
+            updatingAiTrain={updatingAiTrain}
             queueingAi={queueingSingleAi}
             isQueuedForAi={queuedAiIds.has(naat.$id)}
             onSelect={() => onSelectNaat(naat)}
             onTogglePlay={() => onTogglePlay(naat)}
             onToggleExclude={() => onToggleExclude(naat.$id, naat.exclude || false)}
             onToggleRadio={() => onToggleRadio(naat.$id, naat.radio || false)}
+            onToggleAiTrain={() => onToggleAiTrain(naat.$id, naat.aiTrain || false)}
             onViewStatus={() => setViewingStatusNaat(naat)}
             onQueueAi={() => onQueueSingleForAi(naat)}
           />

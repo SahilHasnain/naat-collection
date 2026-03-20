@@ -8,20 +8,22 @@ interface Props {
   audioPaused: boolean;
   updatingExclude: string | null;
   updatingRadio: string | null;
+  updatingAiTrain: string | null;
   queueingAi: string | null;
   isQueuedForAi: boolean;
   onSelect: () => void;
   onTogglePlay: () => void;
   onToggleExclude: () => void;
   onToggleRadio: () => void;
+  onToggleAiTrain: () => void;
   onViewStatus: () => void;
   onQueueAi: () => void;
 }
 
 export default function NaatCard({
   naat, isPlaying, audioPaused,
-  updatingExclude, updatingRadio, queueingAi, isQueuedForAi,
-  onSelect, onTogglePlay, onToggleExclude, onToggleRadio, onViewStatus, onQueueAi,
+  updatingExclude, updatingRadio, updatingAiTrain, queueingAi, isQueuedForAi,
+  onSelect, onTogglePlay, onToggleExclude, onToggleRadio, onToggleAiTrain, onViewStatus, onQueueAi,
 }: Props) {
   const hasTimestamps = !!naat.cutSegments;
 
@@ -70,6 +72,11 @@ export default function NaatCard({
               <span className="text-xs font-bold text-white">RADIO</span>
             </div>
           )}
+          {naat.aiTrain && (
+            <div className="absolute px-2 py-1 rounded bottom-10 right-2 bg-violet-600">
+              <span className="text-xs font-bold text-white">AI TRAIN</span>
+            </div>
+          )}
           {isQueuedForAi && (
             <div className="absolute px-2 py-1 rounded bottom-2 left-2 bg-amber-600">
               <span className="text-xs font-bold text-white">AI QUEUED</span>
@@ -114,6 +121,15 @@ export default function NaatCard({
           } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           {updatingRadio === naat.$id ? "..." : naat.radio ? "RADIO ON" : "RADIO OFF"}
+        </button>
+        <button
+          onClick={onToggleAiTrain}
+          disabled={updatingAiTrain === naat.$id}
+          className={`flex-1 px-3 py-2 rounded font-medium text-sm transition-colors ${
+            naat.aiTrain ? "bg-violet-600 hover:bg-violet-700" : "bg-gray-600 hover:bg-gray-700"
+          } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
+        >
+          {updatingAiTrain === naat.$id ? "..." : naat.aiTrain ? "AI TRAIN ON" : "AI TRAIN OFF"}
         </button>
         <button
           onClick={onViewStatus}
