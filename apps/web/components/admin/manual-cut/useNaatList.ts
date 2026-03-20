@@ -35,6 +35,7 @@ export function useNaatList(selectedNaatId: string | null) {
 
   const [updatingExclude, setUpdatingExclude] = useState<string | null>(null);
   const [updatingRadio, setUpdatingRadio] = useState<string | null>(null);
+  const [updatingAiTrain, setUpdatingAiTrain] = useState<string | null>(null);
   const [playingNaatId, setPlayingNaatId] = useState<string | null>(null);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
 
@@ -182,6 +183,23 @@ export function useNaatList(selectedNaatId: string | null) {
     }
   }
 
+  async function toggleAiTrain(naatId: string, current: boolean) {
+    setUpdatingAiTrain(naatId);
+    try {
+      const res = await fetch("/api/admin/toggle-ai-train", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ naatId, aiTrain: !current }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      setNaats((prev) => prev.map((n) => n.$id === naatId ? { ...n, aiTrain: !current } : n));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update naat");
+    } finally {
+      setUpdatingAiTrain(null);
+    }
+  }
+
   async function togglePlayAudio(naat: Naat) {
     if (!audioElement || !naat.audioId) return;
     if (playingNaatId === naat.$id) {
@@ -210,7 +228,7 @@ export function useNaatList(selectedNaatId: string | null) {
     filterAiCut, setFilterAiCut,
     sortBy, setSortBy,
     loadMore, shuffleResults, handleSearchSubmit, loadNaats,
-    updatingExclude, updatingRadio, toggleExclude, toggleRadio,
+    updatingExclude, updatingRadio, updatingAiTrain, toggleExclude, toggleRadio, toggleAiTrain,
     playingNaatId, audioElement, togglePlayAudio,
   };
 }

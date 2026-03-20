@@ -99,7 +99,7 @@ function extractChunk(inputPath, start, duration, outputPath) {
 }
 
 /**
- * Fetch all naats that have cutSegments populated
+ * Fetch all naats that are marked for AI training and have required fields populated
  */
 async function fetchLabeledNaats() {
   const allNaats = [];
@@ -111,6 +111,7 @@ async function fetchLabeledNaats() {
       DATABASE_ID,
       NAATS_COLLECTION_ID,
       [
+        Query.equal("aiTrain", true),
         Query.isNotNull("cutSegments"),
         Query.isNotNull("audioId"),
         Query.limit(limit),
@@ -273,12 +274,14 @@ async function main() {
   ensureDirs();
 
   // Fetch labeled naats
-  console.log("📋 Fetching labeled naats from Appwrite...");
+  console.log("📋 Fetching AI-training naats from Appwrite...");
   const naats = await fetchLabeledNaats();
-  console.log(`   Found ${naats.length} naats with cutSegments\n`);
+  console.log(`   Found ${naats.length} naats with aiTrain=true and cutSegments\n`);
 
   if (naats.length === 0) {
-    console.log("❌ No labeled naats found. Use the admin panel to cut some naats first.");
+    console.log(
+      "❌ No eligible naats found. Mark naats with aiTrain=true and ensure cutSegments are populated.",
+    );
     process.exit(1);
   }
 
