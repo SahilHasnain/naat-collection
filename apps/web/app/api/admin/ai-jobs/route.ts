@@ -18,11 +18,13 @@ export async function GET(request: NextRequest) {
   const status = request.nextUrl.searchParams.get("status") || "all";
   const type = request.nextUrl.searchParams.get("type") || "manual-cut-detect";
   const limit = Math.min(Number(request.nextUrl.searchParams.get("limit") || "100"), 100);
+  const offset = Math.max(Number(request.nextUrl.searchParams.get("offset") || "0"), 0);
 
   const databases = createDatabases();
   const queries = [
     Query.orderDesc("$createdAt"),
     Query.limit(limit),
+    Query.offset(offset),
     Query.equal("type", [type]),
   ];
 
@@ -30,11 +32,21 @@ export async function GET(request: NextRequest) {
     queries.push(Query.equal("status", [status]));
   }
 
-  const jobsResponse = await databases.listDocuments(
-    process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-    JOBS_COLLECTION_ID,
-    queries,
-  );
+  const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
+
+  const [jobsResponse, pendingResponse, runningResponse, doneResponse, failedResponse, stoppedResponse, stopRequestedResponse] = await Promise.all([
+    databases.listDocuments(
+      databaseId,
+      JOBS_COLLECTION_ID,
+      queries,
+    ),
+    databases.listDocuments(databaseId, JOBS_COLLECTION_ID, [Query.equal("type", [type]), Query.equal("status", ["pending"]), Query.limit(1)]),
+    databases.listDocuments(databaseId, JOBS_COLLECTION_ID, [Query.equal("type", [type]), Query.equal("status", ["running"]), Query.limit(1)]),
+    databases.listDocuments(databaseId, JOBS_COLLECTION_ID, [Query.equal("type", [type]), Query.equal("status", ["done"]), Query.limit(1)]),
+    databases.listDocuments(databaseId, JOBS_COLLECTION_ID, [Query.equal("type", [type]), Query.equal("status", ["failed"]), Query.limit(1)]),
+    databases.listDocuments(databaseId, JOBS_COLLECTION_ID, [Query.equal("type", [type]), Query.equal("status", ["stopped"]), Query.limit(1)]),
+    databases.listDocuments(databaseId, JOBS_COLLECTION_ID, [Query.equal("type", [type]), Query.equal("status", ["stop_requested"]), Query.limit(1)]),
+  ]);
 
   const naatIds = Array.from(
     new Set(
@@ -48,7 +60,7 @@ export async function GET(request: NextRequest) {
 
   if (naatIds.length > 0) {
     const naatsResponse = await databases.listDocuments(
-      process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+      databaseId,
       process.env.NEXT_PUBLIC_APPWRITE_NAATS_COLLECTION_ID!,
       [
         Query.equal("$id", naatIds),
@@ -79,6 +91,15 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     total: jobsResponse.total,
+    counts: {
+      total: jobsResponse.total,
+      pending: pendingResponse.total,
+      running: runningResponse.total,
+      done: doneResponse.total,
+      failed: failedResponse.total,
+      stopped: stoppedResponse.total,
+      stop_requested: stopRequestedResponse.total,
+    },
     jobs,
   });
 }
