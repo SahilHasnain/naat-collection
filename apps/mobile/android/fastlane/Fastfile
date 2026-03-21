@@ -1,0 +1,51 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+
+default_platform(:android)
+
+platform :android do
+  private_lane :ensure_play_store_key do
+    if ENV["SUPPLY_JSON_KEY"].to_s.empty? &&
+       ENV["PLAY_STORE_JSON_KEY_PATH"].to_s.empty?
+      UI.user_error!("Missing SUPPLY_JSON_KEY or PLAY_STORE_JSON_KEY_PATH for Google Play authentication.")
+    end
+  end
+
+  desc "Runs all the tests"
+  lane :test do
+    gradle(task: "test")
+  end
+
+  private_lane :ensure_sentry_token do
+    if ENV["SENTRY_AUTH_TOKEN"].to_s.empty?
+      UI.user_error!("Missing SENTRY_AUTH_TOKEN. Set it in apps/mobile/.env.local before running fastlane.")
+    end
+  end
+
+  desc "Submit a new Beta Build to Crashlytics Beta"
+  lane :beta do
+    ensure_sentry_token
+    gradle(
+      task: "clean bundleRelease",
+      project_dir: "./"
+    )
+    UI.important("Beta lane currently builds a signed release bundle. Add Firebase/App Distribution here if needed.")
+  end
+
+  desc "Deploy a new version to the Google Play"
+  lane :deploy do |options|
+    ensure_sentry_token
+    ensure_play_store_key
+    gradle(
+      task: "clean bundleRelease",
+      project_dir: "./"
+    )
+
+    upload_to_play_store(
+      track: options[:track] || ENV["PLAY_TRACK"] || "internal",
+      aab: options[:aab] || "../app/build/outputs/bundle/release/app-release.aab",
+      package_name: ENV["ANDROID_APPLICATION_ID"] || "com.owaisrazaqadri",
+      json_key: ENV["SUPPLY_JSON_KEY"],
+    )
+  end
+end
