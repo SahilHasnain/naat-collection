@@ -233,6 +233,7 @@ export default function HistoryScreen() {
                       title: naat.title,
                       channelName: naat.channelName,
                       thumbnailUrl: naat.thumbnailUrl,
+                      duration: String(naat.duration),
                       youtubeId: naat.youtubeId,
                       audioId: audioId,
                       isFallback: "true", // Mark as fallback so preference isn't changed
@@ -291,6 +292,7 @@ export default function HistoryScreen() {
                           title: naat.title,
                           channelName: naat.channelName,
                           thumbnailUrl: naat.thumbnailUrl,
+                          duration: String(naat.duration),
                           youtubeId: naat.youtubeId,
                           audioId: audioId,
                           isFallback: "true", // Mark as fallback so preference isn't changed
@@ -345,6 +347,7 @@ export default function HistoryScreen() {
                       title: naat.title,
                       channelName: naat.channelName,
                       thumbnailUrl: naat.thumbnailUrl,
+                      duration: String(naat.duration),
                       youtubeId: naat.youtubeId,
                       audioId: naat.audioId,
                       isFallback: "true", // Mark as fallback so preference isn't changed
@@ -383,6 +386,7 @@ export default function HistoryScreen() {
               title: naat.title,
               channelName: naat.channelName,
               thumbnailUrl: naat.thumbnailUrl,
+              duration: String(naat.duration),
               youtubeId: naat.youtubeId,
               audioId: naat.audioId,
               isFallback: "false",

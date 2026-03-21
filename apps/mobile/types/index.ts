@@ -77,6 +77,7 @@ export interface NaatCardProps {
   channelName: string;
   views: number;
   onPress: () => void;
+  onLongPress?: () => void;
   onDownload?: () => void;
   isDownloaded?: boolean;
   isDownloading?: boolean;

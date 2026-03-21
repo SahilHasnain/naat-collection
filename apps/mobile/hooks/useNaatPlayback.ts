@@ -21,7 +21,12 @@ export function useNaatPlayback(displayData: Naat[]) {
   }, [displayData]);
 
   const navigateToVideo = React.useCallback(
-    (naat: Naat, audioId: string | undefined, isFallback: boolean) => {
+    (
+      naat: Naat,
+      audioId: string | undefined,
+      isFallback: boolean,
+      preservePreference: boolean = false,
+    ) => {
       router.push({
         pathname: "/video",
         params: {
@@ -29,9 +34,10 @@ export function useNaatPlayback(displayData: Naat[]) {
           title: naat.title,
           channelName: naat.channelName,
           thumbnailUrl: naat.thumbnailUrl,
+          duration: String(naat.duration),
           youtubeId: naat.youtubeId,
           audioId: audioId,
-          isFallback: isFallback ? "true" : "false",
+          isFallback: isFallback || preservePreference ? "true" : "false",
         },
       });
     },
@@ -153,5 +159,26 @@ export function useNaatPlayback(displayData: Naat[]) {
     [loadAudioDirectly, navigateToVideo],
   );
 
-  return { handleNaatPress, loadAudioDirectly };
+  const playAsAudio = React.useCallback(
+    async (naatId: string) => {
+      const naat = naatsMapRef.current.get(naatId);
+      if (!naat) return;
+      await loadAudioDirectly(naat);
+    },
+    [loadAudioDirectly],
+  );
+
+  const playAsVideo = React.useCallback(
+    async (naatId: string) => {
+      const naat = naatsMapRef.current.get(naatId);
+      if (!naat) return;
+
+      await storageService.addToWatchHistory(naat.$id);
+      const preferredAudioId = naat.cutAudio || naat.audioId;
+      navigateToVideo(naat, preferredAudioId, false, true);
+    },
+    [navigateToVideo],
+  );
+
+  return { handleNaatPress, loadAudioDirectly, playAsAudio, playAsVideo };
 }

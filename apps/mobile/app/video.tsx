@@ -31,6 +31,7 @@ export default function VideoScreen() {
     title?: string;
     channelName?: string;
     thumbnailUrl?: string;
+    duration?: string;
     youtubeId?: string;
     audioId?: string;
     isFallback?: string;
@@ -73,6 +74,7 @@ export default function VideoScreen() {
   const title = params.title;
   const channelName = params.channelName;
   const thumbnailUrl = params.thumbnailUrl;
+  const dbDuration = Number(params.duration || 0);
   const propYoutubeId = params.youtubeId;
   const propAudioId = params.audioId;
   const isFallback = params.isFallback === "true";
@@ -98,7 +100,9 @@ export default function VideoScreen() {
   React.useEffect(() => {
     setIsLoading(true);
     setVideoPosition(0);
-    setVideoDuration(0);
+    setVideoDuration(dbDuration);
+    setContextPosition(0);
+    setContextDuration(dbDuration);
     // Start playing immediately (autoplay)
     setVideoPlaying(true);
 
@@ -135,8 +139,20 @@ export default function VideoScreen() {
       clearTimeout(loadingTimeout);
       clearVideo();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [
+    channelName,
+    clearVideo,
+    isFallback,
+    loadVideo,
+    propAudioId,
+    propYoutubeId,
+    setContextDuration,
+    setContextPosition,
+    thumbnailUrl,
+    title,
+    dbDuration,
+    videoUrl,
+  ]);
 
   // Switch to audio mode - loads audio via AudioContext and navigates back
   const switchToAudio = async () => {
@@ -235,7 +251,7 @@ export default function VideoScreen() {
           setContextPosition(currentTime);
 
           // If duration is still 0, try to get it
-          if (videoDuration === 0) {
+          if (dbDuration === 0 && videoDuration === 0) {
             try {
               const duration = await playerRef.current.getDuration();
               if (duration > 0) {
@@ -254,7 +270,7 @@ export default function VideoScreen() {
     }, 500);
 
     return () => clearInterval(interval);
-  }, [setContextPosition, videoDuration, setContextDuration]);
+  }, [dbDuration, setContextPosition, videoDuration, setContextDuration]);
 
   // Handle video state changes
   const onStateChange = React.useCallback(
@@ -266,7 +282,7 @@ export default function VideoScreen() {
         setPlaying(true);
 
         // Fallback: Get duration when video starts playing if not already set
-        if (videoDuration === 0 && playerRef.current) {
+        if (dbDuration === 0 && videoDuration === 0 && playerRef.current) {
           setTimeout(async () => {
             try {
               const duration = await playerRef.current.getDuration();
@@ -306,7 +322,7 @@ export default function VideoScreen() {
         }
       }
     },
-    [setPlaying, handleVideoEnd, isRepeatEnabled, videoDuration, setContextDuration],
+    [dbDuration, setPlaying, handleVideoEnd, isRepeatEnabled, videoDuration, setContextDuration],
   );
 
   // Seek to position in video
@@ -357,9 +373,9 @@ export default function VideoScreen() {
                   videoId={videoId}
                   play={videoPlaying}
                   onReady={() => {
-                    console.log("[VideoScreen] Video ready, getting duration...");
+                    console.log("[VideoScreen] Video ready");
                     setIsLoading(false);
-                    if (playerRef.current) {
+                    if (dbDuration === 0 && playerRef.current) {
                       // Add a small delay to ensure video is fully loaded
                       setTimeout(async () => {
                         try {
