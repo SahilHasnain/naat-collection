@@ -1,0 +1,13 @@
+{
+  "name": "auto-queue-ai-jobs-cron",
+  "version": "1.0.0",
+  "description": "Cron function to auto-queue manual cut AI jobs for eligible naats",
+  "main": "src/main.ts",
+  "type": "module",
+  "dependencies": {
+    "node-appwrite": "^21.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}
