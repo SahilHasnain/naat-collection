@@ -9,7 +9,7 @@ import TrackPlayer, {
   Event,
 } from "@weights-ai/react-native-track-player";
 
-const SEEK_INTERVAL = 15; // seconds
+const SEEK_INTERVAL = 10; // seconds
 
 export async function PlaybackService() {
   // Simple, synchronous event handlers

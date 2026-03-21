@@ -2,7 +2,7 @@ import { colors } from "@/constants/theme";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { audioDownloadService } from "@/services/audioDownload";
 import { showErrorToast, showSuccessToast } from "@/utils";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -150,15 +150,15 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     );
   };
 
-  // Seek backward 15 seconds
+  // Seek backward 10 seconds
   const seekBackward = () => {
-    const newPosition = Math.max(0, position - 15000);
+    const newPosition = Math.max(0, position - 10000);
     seek(newPosition);
   };
 
-  // Seek forward 15 seconds
+  // Seek forward 10 seconds
   const seekForward = () => {
-    const newPosition = Math.min(duration, position + 15000);
+    const newPosition = Math.min(duration, position + 10000);
     seek(newPosition);
   };
 
@@ -650,25 +650,20 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
 
               {/* Main Playback Controls */}
               <View className="flex-row items-center justify-center gap-6 mt-2">
-                {/* Seek Backward 15s */}
+                {/* Seek Backward 10s */}
                 <TouchableOpacity
                   onPress={seekBackward}
-                  className="relative items-center justify-center w-16 h-16"
-                  accessibilityLabel="Seek backward 15 seconds"
+                  className="items-center justify-center w-16 h-16"
+                  accessibilityLabel="Seek backward 10 seconds"
                   accessibilityRole="button"
                 >
-                  <Ionicons
-                    name="refresh"
-                    size={36}
-                    color="rgba(255, 255, 255, 0.5)"
-                    style={{ transform: [{ scaleX: -1 }] }}
-                  />
-                  <Text
-                    className="absolute text-[10px] font-semibold"
-                    style={{ color: "rgba(255, 255, 255, 0.7)" }}
-                  >
-                    15
-                  </Text>
+                  <View className="relative items-center justify-center w-12 h-12">
+                    <MaterialIcons
+                      name="replay-10"
+                      size={34}
+                      color="rgba(255, 255, 255, 0.9)"
+                    />
+                  </View>
                 </TouchableOpacity>
 
                 {/* Play/Pause Button */}
@@ -678,41 +673,37 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   accessibilityRole="button"
                   accessibilityLabel={isPlaying ? "Pause" : "Play"}
                   style={{
-                    backgroundColor: colors.accent.primary,
+                    backgroundColor: "rgba(255, 255, 255, 0.92)",
                     borderWidth: 2,
-                    borderColor: "rgba(29, 185, 84, 0.3)",
-                    shadowColor: colors.accent.primary,
+                    borderColor: "rgba(255, 255, 255, 0.16)",
+                    shadowColor: "#000",
                     shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.4,
-                    shadowRadius: 12,
+                    shadowOpacity: 0.28,
+                    shadowRadius: 14,
                     elevation: 6,
                   }}
                 >
                   <Ionicons
                     name={isPlaying ? "pause" : "play"}
                     size={36}
-                    color={colors.text.primary}
+                    color={colors.background.primary}
                   />
                 </TouchableOpacity>
 
-                {/* Seek Forward 15s */}
+                {/* Seek Forward 10s */}
                 <TouchableOpacity
                   onPress={seekForward}
-                  className="relative items-center justify-center w-16 h-16"
-                  accessibilityLabel="Seek forward 15 seconds"
+                  className="items-center justify-center w-16 h-16"
+                  accessibilityLabel="Seek forward 10 seconds"
                   accessibilityRole="button"
                 >
-                  <Ionicons
-                    name="refresh"
-                    size={36}
-                    color="rgba(255, 255, 255, 0.5)"
-                  />
-                  <Text
-                    className="absolute text-[10px] font-semibold"
-                    style={{ color: "rgba(255, 255, 255, 0.7)" }}
-                  >
-                    15
-                  </Text>
+                  <View className="relative items-center justify-center w-12 h-12">
+                    <MaterialIcons
+                      name="forward-10"
+                      size={34}
+                      color="rgba(255, 255, 255, 0.9)"
+                    />
+                  </View>
                 </TouchableOpacity>
               </View>
 
