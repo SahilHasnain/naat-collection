@@ -13,7 +13,6 @@ export default function ManualCutClient() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [queueingAiBatch, setQueueingAiBatch] = useState(false);
   const [queueingSingleAi, setQueueingSingleAi] = useState<string | null>(null);
-  const [queuedAiIds, setQueuedAiIds] = useState<Set<string>>(new Set());
 
   const list = useNaatList(selectedNaat?.$id ?? null);
 
@@ -78,9 +77,7 @@ export default function ManualCutClient() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to queue AI jobs");
-      if (data.queuedCount > 0) {
-        setQueuedAiIds((prev) => new Set([...prev, ...eligibleNaatIds]));
-      }
+      await list.loadAiJobStatuses(list.naats.map((naat) => naat.$id));
       list.setError(`Queued ${data.queuedCount} naats for AI detection. Skipped ${data.skippedCount}.`);
     } catch (error) {
       list.setError(error instanceof Error ? error.message : "Failed to queue AI jobs");
@@ -102,9 +99,7 @@ export default function ManualCutClient() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to queue AI job");
-      if (data.queuedCount > 0) {
-        setQueuedAiIds((prev) => new Set([...prev, naat.$id]));
-      }
+      await list.loadAiJobStatuses(list.naats.map((item) => item.$id));
       list.setError(`Queued ${data.queuedCount} naat. Skipped ${data.skippedCount}.`);
     } catch (error) {
       list.setError(error instanceof Error ? error.message : "Failed to queue AI job");
@@ -113,29 +108,29 @@ export default function ManualCutClient() {
     }
   }
 
-  if (list.loading) {
-    return (
-      <div className="min-h-screen p-8 text-white bg-gray-900">
-        <div className="max-w-6xl mx-auto"><p>Loading naats...</p></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen p-8 text-white bg-gray-900">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_28%),linear-gradient(180deg,_#171717_0%,_#0a0a0a_100%)] p-6 text-white md:p-8">
       <div className="mx-auto max-w-7xl">
-        <h1 className="mb-2 text-3xl font-bold">Manual Audio Cut</h1>
-        <p className="mb-8 text-gray-400">
-          Select a naat to edit • {list.naats.length} available
-        </p>
+        <div className="mb-8 rounded-3xl border border-white/8 bg-white/[0.03] px-6 py-6 shadow-2xl backdrop-blur-sm md:px-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-300/75">Admin Workspace</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">Manual Audio Cut</h1>
+          <p className="mt-3 text-sm text-neutral-400 md:text-base">
+            Review, queue, and refine naat cuts with clearer status signals and faster actions. {list.loading ? "Loading..." : `${list.naats.length.toLocaleString()} available.`}
+          </p>
+        </div>
 
         {list.error && (
-          <div className="px-4 py-3 mb-6 text-red-200 border border-red-500 rounded bg-red-900/50">
+          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-red-100">
             {list.error}
           </div>
         )}
 
         {!selectedNaat ? (
+          list.loading ? (
+            <div className="rounded-3xl border border-white/8 bg-white/[0.03] px-6 py-16 text-center text-neutral-400 shadow-xl">
+              Loading naats...
+            </div>
+          ) : (
           <NaatListView
             naats={list.naats}
             loading={list.loading}
@@ -148,6 +143,7 @@ export default function ManualCutClient() {
             searchQuery={list.searchQuery}
             filterChannel={list.filterChannel}
             filterRadio={list.filterRadio}
+            filterExclude={list.filterExclude}
             filterDuration={list.filterDuration}
             filterProcessed={list.filterProcessed}
             filterAiCut={list.filterAiCut}
@@ -156,7 +152,7 @@ export default function ManualCutClient() {
             updatingRadio={list.updatingRadio}
             updatingAiTrain={list.updatingAiTrain}
             queueingSingleAi={queueingSingleAi}
-            queuedAiIds={queuedAiIds}
+            aiJobStatuses={list.aiJobStatuses}
             playingNaatId={list.playingNaatId}
             audioElement={list.audioElement}
             queueingAiBatch={queueingAiBatch}
@@ -164,6 +160,7 @@ export default function ManualCutClient() {
             onSearchSubmit={list.handleSearchSubmit}
             onFilterChannelChange={list.setFilterChannel}
             onFilterRadioChange={list.setFilterRadio}
+            onFilterExcludeChange={list.setFilterExclude}
             onFilterDurationChange={list.setFilterDuration}
             onFilterProcessedChange={list.setFilterProcessed}
             onFilterAiCutChange={list.setFilterAiCut}
@@ -180,6 +177,7 @@ export default function ManualCutClient() {
             onClearSearch={() => { list.setSearchTerm(""); list.setSearchQuery(""); }}
             onQueueVisibleForAi={handleQueueVisibleForAi}
           />
+          )
         ) : (
           <CutEditorView
             naat={selectedNaat}
