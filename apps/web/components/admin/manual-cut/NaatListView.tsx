@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Naat, SortBy, FilterRadio, FilterDuration, FilterProcessed, FilterAiCut } from "./types";
+import { Naat, SortBy, FilterRadio, FilterExclude, FilterDuration, FilterProcessed, FilterAiCut } from "./types";
 import NaatCard from "./NaatCard";
 import DbStatusModal from "./DbStatusModal";
 
@@ -17,6 +17,7 @@ interface Props {
   searchQuery: string;
   filterChannel: string;
   filterRadio: FilterRadio;
+  filterExclude: FilterExclude;
   filterDuration: FilterDuration;
   filterProcessed: FilterProcessed;
   filterAiCut: FilterAiCut;
@@ -25,7 +26,7 @@ interface Props {
   updatingRadio: string | null;
   updatingAiTrain: string | null;
   queueingSingleAi: string | null;
-  queuedAiIds: Set<string>;
+  aiJobStatuses: Record<string, string>;
   playingNaatId: string | null;
   audioElement: HTMLAudioElement | null;
   queueingAiBatch: boolean;
@@ -33,6 +34,7 @@ interface Props {
   onSearchSubmit: (e: React.FormEvent) => void;
   onFilterChannelChange: (v: string) => void;
   onFilterRadioChange: (v: FilterRadio) => void;
+  onFilterExcludeChange: (v: FilterExclude) => void;
   onFilterDurationChange: (v: FilterDuration) => void;
   onFilterProcessedChange: (v: FilterProcessed) => void;
   onFilterAiCutChange: (v: FilterAiCut) => void;
@@ -52,9 +54,9 @@ interface Props {
 
 export default function NaatListView({
   naats, loading, loadingMore, hasMore, totalCount, channels, showBackToTop,
-  searchTerm, searchQuery, filterChannel, filterRadio, filterDuration, filterProcessed, filterAiCut, sortBy,
-  updatingExclude, updatingRadio, updatingAiTrain, queueingSingleAi, queuedAiIds, playingNaatId, audioElement, queueingAiBatch,
-  onSearchTermChange, onSearchSubmit, onFilterChannelChange, onFilterRadioChange,
+  searchTerm, searchQuery, filterChannel, filterRadio, filterExclude, filterDuration, filterProcessed, filterAiCut, sortBy,
+  updatingExclude, updatingRadio, updatingAiTrain, queueingSingleAi, aiJobStatuses, playingNaatId, audioElement, queueingAiBatch,
+  onSearchTermChange, onSearchSubmit, onFilterChannelChange, onFilterRadioChange, onFilterExcludeChange,
   onFilterDurationChange, onFilterProcessedChange, onFilterAiCutChange, onSortByChange, onShuffle,
   onLoadMore, onScrollToTop, onSelectNaat, onTogglePlay, onToggleExclude, onToggleRadio, onToggleAiTrain, onQueueSingleForAi, onClearSearch,
   onQueueVisibleForAi,
@@ -63,28 +65,33 @@ export default function NaatListView({
 
   return (
     <div>
-      <div className="p-6 mb-6 bg-gray-800 rounded-lg">
-        <div className="grid grid-cols-1 gap-4 mb-4 md:grid-cols-2">
-          <div className="p-4 bg-gray-700 rounded-lg">
-            <p className="text-sm text-gray-400">Total Matching</p>
-            <p className="text-2xl font-bold">{totalCount.toLocaleString()}</p>
-          </div>
-          <div className="p-4 border border-blue-700 rounded-lg bg-blue-900/30">
-            <p className="text-sm text-gray-400">Loaded</p>
-            <p className="text-2xl font-bold text-blue-400">{naats.length.toLocaleString()}</p>
+      <div className="mb-8 overflow-hidden border shadow-2xl rounded-3xl border-white/8 bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950">
+        <div className="border-b border-white/8 px-6 py-6 md:px-8">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+              <p className="text-xs font-semibold tracking-[0.18em] text-neutral-400 uppercase">Total Matching</p>
+              <p className="mt-2 text-3xl font-semibold text-white">{totalCount.toLocaleString()}</p>
+              <p className="mt-1 text-sm text-neutral-500">Results after current filters</p>
+            </div>
+            <div className="rounded-2xl border border-sky-400/15 bg-sky-500/10 p-5">
+              <p className="text-xs font-semibold tracking-[0.18em] text-sky-200/70 uppercase">Loaded Now</p>
+              <p className="mt-2 text-3xl font-semibold text-sky-300">{naats.length.toLocaleString()}</p>
+              <p className="mt-1 text-sm text-sky-100/60">Cards currently rendered for review</p>
+            </div>
           </div>
         </div>
 
-        <form onSubmit={onSearchSubmit} className="mb-4">
+        <div className="space-y-5 px-6 py-6 md:px-8">
+        <form onSubmit={onSearchSubmit} className="mb-1">
           <div className="relative">
             <input
               type="text"
               placeholder="Search by title or YouTube ID... (Press Enter)"
               value={searchTerm}
               onChange={(e) => onSearchTermChange(e.target.value)}
-              className="w-full px-4 py-2 pl-10 transition-colors bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
+              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 pl-11 text-sm text-white transition placeholder:text-neutral-500 focus:border-sky-400/60 focus:outline-none"
             />
-            <svg className="absolute w-5 h-5 text-gray-400 -translate-y-1/2 left-3 top-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute w-5 h-5 text-neutral-500 -translate-y-1/2 left-4 top-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -92,7 +99,7 @@ export default function NaatListView({
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-4 md:flex-row">
-            <select className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded" value={sortBy}
+            <select className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white" value={sortBy}
               onChange={(e) => onSortByChange(e.target.value as SortBy)}>
               <option value="latest">Latest</option>
               <option value="popular">Most Popular</option>
@@ -101,40 +108,46 @@ export default function NaatListView({
             </select>
             {sortBy === "random" && (
               <button onClick={onShuffle} disabled={loading || loadingMore}
-                className="flex items-center gap-2 px-4 py-2 font-medium text-white transition-colors bg-purple-600 rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                className="flex items-center justify-center gap-2 rounded-2xl border border-sky-400/20 bg-sky-500/12 px-4 py-3 text-sm font-medium text-sky-100 transition hover:bg-sky-500/22 disabled:cursor-not-allowed disabled:opacity-50">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Shuffle
               </button>
             )}
-            <select className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded" value={filterChannel}
+            <select className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white" value={filterChannel}
               onChange={(e) => onFilterChannelChange(e.target.value)}>
               <option value="all">All Channels</option>
               {channels.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-4 md:flex-row">
-            <select className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded" value={filterRadio}
+            <select className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white" value={filterRadio}
               onChange={(e) => onFilterRadioChange(e.target.value as FilterRadio)}>
               <option value="all">All Radio Status</option>
               <option value="radio">Radio Only</option>
               <option value="non-radio">Non-Radio Only</option>
             </select>
-            <select className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded" value={filterDuration}
+            <select className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white" value={filterExclude}
+              onChange={(e) => onFilterExcludeChange(e.target.value as FilterExclude)}>
+              <option value="all">All Exclude Status</option>
+              <option value="included">Included Only</option>
+              <option value="excluded">Excluded Only</option>
+            </select>
+            <select className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white" value={filterDuration}
               onChange={(e) => onFilterDurationChange(e.target.value as FilterDuration)}>
               <option value="all">All Durations</option>
               <option value="<=10min">10 min or less</option>
               <option value=">15min">Longer than 15 min</option>
               <option value=">20min">Longer than 20 min</option>
             </select>
-            <select className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded" value={filterProcessed}
+            <select className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white" value={filterProcessed}
               onChange={(e) => onFilterProcessedChange(e.target.value as FilterProcessed)}>
               <option value="unprocessed">Unprocessed Only</option>
               <option value="all">All (Include Processed)</option>
               <option value="processed">Processed Only</option>
             </select>
-            <select className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded" value={filterAiCut}
+            <select className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white" value={filterAiCut}
               onChange={(e) => onFilterAiCutChange(e.target.value as FilterAiCut)}>
               <option value="all">All AI Cut Status</option>
               <option value="ai-cut">AI Cut Only</option>
@@ -143,21 +156,22 @@ export default function NaatListView({
           </div>
         </div>
 
-        <p className="flex items-center gap-2 mt-4 text-sm text-yellow-400">
+        <div className="flex flex-col gap-4 border-t border-white/8 pt-5 md:flex-row md:items-center md:justify-between">
+        <p className="flex items-center gap-2 text-sm text-amber-300">
           <span>Click a card to start editing</span>
         </p>
-        <div className="mt-4">
           <button
             onClick={onQueueVisibleForAi}
             disabled={queueingAiBatch || naats.length === 0}
-            className="px-4 py-2 font-medium text-white transition-colors rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-2xl border border-emerald-400/20 bg-emerald-500/12 px-4 py-3 text-sm font-medium text-emerald-100 transition hover:bg-emerald-500/22 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {queueingAiBatch ? "Queueing..." : `Queue Visible for AI (${naats.length})`}
           </button>
         </div>
       </div>
+      </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {naats.map((naat) => (
           <NaatCard
             key={naat.$id}
@@ -168,7 +182,7 @@ export default function NaatListView({
             updatingRadio={updatingRadio}
             updatingAiTrain={updatingAiTrain}
             queueingAi={queueingSingleAi}
-            isQueuedForAi={queuedAiIds.has(naat.$id)}
+            aiJobStatus={aiJobStatuses[naat.$id] ?? null}
             onSelect={() => onSelectNaat(naat)}
             onTogglePlay={() => onTogglePlay(naat)}
             onToggleExclude={() => onToggleExclude(naat.$id, naat.exclude || false)}

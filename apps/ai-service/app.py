@@ -73,6 +73,31 @@ def update_job(job_id, payload):
         payload,
     )
 
+def get_job(job_id):
+    return appwrite_databases.get_document(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_AI_JOBS_COLLECTION_ID,
+        job_id,
+    )
+
+def stop_requested(job_id):
+    job = get_job(job_id)
+    return job.get("status") in ["stop_requested", "stopped"]
+
+def mark_job_stopped(job_id):
+    update_job(job_id, {
+        "status": "stopped",
+        "progress": 100,
+        "finishedAt": iso_now(),
+        "leaseUntil": iso_now(),
+        "error": "Stopped by admin",
+    })
+
+def ensure_job_not_stopped(job_id):
+    if stop_requested(job_id):
+        mark_job_stopped(job_id)
+        raise RuntimeError("Job stopped by admin")
+
 def update_naat_cut_segments(naat_id, result):
     speech_segments = result.get("speechSegments", [])
     cut_segments = [
@@ -147,6 +172,7 @@ def claim_next_job():
     return job
 
 def heartbeat(job_id, progress=None):
+    ensure_job_not_stopped(job_id)
     payload = {
         "leaseUntil": iso_in(LEASE_SECONDS),
     }
@@ -215,6 +241,7 @@ def process_job(job):
         logger.info(f"[worker] Processing job {job_id} for naat {job['naatId']}")
         heartbeat(job_id, 10)
 
+        ensure_job_not_stopped(job_id)
         file_info = get_audio_file_info(job["audioId"])
         extension = detect_extension(file_info)
         audio_bytes = download_audio_from_appwrite(job["audioId"])
@@ -226,16 +253,21 @@ def process_job(job):
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
             normalized_path = tmp_file.name
 
+        ensure_job_not_stopped(job_id)
         normalize_audio(source_path, normalized_path)
 
         heartbeat(job_id, 50)
+        ensure_job_not_stopped(job_id)
         audio, duration = audio_processor.load_audio(normalized_path)
         audio = audio_processor.preprocess_audio(audio)
 
         heartbeat(job_id, 70)
+        ensure_job_not_stopped(job_id)
         result = audio_classifier.classify_audio(audio)
+        ensure_job_not_stopped(job_id)
         update_naat_cut_segments(job["naatId"], result)
 
+        ensure_job_not_stopped(job_id)
         update_job(job_id, {
             "status": "done",
             "progress": 100,
@@ -246,6 +278,10 @@ def process_job(job):
         })
         logger.info(f"[worker] Job {job_id} completed successfully")
     except Exception as exc:
+        current_job = get_job(job_id)
+        if current_job.get("status") == "stopped":
+            logger.info(f"[worker] Job {job_id} stopped by admin")
+            return
         logger.error(f"[worker] Job {job_id} failed: {exc}", exc_info=True)
         update_job(job_id, {
             "status": "failed",
