@@ -11,29 +11,38 @@ import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useHomeFilters } from "@/hooks/useHomeFilters";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { useSearchSuggestions } from "@/hooks/useSearchSuggestions";
+import { storageService } from "@/services/storage";
 import type { Naat } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { getPreferredDuration } from "@naat-collection/shared";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   BackHandler,
   FlatList,
+  Modal,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   // First-time hint state
   const [showDownloadHint, setShowDownloadHint] = useState(false);
+  const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
+  const [savedPlaybackMode, setSavedPlaybackMode] = useState<"audio" | "video">(
+    "audio",
+  );
+  const [isActionSheetVisible, setIsActionSheetVisible] = useState(false);
 
   // Contexts
   const {
@@ -56,7 +65,9 @@ export default function HomeScreen() {
   const { downloadStates, handleDownload } = useDownloadManager(
     filters.displayData,
   );
-  const { handleNaatPress } = useNaatPlayback(filters.displayData);
+  const { handleNaatPress, playAsAudio, playAsVideo } = useNaatPlayback(
+    filters.displayData,
+  );
 
   // Search suggestions
   const { suggestions, updateSuggestions, addToHistory } = useSearchSuggestions(
@@ -174,6 +185,57 @@ export default function HomeScreen() {
     if (!isSearchActive) handleHeaderScroll(event);
   };
 
+  const closeActionSheet = useCallback(() => {
+    setIsActionSheetVisible(false);
+    setSelectedNaat(null);
+  }, []);
+
+  const handleCardLongPress = useCallback(async (naat: Naat) => {
+    setSelectedNaat(naat);
+    setIsActionSheetVisible(true);
+
+    // Keep sheet opening instant; load haptics/mode asynchronously.
+    void (async () => {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch (error) {
+        console.log("Haptics unavailable:", error);
+      }
+
+      try {
+        const mode = (await storageService.loadPlaybackMode()) || "audio";
+        setSavedPlaybackMode(mode);
+      } catch (error) {
+        console.log("Failed to load playback mode:", error);
+        setSavedPlaybackMode("audio");
+      }
+    })();
+  }, []);
+
+  const handleDownloadFromSheet = useCallback(async () => {
+    if (!selectedNaat) return;
+    closeActionSheet();
+    await handleDownload(selectedNaat);
+  }, [closeActionSheet, handleDownload, selectedNaat]);
+
+  const handleAlternatePlay = useCallback(async () => {
+    if (!selectedNaat) return;
+    closeActionSheet();
+
+    if (savedPlaybackMode === "audio") {
+      await playAsVideo(selectedNaat.$id);
+      return;
+    }
+
+    await playAsAudio(selectedNaat.$id);
+  }, [
+    closeActionSheet,
+    playAsAudio,
+    playAsVideo,
+    savedPlaybackMode,
+    selectedNaat,
+  ]);
+
   // --- Render helpers ---
 
   const renderNaatCard = React.useCallback(
@@ -199,7 +261,7 @@ export default function HomeScreen() {
                   className="text-xs font-medium ml-2 flex-1"
                   style={{ color: colors.text.primary }}
                 >
-                  Long press any card to download for offline listening
+                  Long press any card for download and quick play actions
                 </Text>
                 <TouchableOpacity onPress={dismissHint} className="ml-2 p-1">
                   <Ionicons
@@ -221,6 +283,7 @@ export default function HomeScreen() {
             channelName={item.channelName}
             views={item.views}
             onPress={() => handleNaatPress(item.$id)}
+            onLongPress={() => handleCardLongPress(item)}
             onDownload={() => handleDownload(item)}
             isDownloaded={ds?.isDownloaded}
             isDownloading={ds?.isDownloading}
@@ -232,6 +295,7 @@ export default function HomeScreen() {
     },
     [
       handleNaatPress,
+      handleCardLongPress,
       handleDownload,
       downloadStates,
       showDownloadHint,
@@ -430,6 +494,98 @@ export default function HomeScreen() {
           />
         </View>
       )}
+
+      <Modal
+        visible={isActionSheetVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={closeActionSheet}
+      >
+        <View
+          className="flex-1 justify-end"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={closeActionSheet}
+            style={{ flex: 1 }}
+          />
+          <SafeAreaView
+            edges={["bottom"]}
+            className="px-6 pt-3 rounded-t-3xl"
+            style={{
+              backgroundColor: colors.background.secondary,
+              paddingBottom: 16,
+            }}
+          >
+            <View className="items-center mb-3">
+              <View
+                className="rounded-full"
+                style={{
+                  width: 40,
+                  height: 4,
+                  backgroundColor: colors.text.tertiary,
+                }}
+              />
+            </View>
+
+            <View className="flex-row items-stretch" style={{ gap: 10 }}>
+              <TouchableOpacity
+                onPress={handleDownloadFromSheet}
+                className="rounded-2xl px-4 py-4 flex-row items-center justify-center flex-1"
+                style={{ backgroundColor: colors.accent.primary }}
+                disabled={!selectedNaat}
+                activeOpacity={0.88}
+              >
+                <Ionicons
+                  name={
+                    selectedNaat &&
+                    downloadStates[selectedNaat.$id]?.isDownloaded
+                      ? "checkmark-circle"
+                      : "download-outline"
+                  }
+                  size={20}
+                  color="#ffffff"
+                />
+                <Text
+                  className="ml-2 text-sm font-semibold"
+                  style={{ color: "#ffffff" }}
+                  numberOfLines={1}
+                >
+                  Download
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleAlternatePlay}
+                className="rounded-2xl px-4 py-4 flex-row items-center justify-center flex-1"
+                style={{ backgroundColor: colors.accent.secondary }}
+                disabled={!selectedNaat}
+                activeOpacity={0.88}
+              >
+                <Ionicons
+                  name={
+                    savedPlaybackMode === "audio"
+                      ? "videocam-outline"
+                      : "musical-notes-outline"
+                  }
+                  size={20}
+                  color="#ffffff"
+                />
+                <Text
+                  className="ml-2 text-sm font-semibold"
+                  style={{ color: "#ffffff" }}
+                  numberOfLines={1}
+                >
+                  {savedPlaybackMode === "audio"
+                    ? "Play as video"
+                    : "Play as audio"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </View>
+      </Modal>
     </View>
   );
 }

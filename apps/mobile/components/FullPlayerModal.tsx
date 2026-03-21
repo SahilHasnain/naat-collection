@@ -562,35 +562,41 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
             {/* Album Art / Thumbnail */}
             <View className="items-center justify-center flex-1 px-6">
               <View
-                className="relative overflow-hidden rounded-xl"
-                style={{
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 12 },
-                  shadowOpacity: 0.35,
-                  shadowRadius: 24,
-                  elevation: 10,
-                }}
+                className="relative items-center justify-center rounded-2xl overflow-hidden"
+                style={{ width: "100%", maxWidth: 390, paddingVertical: 24 }}
               >
-                <Image
-                  source={{ uri: currentAudio.thumbnailUrl }}
-                  style={{ width: 340, height: 191 }}
-                  className="rounded-xl"
-                  contentFit="cover"
-                  cachePolicy="memory-disk"
-                />
                 <LinearGradient
                   pointerEvents="none"
                   colors={[
-                    "rgba(0, 0, 0, 0.12)",
-                    "rgba(0, 0, 0, 0.04)",
-                    "rgba(0, 0, 0, 0.22)",
-                    "rgba(0, 0, 0, 0.42)",
+                    "rgba(37, 99, 235, 0.12)",
+                    "rgba(29, 185, 84, 0.08)",
+                    "rgba(0, 0, 0, 0)",
+                    "rgba(0, 0, 0, 0.24)",
                   ]}
-                  locations={[0, 0.32, 0.72, 1]}
+                  locations={[0, 0.28, 0.72, 1]}
                   start={{ x: 0.5, y: 0 }}
                   end={{ x: 0.5, y: 1 }}
                   style={StyleSheet.absoluteFill}
                 />
+
+                <View
+                  className="relative overflow-hidden rounded-xl"
+                  style={{
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 12 },
+                    shadowOpacity: 0.35,
+                    shadowRadius: 24,
+                    elevation: 10,
+                  }}
+                >
+                  <Image
+                    source={{ uri: currentAudio.thumbnailUrl }}
+                    style={{ width: 340, height: 191 }}
+                    className="rounded-xl"
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                  />
+                </View>
               </View>
             </View>
 
