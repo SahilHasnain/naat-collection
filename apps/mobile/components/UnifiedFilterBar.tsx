@@ -12,6 +12,7 @@ import type {
 } from "@naat-collection/shared";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Pressable from "./ResponsivePressable";
 
 interface UnifiedFilterBarProps {
@@ -194,116 +195,175 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
         handleIndicatorStyle={{ backgroundColor: colors.text.tertiary }}
         backgroundStyle={{ backgroundColor: colors.background.secondary }}
       >
-        {/* Sheet Header */}
-        <View
-          className="flex-row items-center justify-between px-6 py-3 border-b"
-          style={{ borderBottomColor: colors.border.secondary }}
-        >
-          <Text className="text-xl font-bold" style={{ color: colors.text.primary }}>Filters</Text>
-          <View className="flex-row items-center">
-            <Pressable
-              onPress={() => onPureOnlyChange?.(!pureOnly)}
-              className="flex-row items-center mr-4"
-              style={{ minHeight: 44 }}
-              accessibilityRole="switch"
-              accessibilityState={{ checked: pureOnly }}
-              accessibilityLabel="Pure only filter"
-            >
-              <Ionicons name="cut-outline" size={16} color={pureOnly ? colors.accent.primary : colors.text.tertiary} style={{ marginRight: 6 }} />
-              <Text className="text-sm font-semibold" style={{ color: pureOnly ? colors.accent.primary : colors.text.tertiary, marginRight: 8 }}>Pure</Text>
-              <View style={{ width: 40, height: 22, borderRadius: 11, backgroundColor: pureOnly ? colors.accent.primary : colors.background.elevated, justifyContent: "center", paddingHorizontal: 2 }}>
-                <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: "#fff", alignSelf: pureOnly ? "flex-end" : "flex-start" }} />
-              </View>
-            </Pressable>
-            <Pressable onPress={handleClose} style={{ minHeight: 44, minWidth: 44, justifyContent: "center", alignItems: "center" }}>
-              <Ionicons name="close" size={24} color={colors.text.secondary} />
-            </Pressable>
+        <SafeAreaView edges={["bottom"]} className="flex-1">
+          {/* Sheet Header */}
+          <View
+            className="flex-row items-center justify-between px-6 py-3 border-b"
+            style={{ borderBottomColor: colors.border.secondary }}
+          >
+            <Text className="text-xl font-bold" style={{ color: colors.text.primary }}>Filters</Text>
+            <View className="flex-row items-center">
+              <Pressable
+                onPress={() => onPureOnlyChange?.(!pureOnly)}
+                className="flex-row items-center mr-4"
+                style={{ minHeight: 44 }}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: pureOnly }}
+                accessibilityLabel="Pure only filter"
+              >
+                <Ionicons name="cut-outline" size={16} color={pureOnly ? colors.accent.primary : colors.text.tertiary} style={{ marginRight: 6 }} />
+                <Text className="text-sm font-semibold" style={{ color: pureOnly ? colors.accent.primary : colors.text.tertiary, marginRight: 8 }}>Pure</Text>
+                <View style={{ width: 40, height: 22, borderRadius: 11, backgroundColor: pureOnly ? colors.accent.primary : colors.background.elevated, justifyContent: "center", paddingHorizontal: 2 }}>
+                  <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: "#fff", alignSelf: pureOnly ? "flex-end" : "flex-start" }} />
+                </View>
+              </Pressable>
+              <Pressable onPress={handleClose} style={{ minHeight: 44, minWidth: 44, justifyContent: "center", alignItems: "center" }}>
+                <Ionicons name="close" size={24} color={colors.text.secondary} />
+              </Pressable>
+            </View>
           </View>
-        </View>
 
-        {/* Tabs */}
-        <View className="flex-row border-b" style={{ borderBottomColor: colors.border.secondary }}>
-          {(["sort", "channel", "duration"] as const).map((tab) => (
-            <Pressable
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              className={`flex-1 py-4 ${activeTab === tab ? "border-b-2 border-blue-500" : ""}`}
-              style={{ minHeight: 44 }}
-            >
-              <Text className={`text-center font-semibold text-base ${activeTab === tab ? "text-blue-500" : "text-neutral-400"}`}>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+          {/* Tabs */}
+          <View className="flex-row border-b" style={{ borderBottomColor: colors.border.secondary }}>
+            {(["sort", "channel", "duration"] as const).map((tab) => (
+              <Pressable
+                key={tab}
+                onPress={() => setActiveTab(tab)}
+                className={`flex-1 py-4 ${activeTab === tab ? "border-b-2 border-blue-500" : ""}`}
+                style={{ minHeight: 44 }}
+              >
+                <Text className={`text-center font-semibold text-base ${activeTab === tab ? "text-blue-500" : "text-neutral-400"}`}>
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
 
-        {/* Content */}
-        <BottomSheetScrollView>
-          {activeTab === "sort" && (
-            <View className="p-4">
-              {sortFilters.map((filter) => {
-                const isSelected = selectedSort === filter.value;
-                return (
-                  <Pressable
-                    key={filter.value}
-                    onPress={() => { onSortChange(filter.value); handleClose(); }}
-                    className="flex-row items-center p-4 rounded-xl mb-2"
-                    style={{ backgroundColor: isSelected ? colors.accent.secondary : colors.background.tertiary, minHeight: 56 }}
-                  >
-                    <Ionicons name={filter.iconName} size={22} color={colors.text.primary} />
-                    <Text className="flex-1 font-semibold text-base ml-3" style={{ color: isSelected ? colors.text.primary : "#d4d4d4" }}>{filter.label}</Text>
-                    {isSelected && <Ionicons name="checkmark-circle" size={22} color={colors.text.primary} />}
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
+          {/* Content */}
+          <BottomSheetScrollView showsVerticalScrollIndicator={false}>
+            {activeTab === "sort" && (
+              <View className="p-4">
+                {sortFilters.map((filter) => {
+                  const isSelected = selectedSort === filter.value;
+                  return (
+                    <Pressable
+                      key={filter.value}
+                      onPress={() => { onSortChange(filter.value); handleClose(); }}
+                      className="flex-row items-center p-4 rounded-xl mb-2"
+                      style={{ backgroundColor: isSelected ? colors.accent.secondary : colors.background.tertiary, minHeight: 56 }}
+                    >
+                      <Ionicons name={filter.iconName} size={22} color={colors.text.primary} />
+                      <Text className="flex-1 font-semibold text-base ml-3" style={{ color: isSelected ? colors.text.primary : "#d4d4d4" }}>{filter.label}</Text>
+                      {isSelected && <Ionicons name="checkmark-circle" size={22} color={colors.text.primary} />}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
 
-          {activeTab === "channel" && (
-            <View className="p-4">
-              {channelOptions.map((option) => {
-                const isSelected = option.type === "other" ? isOtherSelected : selectedChannelId === option.id;
-                return (
-                  <Pressable
-                    key={option.id || "all"}
-                    onPress={() => {
-                      if (option.type === "other" && otherChannels.length > 0) { onChannelChange(otherChannels[0].id); }
-                      else { onChannelChange(option.id); }
-                      handleClose();
-                    }}
-                    disabled={channelsLoading}
-                    className="flex-row items-center p-4 rounded-xl mb-2"
-                    style={{ backgroundColor: isSelected ? colors.accent.secondary : colors.background.tertiary, minHeight: 56 }}
-                  >
-                    <Ionicons name={option.iconName} size={22} color={colors.text.primary} />
-                    <Text className="flex-1 font-semibold text-base ml-3" style={{ color: isSelected ? colors.text.primary : "#d4d4d4" }}>{option.name}</Text>
-                    {isSelected && <Ionicons name="checkmark-circle" size={22} color={colors.text.primary} />}
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
+            {activeTab === "channel" && (
+              <View className="p-4">
+                {channelOptions.map((option) => {
+                  const isSelected =
+                    option.type === "other"
+                      ? isOtherSelected
+                      : selectedChannelId === option.id;
+                  return (
+                    <Pressable
+                      key={option.id || "all"}
+                      onPress={() => {
+                        if (option.type === "other" && otherChannels.length > 0) {
+                          onChannelChange(otherChannels[0].id);
+                        } else {
+                          onChannelChange(option.id);
+                        }
+                        handleClose();
+                      }}
+                      disabled={channelsLoading}
+                      className="flex-row items-center p-4 rounded-xl mb-2"
+                      style={{
+                        backgroundColor: isSelected
+                          ? colors.accent.secondary
+                          : colors.background.tertiary,
+                        minHeight: 56,
+                      }}
+                    >
+                      <Ionicons
+                        name={option.iconName}
+                        size={22}
+                        color={colors.text.primary}
+                      />
+                      <Text
+                        className="flex-1 font-semibold text-base ml-3"
+                        style={{
+                          color: isSelected
+                            ? colors.text.primary
+                            : "#d4d4d4",
+                        }}
+                      >
+                        {option.name}
+                      </Text>
+                      {isSelected && (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={22}
+                          color={colors.text.primary}
+                        />
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
 
-          {activeTab === "duration" && (
-            <View className="p-4">
-              {durationFilters.map((filter) => {
-                const isSelected = selectedDuration === filter.value;
-                return (
-                  <Pressable
-                    key={filter.value}
-                    onPress={() => { onDurationChange(filter.value); handleClose(); }}
-                    className="flex-row items-center p-4 rounded-xl mb-2"
-                    style={{ backgroundColor: isSelected ? colors.accent.secondary : colors.background.tertiary, minHeight: 56 }}
-                  >
-                    <Ionicons name={filter.iconName} size={22} color={colors.text.primary} />
-                    <Text className="flex-1 font-semibold text-base ml-3" style={{ color: isSelected ? colors.text.primary : "#d4d4d4" }}>{filter.label}</Text>
-                    {isSelected && <Ionicons name="checkmark-circle" size={22} color={colors.text.primary} />}
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-        </BottomSheetScrollView>
+            {activeTab === "duration" && (
+              <View className="p-4">
+                {durationFilters.map((filter) => {
+                  const isSelected = selectedDuration === filter.value;
+                  return (
+                    <Pressable
+                      key={filter.value}
+                      onPress={() => {
+                        onDurationChange(filter.value);
+                        handleClose();
+                      }}
+                      className="flex-row items-center p-4 rounded-xl mb-2"
+                      style={{
+                        backgroundColor: isSelected
+                          ? colors.accent.secondary
+                          : colors.background.tertiary,
+                        minHeight: 56,
+                      }}
+                    >
+                      <Ionicons
+                        name={filter.iconName}
+                        size={22}
+                        color={colors.text.primary}
+                      />
+                      <Text
+                        className="flex-1 font-semibold text-base ml-3"
+                        style={{
+                          color: isSelected
+                            ? colors.text.primary
+                            : "#d4d4d4",
+                        }}
+                      >
+                        {filter.label}
+                      </Text>
+                      {isSelected && (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={22}
+                          color={colors.text.primary}
+                        />
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          </BottomSheetScrollView>
+        </SafeAreaView>
       </BottomSheetModal>
     </>
   );
