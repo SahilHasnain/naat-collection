@@ -1,5 +1,4 @@
 import ManualCutClient from "@/components/admin/ManualCutClient";
-import PinProtection from "@/components/admin/PinProtection";
 
 export const metadata = {
   title: "Manual Audio Cut - Admin",
@@ -7,9 +6,5 @@ export const metadata = {
 };
 
 export default function ManualCutPage() {
-  return (
-    <PinProtection>
-      <ManualCutClient />
-    </PinProtection>
-  );
+  return <ManualCutClient />;
 }

@@ -1,12 +1,7 @@
-import PinProtection from "@/components/admin/PinProtection";
 import Link from "next/link";
 
 export default function AdminPage() {
-  return (
-    <PinProtection>
-      <AdminDashboard />
-    </PinProtection>
-  );
+  return <AdminDashboard />;
 }
 
 function AdminDashboard() {
@@ -27,12 +22,12 @@ function AdminDashboard() {
           </Link>
 
           <Link
-            href="/admin/exclude-naats"
+            href="/admin/ai-jobs"
             className="bg-gray-800 hover:bg-gray-700 rounded-lg p-6 transition-colors border border-gray-700"
           >
-            <h2 className="text-xl font-semibold mb-2">Exclude Naats</h2>
+            <h2 className="text-xl font-semibold mb-2">AI Jobs</h2>
             <p className="text-gray-400">
-              Mark naats to exclude them from appearing in the app
+              Inspect queued, running, completed, and failed AI detection jobs
             </p>
           </Link>
         </div>

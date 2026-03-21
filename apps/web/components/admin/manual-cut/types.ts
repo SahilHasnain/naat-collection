@@ -49,6 +49,7 @@ export interface DetectionResult {
 
 export type SortBy = "latest" | "popular" | "oldest" | "random";
 export type FilterRadio = "all" | "radio" | "non-radio";
+export type FilterExclude = "all" | "included" | "excluded";
 export type FilterDuration = "all" | "<=10min" | ">15min" | ">20min";
 export type FilterProcessed = "unprocessed" | "all" | "processed";
 export type FilterAiCut = "all" | "ai-cut" | "non-ai-cut";
