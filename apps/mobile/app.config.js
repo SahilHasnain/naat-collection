@@ -77,6 +77,18 @@ export default {
           project: "ubaid-raza-naats",
         },
       ],
+      [
+        "expo-speech-recognition",
+        {
+          microphonePermission:
+            "Allow $(PRODUCT_NAME) to use the microphone for voice search.",
+          speechRecognitionPermission:
+            "Allow $(PRODUCT_NAME) to recognize speech for voice search.",
+          androidSpeechServicePackages: [
+            "com.google.android.googlequicksearchbox",
+          ],
+        },
+      ],
       "./plugins/withFastlaneAndroid",
     ],
     experiments: {
