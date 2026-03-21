@@ -22,6 +22,18 @@ describe("Custom Search Algorithm", () => {
       title: "Beautiful Naat",
       channelName: "Owais Raza Qadri",
     },
+    {
+      title: "Munawwar Meri Aankhon Ko Mere Shamsudduha Kar De",
+      channelName: "Owais Raza Qadri",
+    },
+    {
+      title: "Munavar Meri Ankhon Ko Mere Shams Ud Duha Kar Day",
+      channelName: "Another Channel",
+    },
+    {
+      title: "Munawar Meri Ankho Ko Mere Shamshudduha Kar De",
+      channelName: "Third Channel",
+    },
   ];
 
   test("exact phrase match gets highest score", () => {
@@ -101,5 +113,33 @@ describe("Custom Search Algorithm", () => {
     });
 
     expect(results.length).toBeLessThanOrEqual(allResults.length);
+  });
+
+  test("matches roman urdu spelling variations for the same naat line", () => {
+    const results = searchItems(
+      mockNaats,
+      "munawwar meri aankhon ko mere shamshudduha kar de",
+    );
+
+    const titles = results.map((r) => r.title);
+
+    expect(titles).toContain(
+      "Munawwar Meri Aankhon Ko Mere Shamsudduha Kar De",
+    );
+    expect(titles).toContain(
+      "Munavar Meri Ankhon Ko Mere Shams Ud Duha Kar Day",
+    );
+    expect(titles).toContain(
+      "Munawar Meri Ankho Ko Mere Shamshudduha Kar De",
+    );
+  });
+
+  test("matches split and joined words like shams ud duha vs shamsudduha", () => {
+    const results = searchItems(mockNaats, "shamsudduha");
+    const titles = results.map((r) => r.title);
+
+    expect(titles).toContain(
+      "Munavar Meri Ankhon Ko Mere Shams Ud Duha Kar Day",
+    );
   });
 });
