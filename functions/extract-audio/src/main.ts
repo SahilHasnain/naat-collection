@@ -62,6 +62,8 @@ interface AppwriteContext {
   error: (message: string) => void;
 }
 
+class BadRequestError extends Error {}
+
 function ensureRequiredEnv(): void {
   const required = [
     "APPWRITE_FUNCTION_PROJECT_ID",
@@ -94,7 +96,17 @@ function parseRequestBody(req: AppwriteRequest): ExtractAudioPayload {
   }
 
   if (typeof req.body === "string") {
-    return JSON.parse(req.body) as ExtractAudioPayload;
+    const trimmed = req.body.trim();
+
+    if (!trimmed) {
+      return {};
+    }
+
+    try {
+      return JSON.parse(trimmed) as ExtractAudioPayload;
+    } catch {
+      throw new BadRequestError("Request body must be valid JSON");
+    }
   }
 
   if (typeof req.body === "object") {
@@ -297,7 +309,7 @@ export default async ({ req, res, log, error: logError }: AppwriteContext) => {
         success: false,
         error: message,
       },
-      500,
+      error instanceof BadRequestError ? 400 : 500,
     );
   } finally {
     cleanupFiles([downloadedFilePath]);
