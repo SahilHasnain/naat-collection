@@ -1,7 +1,3 @@
-// Set binary directory BEFORE importing youtube-dl-exec
-// This way the module will use our configuration at import time
-process.env.YOUTUBE_DL_DIR = "/tmp/yt-dlp-bin";
-
 import {
   Client,
   Databases,
@@ -22,14 +18,15 @@ import {
   writeFileSync,
 } from "node:fs";
 import https from "node:https";
-import { createRequire } from "node:module";
 import { join } from "node:path";
+import { YtDlp } from "ytdlp-nodejs";
 
-const require = createRequire(import.meta.url);
-const youtubeDlModule =
-  require("youtube-dl-exec") as typeof import("youtube-dl-exec");
-const youtubedl: typeof import("youtube-dl-exec").default =
-  youtubeDlModule.default ?? youtubeDlModule;
+const BINARY_CACHE_DIR = "/tmp/yt-dlp-bin";
+const YTDLP_BINARY_PATH = join(
+  BINARY_CACHE_DIR,
+  process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp",
+);
+const youtubedl = new YtDlp({ binaryPath: YTDLP_BINARY_PATH });
 
 const APPWRITE_ENDPOINT =
   process.env.APPWRITE_ENDPOINT ||
@@ -91,17 +88,10 @@ function ensureTempDir(): void {
 }
 
 async function ensureBinary(): Promise<void> {
-  // Download to /tmp instead of node_modules (avoids permission issues)
-  // YOUTUBE_DL_DIR is already set at module import time
-  const BINARY_CACHE_DIR = "/tmp/yt-dlp-bin";
-  const binPath = join(
-    BINARY_CACHE_DIR,
-    process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp",
-  );
+  const binPath = YTDLP_BINARY_PATH;
 
   if (existsSync(binPath)) {
-    console.log(`[Binary] Using cached: ${binPath}`);
-    return; // Binary already exists
+    return;
   }
 
   console.log(
@@ -285,18 +275,30 @@ async function downloadAudioFile(
   log(`  YouTube ID: ${youtubeId}`);
 
   try {
-    await youtubedl(`https://www.youtube.com/watch?v=${youtubeId}`, {
-      format: "bestaudio[ext=m4a]/bestaudio",
-      extractAudio: true,
-      audioFormat: "m4a",
-      audioQuality: 128,
-      cookies: cookiesPath,
-      maxFilesize: "200M",
-      output: outputTemplate,
-      noPlaylist: true,
-      noWarnings: true,
-      preferFreeFormats: false,
-    });
+    const downloader = youtubedl
+      .download(`https://www.youtube.com/watch?v=${youtubeId}`)
+      .addArgs(
+        "--format",
+        "bestaudio[ext=m4a]/bestaudio",
+        "--extract-audio",
+        "--audio-format",
+        "m4a",
+        "--audio-quality",
+        "128",
+        "--max-filesize",
+        "200M",
+        "--output",
+        outputTemplate,
+        "--no-playlist",
+        "--no-warnings",
+        "--no-prefer-free-formats",
+      );
+
+    if (cookiesPath) {
+      downloader.addArgs("--cookies", cookiesPath);
+    }
+
+    await downloader.run();
   } catch (error) {
     const details =
       error instanceof Error
