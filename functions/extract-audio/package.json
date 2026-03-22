@@ -6,8 +6,7 @@
   "type": "module",
   "dependencies": {
     "debug": "^4.4.0",
-    "node-appwrite": "^21.1.0",
-    "ytdlp-nodejs": "^3.4.4"
+    "node-appwrite": "^21.1.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

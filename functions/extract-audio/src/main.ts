@@ -7,6 +7,7 @@ import {
   type Models,
 } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
+import { spawn } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -19,14 +20,14 @@ import {
 } from "node:fs";
 import https from "node:https";
 import { join } from "node:path";
-import { YtDlp } from "ytdlp-nodejs";
 
 const BINARY_CACHE_DIR = "/tmp/yt-dlp-bin";
 const YTDLP_BINARY_PATH = join(
   BINARY_CACHE_DIR,
   process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp",
 );
-const youtubedl = new YtDlp({ binaryPath: YTDLP_BINARY_PATH });
+type YtDlpRunner = "python_module" | "python_script" | "binary";
+let resolvedRunner: YtDlpRunner | null = null;
 
 const APPWRITE_ENDPOINT =
   process.env.APPWRITE_ENDPOINT ||
@@ -65,6 +66,13 @@ interface AppwriteContext {
   error: (message: string) => void;
 }
 
+interface ProcessRunResult {
+  code: number | null;
+  stdout: string;
+  stderr: string;
+  spawnError?: Error;
+}
+
 function ensureRequiredEnv(): void {
   const required = [
     "APPWRITE_FUNCTION_PROJECT_ID",
@@ -87,14 +95,14 @@ function ensureTempDir(): void {
   }
 }
 
-async function ensureBinary(): Promise<void> {
+async function ensureBinary(log: (message: string) => void): Promise<void> {
   const binPath = YTDLP_BINARY_PATH;
 
   if (existsSync(binPath)) {
     return;
   }
 
-  console.log(
+  log(
     `[Binary] ${process.platform} binary not found, downloading from GitHub...`,
   );
 
@@ -109,46 +117,25 @@ async function ensureBinary(): Promise<void> {
   };
 
   const filename = getPlatformFilename();
-  const downloadUrl = `https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest`;
+  const downloadUrl = `https://github.com/yt-dlp/yt-dlp/releases/latest/download/${filename}`;
 
   try {
-    const release = await new Promise<{
-      assets: { name: string; browser_download_url: string }[];
-    }>((resolve, reject) => {
+    log(`[Binary] Downloading from: ${downloadUrl}`);
+
+    const binary = await new Promise<Buffer>((resolve, reject) => {
       https
         .get(
           downloadUrl,
           { headers: { "user-agent": "naat-collection" } },
           (res) => {
-            let data = "";
-            res.on("data", (chunk) => {
-              data += chunk;
-            });
-            res.on("end", () => {
-              try {
-                resolve(JSON.parse(data));
-              } catch (e) {
-                reject(e);
-              }
-            });
-          },
-        )
-        .on("error", reject);
-    });
+            if (
+              res.statusCode &&
+              (res.statusCode < 200 || res.statusCode >= 400)
+            ) {
+              reject(new Error(`Unexpected status code: ${res.statusCode}`));
+              return;
+            }
 
-    const asset = release.assets.find((a) => a.name === filename);
-    if (!asset) {
-      throw new Error(`No release asset found for: ${filename}`);
-    }
-
-    console.log(`[Binary] Downloading from: ${asset.browser_download_url}`);
-
-    const binary = await new Promise<Buffer>((resolve, reject) => {
-      https
-        .get(
-          asset.browser_download_url,
-          { headers: { "user-agent": "naat-collection" } },
-          (res) => {
             const chunks: Buffer[] = [];
             res.on("data", (chunk) => {
               chunks.push(chunk);
@@ -161,6 +148,11 @@ async function ensureBinary(): Promise<void> {
         .on("error", reject);
     });
 
+    const head = binary.subarray(0, 256).toString("utf8").toLowerCase();
+    if (head.includes("<!doctype") || head.includes("<html")) {
+      throw new Error("Downloaded HTML instead of yt-dlp binary");
+    }
+
     writeFileSync(binPath, binary);
 
     // Make executable on Unix-like systems
@@ -168,11 +160,94 @@ async function ensureBinary(): Promise<void> {
       chmodSync(binPath, 0o755);
     }
 
-    console.log(`[Binary] Downloaded and ready: ${filename}`);
+    log(`[Binary] Downloaded and ready: ${filename}`);
   } catch (err) {
-    console.error(`[Binary] Failed to download:`, err);
+    const message = err instanceof Error ? err.message : String(err);
+    log(`[Binary] Failed to download: ${message}`);
     throw err;
   }
+}
+
+function runProcess(
+  command: string,
+  args: string[],
+): Promise<ProcessRunResult> {
+  return new Promise((resolve) => {
+    const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    let spawnError: Error | undefined;
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", (error) => {
+      spawnError = error;
+    });
+
+    child.on("close", (code) => {
+      resolve({ code, stdout, stderr, spawnError });
+    });
+  });
+}
+
+function getRunnerCommand(
+  runner: YtDlpRunner,
+  args: string[],
+): { command: string; commandArgs: string[] } {
+  if (runner === "python_module") {
+    return { command: "python3", commandArgs: ["-m", "yt_dlp", ...args] };
+  }
+
+  if (runner === "python_script") {
+    return { command: "python3", commandArgs: [YTDLP_BINARY_PATH, ...args] };
+  }
+
+  return { command: YTDLP_BINARY_PATH, commandArgs: args };
+}
+
+async function runYtDlp(
+  args: string[],
+  log: (message: string) => void,
+): Promise<void> {
+  const orderedRunners: YtDlpRunner[] = resolvedRunner
+    ? [
+        resolvedRunner,
+        ...(
+          ["python_module", "python_script", "binary"] as YtDlpRunner[]
+        ).filter((runner) => runner !== resolvedRunner),
+      ]
+    : ["python_module", "python_script", "binary"];
+
+  const failures: string[] = [];
+
+  for (const runner of orderedRunners) {
+    const { command, commandArgs } = getRunnerCommand(runner, args);
+    const result = await runProcess(command, commandArgs);
+
+    if (!result.spawnError && result.code === 0) {
+      if (resolvedRunner !== runner) {
+        log(`[Binary] Using yt-dlp runner: ${runner}`);
+      }
+      resolvedRunner = runner;
+      return;
+    }
+
+    const spawnMessage = result.spawnError
+      ? `spawn error: ${result.spawnError.message}`
+      : `exit code: ${result.code}`;
+    const stderr = result.stderr.trim();
+    failures.push(
+      `${runner} (${spawnMessage}${stderr ? `, stderr: ${stderr}` : ""})`,
+    );
+  }
+
+  throw new Error(`All yt-dlp runners failed: ${failures.join(" | ")}`);
 }
 
 function sanitizeTitle(title = "audio"): string {
@@ -275,30 +350,29 @@ async function downloadAudioFile(
   log(`  YouTube ID: ${youtubeId}`);
 
   try {
-    const downloader = youtubedl
-      .download(`https://www.youtube.com/watch?v=${youtubeId}`)
-      .addArgs(
-        "--format",
-        "bestaudio[ext=m4a]/bestaudio",
-        "--extract-audio",
-        "--audio-format",
-        "m4a",
-        "--audio-quality",
-        "128",
-        "--max-filesize",
-        "200M",
-        "--output",
-        outputTemplate,
-        "--no-playlist",
-        "--no-warnings",
-        "--no-prefer-free-formats",
-      );
+    const ytDlpArgs = [
+      `https://www.youtube.com/watch?v=${youtubeId}`,
+      "--format",
+      "bestaudio[ext=m4a]/bestaudio",
+      "--extract-audio",
+      "--audio-format",
+      "m4a",
+      "--audio-quality",
+      "128",
+      "--max-filesize",
+      "200M",
+      "--output",
+      outputTemplate,
+      "--no-playlist",
+      "--no-warnings",
+      "--no-prefer-free-formats",
+    ];
 
     if (cookiesPath) {
-      downloader.addArgs("--cookies", cookiesPath);
+      ytDlpArgs.push("--cookies", cookiesPath);
     }
 
-    await downloader.run();
+    await runYtDlp(ytDlpArgs, log);
   } catch (error) {
     const details =
       error instanceof Error
@@ -402,7 +476,7 @@ async function processNaat(
 export default async ({ res, log, error: logError }: AppwriteContext) => {
   try {
     ensureRequiredEnv();
-    await ensureBinary();
+    await ensureBinary(log);
 
     const client = new Client()
       .setEndpoint(APPWRITE_ENDPOINT)
