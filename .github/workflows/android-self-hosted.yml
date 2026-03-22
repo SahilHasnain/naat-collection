@@ -44,10 +44,10 @@ jobs:
         run: |
           mkdir -p apps/mobile/android/app apps/mobile/android/fastlane
           if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > apps/mobile/android/app/release.keystore
+            printf '%s' "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | tr -d '\r\n' | base64 -d > apps/mobile/android/app/release.keystore
           fi
           if [ -n "${{ secrets.PLAY_STORE_JSON_KEY_BASE64 }}" ]; then
-            echo "${{ secrets.PLAY_STORE_JSON_KEY_BASE64 }}" | base64 -d > apps/mobile/android/fastlane/play-store-key.json
+            printf '%s' "${{ secrets.PLAY_STORE_JSON_KEY_BASE64 }}" | tr -d '\r\n' | base64 -d > apps/mobile/android/fastlane/play-store-key.json
           fi
 
       - name: Build release AAB

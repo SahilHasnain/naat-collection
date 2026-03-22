@@ -44,7 +44,8 @@
     "typecheck:web": "cd apps/web && npx tsc --noEmit",
     "typecheck:functions": "cd functions/cut-audio-cron && npx tsc --noEmit",
     "prebuild": "cd apps/mobile && npx expo prebuild --clean",
-    "ssh:ai": "ssh root@159.89.160.239"
+    "ssh:ai": "ssh root@159.89.160.239",
+    "ssh:build": "ssh Sahilhasnain@98.70.32.91"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.39.0",
