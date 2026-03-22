@@ -1,4 +1,14 @@
 import {
+  Client,
+  Databases,
+  ID,
+  Query,
+  Storage,
+  type Models,
+} from "node-appwrite";
+import { InputFile } from "node-appwrite/file";
+import {
+  chmodSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -6,16 +16,14 @@ import {
   statSync,
   unlinkSync,
   writeFileSync,
-  chmodSync,
 } from "node:fs";
+import https from "node:https";
 import { createRequire } from "node:module";
 import { join } from "node:path";
-import https from "node:https";
-import { Client, Databases, ID, Query, Storage, type Models } from "node-appwrite";
-import { InputFile } from "node-appwrite/file";
 
 const require = createRequire(import.meta.url);
-const youtubeDlModule = require("youtube-dl-exec") as typeof import("youtube-dl-exec");
+const youtubeDlModule =
+  require("youtube-dl-exec") as typeof import("youtube-dl-exec");
 const youtubedl: typeof import("youtube-dl-exec").default =
   youtubeDlModule.default ?? youtubeDlModule;
 
@@ -107,21 +115,27 @@ async function ensureBinary(): Promise<void> {
   const downloadUrl = `https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest`;
 
   try {
-    const release = await new Promise<{ assets: { name: string; browser_download_url: string }[] }>((resolve, reject) => {
+    const release = await new Promise<{
+      assets: { name: string; browser_download_url: string }[];
+    }>((resolve, reject) => {
       https
-        .get(downloadUrl, { headers: { "user-agent": "naat-collection" } }, (res) => {
-          let data = "";
-          res.on("data", (chunk) => {
-            data += chunk;
-          });
-          res.on("end", () => {
-            try {
-              resolve(JSON.parse(data));
-            } catch (e) {
-              reject(e);
-            }
-          });
-        })
+        .get(
+          downloadUrl,
+          { headers: { "user-agent": "naat-collection" } },
+          (res) => {
+            let data = "";
+            res.on("data", (chunk) => {
+              data += chunk;
+            });
+            res.on("end", () => {
+              try {
+                resolve(JSON.parse(data));
+              } catch (e) {
+                reject(e);
+              }
+            });
+          },
+        )
         .on("error", reject);
     });
 
@@ -349,7 +363,12 @@ async function processNaat(
     }
 
     tempFilePath = await downloadAudioFile(naat.youtubeId, naat.title, log);
-    const uploaded = await uploadAudioFile(storage, tempFilePath, naat.youtubeId, log);
+    const uploaded = await uploadAudioFile(
+      storage,
+      tempFilePath,
+      naat.youtubeId,
+      log,
+    );
     await updateNaatWithAudioId(databases, naat.$id, uploaded.$id, log);
 
     log("  Success");
@@ -425,7 +444,9 @@ export default async ({ res, log, error: logError }: AppwriteContext) => {
     const successful = results.filter((result) => result.success).length;
     const failedResults = results.filter((result) => !result.success);
 
-    log(`Summary: ${results.length} processed, ${successful} successful, ${failedResults.length} failed`);
+    log(
+      `Summary: ${results.length} processed, ${successful} successful, ${failedResults.length} failed`,
+    );
 
     return res.json({
       success: true,
