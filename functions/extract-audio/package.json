@@ -14,8 +14,7 @@
     "typescript": "^5.7.0"
   },
   "scripts": {
-    "build": "echo 'no build step needed'",
-    "postinstall": "node scripts/download-yt-dlp.js"
+    "build": "echo 'no build step needed'"
   },
   "compilerOptions": {
     "target": "ES2022",
