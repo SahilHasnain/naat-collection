@@ -1,0 +1,42 @@
+
+> Task :app:createBundleReleaseJsAndAssets_SentryUpload_com.owaisrazaqadri@1.0.0+7_7
+Copy `debugId` from packager source map to Hermes source map...
+Done.
+Check generated source map for Debug ID: 16046a32-866f-43a8-bc14-6b4549a92184
+
+Sentry Source Maps upload will include the release name and dist.
+Sentry-CLI arguments: [/home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/@sentry/cli/bin/sentry-cli, react-native, gradle, --bundle, /home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/apps/mobile/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle, --sourcemap, /home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/apps/mobile/android/app/build/generated/sourcemaps/react/release/index.android.bundle.map, --release, com.owaisrazaqadri@1.0.0+7, --dist, 7]
+  WARN    2026-03-22 05:15:16.138274528 +00:00 Failed to find file referenced by SENTRY_PROPERTIES (/home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/apps/mobile/android/sentry.properties)
+
+error: An organization ID or slug is required (provide with --org)
+
+Add --log-level=[info|debug] or export SENTRY_LOG_LEVEL=[info|debug] to see more output.
+Please attach the full debug log to all bug reports.
+> Task :app:createBundleReleaseJsAndAssets_SentryUpload_com.owaisrazaqadri@1.0.0+7_7 FAILED
+> Task :app:createBundleReleaseJsAndAssets_SentryUploadCleanUp SKIPPED
+> Task :expo-modules-core:compileReleaseKotlin
+w: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/expo-modules-core/android/src/main/java/expo/modules/adapters/react/apploader/RNHeadlessAppLoader.kt:48:87 'val reactNativeHost: ReactNativeHost' is deprecated. You should not use ReactNativeHost directly in the New Architecture. Use ReactHost instead.
+w: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/expo-modules-core/android/src/main/java/expo/modules/adapters/react/apploader/RNHeadlessAppLoader.kt:91:85 'val reactNativeHost: ReactNativeHost' is deprecated. You should not use ReactNativeHost directly in the New Architecture. Use ReactHost instead.
+w: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/expo-modules-core/android/src/main/java/expo/modules/adapters/react/apploader/RNHeadlessAppLoader.kt:120:83 'val reactNativeHost: ReactNativeHost' is deprecated. You should not use ReactNativeHost directly in the New Architecture. Use ReactHost instead.
+w: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/expo-modules-core/android/src/main/java/expo/modules/apploader/AppLoaderProvider.kt:34:52 Unchecked cast of 'Class<*>!' to 'Class<out HeadlessAppLoader>'.
+w: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:30:8 'typealias ErrorManagerModule = JSLoggerModule' is deprecated. Use JSLoggerModule instead.
+w: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:253:21 'typealias ErrorManagerModule = JSLoggerModule' is deprecated. Use JSLoggerModule instead.
+w: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:343:21 'val DEFAULT: Int' is deprecated. UIManagerType.DEFAULT will be deleted in the next release of React Native. Use [LEGACY] instead.
+w: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/defaultmodules/NativeModulesProxyModule.kt:16:5 'fun Constants(legacyConstantsProvider: () -> Map<String, Any?>): Unit' is deprecated. Use `Constant` or `Property` instead.
+w: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/jni/PromiseImpl.kt:65:51 'val errorManager: JSLoggerModule?' is deprecated. Use AppContext.jsLogger instead.
+w: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/jni/PromiseImpl.kt:69:22 'fun reportExceptionToLogBox(codedException: CodedException): Unit' is deprecated. Use appContext.jsLogger.error(...) instead.
+w: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/views/ViewDefinitionBuilder.kt:464:16 'val errorManager: JSLoggerModule?' is deprecated. Use AppContext.jsLogger instead.
+w: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/views/ViewDefinitionBuilder.kt:464:30 'fun reportExceptionToLogBox(codedException: CodedException): Unit' is deprecated. Use appContext.jsLogger.error(...) instead.
+w: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/views/ViewManagerDefinition.kt:41:16 'val errorManager: JSLoggerModule?' is deprecated. Use AppContext.jsLogger instead.
+w: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/views/ViewManagerDefinition.kt:41:30 'fun reportExceptionToLogBox(codedException: CodedException): Unit' is deprecated. Use appContext.jsLogger.error(...) instead.
+
+[Incubating] Problems report is available at: file:///home/Sahilhasnain/naat-collection/actions-runner/_work/naat-collection/naat-collection/apps/mobile/android/build/reports/problems/problems-report.html
+
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+308 actionable tasks: 308 executed
+FAILURE: Build failed with an exception.
