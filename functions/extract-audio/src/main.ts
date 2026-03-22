@@ -15,10 +15,15 @@ import {
   statSync,
   unlinkSync,
 } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { Client, Databases, ID, Query, Storage, type Models } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
-import youtubedl from "youtube-dl-exec";
+
+const require = createRequire(import.meta.url);
+const youtubeDlModule = require("youtube-dl-exec") as typeof import("youtube-dl-exec");
+const youtubedl: typeof import("youtube-dl-exec").default =
+  youtubeDlModule.default ?? youtubeDlModule;
 
 const APPWRITE_ENDPOINT =
   process.env.APPWRITE_ENDPOINT ||
@@ -157,7 +162,7 @@ async function downloadAudioFile(
     format: "bestaudio[ext=m4a]/bestaudio",
     extractAudio: true,
     audioFormat: "m4a",
-    audioQuality: "128K",
+    audioQuality: 128,
     maxFilesize: "200M",
     output: outputTemplate,
     noPlaylist: true,
@@ -183,7 +188,7 @@ async function uploadAudioFile(
   filePath: string,
   youtubeId: string,
   log: (message: string) => void,
-) {
+): Promise<Models.File> {
   const fileSizeMb = (statSync(filePath).size / 1024 / 1024).toFixed(2);
   log(`Uploading ${fileSizeMb}MB audio file to Appwrite Storage`);
 
