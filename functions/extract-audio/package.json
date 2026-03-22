@@ -11,10 +11,7 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "typescript": "^5.7.0"
-  }
-}
-*** Add File: c:\Users\MD SAHIL HASNAIN\desktop\projects\naat-collection\functions\extract-audio\tsconfig.json
-{
+  },
   "compilerOptions": {
     "target": "ES2022",
     "module": "NodeNext",
