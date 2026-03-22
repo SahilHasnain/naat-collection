@@ -1,9 +1,11 @@
 import {
   existsSync,
   mkdirSync,
+  readFileSync,
   readdirSync,
   statSync,
   unlinkSync,
+  writeFileSync,
 } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
@@ -23,6 +25,7 @@ const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || "";
 const NAATS_COLLECTION_ID = process.env.APPWRITE_NAATS_COLLECTION_ID || "";
 const AUDIO_BUCKET_ID = process.env.APPWRITE_AUDIO_BUCKET_ID || "audio-files";
 const TMP_DIR = "/tmp/extract-audio";
+const TMP_COOKIES_PATH = join(TMP_DIR, "youtube-cookies.txt");
 const FETCH_BATCH_SIZE = 100;
 const PROCESS_LIMIT = Number.parseInt(
   process.env.AUDIO_CRON_PROCESS_LIMIT || "10",
@@ -91,6 +94,35 @@ function cleanupFiles(paths: Array<string | null>): void {
   }
 }
 
+function getCookiesPath(log: (message: string) => void): string | undefined {
+  ensureTempDir();
+
+  if (process.env.YTDLP_COOKIES?.trim()) {
+    writeFileSync(TMP_COOKIES_PATH, process.env.YTDLP_COOKIES, "utf8");
+    log("Using yt-dlp cookies from YTDLP_COOKIES env");
+    return TMP_COOKIES_PATH;
+  }
+
+  const candidates = [
+    process.env.YTDLP_COOKIES_PATH,
+    join(process.cwd(), "cookies.txt"),
+    join(process.cwd(), "youtube-cookies.txt"),
+    join(process.cwd(), "..", "cookies.txt"),
+    join(process.cwd(), "..", "..", "cookies.txt"),
+  ].filter((value): value is string => Boolean(value));
+
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      const contents = readFileSync(candidate, "utf8");
+      writeFileSync(TMP_COOKIES_PATH, contents, "utf8");
+      log(`Using yt-dlp cookies from ${candidate}`);
+      return TMP_COOKIES_PATH;
+    }
+  }
+
+  return undefined;
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -135,6 +167,7 @@ async function downloadAudioFile(
   log: (message: string) => void,
 ): Promise<string> {
   ensureTempDir();
+  const cookiesPath = getCookiesPath(log);
 
   const baseName = `${youtubeId}_${sanitizeTitle(title) || "audio"}`;
   const outputTemplate = join(TMP_DIR, `${baseName}.%(ext)s`);
@@ -148,6 +181,7 @@ async function downloadAudioFile(
       extractAudio: true,
       audioFormat: "m4a",
       audioQuality: 128,
+      cookies: cookiesPath,
       maxFilesize: "200M",
       output: outputTemplate,
       noPlaylist: true,
@@ -245,7 +279,7 @@ async function processNaat(
       error: message,
     };
   } finally {
-    cleanupFiles([tempFilePath]);
+    cleanupFiles([tempFilePath, TMP_COOKIES_PATH]);
   }
 }
 
