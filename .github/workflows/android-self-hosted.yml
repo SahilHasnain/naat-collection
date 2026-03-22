@@ -86,9 +86,6 @@ jobs:
       - name: Prepare Android signing files
         run: |
           mkdir -p apps/mobile/android/app apps/mobile/android/fastlane
-          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
-            printf '%s' "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | tr -d '\r\n' | base64 -d > apps/mobile/android/app/release.keystore
-          fi
           if [ -n "${{ secrets.PLAY_STORE_JSON_KEY_BASE64 }}" ]; then
             printf '%s' "${{ secrets.PLAY_STORE_JSON_KEY_BASE64 }}" | tr -d '\r\n' | base64 -d > apps/mobile/android/fastlane/play-store-key.json
           fi
@@ -108,7 +105,7 @@ jobs:
       - name: Build release AAB
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          ANDROID_KEYSTORE_PATH: release.keystore
+          ANDROID_KEYSTORE_PATH: /home/Sahilhasnain/android-secrets/release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -130,7 +127,7 @@ jobs:
           SUPPLY_JSON_KEY: ${{ github.workspace }}/apps/mobile/android/fastlane/play-store-key.json
           ANDROID_APPLICATION_ID: com.owaisrazaqadri
           PLAY_TRACK: internal
-          ANDROID_KEYSTORE_PATH: release.keystore
+          ANDROID_KEYSTORE_PATH: /home/Sahilhasnain/android-secrets/release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
