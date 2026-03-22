@@ -87,7 +87,8 @@ function ensureTempDir(): void {
 }
 
 async function ensureBinary(): Promise<void> {
-  const BIN_DIR = join(process.cwd(), "bin");
+  // Download to the same location where youtube-dl-exec expects it
+  const BIN_DIR = join(process.cwd(), "node_modules", "youtube-dl-exec", "bin");
   const binPath = join(
     BIN_DIR,
     process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp",
