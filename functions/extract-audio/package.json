@@ -1,0 +1,28 @@
+{
+  "name": "extract-audio",
+  "version": "1.0.0",
+  "description": "Appwrite Function to download YouTube audio and upload it to Appwrite Storage",
+  "main": "src/main.ts",
+  "type": "module",
+  "dependencies": {
+    "node-appwrite": "^21.1.0",
+    "youtube-dl-exec": "^2.4.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.7.0"
+  }
+}
+*** Add File: c:\Users\MD SAHIL HASNAIN\desktop\projects\naat-collection\functions\extract-audio\tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*.ts", "test-local.js"]
+}
