@@ -1,3 +1,7 @@
+// Set binary directory BEFORE importing youtube-dl-exec
+// This way the module will use our configuration at import time
+process.env.YOUTUBE_DL_DIR = "/tmp/yt-dlp-bin";
+
 import {
   Client,
   Databases,
@@ -88,15 +92,12 @@ function ensureTempDir(): void {
 
 async function ensureBinary(): Promise<void> {
   // Download to /tmp instead of node_modules (avoids permission issues)
-  // youtube-dl-exec reads YOUTUBE_DL_DIR environment variable
+  // YOUTUBE_DL_DIR is already set at module import time
   const BINARY_CACHE_DIR = "/tmp/yt-dlp-bin";
   const binPath = join(
     BINARY_CACHE_DIR,
     process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp",
   );
-
-  // Set the env var so youtube-dl-exec knows where to find the binary
-  process.env.YOUTUBE_DL_DIR = BINARY_CACHE_DIR;
 
   if (existsSync(binPath)) {
     console.log(`[Binary] Using cached: ${binPath}`);
