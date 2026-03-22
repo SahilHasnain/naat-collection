@@ -33,7 +33,6 @@ yarn-error.*
 
 # local env files
 .env*.local
-.env*
 !.env.example
 
 # typescript
@@ -55,3 +54,4 @@ ref/secret.md
 inspiration/
 naat-collection_key.json
 sentry.properties
+config.bat
