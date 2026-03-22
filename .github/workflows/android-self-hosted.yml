@@ -54,6 +54,14 @@ jobs:
         run: |
           printf "sdk.dir=%s\n" "$ANDROID_SDK_ROOT" > apps/mobile/android/local.properties
 
+      - name: Configure Sentry
+        run: |
+          cat > apps/mobile/android/sentry.properties <<'EOF'
+          defaults.url=https://sentry.io/
+          defaults.org=sahil-hasnain
+          defaults.project=ubaid-raza-naats
+          EOF
+
       - name: Build release AAB
         env:
           ANDROID_KEYSTORE_PATH: app/release.keystore
