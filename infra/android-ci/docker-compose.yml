@@ -1,0 +1,11 @@
+services:
+  github-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./runner:/opt/actions-runner
+      - ./secrets:/opt/android-ci/secrets
+    restart: unless-stopped
