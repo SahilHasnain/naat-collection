@@ -87,14 +87,19 @@ function ensureTempDir(): void {
 }
 
 async function ensureBinary(): Promise<void> {
-  // Download to the same location where youtube-dl-exec expects it
-  const BIN_DIR = join(process.cwd(), "node_modules", "youtube-dl-exec", "bin");
+  // Download to /tmp instead of node_modules (avoids permission issues)
+  // youtube-dl-exec reads YOUTUBE_DL_DIR environment variable
+  const BINARY_CACHE_DIR = "/tmp/yt-dlp-bin";
   const binPath = join(
-    BIN_DIR,
+    BINARY_CACHE_DIR,
     process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp",
   );
 
+  // Set the env var so youtube-dl-exec knows where to find the binary
+  process.env.YOUTUBE_DL_DIR = BINARY_CACHE_DIR;
+
   if (existsSync(binPath)) {
+    console.log(`[Binary] Using cached: ${binPath}`);
     return; // Binary already exists
   }
 
@@ -102,8 +107,8 @@ async function ensureBinary(): Promise<void> {
     `[Binary] ${process.platform} binary not found, downloading from GitHub...`,
   );
 
-  if (!existsSync(BIN_DIR)) {
-    mkdirSync(BIN_DIR, { recursive: true });
+  if (!existsSync(BINARY_CACHE_DIR)) {
+    mkdirSync(BINARY_CACHE_DIR, { recursive: true });
   }
 
   const getPlatformFilename = (): string => {
