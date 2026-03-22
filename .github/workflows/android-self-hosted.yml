@@ -58,6 +58,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           cd apps/mobile/android
+          chmod +x ./gradlew
           ./gradlew bundleRelease
 
       - name: Upload artifact
