@@ -142,17 +142,27 @@ async function downloadAudioFile(
   log(`  Downloading: ${title || youtubeId}`);
   log(`  YouTube ID: ${youtubeId}`);
 
-  await youtubedl(`https://www.youtube.com/watch?v=${youtubeId}`, {
-    format: "bestaudio[ext=m4a]/bestaudio",
-    extractAudio: true,
-    audioFormat: "m4a",
-    audioQuality: 128,
-    maxFilesize: "200M",
-    output: outputTemplate,
-    noPlaylist: true,
-    noWarnings: true,
-    preferFreeFormats: false,
-  });
+  try {
+    await youtubedl(`https://www.youtube.com/watch?v=${youtubeId}`, {
+      format: "bestaudio[ext=m4a]/bestaudio",
+      extractAudio: true,
+      audioFormat: "m4a",
+      audioQuality: 128,
+      maxFilesize: "200M",
+      output: outputTemplate,
+      noPlaylist: true,
+      noWarnings: true,
+      preferFreeFormats: false,
+    });
+  } catch (error) {
+    const details =
+      error instanceof Error
+        ? error.message ||
+          JSON.stringify(error, Object.getOwnPropertyNames(error))
+        : JSON.stringify(error);
+
+    throw new Error(`yt-dlp download failed: ${details}`);
+  }
 
   const prefix = `${baseName}.`;
   const downloadedFile = readdirSync(TMP_DIR)
