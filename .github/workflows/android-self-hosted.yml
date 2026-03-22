@@ -2,6 +2,16 @@ name: Android Self Hosted
 
 on:
   workflow_dispatch:
+    inputs:
+      app_variant:
+        description: App variant to build
+        required: false
+        default: preview
+        type: choice
+        options:
+          - development
+          - preview
+          - production
   push:
     branches:
       - main
@@ -21,6 +31,20 @@ jobs:
     env:
       ANDROID_SDK_ROOT: /opt/android-sdk
       JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+      EXPO_USE_METRO_WORKSPACE_ROOT: "1"
+      APP_VARIANT: ${{ inputs.app_variant || 'preview' }}
+      EXPO_PUBLIC_APPWRITE_ENDPOINT: ${{ vars.EXPO_PUBLIC_APPWRITE_ENDPOINT || 'https://sgp.cloud.appwrite.io/v1' }}
+      EXPO_PUBLIC_APPWRITE_PROJECT_ID: ${{ vars.EXPO_PUBLIC_APPWRITE_PROJECT_ID || '695bb97700213f4ef5dd' }}
+      EXPO_PUBLIC_APPWRITE_DATABASE_ID: ${{ vars.EXPO_PUBLIC_APPWRITE_DATABASE_ID || '695bba86001b50478ed4' }}
+      EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID: ${{ vars.EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID || '695bc8e70038db72df5b' }}
+      EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID: ${{ vars.EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID || 'channels' }}
+      EXPO_PUBLIC_APPWRITE_LIVE_RADIO_COLLECTION_ID: ${{ vars.EXPO_PUBLIC_APPWRITE_LIVE_RADIO_COLLECTION_ID || 'live_radio' }}
+      EXPO_PUBLIC_RADIO_FUNCTION_ENDPOINT: ${{ vars.EXPO_PUBLIC_RADIO_FUNCTION_ENDPOINT || 'https://698b307d001f4e3bb03e.sgp.appwrite.run' }}
+      EXPO_PUBLIC_SEMANTIC_SEARCH_FUNCTION_URL: ${{ vars.EXPO_PUBLIC_SEMANTIC_SEARCH_FUNCTION_URL || 'https://69a8e9000021d2eaafd9.sgp.appwrite.run' }}
+      EXPO_PUBLIC_USE_SEMANTIC_SEARCH: ${{ vars.EXPO_PUBLIC_USE_SEMANTIC_SEARCH || 'false' }}
+      EXPO_PUBLIC_DISABLE_SEARCH_SUGGESTIONS: ${{ vars.EXPO_PUBLIC_DISABLE_SEARCH_SUGGESTIONS || 'true' }}
+      EXPO_PUBLIC_SENTRY_DSN: ${{ vars.EXPO_PUBLIC_SENTRY_DSN || 'https://26f7852901dbe4c65a101e2300db1d8f@o4509954219966464.ingest.de.sentry.io/4510675297501264' }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,6 +63,25 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Write Expo env file
+        run: |
+          cat > apps/mobile/.env.local <<EOF
+          EXPO_USE_METRO_WORKSPACE_ROOT=${EXPO_USE_METRO_WORKSPACE_ROOT}
+          APP_VARIANT=${APP_VARIANT}
+          EXPO_PUBLIC_APPWRITE_ENDPOINT=${EXPO_PUBLIC_APPWRITE_ENDPOINT}
+          EXPO_PUBLIC_APPWRITE_PROJECT_ID=${EXPO_PUBLIC_APPWRITE_PROJECT_ID}
+          EXPO_PUBLIC_APPWRITE_DATABASE_ID=${EXPO_PUBLIC_APPWRITE_DATABASE_ID}
+          EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID=${EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID}
+          EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID=${EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID}
+          EXPO_PUBLIC_APPWRITE_LIVE_RADIO_COLLECTION_ID=${EXPO_PUBLIC_APPWRITE_LIVE_RADIO_COLLECTION_ID}
+          EXPO_PUBLIC_RADIO_FUNCTION_ENDPOINT=${EXPO_PUBLIC_RADIO_FUNCTION_ENDPOINT}
+          EXPO_PUBLIC_SEMANTIC_SEARCH_FUNCTION_URL=${EXPO_PUBLIC_SEMANTIC_SEARCH_FUNCTION_URL}
+          EXPO_PUBLIC_USE_SEMANTIC_SEARCH=${EXPO_PUBLIC_USE_SEMANTIC_SEARCH}
+          EXPO_PUBLIC_DISABLE_SEARCH_SUGGESTIONS=${EXPO_PUBLIC_DISABLE_SEARCH_SUGGESTIONS}
+          EXPO_PUBLIC_SENTRY_DSN=${EXPO_PUBLIC_SENTRY_DSN}
+          SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
+          EOF
 
       - name: Prepare Android signing files
         run: |
@@ -64,6 +107,7 @@ jobs:
 
       - name: Build release AAB
         env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           ANDROID_KEYSTORE_PATH: app/release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
