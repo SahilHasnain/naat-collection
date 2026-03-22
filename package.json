@@ -24,6 +24,7 @@
     "setup:ai-jobs": "node scripts/setup/setup-ai-jobs-collection.js",
     "setup:appwrite": "npm run setup:appwrite --workspace=mobile",
     "ingest:videos": "npm run ingest:videos --workspace=mobile",
+    "worker:audio": "node vm-audio-worker/audio-worker.js",
     "batch:embed": "node scripts/batch-embed-naats.js",
     "batch:embed:test": "node scripts/batch-embed-naats.js --test",
     "batch:embed:skip": "node scripts/batch-embed-naats.js --skip-existing",
