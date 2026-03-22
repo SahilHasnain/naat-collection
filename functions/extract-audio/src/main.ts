@@ -6,9 +6,11 @@ import {
   statSync,
   unlinkSync,
   writeFileSync,
+  chmodSync,
 } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
+import https from "node:https";
 import { Client, Databases, ID, Query, Storage, type Models } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 
@@ -73,6 +75,92 @@ function ensureRequiredEnv(): void {
 function ensureTempDir(): void {
   if (!existsSync(TMP_DIR)) {
     mkdirSync(TMP_DIR, { recursive: true });
+  }
+}
+
+async function ensureBinary(): Promise<void> {
+  const BIN_DIR = join(process.cwd(), "bin");
+  const binPath = join(
+    BIN_DIR,
+    process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp",
+  );
+
+  if (existsSync(binPath)) {
+    return; // Binary already exists
+  }
+
+  console.log(
+    `[Binary] ${process.platform} binary not found, downloading from GitHub...`,
+  );
+
+  if (!existsSync(BIN_DIR)) {
+    mkdirSync(BIN_DIR, { recursive: true });
+  }
+
+  const getPlatformFilename = (): string => {
+    if (process.platform === "win32") return "yt-dlp.exe";
+    if (process.platform === "darwin") return "yt-dlp_macos";
+    return "yt-dlp"; // linux
+  };
+
+  const filename = getPlatformFilename();
+  const downloadUrl = `https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest`;
+
+  try {
+    const release = await new Promise<{ assets: { name: string; browser_download_url: string }[] }>((resolve, reject) => {
+      https
+        .get(downloadUrl, { headers: { "user-agent": "naat-collection" } }, (res) => {
+          let data = "";
+          res.on("data", (chunk) => {
+            data += chunk;
+          });
+          res.on("end", () => {
+            try {
+              resolve(JSON.parse(data));
+            } catch (e) {
+              reject(e);
+            }
+          });
+        })
+        .on("error", reject);
+    });
+
+    const asset = release.assets.find((a) => a.name === filename);
+    if (!asset) {
+      throw new Error(`No release asset found for: ${filename}`);
+    }
+
+    console.log(`[Binary] Downloading from: ${asset.browser_download_url}`);
+
+    const binary = await new Promise<Buffer>((resolve, reject) => {
+      https
+        .get(
+          asset.browser_download_url,
+          { headers: { "user-agent": "naat-collection" } },
+          (res) => {
+            const chunks: Buffer[] = [];
+            res.on("data", (chunk) => {
+              chunks.push(chunk);
+            });
+            res.on("end", () => {
+              resolve(Buffer.concat(chunks));
+            });
+          },
+        )
+        .on("error", reject);
+    });
+
+    writeFileSync(binPath, binary);
+
+    // Make executable on Unix-like systems
+    if (process.platform !== "win32") {
+      chmodSync(binPath, 0o755);
+    }
+
+    console.log(`[Binary] Downloaded and ready: ${filename}`);
+  } catch (err) {
+    console.error(`[Binary] Failed to download:`, err);
+    throw err;
   }
 }
 
@@ -286,6 +374,7 @@ async function processNaat(
 export default async ({ res, log, error: logError }: AppwriteContext) => {
   try {
     ensureRequiredEnv();
+    await ensureBinary();
 
     const client = new Client()
       .setEndpoint(APPWRITE_ENDPOINT)
