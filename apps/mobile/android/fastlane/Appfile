@@ -1,0 +1,4 @@
+package_name(ENV["ANDROID_APPLICATION_ID"] || "com.owaisrazaqadri")
+
+json_key_path = ENV["SUPPLY_JSON_KEY"] || ENV["PLAY_STORE_JSON_KEY_PATH"]
+json_key_file(json_key_path) unless json_key_path.to_s.empty?

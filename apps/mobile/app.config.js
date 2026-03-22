@@ -89,7 +89,6 @@ export default {
           ],
         },
       ],
-      "./plugins/withFastlaneAndroid",
     ],
     experiments: {
       typedRoutes: true,
