@@ -41,11 +41,14 @@ jobs:
         run: npm ci
 
       - name: Prepare Android signing files
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         run: |
           mkdir -p apps/mobile/android/app apps/mobile/android/fastlane
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > apps/mobile/android/app/release.keystore
-          echo "${{ secrets.PLAY_STORE_JSON_KEY_BASE64 }}" | base64 -d > apps/mobile/android/fastlane/play-store-key.json
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > apps/mobile/android/app/release.keystore
+          fi
+          if [ -n "${{ secrets.PLAY_STORE_JSON_KEY_BASE64 }}" ]; then
+            echo "${{ secrets.PLAY_STORE_JSON_KEY_BASE64 }}" | base64 -d > apps/mobile/android/fastlane/play-store-key.json
+          fi
 
       - name: Build release AAB
         env:
