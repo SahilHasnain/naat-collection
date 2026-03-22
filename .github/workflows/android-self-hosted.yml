@@ -50,6 +50,10 @@ jobs:
             printf '%s' "${{ secrets.PLAY_STORE_JSON_KEY_BASE64 }}" | tr -d '\r\n' | base64 -d > apps/mobile/android/fastlane/play-store-key.json
           fi
 
+      - name: Configure Android SDK path
+        run: |
+          printf "sdk.dir=%s\n" "$ANDROID_SDK_ROOT" > apps/mobile/android/local.properties
+
       - name: Build release AAB
         env:
           ANDROID_KEYSTORE_PATH: app/release.keystore
