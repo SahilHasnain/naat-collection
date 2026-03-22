@@ -1,0 +1,18 @@
+# OSX
+#
+.DS_Store
+
+# Android/IntelliJ
+#
+build/
+.idea
+.gradle
+local.properties
+*.iml
+*.hprof
+.cxx/
+release.keystore
+
+# Bundle artifacts
+*.jsbundle
+fastlane/play-store-key.json
