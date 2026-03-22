@@ -1,13 +1,3 @@
-/**
- * Appwrite Function: Extract and Upload Audio
- *
- * Request body:
- * - naatId?: string
- * - youtubeId?: string
- *
- * One of naatId or youtubeId is required.
- */
-
 import {
   existsSync,
   mkdirSync,
@@ -33,12 +23,12 @@ const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || "";
 const NAATS_COLLECTION_ID = process.env.APPWRITE_NAATS_COLLECTION_ID || "";
 const AUDIO_BUCKET_ID = process.env.APPWRITE_AUDIO_BUCKET_ID || "audio-files";
 const TMP_DIR = "/tmp/extract-audio";
-const YOUTUBE_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/;
-
-interface ExtractAudioPayload {
-  naatId?: string;
-  youtubeId?: string;
-}
+const FETCH_BATCH_SIZE = 100;
+const PROCESS_LIMIT = Number.parseInt(
+  process.env.AUDIO_CRON_PROCESS_LIMIT || "10",
+  10,
+);
+const DELAY_MS = Number.parseInt(process.env.AUDIO_CRON_DELAY_MS || "2000", 10);
 
 interface NaatDocument extends Models.Document {
   title?: string;
@@ -46,23 +36,20 @@ interface NaatDocument extends Models.Document {
   audioId?: string | null;
 }
 
-interface AppwriteRequest {
-  body?: unknown;
-  bodyJson?: unknown;
-}
-
-interface AppwriteResponse {
-  json: (body: Record<string, unknown>, statusCode?: number) => unknown;
+interface ProcessResult {
+  success: boolean;
+  naatId: string;
+  error?: string;
+  audioId?: string;
 }
 
 interface AppwriteContext {
-  req: AppwriteRequest;
-  res: AppwriteResponse;
+  res: {
+    json: (body: Record<string, unknown>, statusCode?: number) => unknown;
+  };
   log: (message: string) => void;
   error: (message: string) => void;
 }
-
-class BadRequestError extends Error {}
 
 function ensureRequiredEnv(): void {
   const required = [
@@ -86,38 +73,8 @@ function ensureTempDir(): void {
   }
 }
 
-function parseRequestBody(req: AppwriteRequest): ExtractAudioPayload {
-  if (req.bodyJson && typeof req.bodyJson === "object") {
-    return req.bodyJson as ExtractAudioPayload;
-  }
-
-  if (!req.body) {
-    return {};
-  }
-
-  if (typeof req.body === "string") {
-    const trimmed = req.body.trim();
-
-    if (!trimmed) {
-      return {};
-    }
-
-    try {
-      return JSON.parse(trimmed) as ExtractAudioPayload;
-    } catch {
-      throw new BadRequestError("Request body must be valid JSON");
-    }
-  }
-
-  if (typeof req.body === "object") {
-    return req.body as ExtractAudioPayload;
-  }
-
-  return {};
-}
-
 function sanitizeTitle(title = "audio"): string {
-  return title.replace(/[^a-z0-9]+/gi, "_").replace(/^_+|_+$/g, "").slice(0, 50);
+  return title.replace(/[^a-z0-9]+/gi, "_").slice(0, 50);
 }
 
 function cleanupFiles(paths: Array<string | null>): void {
@@ -134,28 +91,42 @@ function cleanupFiles(paths: Array<string | null>): void {
   }
 }
 
-async function findNaatDocument(
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchPendingNaats(
   databases: Databases,
-  identifiers: { naatId?: string; youtubeId?: string },
-): Promise<NaatDocument> {
-  if (identifiers.naatId) {
-    return (await databases.getDocument(
+  userLimit: number,
+): Promise<NaatDocument[]> {
+  let allNaats: NaatDocument[] = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const response = await databases.listDocuments<NaatDocument>(
       DATABASE_ID,
       NAATS_COLLECTION_ID,
-      identifiers.naatId,
-    )) as NaatDocument;
+      [
+        Query.isNull("audioId"),
+        Query.limit(FETCH_BATCH_SIZE),
+        Query.offset(offset),
+      ],
+    );
+
+    const batch = response.documents;
+    allNaats.push(...batch);
+
+    hasMore = batch.length === FETCH_BATCH_SIZE;
+    offset += FETCH_BATCH_SIZE;
+
+    if (allNaats.length >= userLimit) {
+      allNaats = allNaats.slice(0, userLimit);
+      hasMore = false;
+    }
   }
 
-  const response = await databases.listDocuments(DATABASE_ID, NAATS_COLLECTION_ID, [
-    Query.equal("youtubeId", identifiers.youtubeId || ""),
-    Query.limit(1),
-  ]);
-
-  if (response.documents.length === 0) {
-    throw new Error(`No naat found for youtubeId: ${identifiers.youtubeId}`);
-  }
-
-  return response.documents[0] as NaatDocument;
+  return allNaats;
 }
 
 async function downloadAudioFile(
@@ -168,7 +139,8 @@ async function downloadAudioFile(
   const baseName = `${youtubeId}_${sanitizeTitle(title) || "audio"}`;
   const outputTemplate = join(TMP_DIR, `${baseName}.%(ext)s`);
 
-  log(`Downloading audio for YouTube ID ${youtubeId}`);
+  log(`  Downloading: ${title || youtubeId}`);
+  log(`  YouTube ID: ${youtubeId}`);
 
   await youtubedl(`https://www.youtube.com/watch?v=${youtubeId}`, {
     format: "bestaudio[ext=m4a]/bestaudio",
@@ -192,6 +164,7 @@ async function downloadAudioFile(
     throw new Error("yt-dlp completed but no audio file was produced");
   }
 
+  log("  Downloaded successfully");
   return downloadedFile;
 }
 
@@ -202,44 +175,73 @@ async function uploadAudioFile(
   log: (message: string) => void,
 ): Promise<Models.File> {
   const fileSizeMb = (statSync(filePath).size / 1024 / 1024).toFixed(2);
-  log(`Uploading ${fileSizeMb}MB audio file to Appwrite Storage`);
+  log(`  Uploading to Appwrite Storage (${fileSizeMb}MB)`);
 
-  return storage.createFile({
+  const uploaded = await storage.createFile({
     bucketId: AUDIO_BUCKET_ID,
     fileId: ID.unique(),
     file: InputFile.fromPath(filePath, `${youtubeId}.m4a`),
   });
+
+  log(`  Uploaded: ${uploaded.$id}`);
+  return uploaded;
 }
 
-export default async ({ req, res, log, error: logError }: AppwriteContext) => {
-  let downloadedFilePath: string | null = null;
+async function updateNaatWithAudioId(
+  databases: Databases,
+  naatId: string,
+  audioFileId: string,
+  log: (message: string) => void,
+): Promise<void> {
+  await databases.updateDocument(DATABASE_ID, NAATS_COLLECTION_ID, naatId, {
+    audioId: audioFileId,
+  });
+  log("  Updated naat document with audioId");
+}
+
+async function processNaat(
+  naat: NaatDocument,
+  index: number,
+  total: number,
+  databases: Databases,
+  storage: Storage,
+  log: (message: string) => void,
+): Promise<ProcessResult> {
+  let tempFilePath: string | null = null;
+
+  log(`[${index + 1}/${total}] Processing: ${naat.title || naat.$id}`);
 
   try {
+    if (!naat.youtubeId) {
+      throw new Error("Missing youtubeId");
+    }
+
+    tempFilePath = await downloadAudioFile(naat.youtubeId, naat.title, log);
+    const uploaded = await uploadAudioFile(storage, tempFilePath, naat.youtubeId, log);
+    await updateNaatWithAudioId(databases, naat.$id, uploaded.$id, log);
+
+    log("  Success");
+    return {
+      success: true,
+      naatId: naat.$id,
+      audioId: uploaded.$id,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    log(`  Error: ${message}`);
+    return {
+      success: false,
+      naatId: naat.$id,
+      error: message,
+    };
+  } finally {
+    cleanupFiles([tempFilePath]);
+  }
+}
+
+export default async ({ res, log, error: logError }: AppwriteContext) => {
+  try {
     ensureRequiredEnv();
-
-    const payload = parseRequestBody(req);
-    const naatId = payload.naatId?.trim();
-    const youtubeId = payload.youtubeId?.trim();
-
-    if (!naatId && !youtubeId) {
-      return res.json(
-        {
-          success: false,
-          error: "Request body must include either naatId or youtubeId",
-        },
-        400,
-      );
-    }
-
-    if (youtubeId && !YOUTUBE_ID_PATTERN.test(youtubeId)) {
-      return res.json(
-        {
-          success: false,
-          error: "Invalid youtubeId format",
-        },
-        400,
-      );
-    }
 
     const client = new Client()
       .setEndpoint(APPWRITE_ENDPOINT)
@@ -249,69 +251,65 @@ export default async ({ req, res, log, error: logError }: AppwriteContext) => {
     const databases = new Databases(client);
     const storage = new Storage(client);
 
-    const naat = await findNaatDocument(databases, { naatId, youtubeId });
-    const resolvedYoutubeId = naat.youtubeId || youtubeId;
+    log("Audio download and upload cron started");
+    log(`Database: ${DATABASE_ID}`);
+    log(`Collection: ${NAATS_COLLECTION_ID}`);
+    log(`Bucket: ${AUDIO_BUCKET_ID}`);
+    log(`Process limit: ${PROCESS_LIMIT}`);
 
-    if (!resolvedYoutubeId || !YOUTUBE_ID_PATTERN.test(resolvedYoutubeId)) {
-      return res.json(
-        {
-          success: false,
-          error: "Resolved naat does not have a valid youtubeId",
-        },
-        400,
-      );
-    }
+    const naats = await fetchPendingNaats(databases, PROCESS_LIMIT);
+    log(`Found ${naats.length} naats without audio`);
 
-    if (naat.audioId) {
-      log(`Audio already exists for ${naat.$id}: ${naat.audioId}`);
+    if (naats.length === 0) {
       return res.json({
         success: true,
-        skipped: true,
-        naatId: naat.$id,
-        youtubeId: resolvedYoutubeId,
-        audioId: naat.audioId,
+        processed: 0,
+        successful: 0,
+        failed: 0,
+        message: "No naats to process. All videos already have audio.",
       });
     }
 
-    downloadedFilePath = await downloadAudioFile(
-      resolvedYoutubeId,
-      naat.title,
-      log,
-    );
+    const results: ProcessResult[] = [];
 
-    const uploaded = await uploadAudioFile(
-      storage,
-      downloadedFilePath,
-      resolvedYoutubeId,
-      log,
-    );
+    for (let index = 0; index < naats.length; index += 1) {
+      const result = await processNaat(
+        naats[index],
+        index,
+        naats.length,
+        databases,
+        storage,
+        log,
+      );
+      results.push(result);
 
-    await databases.updateDocument(DATABASE_ID, NAATS_COLLECTION_ID, naat.$id, {
-      audioId: uploaded.$id,
-    });
+      if (index < naats.length - 1 && DELAY_MS > 0) {
+        log(`Waiting ${DELAY_MS}ms before next download`);
+        await sleep(DELAY_MS);
+      }
+    }
 
-    log(`Audio extraction complete for ${naat.$id}`);
+    const successful = results.filter((result) => result.success).length;
+    const failedResults = results.filter((result) => !result.success);
+
+    log(`Summary: ${results.length} processed, ${successful} successful, ${failedResults.length} failed`);
 
     return res.json({
       success: true,
-      naatId: naat.$id,
-      youtubeId: resolvedYoutubeId,
-      audioId: uploaded.$id,
-      bucketId: AUDIO_BUCKET_ID,
-      fileName: uploaded.name,
+      processed: results.length,
+      successful,
+      failed: failedResults.length,
+      failures: failedResults,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    logError(`Extract audio failed: ${message}`);
-
+    logError(`Extract audio cron failed: ${message}`);
     return res.json(
       {
         success: false,
         error: message,
       },
-      error instanceof BadRequestError ? 400 : 500,
+      500,
     );
-  } finally {
-    cleanupFiles([downloadedFilePath]);
   }
 };
