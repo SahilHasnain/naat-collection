@@ -742,7 +742,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                         <MaterialIcons
                           name="replay-10"
                           size={34}
-                          color="rgba(255, 255, 255, 0.9)"
+                          color="rgba(255, 255, 255, 0.82)"
                         />
                       </View>
                     </TouchableOpacity>
@@ -750,7 +750,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     {/* Play/Pause Button */}
                     <TouchableOpacity
                       onPress={togglePlayPause}
-                      className="items-center justify-center w-20 h-20 rounded-full"
+                      className="items-center justify-center w-16 h-16 rounded-full"
                       accessibilityRole="button"
                       accessibilityLabel={isPlaying ? "Pause" : "Play"}
                       style={{
@@ -766,7 +766,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     >
                       <Ionicons
                         name={isPlaying ? "pause" : "play"}
-                        size={36}
+                        size={30}
                         color={colors.text.primary}
                       />
                     </TouchableOpacity>
@@ -782,7 +782,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                         <MaterialIcons
                           name="forward-10"
                           size={34}
-                          color="rgba(255, 255, 255, 0.9)"
+                          color="rgba(255, 255, 255, 0.82)"
                         />
                       </View>
                     </TouchableOpacity>
