@@ -36,10 +36,13 @@ platform :android do
   lane :deploy do |options|
     ensure_sentry_token
     ensure_play_store_key
-    gradle(
-      task: "clean bundleRelease",
-      project_dir: "./"
-    )
+
+    unless ENV["SKIP_ANDROID_BUILD"].to_s == "true"
+      gradle(
+        task: "clean bundleRelease",
+        project_dir: "./"
+      )
+    end
 
     upload_to_play_store(
       track: options[:track] || ENV["PLAY_TRACK"] || "internal",
