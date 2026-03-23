@@ -46,7 +46,7 @@ platform :android do
 
     upload_to_play_store(
       track: options[:track] || ENV["PLAY_TRACK"] || "internal",
-      aab: options[:aab] || "../app/build/outputs/bundle/release/app-release.aab",
+      aab: options[:aab] || "app/build/outputs/bundle/release/app-release.aab",
       package_name: ENV["ANDROID_APPLICATION_ID"] || "com.owaisrazaqadri",
       json_key: ENV["SUPPLY_JSON_KEY"],
     )
