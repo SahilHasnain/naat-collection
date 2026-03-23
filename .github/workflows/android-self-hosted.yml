@@ -6,7 +6,7 @@ on:
       app_variant:
         description: App variant to build
         required: false
-        default: preview
+        default: production
         type: choice
         options:
           - development
@@ -32,7 +32,7 @@ jobs:
       ANDROID_SDK_ROOT: /opt/android-sdk
       JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
       EXPO_USE_METRO_WORKSPACE_ROOT: "1"
-      APP_VARIANT: ${{ inputs.app_variant || 'preview' }}
+      APP_VARIANT: ${{ inputs.app_variant || 'production' }}
       EXPO_PUBLIC_APPWRITE_ENDPOINT: ${{ vars.EXPO_PUBLIC_APPWRITE_ENDPOINT || 'https://sgp.cloud.appwrite.io/v1' }}
       EXPO_PUBLIC_APPWRITE_PROJECT_ID: ${{ vars.EXPO_PUBLIC_APPWRITE_PROJECT_ID || '695bb97700213f4ef5dd' }}
       EXPO_PUBLIC_APPWRITE_DATABASE_ID: ${{ vars.EXPO_PUBLIC_APPWRITE_DATABASE_ID || '695bba86001b50478ed4' }}
@@ -102,7 +102,7 @@ jobs:
           defaults.project=ubaid-raza-naats
           EOF
 
-      - name: Build release AAB
+      - name: Build Android artifact
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           ANDROID_KEYSTORE_PATH: /home/Sahilhasnain/android-secrets/release.keystore
@@ -112,16 +112,22 @@ jobs:
         run: |
           cd apps/mobile/android
           chmod +x ./gradlew
-          ./gradlew bundleRelease
+          if [ "$APP_VARIANT" = "preview" ]; then
+            ./gradlew assembleRelease
+          else
+            ./gradlew bundleRelease
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-release-aab
-          path: apps/mobile/android/app/build/outputs/**/*.aab
+          name: android-${{ env.APP_VARIANT }}-artifact
+          path: |
+            apps/mobile/android/app/build/outputs/**/*.aab
+            apps/mobile/android/app/build/outputs/**/*.apk
 
       - name: Fastlane deploy
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && env.APP_VARIANT == 'production' }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SUPPLY_JSON_KEY: ${{ github.workspace }}/apps/mobile/android/fastlane/play-store-key.json
