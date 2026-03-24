@@ -78,7 +78,7 @@ Health check endpoint for monitoring.
 3. Test locally: `curl http://localhost:8000/live`
 
 ### No audio playing
-1. Check if naats have `radio: true` and `cutAudio` field in database
+1. Check if naats have `cutAudio` field in database
 2. Verify Appwrite API key has proper permissions
 3. Check stream manager logs for audio caching errors
 
