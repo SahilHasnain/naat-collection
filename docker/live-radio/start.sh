@@ -2,6 +2,21 @@
 
 echo "🎵 Starting Live Radio Services..."
 
+CACHE_DIR="/app/audio-cache"
+CLEAR_AUDIO_CACHE_ON_START="${CLEAR_AUDIO_CACHE_ON_START:-false}"
+
+mkdir -p "$CACHE_DIR"
+
+case "$(echo "$CLEAR_AUDIO_CACHE_ON_START" | tr '[:upper:]' '[:lower:]')" in
+    1|true|yes|y)
+        echo "🧹 CLEAR_AUDIO_CACHE_ON_START=$CLEAR_AUDIO_CACHE_ON_START -> clearing cache files"
+        find "$CACHE_DIR" -type f \( -name "*.mp3" -o -name "*.tmp" \) -delete
+        ;;
+    *)
+        echo "💾 CLEAR_AUDIO_CACHE_ON_START=$CLEAR_AUDIO_CACHE_ON_START -> keeping cache files"
+        ;;
+esac
+
 # Ensure proper permissions for nobody user
 chown -R nobody:nobody /var/log/icecast /config /app/audio-cache /tmp
 
