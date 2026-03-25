@@ -98,7 +98,7 @@ jobs:
       - name: Build Android artifact
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          ANDROID_KEYSTORE_PATH: /home/Sahilhasnain/android-secrets/release.keystore
+          ANDROID_KEYSTORE_PATH: /home/Sahilhasnain/android-secrets/naat-collection/release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -127,7 +127,7 @@ jobs:
           ANDROID_APPLICATION_ID: com.owaisrazaqadri
           PLAY_TRACK: internal
           SKIP_ANDROID_BUILD: "true"
-          ANDROID_KEYSTORE_PATH: /home/Sahilhasnain/android-secrets/release.keystore
+          ANDROID_KEYSTORE_PATH: /home/Sahilhasnain/android-secrets/naat-collection/release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
