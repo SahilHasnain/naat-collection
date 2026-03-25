@@ -4,14 +4,15 @@ services:
     container_name: live-radio
     restart: unless-stopped
     ports:
-      - "8000:8000"  # Icecast
-      - "8080:3000"  # API Server
+      - "8000:8000" # Icecast
+      - "8080:3000" # API Server
     environment:
       - APPWRITE_ENDPOINT=https://sgp.cloud.appwrite.io/v1
       - APPWRITE_PROJECT_ID=695bb97700213f4ef5dd
       - APPWRITE_API_KEY=${APPWRITE_API_KEY}
       - DATABASE_ID=695bba86001b50478ed4
       - NAATS_COLLECTION_ID=695bc8e70038db72df5b
+      - CLEAR_AUDIO_CACHE_ON_START=${CLEAR_AUDIO_CACHE_ON_START:-false}
     volumes:
       - ./audio-cache:/app/audio-cache
       - ./logs:/var/log/icecast
