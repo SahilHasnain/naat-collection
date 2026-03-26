@@ -135,3 +135,10 @@ jobs:
           cd apps/mobile/android
           bundle install
           fastlane android deploy
+
+      - name: Cleanup build artifacts
+        if: always()
+        run: |
+          cd apps/mobile/android
+          ./gradlew clean
+          rm -rf ~/.gradle/caches/build-cache-*
