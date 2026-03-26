@@ -120,7 +120,7 @@ jobs:
             apps/mobile/android/app/build/outputs/**/*.apk
 
       - name: Fastlane deploy
-        if: ${{ github.event_name == 'workflow_dispatch' && env.APP_VARIANT == 'production' }}
+        if: ${{ env.APP_VARIANT == 'production' }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SUPPLY_JSON_KEY: /home/Sahilhasnain/android-secrets/play-store-key.json
