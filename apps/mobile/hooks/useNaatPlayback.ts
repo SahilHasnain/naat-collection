@@ -106,6 +106,7 @@ export function useNaatPlayback(displayData: Naat[]) {
           isLocalFile,
           audioId,
           youtubeId: naat.youtubeId,
+          naatId: naat.$id,
         };
         await loadAndPlay(audioMetadata);
       } catch (err) {

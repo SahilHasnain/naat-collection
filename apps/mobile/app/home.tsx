@@ -11,6 +11,7 @@ import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useHomeFilters } from "@/hooks/useHomeFilters";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { useSearchSuggestions } from "@/hooks/useSearchSuggestions";
+import { shareService } from "@/services/shareService";
 import { storageService } from "@/services/storage";
 import type { Naat } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -161,6 +162,16 @@ export default function HomeScreen() {
     loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.selectedFilter, filters.selectedChannelId, filters.pureOnly]);
+
+  // Handle deep link auto-play
+  useEffect(() => {
+    const checkDeepLinkParams = async () => {
+      // This will be triggered by the deep link handler in _layout.tsx
+      // which passes autoPlayNaatId via router params
+      // For now, we'll implement this when the router params are available
+    };
+    checkDeepLinkParams();
+  }, []);
 
   // Android back button
   useEffect(() => {
@@ -540,7 +551,7 @@ export default function HomeScreen() {
                 <Ionicons
                   name={
                     selectedNaat &&
-                    downloadStates[selectedNaat.$id]?.isDownloaded
+                      downloadStates[selectedNaat.$id]?.isDownloaded
                       ? "checkmark-circle"
                       : "download-outline"
                   }
@@ -580,6 +591,34 @@ export default function HomeScreen() {
                   {savedPlaybackMode === "audio"
                     ? "Play as video"
                     : "Play as audio"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View className="flex-row items-stretch mt-2.5" style={{ gap: 10 }}>
+              <TouchableOpacity
+                onPress={async () => {
+                  if (selectedNaat) {
+                    closeActionSheet();
+                    await shareService.shareNaat(selectedNaat);
+                  }
+                }}
+                className="rounded-2xl px-4 py-4 flex-row items-center justify-center flex-1"
+                style={{ backgroundColor: colors.background.elevated }}
+                disabled={!selectedNaat}
+                activeOpacity={0.88}
+              >
+                <Ionicons
+                  name="share-outline"
+                  size={20}
+                  color={colors.text.primary}
+                />
+                <Text
+                  className="ml-2 text-sm font-semibold"
+                  style={{ color: colors.text.primary }}
+                  numberOfLines={1}
+                >
+                  Share
                 </Text>
               </TouchableOpacity>
             </View>

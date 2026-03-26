@@ -396,243 +396,92 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     elevation: 8,
                   }}
                 >
-              {/* Download/Delete */}
-              {showDownloadButton && (
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowOptionsMenu(false);
-                    if (isDownloaded) {
-                      handleDeleteDownload();
-                    } else if (isDownloading) {
-                      Alert.alert(
-                        "Download in Progress",
-                        `Downloading... ${Math.round(downloadProgress * 100)}%`,
-                        [{ text: "OK" }],
-                      );
-                    } else {
-                      handleDownload();
-                    }
-                  }}
-                  className="flex-row items-center px-5 py-4"
-                  style={{
-                    backgroundColor:
-                      showDownloadButton && (isDownloaded || isDownloading)
-                        ? "transparent"
-                        : "transparent",
-                    borderBottomWidth: 1,
-                    borderBottomColor: colors.border.secondary,
-                  }}
-                  accessibilityRole="button"
-                >
-                  <View
-                    className="items-center justify-center mr-3 rounded-full w-9 h-9"
-                    style={{ backgroundColor: colors.background.elevated }}
-                  >
-                    <Ionicons
-                      name={
-                        isDownloaded
-                          ? "checkmark-circle"
-                          : isDownloading
-                            ? "hourglass"
-                            : "download-outline"
-                      }
-                      size={20}
-                      color={
-                        isDownloaded
-                          ? "#22c55e"
-                          : isDownloading
-                            ? "#3b82f6"
-                            : "#e5e5e5"
-                      }
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Text
-                      className="text-sm font-medium"
-                      style={{ color: colors.text.primary }}
-                    >
-                      {isDownloaded
-                        ? "Delete Download"
-                        : isDownloading
-                          ? "Downloading..."
-                          : "Download"}
-                    </Text>
-                    {isDownloading && (
-                      <Text className="text-xs text-neutral-400 mt-0.5">
-                        {Math.round(downloadProgress * 100)}% complete
-                      </Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              )}
-
-              {/* Repeat */}
-              <TouchableOpacity
-                onPress={() => {
-                  toggleRepeat();
-                  setShowOptionsMenu(false);
-                }}
-                className="flex-row items-center px-5 py-4"
-                style={{
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.border.secondary,
-                }}
-                accessibilityRole="button"
-              >
-                <View
-                  className="items-center justify-center mr-3 rounded-full w-9 h-9"
-                  style={{
-                    backgroundColor: isRepeatEnabled
-                      ? colors.accent.primary + "20"
-                      : colors.background.elevated,
-                  }}
-                >
-                  <Ionicons
-                    name="repeat"
-                    size={20}
-                    color={isRepeatEnabled ? colors.accent.primary : "#e5e5e5"}
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text
-                    className="text-sm font-medium"
-                    style={{
-                      color: isRepeatEnabled
-                        ? colors.accent.primary
-                        : colors.text.primary,
-                    }}
-                  >
-                    Repeat
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              {/* Autoplay */}
-              <TouchableOpacity
-                onPress={() => {
-                  toggleAutoplay();
-                  setShowOptionsMenu(false);
-                }}
-                className="flex-row items-center px-5 py-4"
-                style={{
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.border.secondary,
-                }}
-                accessibilityRole="button"
-              >
-                <View
-                  className="items-center justify-center mr-3 rounded-full w-9 h-9"
-                  style={{
-                    backgroundColor: isAutoplayEnabled
-                      ? colors.accent.primary + "20"
-                      : colors.background.elevated,
-                  }}
-                >
-                  <Ionicons
-                    name="play-forward"
-                    size={20}
-                    color={
-                      isAutoplayEnabled ? colors.accent.primary : "#e5e5e5"
-                    }
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text
-                    className="text-sm font-medium"
-                    style={{
-                      color: isAutoplayEnabled
-                        ? colors.accent.primary
-                        : colors.text.primary,
-                    }}
-                  >
-                    Autoplay
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              {/* A/B Repeat Mode Toggle - Show when no points are set */}
-              {!bothPointsSet && (
-                <TouchableOpacity
-                  onPress={() => {
-                    handleToggleABRepeatMode();
-                    setShowOptionsMenu(false);
-                  }}
-                  className="flex-row items-center px-5 py-4"
-                  style={{
-                    borderBottomWidth: bothPointsSet ? 1 : 0,
-                    borderBottomColor: colors.border.secondary,
-                  }}
-                  accessibilityRole="button"
-                >
-                  <View
-                    className="items-center justify-center mr-3 rounded-full w-9 h-9"
-                    style={{
-                      backgroundColor: isABRepeatMode
-                        ? colors.accent.primary + "20"
-                        : colors.background.elevated,
-                    }}
-                  >
-                    <Ionicons
-                      name="repeat"
-                      size={20}
-                      color={isABRepeatMode ? colors.accent.primary : "#e5e5e5"}
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Text
-                      className="text-sm font-medium"
-                      style={{
-                        color: isABRepeatMode
-                          ? colors.accent.primary
-                          : colors.text.primary,
+                  {/* Download/Delete */}
+                  {showDownloadButton && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setShowOptionsMenu(false);
+                        if (isDownloaded) {
+                          handleDeleteDownload();
+                        } else if (isDownloading) {
+                          Alert.alert(
+                            "Download in Progress",
+                            `Downloading... ${Math.round(downloadProgress * 100)}%`,
+                            [{ text: "OK" }],
+                          );
+                        } else {
+                          handleDownload();
+                        }
                       }}
+                      className="flex-row items-center px-5 py-4"
+                      style={{
+                        backgroundColor:
+                          showDownloadButton && (isDownloaded || isDownloading)
+                            ? "transparent"
+                            : "transparent",
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.border.secondary,
+                      }}
+                      accessibilityRole="button"
                     >
-                      A/B Repeat
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
+                      <View
+                        className="items-center justify-center mr-3 rounded-full w-9 h-9"
+                        style={{ backgroundColor: colors.background.elevated }}
+                      >
+                        <Ionicons
+                          name={
+                            isDownloaded
+                              ? "checkmark-circle"
+                              : isDownloading
+                                ? "hourglass"
+                                : "download-outline"
+                          }
+                          size={20}
+                          color={
+                            isDownloaded
+                              ? "#22c55e"
+                              : isDownloading
+                                ? "#3b82f6"
+                                : "#e5e5e5"
+                          }
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <Text
+                          className="text-sm font-medium"
+                          style={{ color: colors.text.primary }}
+                        >
+                          {isDownloaded
+                            ? "Delete Download"
+                            : isDownloading
+                              ? "Downloading..."
+                              : "Download"}
+                        </Text>
+                        {isDownloading && (
+                          <Text className="text-xs text-neutral-400 mt-0.5">
+                            {Math.round(downloadProgress * 100)}% complete
+                          </Text>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  )}
 
-              {/* Show set points when both are set */}
-              {bothPointsSet && (
-                <>
+                  {/* Share */}
                   <TouchableOpacity
+                    onPress={async () => {
+                      setShowOptionsMenu(false);
+                      await shareService.shareCurrentAudio(
+                        currentAudio.title,
+                        currentAudio.channelName,
+                        currentAudio.youtubeId,
+                        currentAudio.naatId
+                      );
+                    }}
                     className="flex-row items-center px-5 py-4"
                     style={{
                       borderBottomWidth: 1,
                       borderBottomColor: colors.border.secondary,
                     }}
-                    disabled
-                  >
-                    <View
-                      className="items-center justify-center mr-3 rounded-full w-9 h-9"
-                      style={{ backgroundColor: colors.accent.primary + "20" }}
-                    >
-                      <Ionicons
-                        name="repeat"
-                        size={20}
-                        color={colors.accent.primary}
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text
-                        className="text-sm font-medium"
-                        style={{ color: colors.accent.primary }}
-                      >
-                        A/B Repeat
-                      </Text>
-                      <Text className="text-xs text-neutral-400 mt-0.5">
-                        Loop active
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => {
-                      handleClearABRepeat();
-                      setShowOptionsMenu(false);
-                    }}
-                    className="flex-row items-center px-5 py-4"
                     accessibilityRole="button"
                   >
                     <View
@@ -640,7 +489,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       style={{ backgroundColor: colors.background.elevated }}
                     >
                       <Ionicons
-                        name="close-circle-outline"
+                        name="share-outline"
                         size={20}
                         color="#e5e5e5"
                       />
@@ -650,15 +499,204 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                         className="text-sm font-medium"
                         style={{ color: colors.text.primary }}
                       >
-                        Clear Loop
-                      </Text>
-                      <Text className="text-xs text-neutral-400 mt-0.5">
-                        Remove A/B points
+                        Share
                       </Text>
                     </View>
                   </TouchableOpacity>
-                </>
-              )}
+
+                  {/* Repeat */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      toggleRepeat();
+                      setShowOptionsMenu(false);
+                    }}
+                    className="flex-row items-center px-5 py-4"
+                    style={{
+                      borderBottomWidth: 1,
+                      borderBottomColor: colors.border.secondary,
+                    }}
+                    accessibilityRole="button"
+                  >
+                    <View
+                      className="items-center justify-center mr-3 rounded-full w-9 h-9"
+                      style={{
+                        backgroundColor: isRepeatEnabled
+                          ? colors.accent.primary + "20"
+                          : colors.background.elevated,
+                      }}
+                    >
+                      <Ionicons
+                        name="repeat"
+                        size={20}
+                        color={isRepeatEnabled ? colors.accent.primary : "#e5e5e5"}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text
+                        className="text-sm font-medium"
+                        style={{
+                          color: isRepeatEnabled
+                            ? colors.accent.primary
+                            : colors.text.primary,
+                        }}
+                      >
+                        Repeat
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Autoplay */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      toggleAutoplay();
+                      setShowOptionsMenu(false);
+                    }}
+                    className="flex-row items-center px-5 py-4"
+                    style={{
+                      borderBottomWidth: 1,
+                      borderBottomColor: colors.border.secondary,
+                    }}
+                    accessibilityRole="button"
+                  >
+                    <View
+                      className="items-center justify-center mr-3 rounded-full w-9 h-9"
+                      style={{
+                        backgroundColor: isAutoplayEnabled
+                          ? colors.accent.primary + "20"
+                          : colors.background.elevated,
+                      }}
+                    >
+                      <Ionicons
+                        name="play-forward"
+                        size={20}
+                        color={
+                          isAutoplayEnabled ? colors.accent.primary : "#e5e5e5"
+                        }
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text
+                        className="text-sm font-medium"
+                        style={{
+                          color: isAutoplayEnabled
+                            ? colors.accent.primary
+                            : colors.text.primary,
+                        }}
+                      >
+                        Autoplay
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* A/B Repeat Mode Toggle - Show when no points are set */}
+                  {!bothPointsSet && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        handleToggleABRepeatMode();
+                        setShowOptionsMenu(false);
+                      }}
+                      className="flex-row items-center px-5 py-4"
+                      style={{
+                        borderBottomWidth: bothPointsSet ? 1 : 0,
+                        borderBottomColor: colors.border.secondary,
+                      }}
+                      accessibilityRole="button"
+                    >
+                      <View
+                        className="items-center justify-center mr-3 rounded-full w-9 h-9"
+                        style={{
+                          backgroundColor: isABRepeatMode
+                            ? colors.accent.primary + "20"
+                            : colors.background.elevated,
+                        }}
+                      >
+                        <Ionicons
+                          name="repeat"
+                          size={20}
+                          color={isABRepeatMode ? colors.accent.primary : "#e5e5e5"}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <Text
+                          className="text-sm font-medium"
+                          style={{
+                            color: isABRepeatMode
+                              ? colors.accent.primary
+                              : colors.text.primary,
+                          }}
+                        >
+                          A/B Repeat
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Show set points when both are set */}
+                  {bothPointsSet && (
+                    <>
+                      <TouchableOpacity
+                        className="flex-row items-center px-5 py-4"
+                        style={{
+                          borderBottomWidth: 1,
+                          borderBottomColor: colors.border.secondary,
+                        }}
+                        disabled
+                      >
+                        <View
+                          className="items-center justify-center mr-3 rounded-full w-9 h-9"
+                          style={{ backgroundColor: colors.accent.primary + "20" }}
+                        >
+                          <Ionicons
+                            name="repeat"
+                            size={20}
+                            color={colors.accent.primary}
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <Text
+                            className="text-sm font-medium"
+                            style={{ color: colors.accent.primary }}
+                          >
+                            A/B Repeat
+                          </Text>
+                          <Text className="text-xs text-neutral-400 mt-0.5">
+                            Loop active
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={() => {
+                          handleClearABRepeat();
+                          setShowOptionsMenu(false);
+                        }}
+                        className="flex-row items-center px-5 py-4"
+                        accessibilityRole="button"
+                      >
+                        <View
+                          className="items-center justify-center mr-3 rounded-full w-9 h-9"
+                          style={{ backgroundColor: colors.background.elevated }}
+                        >
+                          <Ionicons
+                            name="close-circle-outline"
+                            size={20}
+                            color="#e5e5e5"
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <Text
+                            className="text-sm font-medium"
+                            style={{ color: colors.text.primary }}
+                          >
+                            Clear Loop
+                          </Text>
+                          <Text className="text-xs text-neutral-400 mt-0.5">
+                            Remove A/B points
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </View>
               </>
             )}
@@ -802,76 +840,76 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   >
                     {isABRepeatMode && !bothPointsSet && (
                       <View className="flex-row items-center justify-center gap-3 mt-8">
-                      <TouchableOpacity
-                        onPress={handleSetPointA}
-                        className="flex-row items-center gap-2 px-5 py-2.5 rounded-full"
-                        style={{
-                          backgroundColor:
-                            abRepeatPointA !== null
-                              ? "#22c55e"
-                              : colors.background.elevated,
-                        }}
-                        accessibilityRole="button"
-                        accessibilityLabel="Set point A"
-                      >
-                        <Ionicons
-                          name="flag"
-                          size={18}
-                          color={
-                            abRepeatPointA !== null
-                              ? "black"
-                              : colors.text.primary
-                          }
-                        />
-                        <Text
-                          className="text-sm font-medium"
+                        <TouchableOpacity
+                          onPress={handleSetPointA}
+                          className="flex-row items-center gap-2 px-5 py-2.5 rounded-full"
                           style={{
-                            color:
+                            backgroundColor:
+                              abRepeatPointA !== null
+                                ? "#22c55e"
+                                : colors.background.elevated,
+                          }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Set point A"
+                        >
+                          <Ionicons
+                            name="flag"
+                            size={18}
+                            color={
                               abRepeatPointA !== null
                                 ? "black"
-                                : colors.text.primary,
-                          }}
-                        >
-                          Point A
-                        </Text>
-                      </TouchableOpacity>
+                                : colors.text.primary
+                            }
+                          />
+                          <Text
+                            className="text-sm font-medium"
+                            style={{
+                              color:
+                                abRepeatPointA !== null
+                                  ? "black"
+                                  : colors.text.primary,
+                            }}
+                          >
+                            Point A
+                          </Text>
+                        </TouchableOpacity>
 
-                      <TouchableOpacity
-                        onPress={handleSetPointB}
-                        className="flex-row items-center gap-2 px-5 py-2.5 rounded-full"
-                        style={{
-                          backgroundColor:
-                            abRepeatPointB !== null
-                              ? "#ef4444"
-                              : colors.background.elevated,
-                        }}
-                        accessibilityRole="button"
-                        accessibilityLabel="Set point B"
-                        disabled={abRepeatPointA === null}
-                      >
-                        <Ionicons
-                          name="flag"
-                          size={18}
-                          color={
-                            abRepeatPointB !== null
-                              ? colors.text.primary
-                              : "#666"
-                          }
-                        />
-                        <Text
-                          className="text-sm font-medium"
+                        <TouchableOpacity
+                          onPress={handleSetPointB}
+                          className="flex-row items-center gap-2 px-5 py-2.5 rounded-full"
                           style={{
-                            color:
+                            backgroundColor:
+                              abRepeatPointB !== null
+                                ? "#ef4444"
+                                : colors.background.elevated,
+                          }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Set point B"
+                          disabled={abRepeatPointA === null}
+                        >
+                          <Ionicons
+                            name="flag"
+                            size={18}
+                            color={
                               abRepeatPointB !== null
                                 ? colors.text.primary
-                                : abRepeatPointA === null
-                                  ? "#666"
-                                  : colors.text.primary,
-                          }}
-                        >
-                          Point B
-                        </Text>
-                      </TouchableOpacity>
+                                : "#666"
+                            }
+                          />
+                          <Text
+                            className="text-sm font-medium"
+                            style={{
+                              color:
+                                abRepeatPointB !== null
+                                  ? colors.text.primary
+                                  : abRepeatPointA === null
+                                    ? "#666"
+                                    : colors.text.primary,
+                            }}
+                          >
+                            Point B
+                          </Text>
+                        </TouchableOpacity>
                       </View>
                     )}
                   </Animated.View>

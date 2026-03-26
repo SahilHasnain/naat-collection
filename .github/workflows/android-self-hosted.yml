@@ -125,7 +125,7 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SUPPLY_JSON_KEY: /home/Sahilhasnain/android-secrets/play-store-key.json
           ANDROID_APPLICATION_ID: com.owaisrazaqadri
-          PLAY_TRACK: internal
+          PLAY_TRACK: alpha
           SKIP_ANDROID_BUILD: "true"
           ANDROID_KEYSTORE_PATH: /home/Sahilhasnain/android-secrets/naat-collection/release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
