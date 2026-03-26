@@ -11,7 +11,6 @@ import * as Sentry from "@sentry/react-native";
 import { Platform, Share } from "react-native";
 
 export interface ShareOptions {
-  includeChannelName?: boolean;
   customMessage?: string;
 }
 
@@ -35,19 +34,14 @@ export async function shareNaat(
   options: ShareOptions = {}
 ): Promise<boolean> {
   const {
-    includeChannelName = true,
     customMessage,
   } = options;
 
   try {
-    // Build share message
+    // Simple message with just title and link
     let message = customMessage || `🎵 ${naat.title}`;
-    
-    if (includeChannelName && naat.channelName) {
-      message += `\n\nBy: ${naat.channelName}`;
-    }
 
-    // Use web URL that will redirect to app if installed
+    // Use web URL that will redirect to app if installed, YouTube if not
     const webUrl = `https://owaisrazaqadri.appwrite.network/naat/${naat.$id}?youtubeId=${naat.youtubeId}`;
     message += `\n\n${webUrl}`;
 
@@ -114,11 +108,7 @@ export async function shareCurrentAudio(
   naatId?: string
 ): Promise<boolean> {
   try {
-    let message = `🎵 Currently listening to: ${title}`;
-    
-    if (channelName) {
-      message += `\n\nBy: ${channelName}`;
-    }
+    let message = `🎵 ${title}`;
 
     if (naatId && youtubeId) {
       const webUrl = `https://owaisrazaqadri.appwrite.network/naat/${naatId}?youtubeId=${youtubeId}`;
