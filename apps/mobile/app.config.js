@@ -37,6 +37,7 @@ export default {
       infoPlist: {
         UIBackgroundModes: ["audio"],
       },
+      associatedDomains: ["applinks:owaisrazaqadri.appwrite.network"],
     },
     android: {
       versionCode: 7,
@@ -53,6 +54,31 @@ export default {
         "WAKE_LOCK",
         "android.permission.WAKE_LOCK",
         "android.permission.MODIFY_AUDIO_SETTINGS",
+      ],
+      intentFilters: [
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [
+            {
+              scheme: "ubaidraza",
+              host: "*",
+            },
+          ],
+          category: ["BROWSABLE", "DEFAULT"],
+        },
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [
+            {
+              scheme: "https",
+              host: "owaisrazaqadri.appwrite.network",
+              pathPrefix: "/naat",
+            },
+          ],
+          category: ["BROWSABLE", "DEFAULT"],
+        },
       ],
     },
     web: {

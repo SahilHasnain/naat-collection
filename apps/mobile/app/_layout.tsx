@@ -48,6 +48,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import "../global.css";
+import { useDeepLinking } from "@/hooks/useDeepLinking";
 
 // Initialize Sentry
 Sentry.init({
@@ -61,6 +62,10 @@ Sentry.init({
 function RootLayoutContent() {
   const router = useRouter();
   const segments = useSegments();
+
+  // Initialize deep linking
+  useDeepLinking();
+
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
   const { currentAudio, stop } = useAudioPlayer();
   const { showMiniPlayer } = useLiveRadioPlayer();
