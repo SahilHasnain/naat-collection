@@ -1,23 +1,23 @@
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import {
-    setupPlayer,
-    updateNotificationCapabilities,
+  setupPlayer,
+  updateNotificationCapabilities,
 } from "@/services/trackPlayerService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import TrackPlayer, {
-    Event,
-    RepeatMode,
-    State,
-    useProgress,
-    useTrackPlayerEvents,
+  Event,
+  RepeatMode,
+  State,
+  useProgress,
+  useTrackPlayerEvents,
 } from "@weights-ai/react-native-track-player";
 import React, {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useRef,
-    useState,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
 } from "react";
 
 export interface AudioMetadata {
@@ -28,6 +28,7 @@ export interface AudioMetadata {
   isLocalFile: boolean;
   audioId?: string;
   youtubeId?: string;
+  naatId?: string; // Naat document ID for deep linking
 }
 
 interface AudioContextType {
