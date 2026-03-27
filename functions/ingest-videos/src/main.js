@@ -18,6 +18,60 @@
 import { Client, Databases, ID, Query } from "node-appwrite";
 
 /**
+ * Fetches shorts video IDs from UUSH playlist (undocumented YouTube feature)
+ * @param {string} channelId - YouTube channel ID
+ * @param {string} apiKey - YouTube API key
+ * @param {Function} log - Logging function
+ * @returns {Promise<Set>} Set of shorts video IDs
+ */
+async function getShortsVideoIds(channelId, apiKey, log) {
+  const baseUrl = "https://www.googleapis.com/youtube/v3";
+  const shortsPlaylistId = channelId.replace('UC', 'UUSH');
+  const shortsIds = new Set();
+  
+  try {
+    log(`Fetching shorts playlist (${shortsPlaylistId})...`);
+    let pageToken = null;
+    let totalShorts = 0;
+    
+    do {
+      let playlistUrl = `${baseUrl}/playlistItems?part=contentDetails&playlistId=${shortsPlaylistId}&maxResults=50&key=${apiKey}`;
+      
+      if (pageToken) {
+        playlistUrl += `&pageToken=${pageToken}`;
+      }
+      
+      const response = await fetch(playlistUrl);
+      
+      if (!response.ok) {
+        // Shorts playlist might not exist for this channel
+        log(`No shorts playlist found (this is normal if channel has no shorts)`);
+        break;
+      }
+      
+      const data = await response.json();
+      
+      if (data.items && data.items.length > 0) {
+        data.items.forEach(item => {
+          shortsIds.add(item.contentDetails.videoId);
+        });
+        totalShorts += data.items.length;
+      }
+      
+      pageToken = data.nextPageToken;
+    } while (pageToken);
+    
+    if (totalShorts > 0) {
+      log(`Found ${totalShorts} shorts to exclude`);
+    }
+  } catch (error) {
+    log(`Could not fetch shorts playlist: ${error.message}`);
+  }
+  
+  return shortsIds;
+}
+
+/**
  * Fetches videos from a YouTube playlist using YouTube Data API v3
  * @param {string} playlistId - YouTube playlist ID
  * @param {string} apiKey - YouTube API key
@@ -176,6 +230,9 @@ async function fetchYouTubeVideos(channelId, apiKey, maxResults = 5000, log) {
     const uploadsPlaylistId =
       channelData.items[0].contentDetails.relatedPlaylists.uploads;
 
+    // Fetch shorts video IDs to exclude them
+    const shortsIds = await getShortsVideoIds(channelId, apiKey, log);
+
     // Fetch videos from the uploads playlist with pagination
     const allVideoItems = [];
     let pageToken = null;
@@ -241,19 +298,32 @@ async function fetchYouTubeVideos(channelId, apiKey, maxResults = 5000, log) {
       allVideosData.push(...videosData.items);
     }
 
-    // Transform the data into our format
-    const videos = allVideosData.map((video) => ({
-      youtubeId: video.id,
-      title: video.snippet.title,
-      videoUrl: `https://www.youtube.com/watch?v=${video.id}`,
-      thumbnailUrl:
-        video.snippet.thumbnails.high?.url ||
-        video.snippet.thumbnails.medium?.url ||
-        video.snippet.thumbnails.default?.url,
-      duration: parseDuration(video.contentDetails.duration),
-      uploadDate: video.snippet.publishedAt,
-      views: parseInt(video.statistics?.viewCount || "0", 10),
-    }));
+    // Transform the data into our format and filter out shorts
+    const videos = allVideosData
+      .filter((video) => {
+        // Filter out shorts using UUSH playlist
+        if (shortsIds.has(video.id)) {
+          return false;
+        }
+        return true;
+      })
+      .map((video) => ({
+        youtubeId: video.id,
+        title: video.snippet.title,
+        videoUrl: `https://www.youtube.com/watch?v=${video.id}`,
+        thumbnailUrl:
+          video.snippet.thumbnails.high?.url ||
+          video.snippet.thumbnails.medium?.url ||
+          video.snippet.thumbnails.default?.url,
+        duration: parseDuration(video.contentDetails.duration),
+        uploadDate: video.snippet.publishedAt,
+        views: parseInt(video.statistics?.viewCount || "0", 10),
+      }));
+
+    const shortsFilteredCount = allVideosData.length - videos.length;
+    if (shortsFilteredCount > 0) {
+      log(`Filtered ${shortsFilteredCount} shorts from video list`);
+    }
 
     return { channelId, channelName, videos };
   } catch (error) {
@@ -512,9 +582,9 @@ async function processSource(
 
     for (const video of videos) {
       try {
-        // Filter out videos less than 1 minute (60 seconds)
+        // Filter out videos less than 1 minute (60 seconds) - backup filter for shorts
         if (video.duration < 60) {
-          log(`Filtered: ${video.title} (duration ${video.duration}s < 60s)`);
+          log(`Filtered: ${video.title} (duration ${video.duration}s < 60s, likely short)`);
           results.filtered++;
           continue;
         }
