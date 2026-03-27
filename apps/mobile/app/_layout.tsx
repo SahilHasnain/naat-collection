@@ -32,6 +32,7 @@ import {
   useTabBarVisibility,
 } from "@/contexts/TabBarVisibilityContext.animated";
 import { VideoProvider } from "@/contexts/VideoContext";
+import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { storageService } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
@@ -48,7 +49,6 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import "../global.css";
-import { useDeepLinking } from "@/hooks/useDeepLinking";
 
 // Initialize Sentry
 Sentry.init({
