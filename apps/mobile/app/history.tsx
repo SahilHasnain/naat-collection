@@ -151,7 +151,7 @@ export default function HistoryScreen() {
   const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
 
   // Tab bar visibility context
-  const { handleScroll: handleTabBarScroll } = useTabBarVisibility();
+  const { handleScroll: handleTabBarScroll, showTabBar } = useTabBarVisibility();
 
   // Data fetching hook
   const {
@@ -170,6 +170,13 @@ export default function HistoryScreen() {
     useCallback(() => {
       refresh();
     }, [refresh])
+  );
+
+  // Force tab bar to show when this screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      showTabBar();
+    }, [showTabBar]),
   );
 
   // Group history by date

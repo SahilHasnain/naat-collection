@@ -143,7 +143,7 @@ export default function DownloadsScreen() {
   const { loadAndPlay, setAutoplayCallback } = useAudioPlayer();
 
   // Tab bar visibility context
-  const { handleScroll: handleTabBarScroll } = useTabBarVisibility();
+  const { handleScroll: handleTabBarScroll, showTabBar } = useTabBarVisibility();
 
   // Modal state
   const [selectedAudio, setSelectedAudio] = useState<DownloadMetadata | null>(
@@ -162,6 +162,13 @@ export default function DownloadsScreen() {
     useCallback(() => {
       refresh();
     }, [refresh])
+  );
+
+  // Force tab bar to show when this screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      showTabBar();
+    }, [showTabBar]),
   );
 
   // Filter and sort downloads

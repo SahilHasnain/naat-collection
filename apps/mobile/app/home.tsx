@@ -158,6 +158,15 @@ export default function HomeScreen() {
     }, [showHeader]),
   );
 
+  const { showTabBar } = useTabBarVisibility();
+
+  // Force tab bar to show when this screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      showTabBar();
+    }, [showTabBar]),
+  );
+
   useEffect(() => {
     loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
