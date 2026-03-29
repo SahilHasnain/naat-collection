@@ -1,6 +1,7 @@
 import { colors } from "@/constants/theme";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { audioDownloadService } from "@/services/audioDownload";
+import { shareService } from "@/services/shareService";
 import { showErrorToast, showSuccessToast } from "@/utils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
@@ -780,7 +781,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                         <MaterialIcons
                           name="replay-10"
                           size={34}
-                          color="rgba(255, 255, 255, 0.82)"
+                          color={colors.text.primary}
                         />
                       </View>
                     </TouchableOpacity>
@@ -820,7 +821,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                         <MaterialIcons
                           name="forward-10"
                           size={34}
-                          color="rgba(255, 255, 255, 0.82)"
+                          color={colors.text.primary}
                         />
                       </View>
                     </TouchableOpacity>
