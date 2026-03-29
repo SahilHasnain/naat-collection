@@ -221,7 +221,13 @@ function RootLayoutContent() {
           isSearchActive={isSearchActive}
           searchInput={searchInput}
           onSearchInputChange={setSearchInput}
-          onSearchSubmit={() => submitSearch(searchInput)}
+          onSearchSubmit={() => {
+            const trimmed = searchInput.trim();
+            if (trimmed) {
+              setSearchInput(trimmed);
+              submitSearch(trimmed);
+            }
+          }}
           onSearchClose={deactivateSearch}
         />
       )}

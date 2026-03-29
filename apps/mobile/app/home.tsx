@@ -73,7 +73,6 @@ export default function HomeScreen() {
   // Search suggestions
   const { suggestions, updateSuggestions, addToHistory } = useSearchSuggestions(
     {
-      naats: filters.naats,
       maxSuggestions: 10,
     },
   );
@@ -117,7 +116,7 @@ export default function HomeScreen() {
   // --- Search orchestration effects ---
 
   useEffect(() => {
-    if (isSearchActive) updateSuggestions(searchInput);
+    if (isSearchActive) updateSuggestions();
   }, [searchInput, isSearchActive, updateSuggestions]);
 
   useEffect(() => {
