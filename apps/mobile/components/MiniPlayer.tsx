@@ -192,28 +192,6 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand, networkIndicatorOffse
               />
             </TouchableOpacity>
 
-            {/* Share Button */}
-            <TouchableOpacity
-              onPress={async (e) => {
-                e.stopPropagation();
-                await shareService.shareCurrentAudio(
-                  currentAudio.title,
-                  currentAudio.channelName,
-                  currentAudio.youtubeId,
-                  currentAudio.naatId
-                );
-              }}
-              className="h-9 w-9 items-center justify-center mr-2"
-              accessibilityRole="button"
-              accessibilityLabel="Share"
-            >
-              <Ionicons
-                name="share-outline"
-                size={20}
-                color={colors.text.secondary}
-              />
-            </TouchableOpacity>
-
             {/* Close Button */}
             <TouchableOpacity
               onPress={(e) => {
