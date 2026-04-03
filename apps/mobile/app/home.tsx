@@ -11,6 +11,7 @@ import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useHomeFilters } from "@/hooks/useHomeFilters";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { useSearchSuggestions } from "@/hooks/useSearchSuggestions";
+import { shareService } from "@/services/shareService";
 import { storageService } from "@/services/storage";
 import type { Naat } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -35,6 +37,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    autoPlayNaatId?: string;
+    youtubeId?: string;
+  }>();
+  const lastAutoPlayedNaatIdRef = useRef<string | null>(null);
 
   // First-time hint state
   const [showDownloadHint, setShowDownloadHint] = useState(false);
@@ -65,7 +73,7 @@ export default function HomeScreen() {
   const { downloadStates, handleDownload } = useDownloadManager(
     filters.displayData,
   );
-  const { handleNaatPress, playAsAudio, playAsVideo } = useNaatPlayback(
+  const { handleNaatPress, playAsAudio, playAsVideo, playSharedNaatById } = useNaatPlayback(
     filters.displayData,
   );
 
@@ -170,15 +178,22 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.selectedFilter, filters.selectedChannelId, filters.pureOnly]);
 
-  // Handle deep link auto-play
   useEffect(() => {
-    const checkDeepLinkParams = async () => {
-      // This will be triggered by the deep link handler in _layout.tsx
-      // which passes autoPlayNaatId via router params
-      // For now, we'll implement this when the router params are available
-    };
-    checkDeepLinkParams();
-  }, []);
+    const autoPlayNaatId =
+      typeof params.autoPlayNaatId === "string" ? params.autoPlayNaatId : null;
+
+    if (!autoPlayNaatId || lastAutoPlayedNaatIdRef.current === autoPlayNaatId) {
+      return;
+    }
+
+    lastAutoPlayedNaatIdRef.current = autoPlayNaatId;
+
+    void playSharedNaatById(autoPlayNaatId).then((didStartAudio) => {
+      if (didStartAudio) {
+        router.replace("/home");
+      }
+    });
+  }, [params.autoPlayNaatId, playSharedNaatById, router]);
 
   // Android back button
   useEffect(() => {
@@ -602,7 +617,6 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* SHARE BUTTON - COMMENTED OUT
             <View className="flex-row items-stretch mt-2.5" style={{ gap: 10 }}>
               <TouchableOpacity
                 onPress={async () => {
@@ -630,7 +644,6 @@ export default function HomeScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-            */}
           </SafeAreaView>
         </View>
       </Modal>
