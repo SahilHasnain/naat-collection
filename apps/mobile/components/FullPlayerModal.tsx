@@ -1,7 +1,6 @@
 import { colors } from "@/constants/theme";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { audioDownloadService } from "@/services/audioDownload";
-import { shareService } from "@/services/shareService";
 import { showErrorToast, showSuccessToast } from "@/utils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
@@ -467,7 +466,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     </TouchableOpacity>
                   )}
 
-                  {/* Share */}
+                  {/* SHARE BUTTON - COMMENTED OUT
                   <TouchableOpacity
                     onPress={async () => {
                       setShowOptionsMenu(false);
@@ -504,6 +503,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       </Text>
                     </View>
                   </TouchableOpacity>
+                  */}
 
                   {/* Repeat */}
                   <TouchableOpacity
