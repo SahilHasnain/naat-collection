@@ -20,6 +20,23 @@ export function useNaatPlayback(displayData: Naat[]) {
     displayData.forEach((naat) => naatsMapRef.current.set(naat.$id, naat));
   }, [displayData]);
 
+  const getNaatById = React.useCallback(
+    async (naatId: string): Promise<Naat | null> => {
+      const cached = naatsMapRef.current.get(naatId);
+      if (cached) {
+        return cached;
+      }
+
+      try {
+        return await appwriteService.getNaatById(naatId);
+      } catch (error) {
+        console.error(`[useNaatPlayback] Failed to fetch naat "${naatId}"`, error);
+        return null;
+      }
+    },
+    [],
+  );
+
   const navigateToVideo = React.useCallback(
     (
       naat: Naat,
@@ -55,18 +72,26 @@ export function useNaatPlayback(displayData: Naat[]) {
   );
 
   const loadAudioDirectly = React.useCallback(
-    async (naat: Naat) => {
+    async (
+      naat: Naat,
+      fallbackMode: "alert" | "auto-video" = "alert",
+    ): Promise<boolean> => {
       await storageService.addToWatchHistory(naat.$id);
-      
+
       // Always prioritize cutAudio over audioId
       const audioId = naat.cutAudio || naat.audioId;
 
       if (!audioId) {
-        showVideoFallbackAlert(
-          naat, audioId,
-          "Audio is not available for this content. Would you like to play the video instead?",
-        );
-        return;
+        if (fallbackMode === "auto-video") {
+          navigateToVideo(naat, audioId, true);
+        } else {
+          showVideoFallbackAlert(
+            naat,
+            audioId,
+            "Audio is not available for this content. Would you like to play the video instead?",
+          );
+        }
+        return false;
       }
 
       console.log(`[useNaatPlayback] Playing audio for "${naat.title}":`, {
@@ -90,11 +115,16 @@ export function useNaatPlayback(displayData: Naat[]) {
             audioUrl = response.audioUrl;
             console.log(`[useNaatPlayback] Fetched audio URL from server`);
           } else {
-            showVideoFallbackAlert(
-              naat, audioId,
-              "Audio is not available for this content. Would you like to play the video instead?",
-            );
-            return;
+            if (fallbackMode === "auto-video") {
+              navigateToVideo(naat, audioId, true);
+            } else {
+              showVideoFallbackAlert(
+                naat,
+                audioId,
+                "Audio is not available for this content. Would you like to play the video instead?",
+              );
+            }
+            return false;
           }
         }
 
@@ -109,15 +139,22 @@ export function useNaatPlayback(displayData: Naat[]) {
           naatId: naat.$id,
         };
         await loadAndPlay(audioMetadata);
+        return true;
       } catch (err) {
         console.error("Failed to load audio:", err);
-        showVideoFallbackAlert(
-          naat, audioId,
-          "Unable to load audio. Would you like to play the video instead?",
-        );
+        if (fallbackMode === "auto-video") {
+          navigateToVideo(naat, audioId, true);
+        } else {
+          showVideoFallbackAlert(
+            naat,
+            audioId,
+            "Unable to load audio. Would you like to play the video instead?",
+          );
+        }
+        return false;
       }
     },
-    [loadAndPlay, showVideoFallbackAlert],
+    [loadAndPlay, navigateToVideo, showVideoFallbackAlert],
   );
 
   // Autoplay: pick random naat when current finishes
@@ -134,9 +171,9 @@ export function useNaatPlayback(displayData: Naat[]) {
 
   const handleNaatPress = React.useCallback(
     async (naatId: string) => {
-      const naat = naatsMapRef.current.get(naatId);
+      const naat = await getNaatById(naatId);
       if (!naat) return;
-      
+
       console.log(`[useNaatPlayback] Naat pressed: "${naat.title}"`, {
         cutAudio: naat.cutAudio,
         audioId: naat.audioId,
@@ -157,29 +194,48 @@ export function useNaatPlayback(displayData: Naat[]) {
         await loadAudioDirectly(naat);
       }
     },
-    [loadAudioDirectly, navigateToVideo],
+    [getNaatById, loadAudioDirectly, navigateToVideo],
   );
 
   const playAsAudio = React.useCallback(
     async (naatId: string) => {
-      const naat = naatsMapRef.current.get(naatId);
+      const naat = await getNaatById(naatId);
       if (!naat) return;
       await loadAudioDirectly(naat);
     },
-    [loadAudioDirectly],
+    [getNaatById, loadAudioDirectly],
   );
 
   const playAsVideo = React.useCallback(
     async (naatId: string) => {
-      const naat = naatsMapRef.current.get(naatId);
+      const naat = await getNaatById(naatId);
       if (!naat) return;
 
       await storageService.addToWatchHistory(naat.$id);
       const preferredAudioId = naat.cutAudio || naat.audioId;
       navigateToVideo(naat, preferredAudioId, false, true);
     },
-    [navigateToVideo],
+    [getNaatById, navigateToVideo],
   );
 
-  return { handleNaatPress, loadAudioDirectly, playAsAudio, playAsVideo };
+  const playSharedNaatById = React.useCallback(
+    async (naatId: string) => {
+      const naat = await getNaatById(naatId);
+      if (!naat) {
+        showErrorToast("Unable to open shared naat");
+        return false;
+      }
+
+      return loadAudioDirectly(naat, "auto-video");
+    },
+    [getNaatById, loadAudioDirectly],
+  );
+
+  return {
+    handleNaatPress,
+    loadAudioDirectly,
+    playAsAudio,
+    playAsVideo,
+    playSharedNaatById,
+  };
 }
