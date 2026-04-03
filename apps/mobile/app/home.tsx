@@ -11,7 +11,6 @@ import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useHomeFilters } from "@/hooks/useHomeFilters";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { useSearchSuggestions } from "@/hooks/useSearchSuggestions";
-import { shareService } from "@/services/shareService";
 import { storageService } from "@/services/storage";
 import type { Naat } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -603,6 +602,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* SHARE BUTTON - COMMENTED OUT
             <View className="flex-row items-stretch mt-2.5" style={{ gap: 10 }}>
               <TouchableOpacity
                 onPress={async () => {
@@ -630,6 +630,7 @@ export default function HomeScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+            */}
           </SafeAreaView>
         </View>
       </Modal>
