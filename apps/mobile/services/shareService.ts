@@ -16,6 +16,7 @@ export interface ShareOptions {
 
 // Deep link scheme for the app
 const APP_SCHEME = "ubaidraza";
+const SHARE_BASE_URL = "https://owaisrazaqadri.appwrite.network";
 
 /**
  * Generate a deep link URL that opens in the app
@@ -23,6 +24,11 @@ const APP_SCHEME = "ubaidraza";
  */
 function generateDeepLink(naatId: string, youtubeId: string): string {
   return `${APP_SCHEME}://naat/${naatId}?youtubeId=${youtubeId}`;
+}
+
+function generateShareUrl(naatId: string, youtubeId?: string): string {
+  const search = youtubeId ? `?youtubeId=${encodeURIComponent(youtubeId)}` : "";
+  return `${SHARE_BASE_URL}/naat/${naatId}${search}`;
 }
 
 /**
@@ -42,7 +48,7 @@ export async function shareNaat(
     let message = customMessage || `🎵 ${naat.title}`;
 
     // Use web URL that will redirect to app if installed, YouTube if not
-    const webUrl = `https://owaisrazaqadri.appwrite.network/naat/${naat.$id}?youtubeId=${naat.youtubeId}`;
+    const webUrl = generateShareUrl(naat.$id, naat.youtubeId);
     message += `\n\n${webUrl}`;
 
     // Share content
@@ -110,8 +116,8 @@ export async function shareCurrentAudio(
   try {
     let message = `🎵 ${title}`;
 
-    if (naatId && youtubeId) {
-      const webUrl = `https://owaisrazaqadri.appwrite.network/naat/${naatId}?youtubeId=${youtubeId}`;
+      if (naatId && youtubeId) {
+      const webUrl = generateShareUrl(naatId, youtubeId);
       message += `\n\n${webUrl}`;
     } else if (youtubeId) {
       const youtubeUrl = `https://youtu.be/${youtubeId}`;
@@ -122,7 +128,7 @@ export async function shareCurrentAudio(
       {
         message,
         url: Platform.OS === "ios" && naatId && youtubeId
-          ? `https://owaisrazaqadri.appwrite.network/naat/${naatId}?youtubeId=${youtubeId}`
+          ? generateShareUrl(naatId, youtubeId)
           : Platform.OS === "ios" && youtubeId
           ? `https://youtu.be/${youtubeId}`
           : undefined,
@@ -154,4 +160,5 @@ export const shareService = {
   shareNaat,
   shareCurrentAudio,
   generateDeepLink,
+  generateShareUrl,
 };

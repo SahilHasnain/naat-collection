@@ -11,6 +11,31 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Linking } from "react-native";
 
+function extractSharedNaatParams(url: string): {
+  naatId: string | null;
+  youtubeId: string | null;
+} {
+  const urlObj = new URL(url);
+  const youtubeId = urlObj.searchParams.get("youtubeId");
+
+  if (urlObj.protocol === "ubaidraza:") {
+    const customSchemeSegments = [urlObj.host, ...urlObj.pathname.split("/")].filter(
+      Boolean,
+    );
+
+    if (customSchemeSegments[0] === "naat" && customSchemeSegments[1]) {
+      return { naatId: customSchemeSegments[1], youtubeId };
+    }
+  }
+
+  const webSegments = urlObj.pathname.split("/").filter(Boolean);
+  if (webSegments[0] === "naat" && webSegments[1]) {
+    return { naatId: webSegments[1], youtubeId };
+  }
+
+  return { naatId: null, youtubeId };
+}
+
 export function useDeepLinking() {
   const router = useRouter();
   const isInitialMount = useRef(true);
@@ -21,26 +46,11 @@ export function useDeepLinking() {
       try {
         console.log("[useDeepLinking] Handling deep link:", url);
 
-        // Parse the URL
-        // Format: ubaidraza://naat/{naatId}?youtubeId={youtubeId}
-        const urlObj = new URL(url);
-        
-        if (urlObj.protocol !== "ubaidraza:") {
-          console.log("[useDeepLinking] Invalid protocol:", urlObj.protocol);
-          return;
-        }
+        const { naatId, youtubeId } = extractSharedNaatParams(url);
 
-        // Extract path segments
-        const pathSegments = urlObj.pathname.split("/").filter(Boolean);
-        
-        if (pathSegments[0] === "naat" && pathSegments[1]) {
-          const naatId = pathSegments[1];
-          const youtubeId = urlObj.searchParams.get("youtubeId");
-
+        if (naatId) {
           console.log("[useDeepLinking] Opening naat:", { naatId, youtubeId });
 
-          // Navigate to home and trigger playback
-          // The home screen will handle loading and playing the naat
           router.push({
             pathname: "/home",
             params: {
@@ -56,7 +66,7 @@ export function useDeepLinking() {
             data: { naatId, youtubeId },
           });
         } else {
-          console.log("[useDeepLinking] Unknown deep link path:", pathSegments);
+          console.log("[useDeepLinking] Unknown deep link:", url);
         }
       } catch (error) {
         console.error("[useDeepLinking] Error handling deep link:", error);
