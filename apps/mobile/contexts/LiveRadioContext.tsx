@@ -80,10 +80,14 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
 
       setIsPlaying(false);
       setIsLoading(false);
-      setMode("none");
+      // Only set mode to "none" if normal audio is not active
+      // If normal audio is active, AudioContext has already set mode to "normal"
+      if (!isNormalAudioActive) {
+        setMode("none");
+      }
       setShowMiniPlayer(source === "mini-pause");
     },
-    [setMode],
+    [setMode, isNormalAudioActive],
   );
 
   const stop = useCallback(async () => {
@@ -194,7 +198,11 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
             if (isStopped) {
               const shouldKeepMiniVisible = stopSource.current === "mini-pause";
               setShowMiniPlayer(shouldKeepMiniVisible);
-              setMode("none");
+              // Only set mode to "none" if normal audio is not active
+              // If normal audio is active, AudioContext has already set mode to "normal"
+              if (!isNormalAudioActive) {
+                setMode("none");
+              }
               stopSource.current = null;
             }
           } else if (currentTrack && currentTrack.id !== "live-radio-icecast") {
@@ -219,7 +227,10 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsLoading(false);
         setIsPlaying(false);
         setShowMiniPlayer(false);
-        setMode("none");
+        // Only set mode to "none" if normal audio is not active
+        if (!isNormalAudioActive) {
+          setMode("none");
+        }
         stopSource.current = null;
       },
     );
