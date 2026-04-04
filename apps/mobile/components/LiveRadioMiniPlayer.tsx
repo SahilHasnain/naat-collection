@@ -144,17 +144,6 @@ const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
           accessibilityRole="button"
           accessibilityLabel={`Naat radio playing: ${currentNaat.title}. Double tap to expand.`}
         >
-          {/* Live indicator bar - red when playing, gray when paused */}
-          <View
-            className="absolute top-0 left-0 right-0"
-            style={{
-              height: 2,
-              backgroundColor: isPlaying
-                ? colors.accent.primary
-                : colors.text.disabled,
-            }}
-          />
-
           <View className="flex-row items-center h-full px-4">
             {/* Gumbad Icon */}
             <View className="items-center justify-center mr-3">
