@@ -1,4 +1,5 @@
 import EmptyState from "@/components/EmptyState";
+import NaatActionSheet from "@/components/NaatActionSheet";
 import NaatCard from "@/components/NaatCard";
 import { SearchFilterBar } from "@/components/SearchFilterBar";
 import { SearchSuggestions } from "@/components/SearchSuggestions";
@@ -11,7 +12,6 @@ import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useHomeFilters } from "@/hooks/useHomeFilters";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { useSearchSuggestions } from "@/hooks/useSearchSuggestions";
-import { shareService } from "@/services/shareService";
 import { storageService } from "@/services/storage";
 import type { Naat } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,14 +26,12 @@ import {
   ActivityIndicator,
   BackHandler,
   FlatList,
-  Modal,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
@@ -528,125 +526,16 @@ export default function HomeScreen() {
         </View>
       )}
 
-      <Modal
+      <NaatActionSheet
         visible={isActionSheetVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={closeActionSheet}
-      >
-        <View
-          className="flex-1 justify-end"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={closeActionSheet}
-            style={{ flex: 1 }}
-          />
-          <SafeAreaView
-            edges={["bottom"]}
-            className="px-6 pt-3 rounded-t-3xl"
-            style={{
-              backgroundColor: colors.background.secondary,
-              paddingBottom: 16,
-            }}
-          >
-            <View className="items-center mb-3">
-              <View
-                className="rounded-full"
-                style={{
-                  width: 40,
-                  height: 4,
-                  backgroundColor: colors.text.tertiary,
-                }}
-              />
-            </View>
-
-            <View className="flex-row items-stretch" style={{ gap: 10 }}>
-              <TouchableOpacity
-                onPress={handleDownloadFromSheet}
-                className="rounded-2xl px-4 py-4 flex-row items-center justify-center flex-1"
-                style={{ backgroundColor: colors.accent.primary }}
-                disabled={!selectedNaat}
-                activeOpacity={0.88}
-              >
-                <Ionicons
-                  name={
-                    selectedNaat &&
-                      downloadStates[selectedNaat.$id]?.isDownloaded
-                      ? "checkmark-circle"
-                      : "download-outline"
-                  }
-                  size={20}
-                  color="#ffffff"
-                />
-                <Text
-                  className="ml-2 text-sm font-semibold"
-                  style={{ color: "#ffffff" }}
-                  numberOfLines={1}
-                >
-                  Download
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleAlternatePlay}
-                className="rounded-2xl px-4 py-4 flex-row items-center justify-center flex-1"
-                style={{ backgroundColor: colors.accent.secondary }}
-                disabled={!selectedNaat}
-                activeOpacity={0.88}
-              >
-                <Ionicons
-                  name={
-                    savedPlaybackMode === "audio"
-                      ? "videocam-outline"
-                      : "musical-notes-outline"
-                  }
-                  size={20}
-                  color="#ffffff"
-                />
-                <Text
-                  className="ml-2 text-sm font-semibold"
-                  style={{ color: "#ffffff" }}
-                  numberOfLines={1}
-                >
-                  {savedPlaybackMode === "audio"
-                    ? "Play as video"
-                    : "Play as audio"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View className="flex-row items-stretch mt-2.5" style={{ gap: 10 }}>
-              <TouchableOpacity
-                onPress={async () => {
-                  if (selectedNaat) {
-                    closeActionSheet();
-                    await shareService.shareNaat(selectedNaat);
-                  }
-                }}
-                className="rounded-2xl px-4 py-4 flex-row items-center justify-center flex-1"
-                style={{ backgroundColor: colors.background.elevated }}
-                disabled={!selectedNaat}
-                activeOpacity={0.88}
-              >
-                <Ionicons
-                  name="share-outline"
-                  size={20}
-                  color={colors.text.primary}
-                />
-                <Text
-                  className="ml-2 text-sm font-semibold"
-                  style={{ color: colors.text.primary }}
-                  numberOfLines={1}
-                >
-                  Share
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </SafeAreaView>
-        </View>
-      </Modal>
+        selectedNaat={selectedNaat}
+        savedPlaybackMode={savedPlaybackMode}
+        onClose={closeActionSheet}
+        onDownload={handleDownloadFromSheet}
+        onAlternatePlay={handleAlternatePlay}
+        isDownloaded={selectedNaat ? downloadStates[selectedNaat.$id]?.isDownloaded : false}
+        showDownload={true}
+      />
     </View>
   );
 }

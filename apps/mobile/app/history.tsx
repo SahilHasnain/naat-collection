@@ -1,9 +1,11 @@
 import EmptyState from "@/components/EmptyState";
 import HistoryCard from "@/components/HistoryCard";
+import NaatActionSheet from "@/components/NaatActionSheet";
 import { colors } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
+import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { HistoryItem, useHistory } from "@/hooks/useHistory";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
@@ -17,7 +19,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -53,10 +55,12 @@ interface HistorySection {
 function SwipeableHistoryCard({
   item,
   onPress,
+  onLongPress,
   onDelete,
 }: {
   item: HistoryItem;
   onPress: () => void;
+  onLongPress: () => void;
   onDelete: () => void;
 }) {
   const translateX = useSharedValue(0);
@@ -132,6 +136,7 @@ function SwipeableHistoryCard({
             views={item.views}
             watchedAt={item.watchedAt}
             onPress={onPress}
+            onLongPress={onLongPress}
           />
         </Animated.View>
       </GestureDetector>
@@ -153,6 +158,11 @@ export default function HistoryScreen() {
   // Tab bar visibility context
   const { handleScroll: handleTabBarScroll, showTabBar } = useTabBarVisibility();
 
+  // Action sheet state
+  const [isActionSheetVisible, setIsActionSheetVisible] = useState(false);
+  const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
+  const [savedPlaybackMode, setSavedPlaybackMode] = useState<"audio" | "video">("audio");
+
   // Data fetching hook
   const {
     history,
@@ -164,6 +174,9 @@ export default function HistoryScreen() {
     clearHistory,
     removeFromHistory,
   } = useHistory();
+
+  // Download manager (must be after history is declared)
+  const { downloadStates, handleDownload } = useDownloadManager(history);
 
   // Refresh data when screen comes into focus
   useFocusEffect(
@@ -412,6 +425,71 @@ export default function HistoryScreen() {
     [history, loadAudioDirectly, router],
   );
 
+  // Handle long press on card
+  const handleCardLongPress = useCallback(async (naatId: string) => {
+    const naat = history.find((n) => n.$id === naatId);
+    if (!naat) return;
+
+    setSelectedNaat(naat);
+    setIsActionSheetVisible(true);
+
+    // Load haptics and playback mode asynchronously
+    void (async () => {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch (error) {
+        console.log("Haptics unavailable:", error);
+      }
+
+      try {
+        const mode = (await storageService.loadPlaybackMode()) || "audio";
+        setSavedPlaybackMode(mode);
+      } catch (error) {
+        console.log("Failed to load playback mode:", error);
+        setSavedPlaybackMode("audio");
+      }
+    })();
+  }, [history]);
+
+  // Close action sheet
+  const closeActionSheet = useCallback(() => {
+    setIsActionSheetVisible(false);
+    setSelectedNaat(null);
+  }, []);
+
+  // Handle download from action sheet
+  const handleDownloadFromSheet = useCallback(async () => {
+    if (!selectedNaat) return;
+    closeActionSheet();
+    await handleDownload(selectedNaat);
+  }, [closeActionSheet, handleDownload, selectedNaat]);
+
+  // Handle alternate play from action sheet
+  const handleAlternatePlay = useCallback(async () => {
+    if (!selectedNaat) return;
+    closeActionSheet();
+
+    if (savedPlaybackMode === "audio") {
+      // Play as video
+      router.push({
+        pathname: "/video",
+        params: {
+          videoUrl: selectedNaat.videoUrl,
+          title: selectedNaat.title,
+          channelName: selectedNaat.channelName,
+          thumbnailUrl: selectedNaat.thumbnailUrl,
+          duration: String(selectedNaat.duration),
+          youtubeId: selectedNaat.youtubeId,
+          audioId: selectedNaat.audioId,
+          isFallback: "false",
+        },
+      });
+    } else {
+      // Play as audio
+      await loadAudioDirectly(selectedNaat);
+    }
+  }, [closeActionSheet, savedPlaybackMode, selectedNaat, router, loadAudioDirectly]);
+
   // Handle delete single item
   const handleDeleteItem = useCallback(
     async (naatId: string, title: string) => {
@@ -520,11 +598,12 @@ export default function HistoryScreen() {
         <SwipeableHistoryCard
           item={item}
           onPress={() => handleNaatPress(item.$id)}
+          onLongPress={() => handleCardLongPress(item.$id)}
           onDelete={() => handleDeleteItem(item.$id, item.title)}
         />
       </View>
     ),
-    [handleNaatPress, handleDeleteItem],
+    [handleNaatPress, handleCardLongPress, handleDeleteItem],
   );
 
   // Handle infinite scroll
@@ -663,6 +742,17 @@ export default function HistoryScreen() {
           )}
           */}
         </View>
+
+        <NaatActionSheet
+          visible={isActionSheetVisible}
+          selectedNaat={selectedNaat}
+          savedPlaybackMode={savedPlaybackMode}
+          onClose={closeActionSheet}
+          onDownload={handleDownloadFromSheet}
+          onAlternatePlay={handleAlternatePlay}
+          isDownloaded={selectedNaat ? downloadStates[selectedNaat.$id]?.isDownloaded : false}
+          showDownload={true}
+        />
       </SafeAreaView>
     </GestureHandlerRootView>
   );

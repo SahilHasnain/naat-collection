@@ -21,15 +21,18 @@ interface HistoryCardProps {
   views: number;
   watchedAt: number;
   onPress: () => void;
+  onLongPress?: () => void;
 }
 
 const HistoryCard: React.FC<HistoryCardProps> = React.memo(
-  ({ title, thumbnail, duration, channelName, views, watchedAt, onPress }) => {
+  ({ title, thumbnail, duration, channelName, views, watchedAt, onPress, onLongPress }) => {
     const [imageError, setImageError] = React.useState(false);
 
     return (
       <Pressable
         onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={260}
         className="flex-row items-start gap-3 rounded-lg"
         style={({ pressed }) => ({
           opacity: pressed ? 0.7 : 1,
