@@ -6,7 +6,7 @@ Standalone Next.js web application for managing the Naat Collection.
 
 - Exclude/include naats from the mobile app
 - Manual audio cutting with preview
-- Admin panel with PIN protection
+- Admin panel with password protection
 
 ## Setup
 
@@ -44,6 +44,7 @@ Required variables:
 - `NEXT_PUBLIC_APPWRITE_DATABASE_ID`
 - `NEXT_PUBLIC_APPWRITE_NAATS_COLLECTION_ID`
 - `NEXT_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID`
+- `NEXT_PUBLIC_ADMIN_PASSWORD` (client-visible admin gate password, max 10 chars)
 - `APPWRITE_API_KEY` (server-side only)
 
 ## Tech Stack
