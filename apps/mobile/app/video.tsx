@@ -458,7 +458,8 @@ export default function VideoScreen() {
                   </View>
                 </View>
 
-                {/* Repeat Button */}
+                {/* Repeat button intentionally hidden. Keep repeat logic wired for future use. */}
+                {/*
                 <View className="mb-4 flex-row items-center justify-center">
                   <Pressable
                     onPress={toggleRepeat}
@@ -489,6 +490,7 @@ export default function VideoScreen() {
                     </Text>
                   </Pressable>
                 </View>
+                */}
 
                 {/* Play as Audio Button */}
                 <Pressable

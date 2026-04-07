@@ -64,7 +64,9 @@ export function useNaatPlayback(displayData: Naat[]) {
   const showVideoFallbackAlert = React.useCallback(
     (naat: Naat, audioId: string | undefined, message: string) => {
       Alert.alert("Audio Not Available", message, [
-        { text: "Cancel", style: "cancel", onPress: () => showErrorToast("Playback cancelled") },
+        // Intentionally no cancel toast here. "Playback cancelled" is noise and was removed on purpose;
+        // keep it absent so future edits do not reintroduce it from prior assumptions.
+        { text: "Cancel", style: "cancel" },
         { text: "Play Video", onPress: () => navigateToVideo(naat, audioId, true) },
       ]);
     },

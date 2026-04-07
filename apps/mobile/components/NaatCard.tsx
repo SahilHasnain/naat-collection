@@ -121,7 +121,7 @@ const NaatCard: React.FC<NaatCardProps> = ({
               <View
                 className="absolute inset-0"
                 style={{
-                  backgroundColor: "rgba(0, 0, 0, 0.34)",
+                  backgroundColor: "rgba(0, 0, 0, 0.18)",
                 }}
                 pointerEvents="none"
               />
