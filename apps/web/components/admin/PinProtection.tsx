@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-const ADMIN_PIN = process.env.NEXT_PUBLIC_ADMIN_PIN || "1234"; // Fallback to 1234 if not set
-const PIN_STORAGE_KEY = "admin_pin_verified";
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "admin123";
+const ADMIN_AUTH_STORAGE_KEY = "admin_password_verified";
 
 interface PinProtectionProps {
   children: React.ReactNode;
@@ -11,13 +11,13 @@ interface PinProtectionProps {
 
 export default function PinProtection({ children }: PinProtectionProps) {
   const [isVerified, setIsVerified] = useState(false);
-  const [pin, setPin] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check if already verified in this session
-    const verified = sessionStorage.getItem(PIN_STORAGE_KEY);
+    const verified = sessionStorage.getItem(ADMIN_AUTH_STORAGE_KEY);
     if (verified === "true") {
       setIsVerified(true);
     }
@@ -27,13 +27,13 @@ export default function PinProtection({ children }: PinProtectionProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (pin === ADMIN_PIN) {
-      sessionStorage.setItem(PIN_STORAGE_KEY, "true");
+    if (password === ADMIN_PASSWORD) {
+      sessionStorage.setItem(ADMIN_AUTH_STORAGE_KEY, "true");
       setIsVerified(true);
       setError("");
     } else {
-      setError("Incorrect PIN");
-      setPin("");
+      setError("Incorrect password");
+      setPassword("");
     }
   };
 
@@ -56,17 +56,19 @@ export default function PinProtection({ children }: PinProtectionProps) {
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Enter PIN
+                Enter password
               </label>
               <input
                 type="password"
-                inputMode="numeric"
-                maxLength={6}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white text-center text-2xl tracking-widest"
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                maxLength={10}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white text-center text-lg tracking-[0.2em]"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 autoFocus
               />
+              <p className="mt-2 text-xs text-gray-400">
+                Supports up to 10 mixed characters.
+              </p>
             </div>
 
             {error && (
