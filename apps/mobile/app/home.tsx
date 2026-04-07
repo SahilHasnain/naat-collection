@@ -500,7 +500,7 @@ export default function HomeScreen() {
               tintColor={colors.accent.secondary}
             />
           }
-          removeClippedSubviews={true}
+          removeClippedSubviews={false}
           maxToRenderPerBatch={10}
           windowSize={10}
           initialNumToRender={10}
