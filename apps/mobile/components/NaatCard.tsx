@@ -43,10 +43,14 @@ const NaatCard: React.FC<NaatCardProps> = ({
       })}
     >
       <View
-        className="overflow-hidden rounded-[22px] border"
+        className="overflow-hidden rounded-[22px]"
         style={{
           backgroundColor: colors.background.secondary,
-          borderColor: colors.border.primary,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.18,
+          shadowRadius: 18,
+          elevation: 4,
         }}
       >
         <View
