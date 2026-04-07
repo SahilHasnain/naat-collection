@@ -33,41 +33,50 @@ const NaatCard: React.FC<NaatCardProps> = ({
   const [imageLoading, setImageLoading] = React.useState(true);
 
   return (
-    <View>
-      <Pressable
-        onPress={onPress}
-        onLongPress={onLongPress}
-        delayLongPress={260}
-        className="mb-4"
-        style={({ pressed }) => ({
-          opacity: pressed ? 0.7 : 1,
-        })}
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={260}
+      className="mb-4"
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.72 : 1,
+      })}
+    >
+      <View
+        className="overflow-hidden rounded-[22px] border"
+        style={{
+          backgroundColor: colors.background.secondary,
+          borderColor: colors.border.primary,
+        }}
       >
         <View
-          className="relative w-full"
-          style={{ height: 200, backgroundColor: colors.background.tertiary }}
+          className="relative w-full overflow-hidden"
+          style={{
+            aspectRatio: 16 / 9,
+            backgroundColor: colors.background.tertiary,
+          }}
         >
           {imageError || !thumbnail ? (
             <View
               className="items-center justify-center w-full h-full"
               style={{ backgroundColor: colors.background.tertiary }}
             >
-              <View className="items-center">
+              <View className="items-center px-4">
                 <View
                   className="p-3 rounded-full"
                   style={{ backgroundColor: colors.accent.primary + "20" }}
                 >
                   <Image
                     source={require("@/assets/images/headphone-v1.png")}
-                    style={{ width: 48, height: 48 }}
+                    style={{ width: 40, height: 40 }}
                     contentFit="contain"
                   />
                 </View>
                 <Text
-                  className="mt-2 text-sm font-medium"
+                  className="mt-2 text-xs font-medium"
                   style={{ color: colors.text.tertiary }}
                 >
-                  No Thumbnail
+                  Naat artwork unavailable
                 </Text>
               </View>
             </View>
@@ -75,7 +84,13 @@ const NaatCard: React.FC<NaatCardProps> = ({
             <>
               <Image
                 source={{ uri: thumbnail }}
-                style={{ width: "100%", height: 200 }}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  left: 0,
+                }}
                 contentFit="cover"
                 onError={() => {
                   setImageError(true);
@@ -85,32 +100,36 @@ const NaatCard: React.FC<NaatCardProps> = ({
                   setImageLoading(false);
                 }}
                 cachePolicy="memory-disk"
-                transition={300}
+                transition={220}
               />
               {imageLoading && (
                 <View
                   className="absolute inset-0 items-center justify-center"
                   style={{ backgroundColor: colors.background.tertiary }}
                 >
-                  <Ionicons name="hourglass" size={32} color="#717171" />
+                  <Ionicons
+                    name="hourglass"
+                    size={28}
+                    color={colors.text.tertiary}
+                  />
                 </View>
               )}
-              {!imageLoading && (
-                <View
-                  className="absolute inset-0"
-                  style={{ backgroundColor: "transparent" }}
-                  pointerEvents="none"
-                />
-              )}
+              <View
+                className="absolute inset-0"
+                style={{
+                  backgroundColor: "rgba(0, 0, 0, 0.34)",
+                }}
+                pointerEvents="none"
+              />
             </>
           )}
 
           <View
-            className="absolute bottom-2.5 right-2.5 rounded-lg px-3 py-1.5"
+            className="absolute bottom-2 left-2 rounded-full px-2.5 py-1"
             style={{ backgroundColor: colors.overlay.dark }}
           >
             <Text
-              className="text-xs font-bold tracking-wider"
+              className="text-[10px] font-bold tracking-wide"
               style={{ color: colors.text.primary }}
             >
               {formatDuration(duration)}
@@ -119,42 +138,43 @@ const NaatCard: React.FC<NaatCardProps> = ({
 
           {isCut && (
             <View
-              className="absolute top-2.5 right-2.5 rounded-full w-7 h-7 items-center justify-center"
+              className="absolute top-2 right-2 items-center justify-center rounded-full w-7 h-7"
               style={{ backgroundColor: colors.accent.primary }}
             >
-              <Ionicons name="cut-outline" size={14} color="#fff" />
+              <Ionicons name="cut-outline" size={11} color="#fff" />
             </View>
           )}
         </View>
 
-        <View className="px-2 pt-3">
-          <View className="flex-row gap-3">
-            <View className="flex-1">
-              <View className="mb-1.5">
-                <Text
-                  className="text-sm font-medium leading-tight"
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                  style={{ color: colors.text.primary }}
-                >
-                  {title}
-                </Text>
-              </View>
+        <View className="px-3 pb-3 pt-2.5">
+          <Text
+            className="text-sm font-semibold leading-[18px]"
+            numberOfLines={2}
+            ellipsizeMode="tail"
+            style={{ color: colors.text.primary, minHeight: 36 }}
+          >
+            {title}
+          </Text>
 
-              <View className="flex-row justify-end">
-                <Text
-                  className="text-xs"
-                  style={{ color: colors.text.secondary }}
-                  numberOfLines={1}
-                >
-                  {formatViews(views)} views · {formatRelativeTime(uploadDate)}
-                </Text>
-              </View>
-            </View>
+          <View className="mt-2">
+            <Text
+              className="text-[11px]"
+              style={{ color: colors.text.secondary }}
+              numberOfLines={1}
+            >
+              {formatRelativeTime(uploadDate)}
+            </Text>
+            <Text
+              className="mt-0.5 text-[11px]"
+              style={{ color: colors.text.tertiary }}
+              numberOfLines={1}
+            >
+              {formatViews(views)} views
+            </Text>
           </View>
         </View>
-      </Pressable>
-    </View>
+      </View>
+    </Pressable>
   );
 };
 
