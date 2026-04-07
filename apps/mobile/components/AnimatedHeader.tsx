@@ -83,28 +83,36 @@ export function AnimatedHeader({
             {/* Back Button */}
             <Pressable
               onPress={onSearchClose}
-              className="mr-3"
+              className="mr-3 items-center justify-center rounded-full"
               accessibilityLabel="Close search"
               accessibilityRole="button"
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={{
+                width: 36,
+                height: 36,
+                backgroundColor: colors.background.secondary,
+              }}
             >
               <Ionicons
-                name="arrow-back"
-                size={24}
-                color={colors.text.primary}
+                name="chevron-back"
+                size={20}
+                color={colors.text.secondary}
               />
             </Pressable>
 
             {/* Search Input */}
             <View
-              className="flex-1 flex-row items-center px-4 py-2.5 rounded-full"
-              style={{ backgroundColor: colors.background.secondary }}
+              className="flex-1 flex-row items-center px-4 py-2.5 rounded-full border"
+              style={{
+                backgroundColor: colors.background.secondary,
+                borderColor: colors.border.subtle,
+              }}
             >
               <Ionicons
                 name="search"
-                size={20}
+                size={18}
                 color={colors.text.secondary}
-                style={{ marginRight: 12 }}
+                style={{ marginRight: 10 }}
               />
               <TextInput
                 ref={inputRef}
@@ -122,13 +130,18 @@ export function AnimatedHeader({
               {searchInput.length > 0 && (
                 <Pressable
                   onPress={() => onSearchInputChange?.("")}
+                  className="items-center justify-center rounded-full"
                   accessibilityLabel="Clear search"
                   accessibilityRole="button"
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={{
+                    width: 24,
+                    height: 24,
+                  }}
                 >
                   <Ionicons
                     name="close-circle"
-                    size={20}
+                    size={18}
                     color={colors.text.secondary}
                   />
                 </Pressable>
