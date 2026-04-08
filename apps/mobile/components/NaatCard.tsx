@@ -43,14 +43,8 @@ const NaatCard: React.FC<NaatCardProps> = ({
       })}
     >
       <View
-        className="overflow-hidden rounded-[22px]"
+        className="overflow-hidden"
         style={{
-          backgroundColor: colors.background.secondary,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.18,
-          shadowRadius: 18,
-          elevation: 4,
         }}
       >
         <View
@@ -203,3 +197,4 @@ const arePropsEqual = (
 };
 
 export default React.memo(NaatCard, arePropsEqual);
+
