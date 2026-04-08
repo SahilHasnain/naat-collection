@@ -466,7 +466,6 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     </TouchableOpacity>
                   )}
 
-                  {/* SHARE BUTTON - COMMENTED OUT
                   <TouchableOpacity
                     onPress={async () => {
                       setShowOptionsMenu(false);
@@ -489,7 +488,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       style={{ backgroundColor: colors.background.elevated }}
                     >
                       <Ionicons
-                        name="share-outline"
+                        name="arrow-redo-outline"
                         size={20}
                         color="#e5e5e5"
                       />
@@ -503,7 +502,6 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       </Text>
                     </View>
                   </TouchableOpacity>
-                  */}
 
                   {/* Repeat */}
                   <TouchableOpacity
