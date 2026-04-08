@@ -12,15 +12,6 @@ on:
           - development
           - preview
           - production
-  push:
-    branches:
-      - main
-    paths:
-      - "apps/mobile/**"
-      - "packages/**"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/android-self-hosted.yml"
 
 jobs:
   build-android:
