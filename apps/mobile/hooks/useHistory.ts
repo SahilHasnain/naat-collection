@@ -160,10 +160,10 @@ export function useHistory(): UseHistoryReturn {
 
       setAllHistoryIds(historyIds);
       setTimestamps(historyTimestamps);
-      setCurrentPage(0);
-      setHistory([]);
 
       if (historyIds.length === 0) {
+        setCurrentPage(0);
+        setHistory([]);
         setHasMore(false);
         return;
       }
