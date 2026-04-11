@@ -1,6 +1,9 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
+import {
+  ADMIN_SESSION_COOKIE,
+  createAdminSessionToken,
+} from "@/lib/admin-auth";
 
 function getRequiredEnv(name: string) {
   const value = process.env[name];
@@ -38,26 +41,14 @@ export async function POST(request: Request) {
 
     const data = await response.json();
 
-    if (!response.ok || !data?.secret) {
+    if (!response.ok || !data?.userId) {
       return NextResponse.json(
         { error: data?.message || "Invalid login credentials." },
         { status: response.status || 401 }
       );
     }
 
-    const userResponse = await fetch(`${endpoint}/account`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Appwrite-Project": projectId,
-        "X-Appwrite-Session": data.secret,
-      },
-      cache: "no-store",
-    });
-
-    const userData = await userResponse.json();
-
-    if (!userResponse.ok || userData?.$id !== allowedUserId) {
+    if (data.userId !== allowedUserId) {
       return NextResponse.json(
         { error: "This account is not authorized for admin access." },
         { status: 403 }
@@ -65,7 +56,7 @@ export async function POST(request: Request) {
     }
 
     const cookieStore = await cookies();
-    cookieStore.set(ADMIN_SESSION_COOKIE, data.secret, {
+    cookieStore.set(ADMIN_SESSION_COOKIE, createAdminSessionToken(data.userId), {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
