@@ -1,17 +1,17 @@
-import PinProtection from "@/components/admin/PinProtection";
 import AdminHeader from "@/components/admin/AdminHeader";
+import { requireAdminSession } from "@/lib/admin-auth";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await requireAdminSession();
+
   return (
-    <PinProtection>
-      <div className="min-h-screen bg-neutral-950 text-white">
-        <AdminHeader />
-        {children}
-      </div>
-    </PinProtection>
+    <div className="min-h-screen bg-neutral-950 text-white">
+      <AdminHeader />
+      {children}
+    </div>
   );
 }
