@@ -47,14 +47,18 @@ async function getAllAudioFiles() {
   return files;
 }
 
+function getReferencedAudioIds(naat: Record<string, unknown>) {
+  return [naat.audioId, naat.cutAudio]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+}
+
 export async function POST() {
   try {
     const [naats, files] = await Promise.all([fetchAllNaats(), getAllAudioFiles()]);
 
     const referencedAudioIds = new Set(
-      naats
-        .map((naat) => String(naat.audioId || "").trim())
-        .filter(Boolean)
+      naats.flatMap((naat) => getReferencedAudioIds(naat))
     );
 
     let deletedCount = 0;

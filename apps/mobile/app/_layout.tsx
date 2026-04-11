@@ -1,7 +1,6 @@
 import { AnimatedHeader } from "@/components/AnimatedHeader";
 import { AnimatedTabBar } from "@/components/AnimatedTabBar";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import FullPlayerModal from "@/components/FullPlayerModal";
 import LiveRadioMiniPlayer from "@/components/LiveRadioMiniPlayer";
 import MiniPlayer from "@/components/MiniPlayer";
 import Pressable from "@/components/ResponsivePressable";
@@ -34,7 +33,6 @@ import {
 import { VideoProvider } from "@/contexts/VideoContext";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { storageService } from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import * as Sentry from "@sentry/react-native";
@@ -66,8 +64,7 @@ function RootLayoutContent() {
   // Initialize deep linking
   useDeepLinking();
 
-  const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
-  const { currentAudio, stop } = useAudioPlayer();
+  const { currentAudio } = useAudioPlayer();
   const { showMiniPlayer } = useLiveRadioPlayer();
   const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
   const { translateY } = useTabBarVisibility();
@@ -88,6 +85,7 @@ function RootLayoutContent() {
 
   // Check if user is on video screen
   const isOnVideoScreen = segments[0] === "video";
+  const isOnPlayerScreen = segments[0] === "player";
 
   // Check if user is on homepage (home route) - only enable filter on homepage
   const isOnHomepage = segments[0] === "home" || segments[0] === undefined;
@@ -145,59 +143,6 @@ function RootLayoutContent() {
       { duration: 200 },
     );
   }, [isIndicatorVisible, networkIndicatorOffset]);
-
-  // Handle switching from audio to video mode
-  const handleSwitchToVideo = async () => {
-    if (!currentAudio?.youtubeId) {
-      console.log("[SwitchToVideo] No YouTube ID available");
-      return;
-    }
-
-    console.log(
-      "[SwitchToVideo] Switching to video mode for:",
-      currentAudio.title,
-    );
-
-    // Store video data before stopping audio (which clears currentAudio)
-    const videoUrl = `https://www.youtube.com/watch?v=${currentAudio.youtubeId}`;
-    const videoData = {
-      videoUrl,
-      title: currentAudio.title,
-      channelName: currentAudio.channelName,
-      thumbnailUrl: currentAudio.thumbnailUrl,
-      youtubeId: currentAudio.youtubeId,
-      audioId: currentAudio.audioId,
-    };
-
-    // Save video preference
-    await storageService.savePlaybackMode("video").catch((error) => {
-      console.error("Failed to save video mode preference:", error);
-    });
-
-    // Stop audio playback first
-    await stop();
-
-    // Close audio player
-    setIsPlayerExpanded(false);
-
-    // Small delay to ensure smooth transition
-    setTimeout(() => {
-      console.log("[SwitchToVideo] Navigating to video screen");
-      // Navigate to video screen
-      router.push({
-        pathname: "/video",
-        params: {
-          videoUrl: videoData.videoUrl,
-          title: videoData.title,
-          channelName: videoData.channelName,
-          thumbnailUrl: videoData.thumbnailUrl,
-          youtubeId: videoData.youtubeId,
-          audioId: videoData.audioId,
-          isFallback: "false",
-        },
-      });
-    }, 100);
-  };
 
   return (
     <>
@@ -305,6 +250,12 @@ function RootLayoutContent() {
           }}
         />
         <Tabs.Screen
+          name="player"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
           name="naat"
           options={{
             href: null,
@@ -328,9 +279,10 @@ function RootLayoutContent() {
       {isNormalAudioActive &&
         currentAudio &&
         !isOnLiveTab &&
-        !isOnVideoScreen && (
+        !isOnVideoScreen &&
+        !isOnPlayerScreen && (
           <MiniPlayer
-            onExpand={() => setIsPlayerExpanded(true)}
+            onExpand={() => router.push("/player")}
             networkIndicatorOffset={networkIndicatorOffset}
           />
         )}
@@ -348,12 +300,6 @@ function RootLayoutContent() {
           />
         )}
 
-      {/* Full Player Modal */}
-      <FullPlayerModal
-        visible={isPlayerExpanded}
-        onClose={() => setIsPlayerExpanded(false)}
-        onSwitchToVideo={handleSwitchToVideo}
-      />
 
       {/* Connection status bar — sits below tab bar, above system nav */}
       {(!isConnected || showBackOnline) && (

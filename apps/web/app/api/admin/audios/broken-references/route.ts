@@ -57,38 +57,36 @@ export async function GET() {
   try {
     const [naats, audioFiles] = await Promise.all([fetchAllNaats(), getAllAudioFileIds()]);
 
-    const withAudio = naats.filter((naat) => Boolean(String(naat.audioId || "").trim()));
-    const withCutAudio = naats.filter((naat) => Boolean(String(naat.cutAudio || "").trim()));
-    const withoutAudio = naats.filter(
-      (naat) =>
-        !String(naat.audioId || "").trim() &&
-        !String(naat.cutAudio || "").trim()
-    );
+    const broken = naats
+      .map((naat) => {
+        const referencedIds = getReferencedAudioIds(naat);
+        const missingIds = referencedIds.filter((fileId) => !audioFiles.has(fileId));
 
-    const referencedAudioIds = new Set(
-      naats.flatMap((naat) => getReferencedAudioIds(naat))
-    );
-    const orphanedAudioFiles = [...audioFiles].filter((fileId) => !referencedAudioIds.has(fileId)).length;
-    const brokenAudioReferences = naats.filter((naat) =>
-      getReferencedAudioIds(naat).some((fileId) => !audioFiles.has(fileId))
-    );
+        if (missingIds.length === 0) {
+          return null;
+        }
+
+        return {
+          $id: String(naat.$id),
+          title: String(naat.title || "Untitled"),
+          youtubeId: String(naat.youtubeId || ""),
+          channelName: String(naat.channelName || "Unknown Channel"),
+          audioId: String(naat.audioId || ""),
+          cutAudio: String(naat.cutAudio || ""),
+          missingIds,
+        };
+      })
+      .filter(Boolean);
 
     return NextResponse.json({
-      totalNaats: naats.length,
-      withAudio: withAudio.length,
-      withoutAudio: withoutAudio.length,
-      withCutAudio: withCutAudio.length,
-      orphanedAudioFiles,
-      brokenAudioReferences: brokenAudioReferences.length,
-      sampleMissing: withoutAudio.slice(0, 12).map((naat) => ({
-        $id: String(naat.$id),
-        title: String(naat.title || "Untitled"),
-        youtubeId: String(naat.youtubeId || ""),
-        channelName: String(naat.channelName || "Unknown Channel"),
-      })),
+      count: broken.length,
+      items: broken.slice(0, 200),
     });
   } catch (error) {
-    console.error("Error fetching audio stats:", error);
-    return NextResponse.json({ error: "Failed to fetch audio stats" }, { status: 500 });
+    console.error("Error auditing broken audio references:", error);
+    return NextResponse.json(
+      { error: "Failed to audit broken audio references" },
+      { status: 500 }
+    );
   }
 }

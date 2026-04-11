@@ -34,6 +34,7 @@ export function AnimatedTabBar({
   const visibleRoutes = state.routes.filter((route) => {
     return (
       route.name !== "video" &&
+      route.name !== "player" &&
       route.name !== "naat" &&
       !route.name.startsWith("naat/") &&
       route.name !== "+not-found" &&
