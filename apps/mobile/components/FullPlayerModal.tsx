@@ -1,6 +1,7 @@
 import { colors } from "@/constants/theme";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { audioDownloadService } from "@/services/audioDownload";
+import { shareService } from "@/services/shareService";
 import { showErrorToast, showSuccessToast } from "@/utils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
@@ -12,7 +13,6 @@ import {
   Animated,
   Easing,
   ImageBackground,
-  Modal,
   Pressable,
   StatusBar,
   StyleSheet,
@@ -23,9 +23,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface FullPlayerModalProps {
-  visible: boolean;
-  onClose: () => void;
   onSwitchToVideo?: () => void; // Callback to switch to video mode
+  topInset?: number;
+  bottomInset?: number;
 }
 
 // Format milliseconds to MM:SS
@@ -39,9 +39,9 @@ const formatTime = (millis: number): string => {
 const TOP_BUTTONS_HIDE_DELAY_MS = 10000;
 
 const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
-  visible,
-  onClose,
   onSwitchToVideo,
+  topInset = 0,
+  bottomInset = 0,
 }) => {
   const {
     currentAudio,
@@ -100,16 +100,6 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   }, [currentAudio]);
 
   useEffect(() => {
-    if (!visible) {
-      if (hideTopButtonsTimerRef.current) {
-        clearTimeout(hideTopButtonsTimerRef.current);
-        hideTopButtonsTimerRef.current = null;
-      }
-      setShowTopButtons(true);
-      setShowOptionsMenu(false);
-      return;
-    }
-
     if (!showTopButtons || showOptionsMenu) {
       return;
     }
@@ -124,7 +114,15 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         hideTopButtonsTimerRef.current = null;
       }
     };
-  }, [visible, showTopButtons, showOptionsMenu]);
+  }, [showTopButtons, showOptionsMenu]);
+
+  useEffect(() => {
+    return () => {
+      if (hideTopButtonsTimerRef.current) {
+        clearTimeout(hideTopButtonsTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     Animated.parallel([
@@ -286,13 +284,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   const showDownloadButton = canDownload || isDownloaded;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={false}
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
+    <>
       <StatusBar
         barStyle="light-content"
         backgroundColor={colors.background.primary}
@@ -315,7 +307,11 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
             style={StyleSheet.absoluteFill}
           />
 
-          <SafeAreaView edges={["top", "bottom"]} className="flex-1">
+          <SafeAreaView
+            edges={["top", "bottom"]}
+            className="flex-1"
+            style={{ paddingTop: topInset, paddingBottom: bottomInset }}
+          >
             <Pressable
               style={StyleSheet.absoluteFill}
               onPress={handleBlankAreaPress}
@@ -918,7 +914,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
           </SafeAreaView>
         </ImageBackground>
       </View>
-    </Modal>
+    </>
   );
 };
 

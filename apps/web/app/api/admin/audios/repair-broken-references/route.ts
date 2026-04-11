@@ -47,48 +47,65 @@ async function getAllAudioFileIds() {
   return fileIds;
 }
 
-function getReferencedAudioIds(naat: Record<string, unknown>) {
-  return [naat.audioId, naat.cutAudio]
-    .map((value) => String(value || "").trim())
-    .filter(Boolean);
-}
-
-export async function GET() {
+export async function POST() {
   try {
     const [naats, audioFiles] = await Promise.all([fetchAllNaats(), getAllAudioFileIds()]);
 
-    const withAudio = naats.filter((naat) => Boolean(String(naat.audioId || "").trim()));
-    const withCutAudio = naats.filter((naat) => Boolean(String(naat.cutAudio || "").trim()));
-    const withoutAudio = naats.filter(
-      (naat) =>
-        !String(naat.audioId || "").trim() &&
-        !String(naat.cutAudio || "").trim()
-    );
+    let updatedCount = 0;
+    const sample: Array<{
+      $id: string;
+      title: string;
+      cleared: string[];
+    }> = [];
 
-    const referencedAudioIds = new Set(
-      naats.flatMap((naat) => getReferencedAudioIds(naat))
-    );
-    const orphanedAudioFiles = [...audioFiles].filter((fileId) => !referencedAudioIds.has(fileId)).length;
-    const brokenAudioReferences = naats.filter((naat) =>
-      getReferencedAudioIds(naat).some((fileId) => !audioFiles.has(fileId))
-    );
+    for (const naat of naats) {
+      const nextPatch: Record<string, unknown> = {};
+      const cleared: string[] = [];
+
+      const audioId = String(naat.audioId || "").trim();
+      const cutAudio = String(naat.cutAudio || "").trim();
+
+      if (audioId && !audioFiles.has(audioId)) {
+        nextPatch.audioId = null;
+        cleared.push("audioId");
+      }
+
+      if (cutAudio && !audioFiles.has(cutAudio)) {
+        nextPatch.cutAudio = null;
+        cleared.push("cutAudio");
+      }
+
+      if (cleared.length === 0) {
+        continue;
+      }
+
+      await databases.updateDocument(
+        DATABASE_ID,
+        NAATS_COLLECTION_ID,
+        String(naat.$id),
+        nextPatch
+      );
+
+      updatedCount++;
+
+      if (sample.length < 50) {
+        sample.push({
+          $id: String(naat.$id),
+          title: String(naat.title || "Untitled"),
+          cleared,
+        });
+      }
+    }
 
     return NextResponse.json({
-      totalNaats: naats.length,
-      withAudio: withAudio.length,
-      withoutAudio: withoutAudio.length,
-      withCutAudio: withCutAudio.length,
-      orphanedAudioFiles,
-      brokenAudioReferences: brokenAudioReferences.length,
-      sampleMissing: withoutAudio.slice(0, 12).map((naat) => ({
-        $id: String(naat.$id),
-        title: String(naat.title || "Untitled"),
-        youtubeId: String(naat.youtubeId || ""),
-        channelName: String(naat.channelName || "Unknown Channel"),
-      })),
+      updatedCount,
+      sample,
     });
   } catch (error) {
-    console.error("Error fetching audio stats:", error);
-    return NextResponse.json({ error: "Failed to fetch audio stats" }, { status: 500 });
+    console.error("Error repairing broken audio references:", error);
+    return NextResponse.json(
+      { error: "Failed to repair broken audio references" },
+      { status: 500 }
+    );
   }
 }

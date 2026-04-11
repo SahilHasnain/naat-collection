@@ -8,6 +8,7 @@ interface AudioStats {
   withoutAudio: number;
   withCutAudio: number;
   orphanedAudioFiles: number;
+  brokenAudioReferences: number;
   sampleMissing: Array<{ $id: string; title: string; youtubeId: string; channelName: string }>;
 }
 
@@ -30,6 +31,7 @@ export default function AudiosClient() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [cleaningOrphaned, setCleaningOrphaned] = useState(false);
+  const [repairingBrokenRefs, setRepairingBrokenRefs] = useState(false);
   const [testMode, setTestMode] = useState(false);
   const [limitEnabled, setLimitEnabled] = useState(true);
   const [limit, setLimit] = useState(10);
@@ -136,6 +138,35 @@ export default function AudiosClient() {
     }
   }
 
+  async function repairBrokenReferences() {
+    if (repairingBrokenRefs || running || cleaningOrphaned) return;
+    const confirmed = window.confirm(
+      "Clear stale audioId and cutAudio values whose files are already missing from storage?"
+    );
+    if (!confirmed) return;
+
+    setRepairingBrokenRefs(true);
+    addLog("Starting broken audio reference repair...");
+
+    try {
+      const response = await fetch("/api/admin/audios/repair-broken-references", {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to repair broken audio references");
+      }
+
+      addLog(`Broken reference repair complete: ${data.updatedCount} naats updated.`);
+      await fetchStats();
+    } catch (error) {
+      addLog(error instanceof Error ? error.message : "Broken reference repair failed");
+    } finally {
+      setRepairingBrokenRefs(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-7xl p-8">
       <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -148,8 +179,16 @@ export default function AudiosClient() {
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
+            onClick={repairBrokenReferences}
+            disabled={repairingBrokenRefs || cleaningOrphaned || running}
+            className="rounded-full border border-amber-400/25 bg-amber-500/10 px-5 py-2.5 text-sm font-medium text-amber-200 transition hover:border-amber-300/40 hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {repairingBrokenRefs ? "Repairing Broken..." : "Repair Broken Refs"}
+          </button>
+          <button
+            type="button"
             onClick={cleanupOrphanedAudio}
-            disabled={cleaningOrphaned || running}
+            disabled={cleaningOrphaned || running || repairingBrokenRefs}
             className="rounded-full border border-red-400/25 bg-red-500/10 px-5 py-2.5 text-sm font-medium text-red-200 transition hover:border-red-300/40 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {cleaningOrphaned ? "Cleaning Orphaned..." : "Cleanup Orphaned"}
@@ -157,7 +196,7 @@ export default function AudiosClient() {
           <button
             type="button"
             onClick={startAudioRun}
-            disabled={running || cleaningOrphaned}
+            disabled={running || cleaningOrphaned || repairingBrokenRefs}
             className="rounded-full border border-sky-400/30 bg-sky-500/15 px-5 py-2.5 text-sm font-medium text-sky-100 transition hover:border-sky-300/40 hover:bg-sky-500/25 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {running ? "Running..." : testMode ? "Start Test Batch" : "Start Audio Batch"}
@@ -165,12 +204,13 @@ export default function AudiosClient() {
         </div>
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-5">
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-6">
         <StatCard label="Total Naats" value={stats?.totalNaats} tone="text-white" />
         <StatCard label="With Audio" value={stats?.withAudio} tone="text-sky-300" />
         <StatCard label="Missing Audio" value={stats?.withoutAudio} tone="text-amber-300" />
         <StatCard label="Cut Audio" value={stats?.withCutAudio} tone="text-emerald-300" />
         <StatCard label="Orphaned Files" value={stats?.orphanedAudioFiles} tone="text-red-300" />
+        <StatCard label="Broken Refs" value={stats?.brokenAudioReferences} tone="text-amber-200" />
       </div>
 
       <div className="mb-8 rounded-3xl border border-white/10 bg-white/[0.03] p-6">
