@@ -382,8 +382,9 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
 
                 {/* Menu */}
                 <View
-                  className="absolute top-20 right-5 rounded-2xl overflow-hidden z-50 min-w-[220px]"
+                  className="absolute right-5 rounded-2xl overflow-hidden z-50 min-w-[220px]"
                   style={{
+                    top: topInset + 28,
                     backgroundColor: colors.background.secondary,
                     shadowColor: "#000",
                     shadowOffset: { width: 0, height: 8 },
