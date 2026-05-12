@@ -21,7 +21,7 @@ jobs:
         shell: bash
     env:
       ANDROID_SDK_ROOT: /opt/android-sdk
-      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+      JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
       EXPO_USE_METRO_WORKSPACE_ROOT: "1"
       APP_VARIANT: ${{ inputs.app_variant || 'production' }}
       EXPO_PUBLIC_APPWRITE_ENDPOINT: ${{ vars.EXPO_PUBLIC_APPWRITE_ENDPOINT || 'https://sgp.cloud.appwrite.io/v1' }}
