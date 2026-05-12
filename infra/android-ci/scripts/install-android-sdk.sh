@@ -14,7 +14,9 @@ unzip -q commandlinetools.zip
 rm -rf "${ANDROID_SDK_ROOT}/cmdline-tools/latest"
 mv cmdline-tools "${ANDROID_SDK_ROOT}/cmdline-tools/latest"
 
-yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --sdk_root="${ANDROID_SDK_ROOT}" --licenses
+# Accept licenses - ignore SIGPIPE from yes command
+yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --sdk_root="${ANDROID_SDK_ROOT}" --licenses || [ $? -eq 141 ]
+
 "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --sdk_root="${ANDROID_SDK_ROOT}" \
   "platform-tools" \
   "platforms;android-35" \
