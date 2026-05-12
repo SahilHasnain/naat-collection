@@ -1,11 +1,22 @@
+version: '3.8'
+
 services:
   github-runner:
     build:
       context: .
       dockerfile: Dockerfile
-    env_file:
-      - .env
+    container_name: github-actions-android-runner
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_REPO=${GITHUB_REPO}
+      - RUNNER_NAME=${RUNNER_NAME:-android-docker-runner}
+      - RUNNER_LABELS=self-hosted,linux,x64,android-docker
     volumes:
-      - ./runner:/opt/actions-runner
-      - ./secrets:/opt/android-ci/secrets
+      # Mount Android secrets
+      - /home/Sahilhasnain/android-secrets:/home/runner/android-secrets:ro
+      # Persist runner data
+      - runner-data:/home/runner/_work
     restart: unless-stopped
+
+volumes:
+  runner-data:
