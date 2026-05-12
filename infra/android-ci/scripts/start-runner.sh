@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNNER_DIR="${RUNNER_DIR:-/opt/actions-runner}"
+RUNNER_DIR="${RUNNER_DIR:-/home/runner/actions-runner}"
 
 cd "${RUNNER_DIR}"
 

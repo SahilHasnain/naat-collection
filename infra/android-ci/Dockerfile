@@ -3,8 +3,8 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ANDROID_SDK_ROOT=/opt/android-sdk
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-ENV RUNNER_DIR=/opt/actions-runner
-ENV PATH="${PATH}:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${ANDROID_SDK_ROOT}/build-tools/35.0.0:/root/.local/share/gem/ruby/3.2.0/bin"
+ENV RUNNER_DIR=/home/runner/actions-runner
+ENV PATH="${PATH}:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${ANDROID_SDK_ROOT}/build-tools/35.0.0"
 
 RUN apt-get update && apt-get install -y \
     curl \
@@ -22,7 +22,13 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     nodejs \
     npm \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
+
+# Create runner user
+RUN useradd -m -s /bin/bash runner \
+    && usermod -aG sudo runner \
+    && echo "runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 WORKDIR /opt/android-ci
 
@@ -32,9 +38,10 @@ COPY scripts/configure-github-runner.sh /opt/android-ci/scripts/configure-github
 
 RUN chmod +x /opt/android-ci/scripts/*.sh \
     && /opt/android-ci/scripts/install-android-sdk.sh \
-    && gem install bundler fastlane --no-document
+    && gem install bundler fastlane --no-document \
+    && chown -R runner:runner ${ANDROID_SDK_ROOT}
 
-# Install GitHub Actions Runner
+# Install GitHub Actions Runner as runner user
 ARG RUNNER_VERSION=2.334.0
 RUN mkdir -p ${RUNNER_DIR} \
     && cd ${RUNNER_DIR} \
@@ -42,6 +49,11 @@ RUN mkdir -p ${RUNNER_DIR} \
        https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
     && tar xzf actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
     && rm actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
-    && ./bin/installdependencies.sh
+    && chown -R runner:runner ${RUNNER_DIR} \
+    && cd ${RUNNER_DIR} \
+    && sudo ./bin/installdependencies.sh
+
+USER runner
+WORKDIR /home/runner
 
 CMD ["/opt/android-ci/scripts/start-runner.sh"]
