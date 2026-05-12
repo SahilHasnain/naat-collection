@@ -47,10 +47,12 @@ jobs:
           cache: npm
 
       - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.2"
-          bundler-cache: false
+        run: |
+          # Use the pre-installed Ruby in runner tool cache
+          export PATH="/home/kali/naat-collection/actions-runner/_work/_tool/Ruby/3.2/x64/bin:$PATH"
+          echo "/home/kali/naat-collection/actions-runner/_work/_tool/Ruby/3.2/x64/bin" >> $GITHUB_PATH
+          ruby --version
+          gem --version
 
       - name: Install dependencies
         run: npm ci
