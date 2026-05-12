@@ -88,6 +88,14 @@ jobs:
         run: |
           printf "sdk.dir=%s\n" "$ANDROID_SDK_ROOT" > apps/mobile/android/local.properties
 
+      - name: Clean Gradle cache
+        run: |
+          cd apps/mobile/android
+          ./gradlew clean --no-daemon
+          rm -rf ~/.gradle/caches/transforms-*
+          rm -rf ~/.gradle/caches/*/transforms
+          rm -rf .gradle
+
       - name: Configure Sentry
         run: |
           cat > apps/mobile/android/sentry.properties <<'EOF'
