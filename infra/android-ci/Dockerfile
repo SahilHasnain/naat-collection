@@ -28,7 +28,9 @@ RUN apt-get update && apt-get install -y \
 # Create runner user
 RUN useradd -m -s /bin/bash runner \
     && usermod -aG sudo runner \
-    && echo "runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    && echo "runner ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
+    && mkdir -p /opt/hostedtoolcache \
+    && chown -R runner:runner /opt/hostedtoolcache
 
 WORKDIR /opt/android-ci
 
