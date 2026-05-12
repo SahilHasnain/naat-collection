@@ -10,11 +10,17 @@ services:
       - RUNNER_NAME=${RUNNER_NAME:-android-docker-runner}
       - RUNNER_LABELS=self-hosted,linux,x64,android-docker
     volumes:
-      # Mount Android secrets
-      - /home/Sahilhasnain/android-secrets:/home/runner/android-secrets:ro
+      # Mount Android secrets - adjust this path to match your Kali system
+      - /home/kali/android-secrets:/home/runner/android-secrets:ro
       # Persist runner data
       - runner-data:/home/runner/_work
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
 
 volumes:
   runner-data:
