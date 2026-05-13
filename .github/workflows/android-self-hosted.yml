@@ -15,13 +15,13 @@ on:
 
 jobs:
   build-android:
-    runs-on: [self-hosted, linux, x64, android-docker]
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
     env:
-      ANDROID_SDK_ROOT: /opt/android-sdk
-      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
       EXPO_USE_METRO_WORKSPACE_ROOT: "1"
       APP_VARIANT: ${{ inputs.app_variant || 'production' }}
       EXPO_PUBLIC_APPWRITE_ENDPOINT: ${{ vars.EXPO_PUBLIC_APPWRITE_ENDPOINT || 'https://sgp.cloud.appwrite.io/v1' }}
