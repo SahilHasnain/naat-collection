@@ -18,6 +18,8 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+play-store-key.json
+encode-secrets.sh
 
 # Metro
 .metro-health-check*
@@ -53,5 +55,6 @@ training-data/naat
 training-data/explanation
 ref/secret.md
 inspiration/
-naat-collection_key.json
+play-store-key.json
 sentry.properties
+secrets/
