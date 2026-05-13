@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 const navItems = [
   { href: "/admin", label: "Dashboard" },
+  { href: "/admin/database-status", label: "DB Status" },
   { href: "/admin/audios", label: "Audios" },
   { href: "/admin/manual-cut", label: "Manual Cut" },
   { href: "/admin/ai-jobs", label: "AI Jobs" },
@@ -37,25 +38,24 @@ export default function AdminHeader() {
 
         <div className="flex flex-wrap items-center gap-2">
           <nav className="flex flex-wrap gap-2">
-          {navItems.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/admin" && pathname.startsWith(`${item.href}/`));
+            {navItems.map((item) => {
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/admin" && pathname.startsWith(`${item.href}/`));
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                  isActive
-                    ? "border-sky-400/30 bg-sky-500/15 text-sky-100"
-                    : "border-white/10 bg-white/[0.03] text-neutral-300 hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`rounded-full border px-4 py-2 text-sm font-medium transition ${isActive
+                      ? "border-sky-400/30 bg-sky-500/15 text-sky-100"
+                      : "border-white/10 bg-white/[0.03] text-neutral-300 hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
+                    }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           <button
