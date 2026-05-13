@@ -62,6 +62,27 @@ jobs:
           ruby-version: "3.2"
           bundler-cache: false
 
+      - name: Setup Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.android/build-cache
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Cache NDK
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/mobile/android/app/.cxx
+            apps/mobile/android/.gradle
+          key: ${{ runner.os }}-ndk-${{ hashFiles('apps/mobile/android/**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-ndk-
+
       - name: Install dependencies
         run: npm ci
 
@@ -96,15 +117,6 @@ jobs:
         if: ${{ env.APP_VARIANT == 'production' }}
         run: |
           echo "${{ secrets.PLAY_STORE_JSON_BASE64 }}" | base64 -d > /tmp/play-store-key.json
-
-      - name: Clean Gradle cache
-        run: |
-          cd apps/mobile/android
-          chmod +x ./gradlew
-          ./gradlew clean --no-daemon
-          rm -rf ~/.gradle/caches/transforms-*
-          rm -rf ~/.gradle/caches/*/transforms
-          rm -rf .gradle
 
       - name: Configure Sentry
         run: |
