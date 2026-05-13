@@ -40,7 +40,7 @@ export default {
       associatedDomains: ["applinks:owaisrazaqadri.appwrite.network"],
     },
     android: {
-      versionCode: 14,
+      versionCode: 15,
       adaptiveIcon: {
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundColor: "#000000",
