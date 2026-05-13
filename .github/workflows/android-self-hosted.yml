@@ -91,6 +91,7 @@ jobs:
       - name: Clean Gradle cache
         run: |
           cd apps/mobile/android
+          chmod +x ./gradlew
           ./gradlew clean --no-daemon
           rm -rf ~/.gradle/caches/transforms-*
           rm -rf ~/.gradle/caches/*/transforms
