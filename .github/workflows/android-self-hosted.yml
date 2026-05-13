@@ -117,7 +117,7 @@ jobs:
       - name: Build Android artifact
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          ANDROID_KEYSTORE_PATH: /home/runner/android-secrets/naat-collection/release.keystore
+          ANDROID_KEYSTORE_PATH: /tmp/release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
