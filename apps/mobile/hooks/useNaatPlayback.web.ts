@@ -46,6 +46,7 @@ export function useNaatPlayback(displayData: Naat[]) {
       router.push({
         pathname: "/video",
         params: {
+          naatId: naat.$id,
           videoUrl: naat.videoUrl,
           title: naat.title,
           channelName: naat.channelName,
