@@ -1,6 +1,6 @@
 import LiveRadioMiniPlayer from "@/components/LiveRadioMiniPlayer";
 import MiniPlayer from "@/components/MiniPlayer";
-import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
+import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext.web";
 import { FilterModalProvider } from "@/contexts/FilterModalContext";
 import { LiveRadioProvider, useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
 import { PlaybackModeProvider, usePlaybackMode } from "@/contexts/PlaybackModeContext";
