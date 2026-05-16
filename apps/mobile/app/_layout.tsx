@@ -46,8 +46,8 @@ import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import WebRootLayout from "./_layout.web";
 import "../global.css";
+import WebRootLayout from "./_layout.web";
 
 // Initialize Sentry
 Sentry.init({
@@ -247,6 +247,12 @@ function RootLayoutContent() {
         />
         <Tabs.Screen
           name="video"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="privacy-policy"
           options={{
             href: null,
           }}
