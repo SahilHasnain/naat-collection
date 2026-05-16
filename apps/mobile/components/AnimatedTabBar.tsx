@@ -3,8 +3,8 @@ import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { Platform, Text, View } from "react-native";
 import Animated, {
-    SharedValue,
-    useAnimatedStyle,
+  SharedValue,
+  useAnimatedStyle,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Pressable from "./ResponsivePressable";
@@ -38,7 +38,8 @@ export function AnimatedTabBar({
       route.name !== "naat" &&
       !route.name.startsWith("naat/") &&
       route.name !== "+not-found" &&
-      route.name !== "index"
+      route.name !== "index" &&
+      route.name !== "privacy-policy"
     );
   });
 
@@ -105,10 +106,10 @@ export function AnimatedTabBar({
         // Get icon from options
         const icon = options.tabBarIcon
           ? options.tabBarIcon({
-              focused: isFocused,
-              color: isFocused ? "#ffffff" : "#8e8e93",
-              size: 24,
-            })
+            focused: isFocused,
+            color: isFocused ? "#ffffff" : "#8e8e93",
+            size: 24,
+          })
           : null;
 
         return (
