@@ -4,6 +4,8 @@ export default function PrivacyPolicy() {
     return (
         <div style={{
             minHeight: "100vh",
+            height: "100%",
+            overflowY: "auto",
             backgroundColor: "#ffffff",
             fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
         }}>
