@@ -173,7 +173,7 @@ export default function AudiosClient() {
         <div>
           <h1 className="text-3xl font-bold text-white">Audios</h1>
           <p className="mt-2 max-w-3xl text-sm text-neutral-400">
-            Inspect audio coverage and run the existing `scripts/utilities/download-audio.js` batch job with live streamed logs.
+            Inspect audio coverage and run the existing `scripts/utilities/download-audio-with-cookies.js` batch job with live streamed logs.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
