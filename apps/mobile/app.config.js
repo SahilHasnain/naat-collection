@@ -40,7 +40,7 @@ export default {
       associatedDomains: ["applinks:owaisrazaqadri.appwrite.network"],
     },
     android: {
-      versionCode: 17,
+      versionCode: 18,
       adaptiveIcon: {
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundColor: "#000000",
@@ -123,7 +123,7 @@ export default {
     extra: {
       router: {},
       eas: {
-       "projectId": "2c3222cc-907f-459e-a719-34f65d3045e1"
+        "projectId": "f5025967-41a5-4d6d-b430-c89bada9c40b"
       },
     },
   },
