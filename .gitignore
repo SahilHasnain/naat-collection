@@ -35,7 +35,6 @@ yarn-error.*
 
 # local env files
 .env*.local
-.env*
 !.env.example
 
 # typescript
@@ -58,3 +57,4 @@ inspiration/
 play-store-key.json
 sentry.properties
 secrets/
+config.bat
