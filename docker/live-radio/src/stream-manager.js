@@ -92,7 +92,7 @@ class StreamManager {
         process.env.DATABASE_ID,
         process.env.NAATS_COLLECTION_ID, // Use environment variable for collection ID
         [
-          Query.limit(100),
+          Query.limit(5000),
           Query.lessThanEqual("duration", 1200), // 20 minutes max
           Query.isNotNull("cutAudio"),
           Query.equal("radio", true),
