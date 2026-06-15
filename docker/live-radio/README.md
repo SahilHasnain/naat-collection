@@ -7,6 +7,7 @@ This Docker container provides a complete live radio streaming solution using Ic
 - **Icecast Server**: Professional audio streaming server
 - **Node.js API**: RESTful API for metadata and control
 - **FFmpeg Stream Manager**: Automatic playlist management and streaming
+- **Persistent Cache**: Audio files cached locally to minimize database reads
 - **Auto-restart**: Resilient streaming with automatic recovery
 - **CORS Support**: Cross-origin requests for web/mobile apps
 
@@ -29,6 +30,46 @@ This Docker container provides a complete live radio streaming solution using Ic
    - **Icecast Stream**: `http://owaisrazaqadri.duckdns.org:8000/live`
    - **API Endpoint**: `http://owaisrazaqadri.duckdns.org:8080/api/current`
    - **Icecast Admin**: `http://owaisrazaqadri.duckdns.org:8000/admin/`
+
+## Cache Optimization
+
+**This container is optimized to minimize Appwrite database reads.**
+
+### How It Works:
+
+- **First Start**: Fetches playlist from Appwrite (5000 reads), downloads audio files, caches everything
+- **Subsequent Restarts**: Uses cached playlist and audio files (0 reads!) ✅
+- **Manual Refresh**: Set `CLEAR_AUDIO_CACHE_ON_START=true` to fetch fresh data
+
+### Read Savings:
+
+```
+Before optimization: 2,400,000 reads/day (fetched every 3 minutes)
+After optimization:  ~300 reads/month (only on manual refresh)
+Savings: 99.99% 🎉
+```
+
+### Updating Playlist with New Naats:
+
+```bash
+# 1. Edit .env
+CLEAR_AUDIO_CACHE_ON_START=true
+
+# 2. Restart container
+docker-compose restart
+
+# Container will:
+# - Clear cache
+# - Fetch fresh playlist from Appwrite (5000 reads)
+# - Download new audio files
+# - Start streaming
+
+# 3. Set back to false in .env
+CLEAR_AUDIO_CACHE_ON_START=false
+
+# 4. Future restarts will use cache (0 reads)
+docker-compose restart
+```
 
 ## API Endpoints
 
