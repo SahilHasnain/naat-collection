@@ -16,8 +16,8 @@ When Appwrite database read limits are exhausted, the app will automatically fal
 After pushing to GitHub, these files are accessible via:
 
 ```
-https://cdn.jsdelivr.net/gh/USERNAME/naat-collection@main/static-exports/naats-export.json
-https://cdn.jsdelivr.net/gh/USERNAME/REPO@main/static-exports/channels-export.json
+https://cdn.jsdelivr.net/gh/sahilhasnain/naat-collection@main/static-exports/naats-export.json
+https://cdn.jsdelivr.net/gh/sahilhasnain/naat-collection@main/static-exports/channels-export.json
 ```
 
 Replace `USERNAME` and `REPO` with your GitHub details.
