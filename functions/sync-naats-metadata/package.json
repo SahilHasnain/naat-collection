@@ -1,0 +1,10 @@
+{
+  "name": "sync-naats-metadata",
+  "version": "1.0.0",
+  "description": "Cron job to sync lightweight naat metadata into cache collection",
+  "type": "module",
+  "main": "src/main.js",
+  "dependencies": {
+    "node-appwrite": "^21.1.0"
+  }
+}

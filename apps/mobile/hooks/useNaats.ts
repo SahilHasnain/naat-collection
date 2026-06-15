@@ -2,12 +2,47 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { appwriteService } from "../services/appwrite";
 import { getForYouFeed } from "../services/forYouAlgorithm";
 import { storageService } from "../services/storage";
-import type { Naat, UseNaatsReturn } from "../types";
+import type { Naat, NaatMetadata, UseNaatsReturn } from "../types";
 
 /**
  * Number of naats to fetch per page
  */
 const PAGE_SIZE = 20;
+
+function filterMetadata(
+  metadata: NaatMetadata[],
+  channelId: string | null,
+  pureOnly: boolean,
+): NaatMetadata[] {
+  let filtered = metadata;
+
+  if (channelId) {
+    filtered = filtered.filter((item) => item.channelId === channelId);
+  }
+
+  if (pureOnly) {
+    filtered = filtered.filter((item) => !!item.cutAudio);
+  }
+
+  return filtered;
+}
+
+async function fetchNaatsFromMetadata(
+  pageMetadata: NaatMetadata[],
+): Promise<Naat[]> {
+  const pageNaats = await Promise.all(
+    pageMetadata.map(async (meta) => {
+      try {
+        return await appwriteService.getNaatById(meta.id);
+      } catch (err) {
+        console.error(`Failed to fetch naat ${meta.id}:`, err);
+        return null;
+      }
+    }),
+  );
+
+  return pageNaats.filter((naat): naat is Naat => naat !== null);
+}
 
 export type SortOption = "forYou" | "latest" | "popular" | "oldest";
 
@@ -23,7 +58,7 @@ export type SortOption = "forYou" | "latest" | "popular" | "oldest";
  * - Filter support (forYou, latest, popular, oldest)
  * - Channel filtering support (null = all channels)
  * - Smart "For You" algorithm with personalized recommendations
- * - For "forYou" filter: Fetches ALL videos (3000+) in batches for comprehensive recommendations
+ * - For "forYou" filter: Uses metadata cache + lazy full-document fetch
  *
  * @param channelId - YouTube channel ID to filter by (null = all channels)
  * @param filter - Sort order for naats (default: "forYou")
@@ -45,8 +80,8 @@ export function useNaats(
   // In-memory cache to avoid redundant API calls (separate cache per channel + filter combination)
   const cacheRef = useRef<Map<string, Map<number, Naat[]>>>(new Map());
 
-  // Cache for full ordered list (For You algorithm)
-  const fullOrderedListRef = useRef<Map<string, Naat[]>>(new Map());
+  // Cache for full ordered metadata list (For You algorithm)
+  const fullOrderedListRef = useRef<Map<string, NaatMetadata[]>>(new Map());
 
   // Flag to prevent multiple simultaneous loads
   const isLoadingRef = useRef<boolean>(false);
@@ -118,157 +153,92 @@ export function useNaats(
       return;
     }
 
-    // For "forYou" filter, use progressive loading strategy
+    // For "forYou" filter, use metadata cache + personalized ranking
     if (filter === "forYou") {
-      // Check if we already have the full ordered list cached
-      const cachedOrderedList = fullOrderedListRef.current.get(cacheKey);
+      const loadForYou = async () => {
+        try {
+          const cachedOrderedList = fullOrderedListRef.current.get(cacheKey);
 
-      if (cachedOrderedList) {
-        // Use cached ordered list for pagination
-        const startIndex = offsetRef.current;
-        const endIndex = startIndex + PAGE_SIZE;
-        const pageNaats = cachedOrderedList.slice(startIndex, endIndex);
+          if (cachedOrderedList) {
+            const startIndex = offsetRef.current;
+            const endIndex = startIndex + PAGE_SIZE;
+            const pageMetadata = cachedOrderedList.slice(startIndex, endIndex);
+            const validNaats = await fetchNaatsFromMetadata(pageMetadata);
 
-        // Cache the page
-        filterCache.set(offsetRef.current, pageNaats);
+            filterCache.set(offsetRef.current, validNaats);
 
-        // Update state - filter out duplicates
-        setNaats((prev) => {
-          const existingIds = new Set(prev.map((n) => n.$id));
-          const uniqueNewNaats = pageNaats.filter(
-            (n) => !existingIds.has(n.$id),
+            setNaats((prev) => {
+              const existingIds = new Set(prev.map((n) => n.$id));
+              const uniqueNewNaats = validNaats.filter(
+                (n) => !existingIds.has(n.$id),
+              );
+              return [...prev, ...uniqueNewNaats];
+            });
+
+            offsetRef.current += PAGE_SIZE;
+            setHasMore(endIndex < cachedOrderedList.length);
+
+            console.log(
+              `[ForYou] Using cached ranking, loaded ${validNaats.length} naats, ${cachedOrderedList.length - endIndex} remaining`,
+            );
+            return;
+          }
+
+          console.log("[ForYou] First load, fetching metadata cache...");
+
+          const allMetadata = filterMetadata(
+            await appwriteService.getNaatsMetadata(),
+            channelId,
+            pureOnly,
           );
-          return [...prev, ...uniqueNewNaats];
-        });
-        offsetRef.current += PAGE_SIZE;
-        setHasMore(endIndex < cachedOrderedList.length);
-        setLoading(false);
-        isLoadingRef.current = false;
 
-        console.log(
-          `[ForYou] Using cached list, displaying ${pageNaats.length} videos, ${cachedOrderedList.length - endIndex} remaining`,
-        );
-        return;
-      }
-
-      // Progressive loading: Start with 1000 videos for fast initial load
-      // Background fetch will get the rest
-      const initialBatchSize = 1000;
-
-      appwriteService
-        .getNaats(initialBatchSize, 0, "latest", channelId, pureOnly)
-        .then(async (initialNaats) => {
           console.log(
-            `[ForYou] Initial fetch: ${initialNaats.length} videos, applying algorithm...`,
+            `[ForYou] Loaded ${allMetadata.length} naats metadata from cache`,
           );
 
-          // Apply For You algorithm to initial batch
-          const orderedNaats = await getForYouFeed(initialNaats, channelId);
+          const rankedMetadata = await getForYouFeed(allMetadata, channelId);
 
-          // Cache the full ordered list (will be updated with more data later)
-          fullOrderedListRef.current.set(cacheKey, orderedNaats);
+          console.log(
+            `[ForYou] Ranked ${rankedMetadata.length} naats based on user preferences`,
+          );
 
-          // Paginate the results
+          fullOrderedListRef.current.set(cacheKey, rankedMetadata);
+
           const startIndex = offsetRef.current;
           const endIndex = startIndex + PAGE_SIZE;
-          const pageNaats = orderedNaats.slice(startIndex, endIndex);
+          const pageMetadata = rankedMetadata.slice(startIndex, endIndex);
+          const validNaats = await fetchNaatsFromMetadata(pageMetadata);
 
-          // Cache the page
-          filterCache.set(offsetRef.current, pageNaats);
+          filterCache.set(offsetRef.current, validNaats);
 
-          // Update state - filter out duplicates
           setNaats((prev) => {
             const existingIds = new Set(prev.map((n) => n.$id));
-            const uniqueNewNaats = pageNaats.filter(
+            const uniqueNewNaats = validNaats.filter(
               (n) => !existingIds.has(n.$id),
             );
             return [...prev, ...uniqueNewNaats];
           });
+
           offsetRef.current += PAGE_SIZE;
-          setHasMore(endIndex < orderedNaats.length);
+          setHasMore(endIndex < rankedMetadata.length);
 
           console.log(
-            `[ForYou] Displaying ${pageNaats.length} videos, ${orderedNaats.length - endIndex} remaining`,
+            `[ForYou] Displayed ${validNaats.length} naats, ${rankedMetadata.length - endIndex} remaining`,
           );
-
-          // Background fetch: Get remaining videos if there are more
-          if (initialNaats.length === initialBatchSize) {
-            console.log(
-              "[ForYou] Starting background fetch for remaining videos...",
-            );
-
-            // Fetch remaining videos in background (non-blocking)
-            const fetchRemainingInBackground = async () => {
-              const batchSize = 500;
-              let allNaats = [...initialNaats];
-              let currentOffset = initialBatchSize;
-              let hasMoreBatches = true;
-
-              while (hasMoreBatches) {
-                try {
-                  const batch = await appwriteService.getNaats(
-                    batchSize,
-                    currentOffset,
-                    "latest",
-                    channelId,
-                    pureOnly,
-                  );
-
-                  if (batch.length > 0) {
-                    allNaats = [...allNaats, ...batch];
-                    currentOffset += batchSize;
-
-                    console.log(
-                      `[ForYou Background] Fetched ${batch.length} more videos, total: ${allNaats.length}`,
-                    );
-
-                    // Re-apply algorithm with expanded dataset
-                    const updatedOrderedNaats = await getForYouFeed(
-                      allNaats,
-                      channelId,
-                    );
-                    fullOrderedListRef.current.set(
-                      cacheKey,
-                      updatedOrderedNaats,
-                    );
-
-                    console.log(
-                      `[ForYou Background] Updated recommendations with ${allNaats.length} total videos`,
-                    );
-                  }
-
-                  if (batch.length < batchSize) {
-                    hasMoreBatches = false;
-                    console.log(
-                      `[ForYou Background] Complete! Total videos: ${allNaats.length}`,
-                    );
-                  }
-                } catch (err) {
-                  console.error(
-                    "[ForYou Background] Error fetching more videos:",
-                    err,
-                  );
-                  hasMoreBatches = false;
-                }
-              }
-            };
-
-            // Run in background without blocking UI
-            fetchRemainingInBackground();
-          }
-        })
-        .catch((err) => {
+        } catch (err) {
           setError(
-            err instanceof Error ? err : new Error("Failed to load naats"),
+            err instanceof Error
+              ? err
+              : new Error("Failed to load For You feed"),
           );
-          console.log(
-            "[useNaats] Error loading more naats, keeping existing data",
-          );
-        })
-        .finally(() => {
+          console.error("[ForYou] Error:", err);
+        } finally {
           setLoading(false);
           isLoadingRef.current = false;
-        });
+        }
+      };
+
+      loadForYou();
     } else {
       // Standard fetch for other filters
       appwriteService
@@ -323,6 +293,7 @@ export function useNaats(
     // Clear For You session if using that filter
     if (filter === "forYou") {
       await storageService.clearForYouSession();
+      appwriteService.clearMetadataCache();
     }
 
     setNaats([]);
@@ -333,105 +304,36 @@ export function useNaats(
 
     try {
       if (filter === "forYou") {
-        // Progressive loading: Start with 1000 videos for fast refresh
-        const initialBatchSize = 1000;
-
-        const initialNaats = await appwriteService.getNaats(
-          initialBatchSize,
-          0,
-          "latest",
+        const allMetadata = filterMetadata(
+          await appwriteService.getNaatsMetadata(),
           channelId,
           pureOnly,
         );
 
         console.log(
-          `[ForYou Refresh] Initial fetch: ${initialNaats.length} videos, applying algorithm...`,
+          `[ForYou Refresh] Loaded ${allMetadata.length} naats metadata`,
         );
 
-        // Apply For You algorithm
-        const orderedNaats = await getForYouFeed(initialNaats, channelId);
+        const rankedMetadata = await getForYouFeed(allMetadata, channelId);
+        fullOrderedListRef.current.set(cacheKey, rankedMetadata);
 
-        // Cache the full ordered list
-        fullOrderedListRef.current.set(cacheKey, orderedNaats);
+        const pageMetadata = rankedMetadata.slice(0, PAGE_SIZE);
+        const freshNaats = await fetchNaatsFromMetadata(pageMetadata);
 
-        // Get first page
-        const freshNaats = orderedNaats.slice(0, PAGE_SIZE);
-
-        // Get or create cache
         if (!cacheRef.current.has(cacheKey)) {
           cacheRef.current.set(cacheKey, new Map());
         }
         const filterCache = cacheRef.current.get(cacheKey)!;
 
-        // Cache the results
         filterCache.set(0, freshNaats);
 
-        // Update state
         setNaats(freshNaats);
         offsetRef.current = PAGE_SIZE;
-        setHasMore(PAGE_SIZE < orderedNaats.length);
+        setHasMore(PAGE_SIZE < rankedMetadata.length);
 
         console.log(
-          `[ForYou Refresh] Displaying ${freshNaats.length} videos, ${orderedNaats.length - PAGE_SIZE} remaining`,
+          `[ForYou Refresh] Displayed ${freshNaats.length} naats, ${rankedMetadata.length - PAGE_SIZE} remaining`,
         );
-
-        // Background fetch remaining videos if there are more
-        if (initialNaats.length === initialBatchSize) {
-          console.log(
-            "[ForYou Refresh] Starting background fetch for remaining videos...",
-          );
-
-          const fetchRemainingInBackground = async () => {
-            const batchSize = 500;
-            let allNaats = [...initialNaats];
-            let currentOffset = initialBatchSize;
-            let hasMoreBatches = true;
-
-            while (hasMoreBatches) {
-              try {
-                const batch = await appwriteService.getNaats(
-                  batchSize,
-                  currentOffset,
-                  "latest",
-                  channelId,
-                  pureOnly,
-                );
-
-                if (batch.length > 0) {
-                  allNaats = [...allNaats, ...batch];
-                  currentOffset += batchSize;
-
-                  console.log(
-                    `[ForYou Refresh Background] Fetched ${batch.length} more, total: ${allNaats.length}`,
-                  );
-
-                  // Re-apply algorithm with expanded dataset
-                  const updatedOrderedNaats = await getForYouFeed(
-                    allNaats,
-                    channelId,
-                  );
-                  fullOrderedListRef.current.set(cacheKey, updatedOrderedNaats);
-
-                  console.log(
-                    `[ForYou Refresh Background] Updated with ${allNaats.length} total videos`,
-                  );
-                }
-
-                if (batch.length < batchSize) {
-                  hasMoreBatches = false;
-                  console.log(
-                    `[ForYou Refresh Background] Complete! Total: ${allNaats.length}`,
-                  );
-                }
-              } catch (err) {
-                console.error("[ForYou Refresh Background] Error:", err);
-                hasMoreBatches = false;
-              }
-            }
-          };
-
-          fetchRemainingInBackground();
-        }
       } else {
         // Standard refresh for other filters
         const freshNaats = await appwriteService.getNaats(
@@ -464,7 +366,7 @@ export function useNaats(
       setLoading(false);
       isLoadingRef.current = false;
     }
-  }, [filter, channelId, cacheKey]);
+  }, [filter, channelId, cacheKey, pureOnly]);
 
   return {
     naats,

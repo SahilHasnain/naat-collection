@@ -19,6 +19,20 @@ export interface Naat {
   updatedAt: string;
 }
 
+/** Lightweight naat fields for For You ranking and fuzzy search */
+export interface NaatMetadata {
+  id: string;
+  title: string;
+  channelId: string;
+  channelName: string;
+  views: number;
+  uploadDate: string;
+  thumbnailUrl: string;
+  duration: number;
+  cutAudio: string | null;
+  youtubeId: string;
+}
+
 // Sort option type for filtering naats
 export type SortOption = "forYou" | "latest" | "popular" | "oldest";
 
@@ -104,6 +118,7 @@ export interface IAppwriteService {
     pureOnly?: boolean,
   ): Promise<Naat[]>;
   getNaatById(id: string): Promise<Naat>;
+  getNaatsMetadata(): Promise<NaatMetadata[]>;
   searchNaats(query: string, channelId?: string | null, pureOnly?: boolean): Promise<Naat[]>;
   getAudioUrl(audioId?: string | null): Promise<AudioUrlResponse>;
   getChannels(): Promise<Channel[]>;

@@ -12,6 +12,7 @@ import type {
   ChannelDocument,
   IAppwriteService,
   Naat,
+  NaatMetadata,
 } from "@naat-collection/shared";
 import { Client, Databases, Query } from "appwrite";
 
@@ -36,7 +37,11 @@ export class AppwriteService implements IAppwriteService {
   private staticFallbackUrls?: { naats: string; channels: string };
   private staticNaatsCache: Naat[] | null = null;
   private staticChannelsCache: Channel[] | null = null;
+  private metadataCache: NaatMetadata[] | null = null;
   private isUsingFallback: boolean = false;
+
+  private static readonly METADATA_CACHE_COLLECTION_ID = "naats-metadata-cache";
+  private static readonly METADATA_CACHE_DOCUMENT_ID = "global";
 
   constructor(options: AppwriteServiceOptions) {
     this.config = options.config;
@@ -125,6 +130,41 @@ export class AppwriteService implements IAppwriteService {
    */
   public isInFallbackMode(): boolean {
     return this.isUsingFallback;
+  }
+
+  public clearMetadataCache(): void {
+    this.metadataCache = null;
+  }
+
+  private mapNaatToMetadata(naat: Naat): NaatMetadata {
+    return {
+      id: naat.$id,
+      title: naat.title,
+      channelId: naat.channelId,
+      channelName: naat.channelName,
+      views: naat.views || 0,
+      uploadDate: naat.uploadDate,
+      thumbnailUrl: naat.thumbnailUrl,
+      duration: naat.duration,
+      cutAudio: naat.cutAudio || null,
+      youtubeId: naat.youtubeId,
+    };
+  }
+
+  private async fetchMetadataFallback(): Promise<NaatMetadata[]> {
+    const response = await this.database.listDocuments(
+      this.config.databaseId,
+      this.config.naatsCollectionId,
+      [
+        Query.limit(5000),
+        Query.orderDesc("uploadDate"),
+        Query.or([Query.equal("exclude", false), Query.isNull("exclude")]),
+      ],
+    );
+
+    return (response.documents as unknown as Naat[]).map((doc) =>
+      this.mapNaatToMetadata(doc),
+    );
   }
 
   private initialize(): void {
@@ -239,6 +279,59 @@ export class AppwriteService implements IAppwriteService {
         channelId,
       });
       throw error;
+    }
+  }
+
+  /**
+   * Get lightweight metadata for all naats from cache.
+   * Used by For You ranking and fuzzy search without fetching full documents.
+   */
+  async getNaatsMetadata(): Promise<NaatMetadata[]> {
+    this.initialize();
+
+    if (this.metadataCache) {
+      return this.metadataCache;
+    }
+
+    try {
+      const response = await this.database.getDocument(
+        this.config.databaseId,
+        AppwriteService.METADATA_CACHE_COLLECTION_ID,
+        AppwriteService.METADATA_CACHE_DOCUMENT_ID,
+      );
+
+      const metadata = JSON.parse(response.metadata as string) as NaatMetadata[];
+      this.metadataCache = metadata;
+
+      console.log(
+        `[Cache] Loaded ${metadata.length} naats metadata (updated: ${response.updatedAt})`,
+      );
+
+      return metadata;
+    } catch (error: any) {
+      console.error("[Cache] Failed to load metadata cache:", error);
+
+      if (
+        error.code === 429 ||
+        error.code === 402 ||
+        error.code === 503 ||
+        error.type === "general_rate_limit_exceeded" ||
+        error.type === "limit_databases_reads_exceeded"
+      ) {
+        try {
+          const staticNaats = await this.loadStaticNaats();
+          this.metadataCache = staticNaats.map((naat) =>
+            this.mapNaatToMetadata(naat),
+          );
+          return this.metadataCache;
+        } catch (fallbackError) {
+          console.error("[Fallback] Failed to load static metadata:", fallbackError);
+        }
+      }
+
+      console.warn("[Cache] Falling back to direct fetch (expensive)");
+      this.metadataCache = await this.fetchMetadataFallback();
+      return this.metadataCache;
     }
   }
 

@@ -11,6 +11,7 @@ import type {
     Channel,
     IAppwriteService,
     Naat,
+    NaatMetadata,
 } from "@naat-collection/shared";
 import { AppError, ErrorCode } from "@naat-collection/shared";
 import * as Sentry from "@sentry/react-native";
@@ -104,6 +105,42 @@ export class AppwriteService implements IAppwriteService {
         true,
       );
     }
+  }
+
+  /**
+   * Get lightweight metadata for For You ranking and fuzzy search
+   */
+  async getNaatsMetadata(): Promise<NaatMetadata[]> {
+    const cacheKey = "naats_metadata_cache";
+
+    try {
+      return await withCacheFallback(
+        () => this.baseService.getNaatsMetadata(),
+        cacheKey,
+        {
+          timeoutMs: DEFAULT_TIMEOUT,
+          maxAttempts: 3,
+        },
+      );
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.NETWORK_ERROR), {
+        context: "getNaatsMetadata",
+      });
+
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      throw new AppError(
+        "Unable to load naat metadata. Please check your internet connection.",
+        ErrorCode.NETWORK_ERROR,
+        true,
+      );
+    }
+  }
+
+  clearMetadataCache(): void {
+    this.baseService.clearMetadataCache();
   }
 
   /**
