@@ -13,22 +13,28 @@ class StreamManager {
     this.outputDir = '/var/www/html/live';
     this.audioCacheDir = path.join(__dirname, '../audio-cache');
     this.trackRotationInterval = null;
+    this.playlistMetadataFile = path.join(__dirname, '../playlist-metadata.json');
   }
 
   async initialize() {
     // Ensure directories exist
     await fs.ensureDir(this.audioCacheDir);
     
-    // Load initial playlist
-    await this.updatePlaylist();
+    // Check if we have cached playlist metadata
+    const hasCachedPlaylist = await this.loadCachedPlaylist();
+    
+    if (!hasCachedPlaylist) {
+      console.log('📥 No cached playlist found, fetching from Appwrite...');
+      await this.updatePlaylist(); // Only fetch if no cache
+    } else {
+      console.log('✅ Using cached playlist metadata');
+    }
     
     // Start Icecast streaming
     this.startStream();
     
-    // Update playlist every 3 minutes
-    setInterval(() => {
-      this.updatePlaylist();
-    }, 3 * 60 * 1000);
+    // Removed: 3-minute interval updates
+    // Playlist only updates on container restart with CLEAR_AUDIO_CACHE_ON_START=true
   }
 
   startTrackRotation() {
@@ -73,15 +79,64 @@ class StreamManager {
     this.playCurrentTrack();
   }
 
+  /**
+   * Load playlist from cached metadata file
+   * Returns true if cache exists and is loaded successfully
+   */
+  async loadCachedPlaylist() {
+    try {
+      if (!(await fs.pathExists(this.playlistMetadataFile))) {
+        return false;
+      }
+
+      const cachedData = await fs.readJson(this.playlistMetadataFile);
+      
+      if (!cachedData.playlist || cachedData.playlist.length === 0) {
+        return false;
+      }
+
+      this.currentPlaylist = cachedData.playlist;
+      
+      console.log(`📦 Loaded ${this.currentPlaylist.length} naats from cache`);
+      console.log(`📅 Cache date: ${cachedData.updatedAt}`);
+      
+      // Generate FFmpeg playlist from cached data
+      await this.generateFFmpegPlaylist();
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Error loading cached playlist:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Save playlist metadata to cache file
+   */
+  async saveCachedPlaylist() {
+    try {
+      const cacheData = {
+        playlist: this.currentPlaylist,
+        updatedAt: new Date().toISOString(),
+        totalNaats: this.currentPlaylist.length
+      };
+
+      await fs.writeJson(this.playlistMetadataFile, cacheData, { spaces: 2 });
+      console.log(`💾 Saved playlist metadata to cache`);
+    } catch (error) {
+      console.error('❌ Error saving playlist cache:', error);
+    }
+  }
+
   async updatePlaylist() {
     try {
-      console.log('Updating playlist...');
+      console.log('🔄 Fetching playlist from Appwrite...');
       
       const { Client, Databases, Query } = require('node-appwrite');
       
       // Initialize Appwrite client
       const client = new Client()
-        .setEndpoint(process.env.APPWRITE_ENDPOINT)
+        .setEndpoint(process.env.APPWRITE_ENDPOINT || 'https://sgp.cloud.appwrite.io/v1')
         .setProject(process.env.APPWRITE_PROJECT_ID)
         .setKey(process.env.APPWRITE_API_KEY);
 
@@ -90,7 +145,7 @@ class StreamManager {
       // Fetch naats with cutAudio available and radio attribute true
       const response = await databases.listDocuments(
         process.env.DATABASE_ID,
-        process.env.NAATS_COLLECTION_ID, // Use environment variable for collection ID
+        process.env.NAATS_COLLECTION_ID,
         [
           Query.limit(5000),
           Query.lessThanEqual("duration", 1200), // 20 minutes max
@@ -108,23 +163,37 @@ class StreamManager {
       this.currentPlaylist = response.documents.map(naat => ({
         id: naat.$id,
         title: naat.title,
-        audioUrl: `https://sgp.cloud.appwrite.io/v1/storage/buckets/audio-files/files/${naat.cutAudio}/view?project=695bb97700213f4ef5dd`,
+        audioUrl: `https://sgp.cloud.appwrite.io/v1/storage/buckets/audio-files/files/${naat.cutAudio}/view?project=${process.env.APPWRITE_PROJECT_ID}`,
         duration: naat.duration
       }));
       
-      console.log(`Loaded ${this.currentPlaylist.length} naats for playlist`);
+      console.log(`✅ Fetched ${this.currentPlaylist.length} naats from Appwrite`);
+      
+      // Save to cache for future restarts
+      await this.saveCachedPlaylist();
+      
+      // Generate FFmpeg playlist
       await this.generateFFmpegPlaylist();
       
     } catch (error) {
-      console.error('Error updating playlist:', error);
+      console.error('❌ Error updating playlist from Appwrite:', error);
+      
+      // Try to load from cache as fallback
+      const loaded = await this.loadCachedPlaylist();
+      if (!loaded) {
+        console.error('❌ No cached playlist available, cannot continue');
+        process.exit(1);
+      }
     }
   }
 
   async generateFFmpegPlaylist() {
     const playlistContent = [];
     
+    console.log('🎵 Generating FFmpeg playlist...');
+    
     for (const track of this.currentPlaylist) {
-      // Download and cache audio file
+      // Download and cache audio file (only if not already cached)
       const cachedFile = await this.cacheAudioFile(track);
       if (cachedFile) {
         playlistContent.push(`file '${cachedFile}'`);
@@ -132,11 +201,11 @@ class StreamManager {
     }
     
     await fs.writeFile(this.playlistFile, playlistContent.join('\n'));
-    console.log(`Generated playlist with ${playlistContent.length} tracks`);
+    console.log(`✅ Generated playlist with ${playlistContent.length} tracks`);
     
     // Start track rotation if not already started
     if (this.currentPlaylist.length > 0 && !this.trackRotationInterval) {
-      console.log('Starting track rotation...');
+      console.log('▶️  Starting track rotation...');
       this.startTrackRotation();
     }
   }
@@ -147,11 +216,12 @@ class StreamManager {
     
     // Check if already cached
     if (await fs.pathExists(cachedPath)) {
+      console.log(`✅ Using cached audio: ${track.title}`);
       return cachedPath;
     }
     
     try {
-      console.log(`Caching audio: ${track.title}`);
+      console.log(`📥 Downloading audio: ${track.title}`);
       
       // Download audio file
       const response = await axios({
@@ -164,12 +234,15 @@ class StreamManager {
       response.data.pipe(writer);
       
       return new Promise((resolve, reject) => {
-        writer.on('finish', () => resolve(cachedPath));
+        writer.on('finish', () => {
+          console.log(`✅ Cached: ${track.title}`);
+          resolve(cachedPath);
+        });
         writer.on('error', reject);
       });
       
     } catch (error) {
-      console.error(`Error caching ${track.title}:`, error);
+      console.error(`❌ Error caching ${track.title}:`, error);
       return null;
     }
   }

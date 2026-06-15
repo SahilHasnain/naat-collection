@@ -14,7 +14,7 @@ import type {
 } from "@naat-collection/shared";
 import { AppError, ErrorCode } from "@naat-collection/shared";
 import * as Sentry from "@sentry/react-native";
-import { appwriteConfig, validateAppwriteConfig } from "../config/appwrite";
+import { appwriteConfig, validateAppwriteConfig, STATIC_FALLBACK_URLS } from "../config/appwrite";
 import {
     DEFAULT_TIMEOUT,
     logError,
@@ -32,9 +32,13 @@ export class AppwriteService implements IAppwriteService {
     // Validate config on initialization
     validateAppwriteConfig();
 
-    // Create base service with error callback
+    // Create base service with error callback and static fallback URLs
     this.baseService = new BaseAppwriteService({
       config: appwriteConfig,
+      staticFallbackUrls: {
+        naats: STATIC_FALLBACK_URLS.NAATS,
+        channels: STATIC_FALLBACK_URLS.CHANNELS,
+      },
       onError: (error, context) => {
         // Send errors to Sentry
         Sentry.captureException(error, {
@@ -296,6 +300,12 @@ export class AppwriteService implements IAppwriteService {
       console.warn("Semantic search failed, falling back to regular search");
       return this.searchNaats(query);
     }
+  }
+  /**
+   * Check if service is currently using static fallback mode
+   */
+  isInFallbackMode(): boolean {
+    return this.baseService.isInFallbackMode();
   }
 }
 

@@ -3,17 +3,30 @@
 echo "🎵 Starting Live Radio Services..."
 
 CACHE_DIR="/app/audio-cache"
+METADATA_FILE="/app/playlist-metadata.json"
 CLEAR_AUDIO_CACHE_ON_START="${CLEAR_AUDIO_CACHE_ON_START:-false}"
 
 mkdir -p "$CACHE_DIR"
 
 case "$(echo "$CLEAR_AUDIO_CACHE_ON_START" | tr '[:upper:]' '[:lower:]')" in
     1|true|yes|y)
-        echo "🧹 CLEAR_AUDIO_CACHE_ON_START=$CLEAR_AUDIO_CACHE_ON_START -> clearing cache files"
+        echo "🧹 CLEAR_AUDIO_CACHE_ON_START=$CLEAR_AUDIO_CACHE_ON_START"
+        echo "   → Clearing audio cache and metadata"
         find "$CACHE_DIR" -type f \( -name "*.mp3" -o -name "*.tmp" \) -delete
+        rm -f "$METADATA_FILE"
+        echo "   → Will fetch fresh playlist from Appwrite (5000 reads)"
         ;;
     *)
-        echo "💾 CLEAR_AUDIO_CACHE_ON_START=$CLEAR_AUDIO_CACHE_ON_START -> keeping cache files"
+        echo "💾 CLEAR_AUDIO_CACHE_ON_START=$CLEAR_AUDIO_CACHE_ON_START"
+        
+        CACHED_FILES=$(find "$CACHE_DIR" -type f -name "*.mp3" 2>/dev/null | wc -l)
+        if [ -f "$METADATA_FILE" ] && [ "$CACHED_FILES" -gt 0 ]; then
+            echo "   → Found $CACHED_FILES cached audio files"
+            echo "   → Will use cached playlist (0 Appwrite reads) ✅"
+        else
+            echo "   → No cache found"
+            echo "   → Will fetch from Appwrite on first run (5000 reads)"
+        fi
         ;;
 esac
 
