@@ -130,44 +130,11 @@ class StreamManager {
 
   async updatePlaylist() {
     try {
-      console.log('🔄 Fetching playlist from Appwrite...');
+      // LAYER 1: Try Database first (optimal - has metadata, filters)
+      console.log('🔄 [LAYER 1] Fetching playlist from Appwrite Database...');
+      await this.fetchFromDatabase();
       
-      const { Client, Databases, Query } = require('node-appwrite');
-      
-      // Initialize Appwrite client
-      const client = new Client()
-        .setEndpoint(process.env.APPWRITE_ENDPOINT || 'https://sgp.cloud.appwrite.io/v1')
-        .setProject(process.env.APPWRITE_PROJECT_ID)
-        .setKey(process.env.APPWRITE_API_KEY);
-
-      const databases = new Databases(client);
-      
-      // Fetch naats with cutAudio available and radio attribute true
-      const response = await databases.listDocuments(
-        process.env.DATABASE_ID,
-        process.env.NAATS_COLLECTION_ID,
-        [
-          Query.limit(5000),
-          Query.lessThanEqual("duration", 1200), // 20 minutes max
-          Query.isNotNull("cutAudio"),
-          Query.equal("radio", true),
-          Query.or([
-            Query.equal("exclude", false),
-            Query.isNull("exclude")
-          ]),
-          Query.select(["$id", "title", "cutAudio", "duration"])
-        ]
-      );
-      
-      // Convert to playlist format
-      this.currentPlaylist = response.documents.map(naat => ({
-        id: naat.$id,
-        title: naat.title,
-        audioUrl: `https://sgp.cloud.appwrite.io/v1/storage/buckets/audio-files/files/${naat.cutAudio}/view?project=${process.env.APPWRITE_PROJECT_ID}`,
-        duration: naat.duration
-      }));
-      
-      console.log(`✅ Fetched ${this.currentPlaylist.length} naats from Appwrite`);
+      console.log(`✅ Database fetch successful! ${this.currentPlaylist.length} naats`);
       
       // Save to cache for future restarts
       await this.saveCachedPlaylist();
@@ -176,15 +143,217 @@ class StreamManager {
       await this.generateFFmpegPlaylist();
       
     } catch (error) {
-      console.error('❌ Error updating playlist from Appwrite:', error);
+      console.error('❌ [LAYER 1] Database fetch failed:', error.message);
       
-      // Try to load from cache as fallback
-      const loaded = await this.loadCachedPlaylist();
-      if (!loaded) {
-        console.error('❌ No cached playlist available, cannot continue');
-        process.exit(1);
+      // Check error type
+      if (error.code === 402) {
+        console.log('💡 Got 402 - Payment/quota exceeded on database');
+      } else if (error.code === 429) {
+        console.log('💡 Got 429 - Rate limit exceeded on database');
+      }
+      
+      // LAYER 2: Configurable fallback
+      const fallbackSource = process.env.FALLBACK_SOURCE || 'storage_api';
+      
+      try {
+        if (fallbackSource === 'static_json') {
+          console.log('\n🔄 [LAYER 2] Falling back to static JSON export...');
+          await this.fetchFromStaticJSON();
+          
+        } else if (fallbackSource === 'storage_api') {
+          console.log('\n🔄 [LAYER 2] Falling back to Storage API (storage.listFiles)...');
+          await this.fetchFromStorageAPI();
+          
+        } else {
+          throw new Error(`Unknown fallback source: ${fallbackSource}`);
+        }
+        
+        console.log(`✅ Fallback successful! ${this.currentPlaylist.length} naats`);
+        
+        // Save fallback data to cache
+        await this.saveCachedPlaylist();
+        
+        // Generate FFmpeg playlist
+        await this.generateFFmpegPlaylist();
+        
+      } catch (fallbackError) {
+        console.error(`❌ [LAYER 2] Fallback (${fallbackSource}) also failed:`, fallbackError.message);
+        
+        // FINAL FALLBACK: Try to load from local cache
+        console.log('\n🔄 [FINAL FALLBACK] Trying local cached playlist...');
+        const loaded = await this.loadCachedPlaylist();
+        
+        if (!loaded) {
+          console.error('❌ All fallback methods failed. Cannot continue.');
+          console.error('💡 Suggestions:');
+          console.error('   1. Check FALLBACK_SOURCE env variable');
+          console.error('   2. Ensure Appwrite credentials are correct');
+          console.error('   3. Wait for quota reset if 402 error');
+          console.error('   4. Try FALLBACK_SOURCE=storage_api or static_json');
+          process.exit(1);
+        }
       }
     }
+  }
+
+  /**
+   * LAYER 1: Fetch from Appwrite Database (optimal)
+   * - Has metadata (title, duration)
+   * - Can filter by radio=true
+   * - Can exclude naats
+   * - Cost: 5000 reads
+   */
+  async fetchFromDatabase() {
+    const { Client, Databases, Query } = require('node-appwrite');
+    
+    // Initialize Appwrite client
+    const client = new Client()
+      .setEndpoint(process.env.APPWRITE_ENDPOINT || 'https://sgp.cloud.appwrite.io/v1')
+      .setProject(process.env.APPWRITE_PROJECT_ID)
+      .setKey(process.env.APPWRITE_API_KEY);
+
+    const databases = new Databases(client);
+    
+    // Fetch naats with cutAudio available and radio attribute true
+    const response = await databases.listDocuments(
+      process.env.DATABASE_ID,
+      process.env.NAATS_COLLECTION_ID,
+      [
+        Query.limit(5000),
+        Query.lessThanEqual("duration", 1200), // 20 minutes max
+        Query.isNotNull("cutAudio"),
+        Query.equal("radio", true),
+        Query.or([
+          Query.equal("exclude", false),
+          Query.isNull("exclude")
+        ]),
+        Query.select(["$id", "title", "cutAudio", "duration"])
+      ]
+    );
+    
+    // Convert to playlist format
+    this.currentPlaylist = response.documents.map(naat => ({
+      id: naat.$id,
+      title: naat.title,
+      audioUrl: `https://sgp.cloud.appwrite.io/v1/storage/buckets/audio-files/files/${naat.cutAudio}/view?project=${process.env.APPWRITE_PROJECT_ID}`,
+      duration: naat.duration,
+      source: 'database'
+    }));
+  }
+
+  /**
+   * LAYER 2A: Fetch from Static JSON Export (zero cost)
+   * - Has metadata (from export)
+   * - Potentially stale data
+   * - Served via CDN
+   * - Cost: 0 reads
+   */
+  async fetchFromStaticJSON() {
+    const staticJsonUrl = process.env.STATIC_JSON_URL || 
+      'https://cdn.jsdelivr.net/gh/sahilhasnain/naat-collection@main/static-exports/radio-naats.json';
+    
+    console.log(`📥 Fetching from: ${staticJsonUrl}`);
+    
+    const response = await axios.get(staticJsonUrl);
+    
+    if (!response.data || !response.data.data) {
+      throw new Error('Invalid static JSON format');
+    }
+    
+    // Convert static export to playlist format
+    this.currentPlaylist = response.data.data.map(naat => ({
+      id: naat.$id,
+      title: naat.title || `Track ${naat.$id}`,
+      audioUrl: `https://sgp.cloud.appwrite.io/v1/storage/buckets/audio-files/files/${naat.cutAudio}/view?project=${process.env.APPWRITE_PROJECT_ID}`,
+      duration: naat.duration || 300,
+      source: 'static_json'
+    }));
+    
+    console.log(`📦 Loaded from static export (updated: ${response.data.metadata?.exportedAt || 'unknown'})`);
+  }
+
+  /**
+   * LAYER 2B: Fetch from Storage API (low cost)
+   * - NO metadata (blind fetch)
+   * - Limited to latest N files (configurable)
+   * - File names are YouTube IDs
+   * - Cost: ~10 reads (for 1000 files)
+   */
+  async fetchFromStorageAPI() {
+    const { Client, Storage, Query } = require('node-appwrite');
+    
+    const client = new Client()
+      .setEndpoint(process.env.APPWRITE_ENDPOINT || 'https://sgp.cloud.appwrite.io/v1')
+      .setProject(process.env.APPWRITE_PROJECT_ID)
+      .setKey(process.env.APPWRITE_API_KEY);
+
+    const storage = new Storage(client);
+    const bucketId = process.env.AUDIO_BUCKET_ID || 'audio-files';
+    const maxFiles = parseInt(process.env.STORAGE_API_MAX_FILES || '1000', 10);
+    
+    console.log(`📦 Fetching latest ${maxFiles} files from storage bucket: ${bucketId}`);
+    console.log('⚠️  Note: No metadata, no filtering, using latest audio files');
+    
+    const allFiles = [];
+    let offset = 0;
+    const limit = 100;
+    let batchCount = 0;
+    
+    // Fetch files in batches until we reach maxFiles
+    while (allFiles.length < maxFiles) {
+      batchCount++;
+      console.log(`   Batch ${batchCount}: Fetching files ${offset} to ${offset + limit}...`);
+      
+      const response = await storage.listFiles(bucketId, [
+        Query.limit(limit),
+        Query.offset(offset),
+        Query.orderDesc('$createdAt') // Latest first
+      ]);
+      
+      allFiles.push(...response.files);
+      
+      console.log(`   → Got ${response.files.length} files (Total so far: ${allFiles.length})`);
+      
+      // Stop if we've reached maxFiles or end of files
+      if (response.files.length < limit || allFiles.length >= maxFiles) {
+        console.log(`   ✅ Stopped at ${allFiles.length} files`);
+        break;
+      }
+      
+      offset += limit;
+    }
+    
+    // Trim to exact maxFiles if we fetched more
+    const limitedFiles = allFiles.slice(0, maxFiles);
+    
+    console.log(`� Total files fetched: ${limitedFiles.length} files (limit: ${maxFiles})`);
+    console.log(`💰 Storage reads used: ~${batchCount} reads (vs 5000 database reads)`);
+    
+    // Convert to playlist format (no metadata available)
+    this.currentPlaylist = limitedFiles.map(file => ({
+      id: file.$id,
+      title: file.name || `Track ${file.$id}`, // YouTube ID as title
+      audioUrl: `https://sgp.cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${file.$id}/view?project=${process.env.APPWRITE_PROJECT_ID}`,
+      duration: 300, // Default 5 minutes (we don't know actual duration)
+      source: 'storage_api',
+      fileName: file.name
+    }));
+    
+    // Shuffle playlist for variety (since we can't filter or sort)
+    this.currentPlaylist = this.shuffleArray(this.currentPlaylist);
+    console.log('🔀 Playlist shuffled for variety');
+  }
+
+  /**
+   * Utility: Shuffle array (Fisher-Yates algorithm)
+   */
+  shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
   }
 
   async generateFFmpegPlaylist() {
