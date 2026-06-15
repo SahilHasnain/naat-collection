@@ -191,8 +191,8 @@ async function exportData() {
     console.log('      git push');
     console.log('');
     console.log('   2. Access via jsDelivr CDN:');
-    console.log('      https://cdn.jsdelivr.net/gh/USERNAME/REPO@main/static-exports/naats-export.json');
-    console.log('      https://cdn.jsdelivr.net/gh/USERNAME/REPO@main/static-exports/channels-export.json');
+    console.log('      https://cdn.jsdelivr.net/gh/sahilhasnain/naat-collection@main/static-exports/naats-export.json');
+    console.log('      https://cdn.jsdelivr.net/gh/sahilhasnain/naat-collection@main/static-exports/channels-export.json');
     console.log('');
     console.log('   3. Update app with fallback logic (see implementation files)');
 
