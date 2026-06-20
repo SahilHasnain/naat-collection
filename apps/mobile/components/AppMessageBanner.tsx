@@ -1,9 +1,11 @@
 import { colors, spacing } from "@/constants/theme";
 import Pressable from "@/components/ResponsivePressable";
 import { LinearGradient } from "expo-linear-gradient";
-import { Text, View, Linking } from "react-native";
+import { Text, View, Linking, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { AppMessage } from "@/hooks/useAppMessage";
+
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.owaisrazaqadri";
 
 interface Props {
   message: AppMessage;
@@ -11,8 +13,8 @@ interface Props {
 }
 
 export default function AppMessageBanner({ message, onDismiss }: Props) {
-  const handleLink = () => {
-    if (message.link) Linking.openURL(message.link);
+  const handleUpdate = () => {
+    Linking.openURL(message.link || PLAY_STORE_URL);
   };
 
   return (
@@ -91,28 +93,26 @@ export default function AppMessageBanner({ message, onDismiss }: Props) {
                     Dismiss
                   </Text>
                 </Pressable>
-                {message.link ? (
-                  <Pressable
-                    onPress={handleLink}
+                <Pressable
+                  onPress={handleUpdate}
+                  style={{
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    borderColor: colors.accent.primary,
+                  }}
+                >
+                  <Text
                     style={{
-                      paddingVertical: 8,
-                      paddingHorizontal: 16,
-                      borderRadius: 20,
-                      borderWidth: 1,
-                      borderColor: colors.text.secondary,
+                      color: colors.accent.primary,
+                      fontSize: 14,
+                      fontWeight: "600",
                     }}
                   >
-                    <Text
-                      style={{
-                        color: colors.text.primary,
-                        fontSize: 14,
-                        fontWeight: "600",
-                      }}
-                    >
-                      Learn more
-                    </Text>
-                  </Pressable>
-                ) : null}
+                    Update Now
+                  </Text>
+                </Pressable>
               </View>
             </View>
           </View>
