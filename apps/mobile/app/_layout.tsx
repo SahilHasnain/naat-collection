@@ -31,8 +31,10 @@ import {
   useTabBarVisibility,
 } from "@/contexts/TabBarVisibilityContext.animated";
 import { VideoProvider } from "@/contexts/VideoContext";
+import { useAppMessage } from "@/hooks/useAppMessage";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import AppMessageBanner from "@/components/AppMessageBanner";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import * as Sentry from "@sentry/react-native";
@@ -90,6 +92,9 @@ function RootLayoutContent() {
 
   // Check if user is on homepage (home route) - only enable filter on homepage
   const isOnHomepage = segments[0] === "home" || segments[0] === undefined;
+
+  // App update / announcement message
+  const { message: appMessage, dismiss, preview: previewMessage } = useAppMessage();
 
   // Network status for offline handling
   const { isConnected } = useNetworkStatus();
@@ -340,6 +345,11 @@ function RootLayoutContent() {
         </View>
       )}
 
+      {/* App update message banner */}
+      {appMessage && (
+        <AppMessageBanner message={appMessage} onDismiss={dismiss} />
+      )}
+
       {/* Offline modal — shown when connection drops while using the app */}
       {showOfflineModal && (
         <>
@@ -449,6 +459,26 @@ function RootLayoutContent() {
             </LinearGradient>
           </View>
         </>
+      )}
+
+      {__DEV__ && (
+        <Pressable
+          onPress={previewMessage}
+          style={{
+            position: "absolute",
+            top: insets.top + 8,
+            right: 8,
+            backgroundColor: colors.accent.primary,
+            paddingVertical: 6,
+            paddingHorizontal: 12,
+            borderRadius: 8,
+            zIndex: 2000,
+          }}
+        >
+          <Text style={{ color: "#000", fontSize: 12, fontWeight: "700" }}>
+            Preview Message
+          </Text>
+        </Pressable>
       )}
     </>
   );
