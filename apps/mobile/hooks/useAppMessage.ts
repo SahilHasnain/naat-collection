@@ -17,10 +17,10 @@ export function useAppMessage() {
   const [message, setMessage] = useState<AppMessage | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
-  const fetch = async () => {
+  const check = async () => {
     try {
       const lastSeen = await AsyncStorage.getItem(LAST_SEEN_KEY);
-      const res = await fetch(MESSAGE_URL);
+      const res = await globalThis.fetch(MESSAGE_URL);
       const data: AppMessage = await res.json();
       if (!data.id || !data.message) return;
       if (lastSeen && Number(lastSeen) >= data.id) return;
@@ -28,7 +28,7 @@ export function useAppMessage() {
     } catch {}
   };
 
-  useEffect(() => { fetch(); }, []);
+  useEffect(() => { check(); }, []);
 
   const dismiss = async () => {
     if (message) {
@@ -42,7 +42,7 @@ export function useAppMessage() {
   const preview = async () => {
     await AsyncStorage.removeItem(LAST_SEEN_KEY);
     setDismissed(false);
-    await fetch();
+    await check();
   };
 
   return { message: dismissed ? null : message, dismiss, preview };
