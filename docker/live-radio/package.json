@@ -4,7 +4,7 @@
   "description": "Live Radio Docker Container with Icecast and Node.js",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node api.js && node src/server.js",
     "stream": "node src/stream-manager.js"
   },
   "dependencies": {

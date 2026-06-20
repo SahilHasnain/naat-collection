@@ -5,7 +5,7 @@
   "description": "Minimal VM worker for downloading YouTube audio and uploading to Appwrite",
   "main": "audio-worker.js",
   "scripts": {
-    "start": "node audio-worker.js"
+    "start": "node api.js && node audio-worker.js"
   },
   "dependencies": {
     "dotenv": "^16.6.1",
