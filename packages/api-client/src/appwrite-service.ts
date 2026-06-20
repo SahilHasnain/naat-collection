@@ -152,9 +152,9 @@ export class AppwriteService implements IAppwriteService {
     this.initialize();
 
     try {
+      console.error("[DEBUG] getNaats: method entered, fallbackUrl:", this.staticFallbackUrls?.naats);
       const queries = [Query.limit(limit), Query.offset(offset)];
 
-      // Exclude naats marked as excluded
       queries.push(Query.or([
         Query.equal("exclude", false),
         Query.isNull("exclude")
@@ -182,14 +182,17 @@ export class AppwriteService implements IAppwriteService {
           break;
       }
 
+      console.error("[DEBUG] getNaats: about to call DB, offset:", offset, "limit:", limit);
       const response = await this.database.listDocuments(
         this.config.databaseId,
         this.config.naatsCollectionId,
         queries,
       );
+      console.error("[DEBUG] getNaats: DB call SUCCEEDED, docs:", response.documents.length);
 
       return response.documents as unknown as Naat[];
     } catch (error: any) {
+      console.error("[DEBUG getNaats base] name:", error?.name, "code:", error?.code, "type:", error?.type, "message:", error?.message);
       // Check for rate limit or service unavailable errors
       if (error.code === 429 || error.code === 402 || error.code === 503 || error.type === 'general_rate_limit_exceeded' || error.type === 'limit_databases_reads_exceeded') {
         console.warn('[Appwrite] Rate limit exceeded, using static fallback');
@@ -393,6 +396,7 @@ export class AppwriteService implements IAppwriteService {
 
       return channels;
     } catch (error: any) {
+      console.error("[DEBUG getChannels base] name:", error?.name, "code:", error?.code, "type:", error?.type, "message:", error?.message);
       // Check for rate limit errors
       if (error.code === 429 || error.code === 402 || error.code === 503 || error.type === 'general_rate_limit_exceeded' || error.type === 'limit_databases_reads_exceeded') {
         console.warn('[Appwrite] Rate limit exceeded, loading channels from static fallback');
