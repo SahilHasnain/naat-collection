@@ -13,7 +13,7 @@
     "typescript": "^5.7.0"
   },
   "scripts": {
-    "build": "echo 'no build step needed'"
+    "build": "node init && echo 'no build step needed'"
   },
   "compilerOptions": {
     "target": "ES2022",
