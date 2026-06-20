@@ -1,7 +1,7 @@
-import { colors, spacing } from "@/constants/theme";
+import { colors } from "@/constants/theme";
 import Pressable from "@/components/ResponsivePressable";
 import { LinearGradient } from "expo-linear-gradient";
-import { Text, View, Linking, Platform } from "react-native";
+import { Text, View, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { AppMessage } from "@/hooks/useAppMessage";
 
@@ -13,8 +13,11 @@ interface Props {
 }
 
 export default function AppMessageBanner({ message, onDismiss }: Props) {
-  const handleUpdate = () => {
-    Linking.openURL(message.link || PLAY_STORE_URL);
+  const isUpdate = message.type === "update";
+  const showAction = isUpdate || message.link;
+
+  const handleAction = () => {
+    Linking.openURL(isUpdate ? message.link || PLAY_STORE_URL : message.link!);
   };
 
   return (
@@ -93,26 +96,28 @@ export default function AppMessageBanner({ message, onDismiss }: Props) {
                     Dismiss
                   </Text>
                 </Pressable>
-                <Pressable
-                  onPress={handleUpdate}
-                  style={{
-                    paddingVertical: 8,
-                    paddingHorizontal: 16,
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    borderColor: colors.accent.primary,
-                  }}
-                >
-                  <Text
+                {showAction && (
+                  <Pressable
+                    onPress={handleAction}
                     style={{
-                      color: colors.accent.primary,
-                      fontSize: 14,
-                      fontWeight: "600",
+                      paddingVertical: 8,
+                      paddingHorizontal: 16,
+                      borderRadius: 20,
+                      borderWidth: 1,
+                      borderColor: isUpdate ? colors.accent.primary : colors.text.secondary,
                     }}
                   >
-                    Update Now
-                  </Text>
-                </Pressable>
+                    <Text
+                      style={{
+                        color: isUpdate ? colors.accent.primary : colors.text.primary,
+                        fontSize: 14,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {isUpdate ? "Update Now" : "Learn More"}
+                    </Text>
+                  </Pressable>
+                )}
               </View>
             </View>
           </View>
