@@ -8,9 +8,7 @@ const LAST_SEEN_KEY = "@app_message_last_seen_id";
 export interface AppMessage {
   id: number;
   message: string;
-  type: "info" | "update" | "alert";
-  minAppVersion: string;
-  link: string;
+  type?: "info" | "update" | "alert";
 }
 
 export function useAppMessage() {
