@@ -24,15 +24,11 @@ const FALLBACK_CONFIG = {
   SEMANTIC_SEARCH_FUNCTION_URL: "https://69a8e9000021d2eaafd9.sgp.appwrite.run",
 };
 
-/**
- * Static JSON fallback URLs (jsDelivr CDN)
- * Replace USERNAME/REPO with your GitHub details
- */
 export const STATIC_FALLBACK_URLS = {
   NAATS: process.env.EXPO_PUBLIC_STATIC_NAATS_URL || 
-    'https://cdn.jsdelivr.net/gh/sahilhasnain/naat-collection@main/static-exports/naats-export.json',
+    'https://raw.githubusercontent.com/sahilhasnain/naat-collection/main/static-exports/naats-export.json',
   CHANNELS: process.env.EXPO_PUBLIC_STATIC_CHANNELS_URL ||
-    'https://cdn.jsdelivr.net/gh/sahilhasnain/naat-collection@main/static-exports/channels-export.json',
+    'https://raw.githubusercontent.com/sahilhasnain/naat-collection/main/static-exports/channels-export.json',
 };
 
 // Map Expo environment variables to shared config format with fallbacks
