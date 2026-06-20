@@ -17,7 +17,7 @@ export default function AppMessageBanner({ message, onDismiss }: Props) {
   const showAction = isUpdate || message.link;
 
   const handleAction = () => {
-    Linking.openURL(isUpdate ? message.link || PLAY_STORE_URL : message.link!);
+    Linking.openURL(isUpdate ? PLAY_STORE_URL : message.link!);
   };
 
   return (
