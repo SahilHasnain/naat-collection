@@ -1,7 +1,5 @@
 {
   "id": 2,
   "message": "We've fixed loading issues — naats now load reliably even during high traffic!",
-  "type": "info",
-  "minAppVersion": "",
-  "link": ""
+  "type": "info"
 }
