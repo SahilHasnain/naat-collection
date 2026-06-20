@@ -334,16 +334,11 @@ export function formatErrorMessage(error: Error): string {
     return error.message;
   }
 
-  // Default messages for common error types
-  if (error.message.includes("network") || error.message.includes("fetch")) {
-    return "Unable to connect. Please check your internet connection.";
+  if (__DEV__) {
+    return `[${error.name}] ${error.message}`;
   }
 
-  if (error.message.includes("timeout")) {
-    return "Request timed out. Please try again.";
-  }
-
-  return "Something went wrong. Please try again.";
+  return `[${error.name}] ${error.message}`;
 }
 
 /**
@@ -358,6 +353,13 @@ export function wrapError(
   defaultCode: ErrorCode = ErrorCode.UNKNOWN_ERROR
 ): AppError {
   if (error instanceof AppError) {
+    if (__DEV__) {
+      return new AppError(
+        `[${error.name}] ${error.message} (code=${error.code})`,
+        error.code,
+        error.recoverable,
+      );
+    }
     return error;
   }
 
@@ -365,5 +367,9 @@ export function wrapError(
     return new AppError(formatErrorMessage(error), defaultCode, true);
   }
 
-  return new AppError("An unexpected error occurred.", defaultCode, true);
+  return new AppError(
+    __DEV__ ? `[Unknown Error] ${String(error)}` : "An unexpected error occurred.",
+    defaultCode,
+    true,
+  );
 }

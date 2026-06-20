@@ -70,82 +70,33 @@ function deriveChannelId(title) {
 async function main() {
   console.log('=== Recovery Static Export ===\n');
 
-  console.log(`Fetching ${MAX_FILES} files from Storage...`);
+  console.log(`Fetching files from Storage...`);
   const allFiles = await listAllFiles(MAX_FILES);
-  console.log(`Got ${allFiles.length} files`);
-
-  const rawFiles = allFiles.filter(f => f.name.endsWith('.m4a'));
-  const cutFiles = allFiles.filter(f => f.name.endsWith('.mp4'));
-  const seenDocIds = new Set();
-
-  console.log(`  .m4a (named by YouTube ID): ${rawFiles.length}`);
-  console.log(`  .mp4 (cut audio): ${cutFiles.length}\n`);
-
-  // Build YouTube ID -> storage ID map from .m4a files
-  const ytToStorage = {};
-  for (const f of rawFiles) {
-    const ytId = path.parse(f.name).name;
-    ytToStorage[ytId] = f.$id;
-  }
-
-  const rawYtIds = Object.keys(ytToStorage);
-  console.log(`Fetching YouTube metadata for ${rawYtIds.length} IDs...`);
-  const ytMeta = await fetchYouTube(rawYtIds);
-  console.log(`Got ${Object.keys(ytMeta).length} results\n`);
 
   const naats = [];
   const channelsSet = new Map();
 
-  // 1. Process cut .mp4 files (have audio, need metadata from YouTube)
-  for (const file of cutFiles) {
-    const docId = path.parse(file.name).name.replace(/_cut$/, '');
-    if (seenDocIds.has(docId)) continue;
-    seenDocIds.add(docId);
+  // Process .m4a files (named by YouTube ID, have real metadata)
+  for (const f of allFiles) {
+    if (!f.name.endsWith('.m4a')) continue;
+    const ytId = path.parse(f.name).name;
 
-    const createdDate = new Date(file.$createdAt);
-    const title = createdDate.toISOString().split('T')[0] + ' - Naat';
-    const chName = 'Owais Raza Qadri';
-    const chId = 'owais-raza-qadri';
-
-    naats.push({
-      $id: file.$id,
-      youtubeId: docId,
-      title: title,
-      channelName: chName,
-      channelId: chId,
-      uploadDate: file.$createdAt,
-      duration: 0,
-      thumbnailUrl: '',
-      views: 0,
-      audioId: file.$id,
-      cutAudio: file.$id,
-      exclude: false,
-    });
-
-    if (!channelsSet.has(chId)) {
-      channelsSet.set(chId, {
-        channelId: chId, channelName: chName, isOfficial: true, isOther: false, type: 'channel', playlistId: null,
-      });
-    }
-  }
-
-  console.log(`Cut files added: ${naats.length} (with working audio, placeholder titles)`);
-
-  // 2. Process .m4a files that have YouTube metadata (full data + audio)
-  let m4aAdded = 0;
-  for (const [ytId, storageId] of Object.entries(ytToStorage)) {
-    if (seenDocIds.has(ytId)) continue;
-    const yt = ytMeta[ytId];
+    // Fetch YouTube metadata
+    const url = `https://www.googleapis.com/youtube/v3/videos?id=${ytId}&part=snippet,contentDetails&key=${YOUTUBE_API_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) continue;
+    const data = await res.json();
+    const yt = data?.items?.[0];
     if (!yt) continue;
+
     const sn = yt.snippet;
     const chTitle = sn.channelTitle || 'Unknown';
     const chId = deriveChannelId(chTitle);
     const dur = parseDuration(yt.contentDetails?.duration);
     const thumb = sn.thumbnails?.maxres?.url || sn.thumbnails?.high?.url || sn.thumbnails?.medium?.url || sn.thumbnails?.default?.url || '';
-    seenDocIds.add(ytId);
 
     naats.push({
-      $id: storageId,
+      $id: f.$id,
       youtubeId: ytId,
       title: sn.title || ytId,
       channelName: chTitle,
@@ -154,8 +105,8 @@ async function main() {
       duration: dur,
       thumbnailUrl: thumb,
       views: 0,
-      audioId: storageId,
-      cutAudio: storageId,
+      audioId: f.$id,
+      cutAudio: f.$id,
       exclude: false,
     });
 
@@ -164,13 +115,11 @@ async function main() {
         channelId: chId, channelName: chTitle, isOfficial: true, isOther: false, type: 'channel', playlistId: null,
       });
     }
-    m4aAdded++;
+
+    await new Promise(r => setTimeout(r, 200));
   }
 
-  console.log(`.m4a files added: ${m4aAdded} (with YouTube metadata + audio)`);
-
-  const audioCount = naats.filter(n => n.audioId).length;
-  console.log(`\nTotal: ${naats.length} naats, ${audioCount} with audio, ${channelsSet.size} channels\n`);
+  console.log(`Added ${naats.length} naats with YouTube metadata\n`);
 
   const naatsExport = {
     metadata: {
@@ -178,7 +127,7 @@ async function main() {
       totalItems: naats.length,
       version: '1.0',
       source: 'Recovered from Storage API + YouTube API',
-      note: 'TEMPORARY export. Cut files have placeholder titles (date-based) but working audio. On July 1st run export-naats-to-json.js for proper data.',
+      note: 'Limited to .m4a files with YouTube metadata (59 items). Re-run after DB restore for full export.',
     },
     data: naats.sort((a, b) => new Date(b.uploadDate) - new Date(a.uploadDate)),
   };
