@@ -70,7 +70,7 @@ export default function VideoScreen() {
   const playerRef = React.useRef<any>(null);
 
   // Parse params
-  const videoUrl = params.videoUrl;
+  const videoUrl = params.videoUrl || "";
   const title = params.title;
   const channelName = params.channelName;
   const thumbnailUrl = params.thumbnailUrl;

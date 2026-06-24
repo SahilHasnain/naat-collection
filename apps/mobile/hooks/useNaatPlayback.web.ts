@@ -47,7 +47,7 @@ export function useNaatPlayback(displayData: Naat[]) {
         pathname: "/video",
         params: {
           naatId: naat.$id,
-          videoUrl: naat.videoUrl,
+          videoUrl: naat.videoUrl || (naat.youtubeId ? `https://www.youtube.com/watch?v=${naat.youtubeId}` : ""),
           title: naat.title,
           channelName: naat.channelName,
           thumbnailUrl: naat.thumbnailUrl,

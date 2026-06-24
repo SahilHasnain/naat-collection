@@ -15,7 +15,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
     return match && match[7].length === 11 ? match[7] : "";
   };
 
-  const videoId = getYouTubeId(videoUrl);
+  const videoId = getYouTubeId(videoUrl || "");
 
   return (
     <View className="relative flex-1 bg-black">
