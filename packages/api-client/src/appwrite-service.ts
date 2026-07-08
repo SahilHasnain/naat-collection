@@ -37,6 +37,7 @@ export class AppwriteService implements IAppwriteService {
   private staticNaatsCache: Naat[] | null = null;
   private staticChannelsCache: Channel[] | null = null;
   private isUsingFallback: boolean = false;
+  public dataSource: 'static' | 'appwrite' = 'static';
 
   constructor(options: AppwriteServiceOptions) {
     this.config = options.config;
@@ -74,6 +75,7 @@ export class AppwriteService implements IAppwriteService {
       const data = await response.json();
       this.staticNaatsCache = data.data || data; // Handle both {data: [...]} and [...]
       this.isUsingFallback = true;
+      this.dataSource = 'static';
 
       console.log(`[Fallback] Loaded ${this.staticNaatsCache.length} naats from static JSON`);
       console.log(`[Fallback] Export date: ${data.metadata?.exportedAt || 'unknown'}`);
@@ -110,6 +112,7 @@ export class AppwriteService implements IAppwriteService {
       const data = await response.json();
       this.staticChannelsCache = data.data || data;
       this.isUsingFallback = true;
+      this.dataSource = 'static';
 
       console.log(`[Fallback] Loaded ${this.staticChannelsCache.length} channels from static JSON`);
 
@@ -118,6 +121,40 @@ export class AppwriteService implements IAppwriteService {
       console.error('[Fallback] Failed to load static channels:', error);
       throw error;
     }
+  }
+
+  private filterAndPaginateNaats(
+    naats: Naat[],
+    limit: number,
+    offset: number,
+    sortBy: "latest" | "popular" | "oldest",
+    channelId?: string | null,
+    pureOnly?: boolean,
+  ): Naat[] {
+    let filtered = naats.filter(naat => {
+      if (channelId && naat.channelId !== channelId) return false;
+      if (pureOnly && !naat.cutAudio) return false;
+      return true;
+    });
+
+    switch (sortBy) {
+      case "popular":
+        filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
+        break;
+      case "oldest":
+        filtered.sort((a, b) =>
+          new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
+        );
+        break;
+      case "latest":
+      default:
+        filtered.sort((a, b) =>
+          new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+        );
+        break;
+    }
+
+    return filtered.slice(offset, offset + limit);
   }
 
   /**
@@ -149,6 +186,15 @@ export class AppwriteService implements IAppwriteService {
     channelId?: string | null,
     pureOnly?: boolean,
   ): Promise<Naat[]> {
+    // Try static JSON first (permanent static-export mode)
+    try {
+      const allNaats = await this.loadStaticNaats();
+      return this.filterAndPaginateNaats(allNaats, limit, offset, sortBy, channelId, pureOnly);
+    } catch (staticError) {
+      console.warn('[Appwrite] Static load failed, falling back to Appwrite:', staticError);
+    }
+
+    // Appwrite fallback (existing code preserved for recovery)
     this.initialize();
 
     try {
@@ -189,6 +235,7 @@ export class AppwriteService implements IAppwriteService {
         queries,
       );
       console.error("[DEBUG] getNaats: DB call SUCCEEDED, docs:", response.documents.length);
+      this.dataSource = 'appwrite';
 
       return response.documents as unknown as Naat[];
     } catch (error: any) {
@@ -199,35 +246,7 @@ export class AppwriteService implements IAppwriteService {
         
         try {
           const allNaats = await this.loadStaticNaats();
-          
-          // Apply filters locally
-          let filtered = allNaats.filter(naat => {
-            if (channelId && naat.channelId !== channelId) return false;
-            if (pureOnly && !naat.cutAudio) return false;
-            return true;
-          });
-
-          // Apply sorting
-          switch (sortBy) {
-            case "popular":
-              filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
-              break;
-            case "oldest":
-              filtered.sort((a, b) => 
-                new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
-              );
-              break;
-            case "latest":
-            default:
-              filtered.sort((a, b) => 
-                new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
-              );
-              break;
-          }
-
-          // Apply pagination
-          return filtered.slice(offset, offset + limit);
-          
+          return this.filterAndPaginateNaats(allNaats, limit, offset, sortBy, channelId, pureOnly);
         } catch (fallbackError) {
           console.error('[Fallback] Failed to load from static JSON:', fallbackError);
           throw error; // Throw original error if fallback also fails
@@ -258,8 +277,15 @@ export class AppwriteService implements IAppwriteService {
         id,
       );
 
+      this.dataSource = 'appwrite';
       return response as unknown as Naat;
     } catch (error) {
+      // Try static fallback
+      try {
+        const allNaats = await this.loadStaticNaats();
+        const naat = allNaats.find(n => n.$id === id);
+        if (naat) return naat;
+      } catch {}
       this.onError?.(error as Error, { context: "getNaatById", id });
       throw error;
     }
@@ -282,8 +308,15 @@ export class AppwriteService implements IAppwriteService {
         return null;
       }
 
+      this.dataSource = 'appwrite';
       return response.documents[0] as unknown as Naat;
     } catch (error) {
+      // Try static fallback
+      try {
+        const allNaats = await this.loadStaticNaats();
+        const naat = allNaats.find(n => n.youtubeId === youtubeId);
+        if (naat) return naat;
+      } catch {}
       this.onError?.(error as Error, {
         context: "getNaatByYoutubeId",
         youtubeId,
@@ -296,11 +329,30 @@ export class AppwriteService implements IAppwriteService {
    * Searches for naats matching the provided query string
    */
   async searchNaats(query: string, channelId?: string | null, pureOnly?: boolean): Promise<Naat[]> {
-    this.initialize();
-
     if (!query || query.trim() === "") {
       return [];
     }
+
+    // Try static JSON first (permanent static-export mode)
+    try {
+      const allNaats = await this.loadStaticNaats();
+      const searchLower = query.toLowerCase();
+      let results = allNaats.filter(naat => {
+        if (!naat.title.toLowerCase().includes(searchLower)) return false;
+        if (channelId && naat.channelId !== channelId) return false;
+        if (pureOnly && !naat.cutAudio) return false;
+        return true;
+      });
+      results.sort((a, b) =>
+        new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+      );
+      return results;
+    } catch (staticError) {
+      console.warn('[Appwrite] Static search load failed, falling back to Appwrite:', staticError);
+    }
+
+    // Appwrite fallback (existing code preserved for recovery)
+    this.initialize();
 
     try {
       const queries = [
@@ -327,8 +379,9 @@ export class AppwriteService implements IAppwriteService {
         this.config.databaseId,
         this.config.naatsCollectionId,
         queries,
-      );
+        );
 
+      this.dataSource = 'appwrite';
       return response.documents as unknown as Naat[];
     } catch (error: any) {
       // Check for rate limit errors
@@ -373,6 +426,22 @@ export class AppwriteService implements IAppwriteService {
    * Fetches distinct channels from the database
    */
   async getChannels(): Promise<Channel[]> {
+    // Try static JSON first (permanent static-export mode)
+    try {
+      const staticChannels = await this.loadStaticChannels();
+      return staticChannels.map((doc: any) => ({
+        id: doc.channelId,
+        name: doc.channelName,
+        isOfficial: doc.isOfficial ?? true,
+        isOther: doc.isOther ?? false,
+        type: doc.type ?? "channel",
+        playlistId: doc.playlistId,
+      }));
+    } catch (staticError) {
+      console.warn('[Appwrite] Static channels load failed, falling back to Appwrite:', staticError);
+    }
+
+    // Appwrite fallback (existing code preserved for recovery)
     this.initialize();
 
     try {
@@ -394,6 +463,7 @@ export class AppwriteService implements IAppwriteService {
         };
       });
 
+      this.dataSource = 'appwrite';
       return channels;
     } catch (error: any) {
       console.error("[DEBUG getChannels base] name:", error?.name, "code:", error?.code, "type:", error?.type, "message:", error?.message);

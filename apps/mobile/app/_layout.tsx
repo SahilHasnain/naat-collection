@@ -34,6 +34,7 @@ import { VideoProvider } from "@/contexts/VideoContext";
 import { useAppMessage } from "@/hooks/useAppMessage";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { appwriteService } from "@/services/appwrite";
 import AppMessageBanner from "@/components/AppMessageBanner";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -462,23 +463,41 @@ function RootLayoutContent() {
       )}
 
       {__DEV__ && (
-        <Pressable
-          onPress={previewMessage}
-          style={{
-            position: "absolute",
-            top: insets.top + 8,
-            right: 8,
-            backgroundColor: colors.accent.primary,
-            paddingVertical: 6,
-            paddingHorizontal: 12,
-            borderRadius: 8,
-            zIndex: 2000,
-          }}
-        >
-          <Text style={{ color: "#000", fontSize: 12, fontWeight: "700" }}>
-            Preview Message
-          </Text>
-        </Pressable>
+        <>
+          <Pressable
+            onPress={previewMessage}
+            style={{
+              position: "absolute",
+              top: insets.top + 8,
+              right: 8,
+              backgroundColor: colors.accent.primary,
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 8,
+              zIndex: 2000,
+            }}
+          >
+            <Text style={{ color: "#000", fontSize: 12, fontWeight: "700" }}>
+              Preview Message
+            </Text>
+          </Pressable>
+          <View
+            style={{
+              position: "absolute",
+              top: insets.top + 8,
+              left: 8,
+              backgroundColor: appwriteService.getDataSource() === 'static' ? '#1b5e20' : '#e65100',
+              paddingVertical: 3,
+              paddingHorizontal: 8,
+              borderRadius: 4,
+              zIndex: 2000,
+            }}
+          >
+            <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600" }}>
+              {appwriteService.getDataSource() === 'static' ? '📄 Static' : '🗄️ DB'}
+            </Text>
+          </View>
+        </>
       )}
     </>
   );
