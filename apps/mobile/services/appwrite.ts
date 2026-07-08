@@ -282,6 +282,13 @@ export class AppwriteService implements IAppwriteService {
   isInFallbackMode(): boolean {
     return this.baseService.isInFallbackMode();
   }
+
+  /**
+   * Get the current data source (useful for dev mode debugging)
+   */
+  getDataSource(): 'static' | 'appwrite' {
+    return (this.baseService as any).dataSource;
+  }
 }
 
 /**
