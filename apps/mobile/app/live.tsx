@@ -114,6 +114,45 @@ export default function LiveScreen() {
         />
 
         <SafeAreaView className="flex-1" edges={["top"]}>
+          {/* Live indicator */}
+          {(isPlaying || isBuffering) && (
+            <View
+              style={{
+                position: "absolute",
+                top: 130,
+                left: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: isPlaying ? colors.accent.primary : "#f59e0b",
+                paddingVertical: 4,
+                paddingHorizontal: 10,
+                borderRadius: 12,
+                zIndex: 10,
+              }}
+            >
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: "#fff",
+                  marginRight: 6,
+                  opacity: isPlaying ? 1 : 0.5,
+                }}
+              />
+              <Text
+                style={{
+                  color: "#fff",
+                  fontSize: 11,
+                  fontWeight: "800",
+                  letterSpacing: 0.5,
+                }}
+              >
+                {isBuffering ? "CONNECTING" : "LIVE"}
+              </Text>
+            </View>
+          )}
+
           <ScrollView
             className="flex-1"
             contentContainerStyle={{

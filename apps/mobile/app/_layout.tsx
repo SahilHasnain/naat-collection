@@ -296,7 +296,7 @@ function RootLayoutContent() {
         !isOnVideoScreen &&
         !isOnPlayerScreen && (
           <MiniPlayer
-            onExpand={() => router.push("/player")}
+            onExpand={() => router.push("/player?source=" + segments[0])}
             networkIndicatorOffset={networkIndicatorOffset}
           />
         )}
@@ -463,41 +463,22 @@ function RootLayoutContent() {
       )}
 
       {__DEV__ && (
-        <>
-          <Pressable
-            onPress={previewMessage}
-            style={{
-              position: "absolute",
-              top: insets.top + 8,
-              right: 8,
-              backgroundColor: colors.accent.primary,
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: 8,
-              zIndex: 2000,
-            }}
-          >
-            <Text style={{ color: "#000", fontSize: 12, fontWeight: "700" }}>
-              Preview Message
-            </Text>
-          </Pressable>
-          <View
-            style={{
-              position: "absolute",
-              top: insets.top + 8,
-              left: 8,
-              backgroundColor: appwriteService.getDataSource() === 'static' ? '#1b5e20' : '#e65100',
-              paddingVertical: 3,
-              paddingHorizontal: 8,
-              borderRadius: 4,
-              zIndex: 2000,
-            }}
-          >
-            <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600" }}>
-              {appwriteService.getDataSource() === 'static' ? '📄 Static' : '🗄️ DB'}
-            </Text>
-          </View>
-        </>
+        <View
+          style={{
+            position: "absolute",
+            top: insets.top + 8,
+            left: 8,
+            backgroundColor: appwriteService.getDataSource() === 'static' ? '#1b5e20' : '#e65100',
+            paddingVertical: 3,
+            paddingHorizontal: 8,
+            borderRadius: 4,
+            zIndex: 2000,
+          }}
+        >
+          <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600" }}>
+            {appwriteService.getDataSource() === 'static' ? '📄 Static' : '🗄️ DB'}
+          </Text>
+        </View>
       )}
     </>
   );

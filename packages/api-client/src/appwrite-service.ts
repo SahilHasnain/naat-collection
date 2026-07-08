@@ -268,6 +268,16 @@ export class AppwriteService implements IAppwriteService {
    * Fetches a single naat by its ID
    */
   async getNaatById(id: string): Promise<Naat> {
+    // Try static JSON first (permanent static-export mode)
+    try {
+      const allNaats = await this.loadStaticNaats();
+      const naat = allNaats.find(n => n.$id === id);
+      if (naat) return naat;
+    } catch (staticError) {
+      console.warn('[Appwrite] Static load failed for getNaatById, falling back to Appwrite:', staticError);
+    }
+
+    // Appwrite fallback (existing code preserved for recovery)
     this.initialize();
 
     try {
@@ -280,12 +290,6 @@ export class AppwriteService implements IAppwriteService {
       this.dataSource = 'appwrite';
       return response as unknown as Naat;
     } catch (error) {
-      // Try static fallback
-      try {
-        const allNaats = await this.loadStaticNaats();
-        const naat = allNaats.find(n => n.$id === id);
-        if (naat) return naat;
-      } catch {}
       this.onError?.(error as Error, { context: "getNaatById", id });
       throw error;
     }
@@ -295,6 +299,16 @@ export class AppwriteService implements IAppwriteService {
    * Fetches a single naat by its YouTube ID
    */
   async getNaatByYoutubeId(youtubeId: string): Promise<Naat | null> {
+    // Try static JSON first (permanent static-export mode)
+    try {
+      const allNaats = await this.loadStaticNaats();
+      const naat = allNaats.find(n => n.youtubeId === youtubeId);
+      if (naat) return naat;
+    } catch (staticError) {
+      console.warn('[Appwrite] Static load failed for getNaatByYoutubeId, falling back to Appwrite:', staticError);
+    }
+
+    // Appwrite fallback (existing code preserved for recovery)
     this.initialize();
 
     try {
@@ -311,12 +325,6 @@ export class AppwriteService implements IAppwriteService {
       this.dataSource = 'appwrite';
       return response.documents[0] as unknown as Naat;
     } catch (error) {
-      // Try static fallback
-      try {
-        const allNaats = await this.loadStaticNaats();
-        const naat = allNaats.find(n => n.youtubeId === youtubeId);
-        if (naat) return naat;
-      } catch {}
       this.onError?.(error as Error, {
         context: "getNaatByYoutubeId",
         youtubeId,

@@ -148,10 +148,10 @@ export function useSearch(channelId: string | null = null, pureOnly: boolean = f
       // Set loading state immediately for better UX
       setLoading(true);
 
-      // Set new timeout for debounced search (500ms for API calls)
+      // Small debounce to avoid excessive re-renders during typing
       debounceTimeoutRef.current = setTimeout(() => {
         performSemanticSearch(newQuery);
-      }, 500);
+      }, 150);
     },
     [performSemanticSearch],
   );

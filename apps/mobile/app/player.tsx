@@ -4,9 +4,9 @@ import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { storageService } from "@/services/storage";
-import { useFocusEffect } from "@react-navigation/native";
-import { useRouter } from "expo-router";
-import React, { useCallback, useEffect } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useGlobalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useRef } from "react";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -14,10 +14,13 @@ const PLAYER_HEADER_OFFSET = 84;
 
 export default function PlayerScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
+  const { source } = useGlobalSearchParams<{ source: string }>();
   const insets = useSafeAreaInsets();
   const { currentAudio, stop } = useAudioPlayer();
   const { showTabBar } = useTabBarVisibility();
   const { showHeader } = useHeaderVisibility();
+  const isHandlingClose = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -27,10 +30,22 @@ export default function PlayerScreen() {
   );
 
   useEffect(() => {
-    if (!currentAudio) {
-      router.replace("/home");
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+      if (isHandlingClose.current) return;
+      e.preventDefault();
+      const target = source && source !== "player" ? "/" + source : "/home";
+      router.replace(target);
+    });
+    return unsubscribe;
+  }, [navigation, router, source]);
+
+  useEffect(() => {
+    if (!currentAudio && !isHandlingClose.current) {
+      isHandlingClose.current = true;
+      const target = source && source !== "player" ? "/" + source : "/home";
+      router.replace(target);
     }
-  }, [currentAudio, router]);
+  }, [currentAudio, router, source]);
 
   const handleSwitchToVideo = useCallback(async () => {
     if (!currentAudio?.youtubeId) {
@@ -47,6 +62,7 @@ export default function PlayerScreen() {
     };
 
     await storageService.savePlaybackMode("video").catch(() => {});
+    isHandlingClose.current = true;
     await stop();
 
     router.replace({
