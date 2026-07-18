@@ -47,20 +47,29 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({ onSwitchToVideo }) =>
   return (
     <View
       style={{
-        borderRadius: 28,
+        borderRadius: 24,
         overflow: "hidden",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
-        backgroundColor: "rgba(8, 12, 18, 0.94)",
+        borderColor: "rgba(255,255,255,0.06)",
+        backgroundColor: "rgba(15, 15, 15, 0.98)",
       }}
     >
-      <View style={{ flexDirection: "row", minHeight: 620 }}>
-        <View style={{ flex: 1.1, padding: 28, justifyContent: "center" }}>
+      <View style={{ flexDirection: "row", minHeight: 600 }}>
+        <View
+          style={{
+            flex: 1,
+            padding: 32,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
           <View
             style={{
-              borderRadius: 28,
+              borderRadius: 20,
               overflow: "hidden",
-              aspectRatio: 1,
+              aspectRatio: 16 / 9,
+              width: "85%",
+              maxWidth: 400,
               backgroundColor: colors.background.tertiary,
             }}
           >
@@ -72,41 +81,64 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({ onSwitchToVideo }) =>
           </View>
         </View>
 
-        <View style={{ flex: 1, padding: 36, justifyContent: "space-between" }}>
+        <View
+          style={{
+            flex: 1,
+            padding: 36,
+            justifyContent: "space-between",
+          }}
+        >
           <View>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
-              <Text
-                numberOfLines={2}
-                ellipsizeMode="tail"
-                style={{ color: "#f8fbff", fontSize: 30, fontWeight: "800", lineHeight: 38, flex: 1 }}
-              >
-                {currentAudio.title}
-              </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: 16,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                  style={{
+                    color: colors.text.primary,
+                    fontSize: 26,
+                    fontWeight: "700",
+                    lineHeight: 34,
+                    letterSpacing: -0.3,
+                  }}
+                >
+                  {currentAudio.title}
+                </Text>
+  
+              </View>
               <Pressable
                 onPress={() => {
                   void stop();
                   router.replace("/home");
                 }}
                 style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 21,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: "rgba(255,255,255,0.06)",
+                  backgroundColor: colors.background.tertiary,
                 }}
               >
-                <Ionicons name="close" size={20} color="#fff" />
+                <Ionicons
+                  name="close"
+                  size={18}
+                  color={colors.text.secondary}
+                />
               </Pressable>
             </View>
-            <Text style={{ color: "rgba(255,255,255,0.58)", fontSize: 15, marginTop: 10 }}>
-              {currentAudio.channelName}
-            </Text>
           </View>
 
           <View>
             <Slider
-              style={{ width: "100%", height: 40 }}
+              style={{ width: "100%", height: 36 }}
               minimumValue={0}
               maximumValue={duration || 1}
               value={position}
@@ -114,91 +146,170 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({ onSwitchToVideo }) =>
                 void seek(value);
               }}
               minimumTrackTintColor={colors.accent.primary}
-              maximumTrackTintColor="rgba(255,255,255,0.12)"
+              maximumTrackTintColor={colors.background.elevated}
               thumbTintColor={colors.accent.primary}
             />
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8 }}>
-              <Text style={{ color: "rgba(255,255,255,0.54)" }}>{formatTime(position)}</Text>
-              <Text style={{ color: "rgba(255,255,255,0.54)" }}>{formatTime(duration)}</Text>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                marginTop: 6,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.text.tertiary,
+                  fontSize: 12,
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {formatTime(position)}
+              </Text>
+              <Text
+                style={{
+                  color: colors.text.tertiary,
+                  fontSize: 12,
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {formatTime(duration)}
+              </Text>
             </View>
 
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 30 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 24,
+                marginTop: 28,
+              }}
+            >
               <Pressable onPress={() => void seek(Math.max(0, position - 10000))}>
-                <MaterialIcons name="replay-10" size={34} color="#fff" />
+                <MaterialIcons
+                  name="replay-10"
+                  size={32}
+                  color={colors.text.primary}
+                />
               </Pressable>
               <Pressable
-                onPress={() => {
-                  void togglePlayPause();
-                }}
+                onPress={() => void togglePlayPause()}
                 style={{
                   width: 72,
                   height: 72,
                   borderRadius: 36,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: "rgba(255,255,255,0.08)",
-                  borderWidth: 1,
-                  borderColor: "rgba(255,255,255,0.14)",
+                  backgroundColor: colors.accent.primary,
                 }}
               >
-                <Ionicons
-                  name={isLoading ? "hourglass" : isPlaying ? "pause" : "play"}
-                  size={30}
-                  color="#fff"
-                />
+                {isLoading ? (
+                  <Ionicons name="hourglass" size={28} color={colors.background.primary} />
+                ) : (
+                  <Ionicons
+                    name={isPlaying ? "pause" : "play"}
+                    size={30}
+                    color={colors.background.primary}
+                  />
+                )}
               </Pressable>
               <Pressable onPress={() => void seek(Math.min(duration, position + 10000))}>
-                <MaterialIcons name="forward-10" size={34} color="#fff" />
+                <MaterialIcons
+                  name="forward-10"
+                  size={32}
+                  color={colors.text.primary}
+                />
               </Pressable>
             </View>
           </View>
 
           <View style={{ gap: 14 }}>
-            <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
+            <View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap" }}>
               <Pressable
-                onPress={() => {
-                  void toggleRepeat();
-                }}
+                onPress={() => void toggleRepeat()}
                 style={{
                   paddingHorizontal: 14,
                   paddingVertical: 10,
                   borderRadius: 999,
-                  backgroundColor: isRepeatEnabled ? "rgba(29,185,84,0.2)" : "rgba(255,255,255,0.06)",
+                  backgroundColor: isRepeatEnabled
+                    ? "rgba(29,185,84,0.2)"
+                    : colors.background.tertiary,
                 }}
               >
-                <Text style={{ color: "#fff" }}>Repeat</Text>
+                <Text
+                  style={{
+                    color: isRepeatEnabled
+                      ? colors.accent.primary
+                      : colors.text.secondary,
+                    fontSize: 13,
+                    fontWeight: "500",
+                  }}
+                >
+                  Repeat
+                </Text>
               </Pressable>
               <Pressable
-                onPress={() => {
-                  void toggleAutoplay();
-                }}
+                onPress={() => void toggleAutoplay()}
                 style={{
                   paddingHorizontal: 14,
                   paddingVertical: 10,
                   borderRadius: 999,
-                  backgroundColor: isAutoplayEnabled ? "rgba(37,99,235,0.22)" : "rgba(255,255,255,0.06)",
+                  backgroundColor: isAutoplayEnabled
+                    ? "rgba(37,99,235,0.2)"
+                    : colors.background.tertiary,
                 }}
               >
-                <Text style={{ color: "#fff" }}>Autoplay</Text>
+                <Text
+                  style={{
+                    color: isAutoplayEnabled
+                      ? colors.accent.secondary
+                      : colors.text.secondary,
+                    fontSize: 13,
+                    fontWeight: "500",
+                  }}
+                >
+                  Autoplay
+                </Text>
               </Pressable>
               <Pressable
                 onPress={() => setABRepeatPointA(position)}
-                style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.06)" }}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  borderRadius: 999,
+                  backgroundColor: colors.background.tertiary,
+                }}
               >
-                <Text style={{ color: "#fff" }}>Set A</Text>
+                <Text style={{ color: colors.text.secondary, fontSize: 13, fontWeight: "500" }}>
+                  Set A
+                </Text>
               </Pressable>
               <Pressable
                 onPress={() => setABRepeatPointB(position)}
-                style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.06)" }}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  borderRadius: 999,
+                  backgroundColor: colors.background.tertiary,
+                }}
               >
-                <Text style={{ color: "#fff" }}>Set B</Text>
+                <Text style={{ color: colors.text.secondary, fontSize: 13, fontWeight: "500" }}>
+                  Set B
+                </Text>
               </Pressable>
               {abRepeatPointA !== null || abRepeatPointB !== null ? (
                 <Pressable
                   onPress={clearABRepeat}
-                  style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: "rgba(239,68,68,0.18)" }}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 10,
+                    borderRadius: 999,
+                    backgroundColor: "rgba(239,68,68,0.15)",
+                  }}
                 >
-                  <Text style={{ color: "#fff" }}>Clear loop</Text>
+                  <Text style={{ color: colors.accent.error, fontSize: 13, fontWeight: "500" }}>
+                    Clear loop
+                  </Text>
                 </Pressable>
               ) : null}
             </View>
@@ -211,10 +322,12 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({ onSwitchToVideo }) =>
                   paddingHorizontal: 14,
                   paddingVertical: 10,
                   borderRadius: 999,
-                  backgroundColor: "rgba(255,255,255,0.06)",
+                  backgroundColor: colors.background.tertiary,
                 }}
               >
-                <Text style={{ color: "#fff" }}>Open video</Text>
+                <Text style={{ color: colors.text.secondary, fontSize: 13, fontWeight: "500" }}>
+                  Open video
+                </Text>
               </Pressable>
             ) : null}
           </View>

@@ -1,16 +1,15 @@
-import { colors } from "@/constants/theme";
+import { colors, shadows } from "@/constants/theme";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { audioDownloadService } from "@/services/audioDownload";
 import { shareService } from "@/services/shareService";
 import { showErrorToast, showSuccessToast } from "@/utils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
-import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  ImageBackground,
   StatusBar,
   StyleSheet,
   Text,
@@ -198,575 +197,497 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
       />
 
       <View style={styles.container}>
-        <ImageBackground
-          source={require("@/assets/images/gumbad.png")}
-          style={styles.backgroundImage}
-          resizeMode="cover"
+        <SafeAreaView
+          edges={["top", "bottom"]}
+          style={{
+            flex: 1,
+            paddingTop: topInset,
+            paddingBottom: bottomInset,
+          }}
         >
-          <LinearGradient
-            colors={[
-              "rgba(15, 15, 15, 0.3)",
-              "rgba(15, 15, 15, 0.55)",
-              "rgba(15, 15, 15, 0.85)",
-              colors.background.primary,
-            ]}
-            locations={[0, 0.35, 0.65, 0.9]}
-            style={StyleSheet.absoluteFill}
-          />
-
-          <SafeAreaView
-            edges={["top", "bottom"]}
-            className="flex-1"
-            style={{ paddingTop: topInset, paddingBottom: bottomInset }}
-          >
-            <View className="flex-row items-center justify-between px-5 py-4">
-              {currentAudio.youtubeId && onSwitchToVideo ? (
-                <TouchableOpacity
-                  onPress={onSwitchToVideo}
-                  className="items-center justify-center w-10 h-10"
-                  accessibilityRole="button"
-                  accessibilityLabel="Switch to video"
-                >
-                  <Ionicons
-                    name="videocam"
-                    size={24}
-                    color={colors.text.primary}
-                  />
-                </TouchableOpacity>
-              ) : (
-                <View className="w-10" />
-              )}
-
+          <View style={styles.header}>
+            {currentAudio.youtubeId && onSwitchToVideo ? (
               <TouchableOpacity
-                onPress={() => setShowOptionsMenu(!showOptionsMenu)}
-                className="items-center justify-center w-10 h-10"
+                onPress={onSwitchToVideo}
+                style={styles.headerButton}
                 accessibilityRole="button"
-                accessibilityLabel="Options menu"
+                accessibilityLabel="Switch to video"
               >
                 <Ionicons
-                  name="ellipsis-vertical"
-                  size={24}
-                  color={colors.text.primary}
+                  name="videocam"
+                  size={22}
+                  color={colors.text.secondary}
                 />
               </TouchableOpacity>
-            </View>
+            ) : (
+              <View style={styles.headerButton} />
+            )}
 
-            {showOptionsMenu && (
-              <>
-                <TouchableOpacity
-                  activeOpacity={1}
-                  onPress={() => setShowOptionsMenu(false)}
-                  className="absolute inset-0 z-40"
-                  style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close menu"
-                />
+            <TouchableOpacity
+              onPress={() => setShowOptionsMenu(!showOptionsMenu)}
+              style={styles.headerButton}
+              accessibilityRole="button"
+              accessibilityLabel="Options menu"
+            >
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={22}
+                color={colors.text.secondary}
+              />
+            </TouchableOpacity>
+          </View>
 
-                <View
-                  className="absolute right-5 rounded-2xl overflow-hidden z-50 min-w-[220px]"
-                  style={{
-                    top: topInset + 28,
-                    backgroundColor: colors.background.secondary,
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 8 },
-                    shadowOpacity: 0.4,
-                    shadowRadius: 16,
-                    elevation: 8,
-                  }}
-                >
-                  {showDownloadButton && (
-                    <TouchableOpacity
-                      onPress={() => {
-                        setShowOptionsMenu(false);
-                        if (isDownloaded) {
-                          handleDeleteDownload();
-                        } else if (isDownloading) {
-                          Alert.alert(
-                            "Download in Progress",
-                            `Downloading... ${Math.round(downloadProgress * 100)}%`,
-                            [{ text: "OK" }],
-                          );
-                        } else {
-                          handleDownload();
-                        }
-                      }}
-                      className="flex-row items-center px-5 py-4"
-                      style={{
-                        backgroundColor: "transparent",
-                        borderBottomWidth: 1,
-                        borderBottomColor: colors.border.secondary,
-                      }}
-                      accessibilityRole="button"
-                    >
-                      <View
-                        className="items-center justify-center mr-3 rounded-full w-9 h-9"
-                        style={{ backgroundColor: colors.background.elevated }}
-                      >
-                        <Ionicons
-                          name={
-                            isDownloaded
-                              ? "checkmark-circle"
-                              : isDownloading
-                                ? "hourglass"
-                                : "download-outline"
-                          }
-                          size={20}
-                          color={
-                            isDownloaded
-                              ? "#22c55e"
-                              : isDownloading
-                                ? "#3b82f6"
-                                : "#e5e5e5"
-                          }
-                        />
-                      </View>
-                      <View className="flex-1">
-                        <Text
-                          className="text-sm font-medium"
-                          style={{ color: colors.text.primary }}
-                        >
-                          {isDownloaded
-                            ? "Delete Download"
-                            : isDownloading
-                              ? "Downloading..."
-                              : "Download"}
-                        </Text>
-                        {isDownloading && (
-                          <Text className="text-xs text-neutral-400 mt-0.5">
-                            {Math.round(downloadProgress * 100)}% complete
-                          </Text>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  )}
+          {showOptionsMenu && (
+            <>
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={() => setShowOptionsMenu(false)}
+                style={styles.menuOverlay}
+                accessibilityRole="button"
+                accessibilityLabel="Close menu"
+              />
 
-                  <TouchableOpacity
-                    onPress={async () => {
-                      setShowOptionsMenu(false);
-                      await shareService.shareCurrentAudio(
-                        currentAudio.title,
-                        currentAudio.channelName,
-                        currentAudio.youtubeId,
-                        currentAudio.naatId,
-                      );
-                    }}
-                    className="flex-row items-center px-5 py-4"
-                    style={{
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.border.secondary,
-                    }}
-                    accessibilityRole="button"
-                  >
-                    <View
-                      className="items-center justify-center mr-3 rounded-full w-9 h-9"
-                      style={{ backgroundColor: colors.background.elevated }}
-                    >
-                      <Ionicons
-                        name="arrow-redo-outline"
-                        size={20}
-                        color="#e5e5e5"
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text
-                        className="text-sm font-medium"
-                        style={{ color: colors.text.primary }}
-                      >
-                        Share
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-
+              <View style={[styles.menuContainer, { top: topInset + 52 }]}>
+                {showDownloadButton && (
                   <TouchableOpacity
                     onPress={() => {
-                      toggleRepeat();
+                      setShowOptionsMenu(false);
+                      if (isDownloaded) {
+                        handleDeleteDownload();
+                      } else if (isDownloading) {
+                        Alert.alert(
+                          "Download in Progress",
+                          `Downloading... ${Math.round(downloadProgress * 100)}%`,
+                          [{ text: "OK" }],
+                        );
+                      } else {
+                        handleDownload();
+                      }
+                    }}
+                    style={styles.menuItem}
+                  >
+                    <View style={styles.menuItemIcon}>
+                      <Ionicons
+                        name={
+                          isDownloaded
+                            ? "checkmark-circle"
+                            : isDownloading
+                              ? "hourglass"
+                              : "download-outline"
+                        }
+                        size={20}
+                        color={
+                          isDownloaded
+                            ? colors.accent.success
+                            : isDownloading
+                              ? colors.accent.secondary
+                              : colors.text.secondary
+                        }
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.menuItemText}>
+                        {isDownloaded
+                          ? "Delete Download"
+                          : isDownloading
+                            ? "Downloading..."
+                            : "Download"}
+                      </Text>
+                      {isDownloading && (
+                        <Text style={styles.menuItemSubtext}>
+                          {Math.round(downloadProgress * 100)}% complete
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  onPress={async () => {
+                    setShowOptionsMenu(false);
+                    await shareService.shareCurrentAudio(
+                      currentAudio.title,
+                      currentAudio.channelName,
+                      currentAudio.youtubeId,
+                      currentAudio.naatId,
+                    );
+                  }}
+                  style={styles.menuItem}
+                >
+                  <View style={styles.menuItemIcon}>
+                    <Ionicons
+                      name="arrow-redo-outline"
+                      size={20}
+                      color={colors.text.secondary}
+                    />
+                  </View>
+                  <Text style={styles.menuItemText}>Share</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    toggleRepeat();
+                    setShowOptionsMenu(false);
+                  }}
+                  style={styles.menuItem}
+                >
+                  <View
+                    style={[
+                      styles.menuItemIcon,
+                      isRepeatEnabled && {
+                        backgroundColor: colors.accent.primary + "20",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="repeat"
+                      size={20}
+                      color={
+                        isRepeatEnabled
+                          ? colors.accent.primary
+                          : colors.text.secondary
+                      }
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.menuItemText,
+                      isRepeatEnabled && { color: colors.accent.primary },
+                    ]}
+                  >
+                    Repeat
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    toggleAutoplay();
+                    setShowOptionsMenu(false);
+                  }}
+                  style={styles.menuItem}
+                >
+                  <View
+                    style={[
+                      styles.menuItemIcon,
+                      isAutoplayEnabled && {
+                        backgroundColor: colors.accent.secondary + "20",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="play-forward"
+                      size={20}
+                      color={
+                        isAutoplayEnabled
+                          ? colors.accent.secondary
+                          : colors.text.secondary
+                      }
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.menuItemText,
+                      isAutoplayEnabled && { color: colors.accent.secondary },
+                    ]}
+                  >
+                    Autoplay
+                  </Text>
+                </TouchableOpacity>
+
+                {!bothPointsSet && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      handleToggleABRepeatMode();
                       setShowOptionsMenu(false);
                     }}
-                    className="flex-row items-center px-5 py-4"
-                    style={{
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.border.secondary,
-                    }}
-                    accessibilityRole="button"
+                    style={styles.menuItem}
                   >
                     <View
-                      className="items-center justify-center mr-3 rounded-full w-9 h-9"
-                      style={{
-                        backgroundColor: isRepeatEnabled
-                          ? colors.accent.primary + "20"
-                          : colors.background.elevated,
-                      }}
+                      style={[
+                        styles.menuItemIcon,
+                        isABRepeatMode && {
+                          backgroundColor: colors.accent.primary + "20",
+                        },
+                      ]}
                     >
                       <Ionicons
                         name="repeat"
                         size={20}
                         color={
-                          isRepeatEnabled ? colors.accent.primary : "#e5e5e5"
+                          isABRepeatMode
+                            ? colors.accent.primary
+                            : colors.text.secondary
                         }
                       />
                     </View>
-                    <View className="flex-1">
-                      <Text
-                        className="text-sm font-medium"
-                        style={{
-                          color: isRepeatEnabled
-                            ? colors.accent.primary
-                            : colors.text.primary,
-                        }}
-                      >
-                        Repeat
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => {
-                      toggleAutoplay();
-                      setShowOptionsMenu(false);
-                    }}
-                    className="flex-row items-center px-5 py-4"
-                    style={{
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.border.secondary,
-                    }}
-                    accessibilityRole="button"
-                  >
-                    <View
-                      className="items-center justify-center mr-3 rounded-full w-9 h-9"
-                      style={{
-                        backgroundColor: isAutoplayEnabled
-                          ? colors.accent.primary + "20"
-                          : colors.background.elevated,
-                      }}
+                    <Text
+                      style={[
+                        styles.menuItemText,
+                        isABRepeatMode && { color: colors.accent.primary },
+                      ]}
                     >
-                      <Ionicons
-                        name="play-forward"
-                        size={20}
-                        color={
-                          isAutoplayEnabled ? colors.accent.primary : "#e5e5e5"
-                        }
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text
-                        className="text-sm font-medium"
-                        style={{
-                          color: isAutoplayEnabled
-                            ? colors.accent.primary
-                            : colors.text.primary,
-                        }}
-                      >
-                        Autoplay
-                      </Text>
-                    </View>
+                      A/B Repeat
+                    </Text>
                   </TouchableOpacity>
+                )}
 
-                  {!bothPointsSet && (
-                    <TouchableOpacity
-                      onPress={() => {
-                        handleToggleABRepeatMode();
-                        setShowOptionsMenu(false);
-                      }}
-                      className="flex-row items-center px-5 py-4"
-                      style={{
-                        borderBottomWidth: bothPointsSet ? 1 : 0,
-                        borderBottomColor: colors.border.secondary,
-                      }}
-                      accessibilityRole="button"
-                    >
+                {bothPointsSet && (
+                  <>
+                    <View style={styles.menuItem}>
                       <View
-                        className="items-center justify-center mr-3 rounded-full w-9 h-9"
-                        style={{
-                          backgroundColor: isABRepeatMode
-                            ? colors.accent.primary + "20"
-                            : colors.background.elevated,
-                        }}
+                        style={[
+                          styles.menuItemIcon,
+                          { backgroundColor: colors.accent.primary + "20" },
+                        ]}
                       >
                         <Ionicons
                           name="repeat"
                           size={20}
-                          color={
-                            isABRepeatMode ? colors.accent.primary : "#e5e5e5"
-                          }
+                          color={colors.accent.primary}
                         />
                       </View>
-                      <View className="flex-1">
+                      <View style={{ flex: 1 }}>
                         <Text
-                          className="text-sm font-medium"
-                          style={{
-                            color: isABRepeatMode
-                              ? colors.accent.primary
-                              : colors.text.primary,
-                          }}
+                          style={[styles.menuItemText, { color: colors.accent.primary }]}
                         >
                           A/B Repeat
                         </Text>
+                        <Text style={styles.menuItemSubtext}>Loop active</Text>
                       </View>
-                    </TouchableOpacity>
-                  )}
-
-                  {bothPointsSet && (
-                    <>
-                      <TouchableOpacity
-                        className="flex-row items-center px-5 py-4"
-                        style={{
-                          borderBottomWidth: 1,
-                          borderBottomColor: colors.border.secondary,
-                        }}
-                        disabled
-                      >
-                        <View
-                          className="items-center justify-center mr-3 rounded-full w-9 h-9"
-                          style={{
-                            backgroundColor: colors.accent.primary + "20",
-                          }}
-                        >
-                          <Ionicons
-                            name="repeat"
-                            size={20}
-                            color={colors.accent.primary}
-                          />
-                        </View>
-                        <View className="flex-1">
-                          <Text
-                            className="text-sm font-medium"
-                            style={{ color: colors.accent.primary }}
-                          >
-                            A/B Repeat
-                          </Text>
-                          <Text className="text-xs text-neutral-400 mt-0.5">
-                            Loop active
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        onPress={() => {
-                          handleClearABRepeat();
-                          setShowOptionsMenu(false);
-                        }}
-                        className="flex-row items-center px-5 py-4"
-                        accessibilityRole="button"
-                      >
-                        <View
-                          className="items-center justify-center mr-3 rounded-full w-9 h-9"
-                          style={{ backgroundColor: colors.background.elevated }}
-                        >
-                          <Ionicons
-                            name="close-circle-outline"
-                            size={20}
-                            color="#e5e5e5"
-                          />
-                        </View>
-                        <View className="flex-1">
-                          <Text
-                            className="text-sm font-medium"
-                            style={{ color: colors.text.primary }}
-                          >
-                            Clear Loop
-                          </Text>
-                          <Text className="text-xs text-neutral-400 mt-0.5">
-                            Remove A/B points
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    </>
-                  )}
-                </View>
-              </>
-            )}
-
-            {isLoading ? (
-              <View className="items-center justify-center flex-1">
-                <ActivityIndicator size="large" color={colors.accent.primary} />
-                <Text className="mt-4 text-sm text-neutral-400">
-                  {currentAudio.isLocalFile
-                    ? "Preparing audio..."
-                    : "Loading audio..."}
-                </Text>
-              </View>
-            ) : (
-              <View className="flex-1">
-                <View className="flex-1" />
-
-                <View className="px-6 pb-10">
-                  <View className="mb-6">
-                    <Slider
-                      style={{ width: "100%", height: 40 }}
-                      minimumValue={0}
-                      maximumValue={duration}
-                      value={position}
-                      onSlidingComplete={seek}
-                      minimumTrackTintColor={colors.accent.primary}
-                      maximumTrackTintColor={colors.background.elevated}
-                      thumbTintColor={colors.accent.primary}
-                    />
-
-                    <View className="flex-row justify-between px-1">
-                      <Text className="text-xs font-medium text-neutral-500">
-                        {formatTime(position)}
-                      </Text>
-                      <Text className="text-xs font-medium text-neutral-500">
-                        {formatTime(duration)}
-                      </Text>
                     </View>
 
-                    {(abRepeatPointA !== null || abRepeatPointB !== null) && (
-                      <View className="relative w-full h-2 mt-2">
-                        {abRepeatPointA !== null && (
-                          <View
-                            className="absolute w-1 h-2 bg-green-500"
-                            style={{
-                              left: `${(abRepeatPointA / duration) * 100}%`,
-                            }}
-                          />
-                        )}
-                        {abRepeatPointB !== null && (
-                          <View
-                            className="absolute w-1 h-2 bg-red-500"
-                            style={{
-                              left: `${(abRepeatPointB / duration) * 100}%`,
-                            }}
-                          />
-                        )}
+                    <TouchableOpacity
+                      onPress={() => {
+                        handleClearABRepeat();
+                        setShowOptionsMenu(false);
+                      }}
+                      style={styles.menuItemLast}
+                    >
+                      <View style={styles.menuItemIcon}>
+                        <Ionicons
+                          name="close-circle-outline"
+                          size={20}
+                          color={colors.text.secondary}
+                        />
                       </View>
-                    )}
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.menuItemText}>Clear Loop</Text>
+                        <Text style={styles.menuItemSubtext}>
+                          Remove A/B points
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </>
+          )}
+
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.accent.primary} />
+              <Text style={styles.loadingText}>
+                {currentAudio.isLocalFile
+                  ? "Preparing audio..."
+                  : "Loading audio..."}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.content}>
+              <View style={styles.artworkArea}>
+                <View style={styles.artworkContainer}>
+                  <View style={styles.artworkShadow}>
+                    <Image
+                      source={{ uri: currentAudio.thumbnailUrl }}
+                      style={styles.artwork}
+                      contentFit="cover"
+                      transition={300}
+                      cachePolicy="memory-disk"
+                    />
                   </View>
                 </View>
 
-                <View className="flex-row items-center justify-center gap-6 mt-2">
+                <View style={styles.infoSection}>
+                  <Text numberOfLines={2} style={styles.title}>
+                    {currentAudio.title}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.controlsArea}>
+                <View style={styles.progressSection}>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={0}
+                    maximumValue={duration}
+                    value={position}
+                    onSlidingComplete={seek}
+                    minimumTrackTintColor={colors.accent.primary}
+                    maximumTrackTintColor={colors.background.elevated}
+                    thumbTintColor={colors.accent.primary}
+                  />
+
+                  <View style={styles.timeRow}>
+                    <Text style={styles.timeText}>{formatTime(position)}</Text>
+                    <Text style={styles.timeText}>{formatTime(duration)}</Text>
+                  </View>
+
+                  {(abRepeatPointA !== null || abRepeatPointB !== null) && (
+                    <View style={styles.abMarkersContainer}>
+                      {abRepeatPointA !== null && (
+                        <View
+                          style={[
+                            styles.abMarker,
+                            styles.abMarkerA,
+                            {
+                              left: `${(abRepeatPointA / duration) * 100}%`,
+                            },
+                          ]}
+                        />
+                      )}
+                      {abRepeatPointB !== null && (
+                        <View
+                          style={[
+                            styles.abMarker,
+                            styles.abMarkerB,
+                            {
+                              left: `${(abRepeatPointB / duration) * 100}%`,
+                            },
+                          ]}
+                        />
+                      )}
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.transportControls}>
                   <TouchableOpacity
                     onPress={seekBackward}
-                    className="items-center justify-center w-16 h-16"
+                    style={styles.transportButton}
                     accessibilityLabel="Seek backward 10 seconds"
                     accessibilityRole="button"
                   >
-                    <View className="relative items-center justify-center w-12 h-12">
-                      <MaterialIcons
-                        name="replay-10"
-                        size={34}
-                        color={colors.text.primary}
-                      />
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={togglePlayPause}
-                    className="items-center justify-center w-16 h-16 rounded-full"
-                    accessibilityRole="button"
-                    accessibilityLabel={isPlaying ? "Pause" : "Play"}
-                    style={{
-                      backgroundColor: "rgba(255, 255, 255, 0.12)",
-                      borderWidth: 2,
-                      borderColor: "rgba(255, 255, 255, 0.18)",
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.16,
-                      shadowRadius: 12,
-                      elevation: 4,
-                    }}
-                  >
-                    <Ionicons
-                      name={isPlaying ? "pause" : "play"}
-                      size={30}
+                    <MaterialIcons
+                      name="replay-10"
+                      size={32}
                       color={colors.text.primary}
                     />
                   </TouchableOpacity>
 
                   <TouchableOpacity
+                    onPress={togglePlayPause}
+                    style={styles.playButton}
+                    accessibilityRole="button"
+                    accessibilityLabel={isPlaying ? "Pause" : "Play"}
+                  >
+                    <Ionicons
+                      name={isPlaying ? "pause" : "play"}
+                      size={32}
+                      color={colors.background.primary}
+                    />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
                     onPress={seekForward}
-                    className="items-center justify-center w-16 h-16"
+                    style={styles.transportButton}
                     accessibilityLabel="Seek forward 10 seconds"
                     accessibilityRole="button"
                   >
-                    <View className="relative items-center justify-center w-12 h-12">
-                      <MaterialIcons
-                        name="forward-10"
-                        size={34}
-                        color={colors.text.primary}
-                      />
-                    </View>
+                    <MaterialIcons
+                      name="forward-10"
+                      size={32}
+                      color={colors.text.primary}
+                    />
                   </TouchableOpacity>
                 </View>
+              </View>
 
-                {isABRepeatMode && !bothPointsSet && (
-                  <View className="flex-row items-center justify-center gap-3 mt-8">
-                    <TouchableOpacity
-                      onPress={handleSetPointA}
-                      className="flex-row items-center gap-2 px-5 py-2.5 rounded-full"
-                      style={{
+              {isABRepeatMode && !bothPointsSet && (
+                <View style={styles.abControls}>
+                  <TouchableOpacity
+                    onPress={handleSetPointA}
+                    style={[
+                      styles.abButton,
+                      {
                         backgroundColor:
                           abRepeatPointA !== null
-                            ? "#22c55e"
-                            : colors.background.elevated,
-                      }}
-                      accessibilityRole="button"
-                      accessibilityLabel="Set point A"
-                    >
-                      <Ionicons
-                        name="flag"
-                        size={18}
-                        color={
-                          abRepeatPointA !== null
-                            ? "black"
-                            : colors.text.primary
-                        }
-                      />
-                      <Text
-                        className="text-sm font-medium"
-                        style={{
+                            ? colors.accent.success
+                            : colors.background.tertiary,
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Set point A"
+                  >
+                    <Ionicons
+                      name="flag"
+                      size={16}
+                      color={
+                        abRepeatPointA !== null
+                          ? colors.background.primary
+                          : colors.text.primary
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.abButtonText,
+                        {
                           color:
                             abRepeatPointA !== null
-                              ? "black"
+                              ? colors.background.primary
                               : colors.text.primary,
-                        }}
-                      >
-                        Point A
-                      </Text>
-                    </TouchableOpacity>
+                        },
+                      ]}
+                    >
+                      Point A
+                    </Text>
+                  </TouchableOpacity>
 
-                    <TouchableOpacity
-                      onPress={handleSetPointB}
-                      className="flex-row items-center gap-2 px-5 py-2.5 rounded-full"
-                      style={{
+                  <TouchableOpacity
+                    onPress={handleSetPointB}
+                    style={[
+                      styles.abButton,
+                      {
                         backgroundColor:
                           abRepeatPointB !== null
-                            ? "#ef4444"
-                            : colors.background.elevated,
-                      }}
-                      accessibilityRole="button"
-                      accessibilityLabel="Set point B"
-                      disabled={abRepeatPointA === null}
-                    >
-                      <Ionicons
-                        name="flag"
-                        size={18}
-                        color={
-                          abRepeatPointB !== null
-                            ? colors.text.primary
-                            : "#666"
-                        }
-                      />
-                      <Text
-                        className="text-sm font-medium"
-                        style={{
+                            ? colors.accent.error
+                            : colors.background.tertiary,
+                        opacity: abRepeatPointA === null ? 0.5 : 1,
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Set point B"
+                    disabled={abRepeatPointA === null}
+                  >
+                    <Ionicons
+                      name="flag"
+                      size={16}
+                      color={
+                        abRepeatPointB !== null
+                          ? colors.text.primary
+                          : colors.text.tertiary
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.abButtonText,
+                        {
                           color:
                             abRepeatPointB !== null
                               ? colors.text.primary
                               : abRepeatPointA === null
-                                ? "#666"
+                                ? colors.text.disabled
                                 : colors.text.primary,
-                        }}
-                      >
-                        Point B
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            )}
-          </SafeAreaView>
-        </ImageBackground>
+                        },
+                      ]}
+                    >
+                      Point B
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+        </SafeAreaView>
       </View>
     </>
   );
@@ -777,10 +698,201 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.primary,
   },
-  backgroundImage: {
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  headerButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  menuOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 40,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  menuContainer: {
+    position: "absolute",
+    right: 20,
+    borderRadius: 16,
+    overflow: "hidden",
+    zIndex: 50,
+    minWidth: 220,
+    backgroundColor: colors.background.secondary,
+    ...shadows.lg,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border.secondary,
+  },
+  menuItemLast: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  menuItemIcon: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+    borderRadius: 20,
+    width: 36,
+    height: 36,
+    backgroundColor: colors.background.elevated,
+  },
+  menuItemText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: colors.text.primary,
+  },
+  menuItemSubtext: {
+    fontSize: 12,
+    color: colors.text.tertiary,
+    marginTop: 2,
+  },
+  loadingContainer: {
     flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 13,
+    color: colors.text.tertiary,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 32,
+  },
+  artworkArea: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  artworkContainer: {
+    width: "100%",
+    alignItems: "center",
+  },
+  artworkShadow: {
+    borderRadius: 20,
+    overflow: "hidden",
+    width: "88%",
+    aspectRatio: 16 / 9,
+    ...shadows.lg,
+  },
+  artwork: {
     width: "100%",
     height: "100%",
+    borderRadius: 20,
+  },
+  infoSection: {
+    width: "100%",
+    alignItems: "center",
+    marginTop: 24,
+    paddingHorizontal: 8,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: colors.text.primary,
+    textAlign: "center",
+    lineHeight: 26,
+    letterSpacing: -0.3,
+  },
+
+  progressSection: {
+    width: "100%",
+    marginBottom: 4,
+  },
+  controlsArea: {
+    paddingBottom: 8,
+  },
+  slider: {
+    width: "100%",
+    height: 36,
+  },
+  timeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 4,
+  },
+  timeText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: colors.text.tertiary,
+    fontVariant: ["tabular-nums"],
+  },
+  abMarkersContainer: {
+    position: "relative",
+    width: "100%",
+    height: 6,
+    marginTop: 8,
+    borderRadius: 3,
+    overflow: "hidden",
+    backgroundColor: colors.background.tertiary,
+  },
+  abMarker: {
+    position: "absolute",
+    width: 3,
+    height: "100%",
+    borderRadius: 1.5,
+  },
+  abMarkerA: {
+    backgroundColor: colors.accent.success,
+  },
+  abMarkerB: {
+    backgroundColor: colors.accent.error,
+  },
+  transportControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 40,
+    marginTop: 12,
+  },
+  transportButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 56,
+    height: 56,
+  },
+  playButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.accent.primary,
+    ...shadows.accent,
+  },
+  abControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    marginTop: 28,
+  },
+  abButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+  abButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
 
