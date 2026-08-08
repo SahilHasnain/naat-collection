@@ -40,7 +40,7 @@ export default {
       associatedDomains: ["applinks:owaisrazaqadri.appwrite.network"],
     },
     android: {
-      versionCode: 24,
+      versionCode: 25,
       adaptiveIcon: {
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundColor: "#000000",
@@ -48,6 +48,10 @@ export default {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: getUniqueIdentifier(),
+      notification: {
+        icon: "./assets/images/status_bar_icon.png",
+        color: "#000000",
+      },
       permissions: [
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
