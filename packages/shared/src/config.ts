@@ -16,6 +16,7 @@ export interface AppwriteConfig {
   audioStreamingFunctionUrl: string;
   rapidApiKey: string;
   semanticSearchFunctionUrl?: string;
+  appViewIncrementFunctionUrl?: string;
 }
 
 /**
@@ -36,6 +37,7 @@ export function createAppwriteConfig(
     audioStreamingFunctionUrl: env.AUDIO_STREAMING_FUNCTION_URL || "",
     rapidApiKey: env.RAPIDAPI_KEY || "",
     semanticSearchFunctionUrl: env.SEMANTIC_SEARCH_FUNCTION_URL || "",
+    appViewIncrementFunctionUrl: env.APPWRITE_VIEW_INCREMENT_FUNCTION_URL || "",
   };
 }
 

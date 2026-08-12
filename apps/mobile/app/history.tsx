@@ -246,6 +246,7 @@ export default function HistoryScreen() {
                 text: "Play Video",
                 onPress: () => {
                   // Navigate to video mode without changing preference
+                  void appwriteService.incrementAppView(naat.$id).catch(() => {});
                   router.push({
                     pathname: "/video",
                     params: {
@@ -305,6 +306,7 @@ export default function HistoryScreen() {
                     text: "Play Video",
                     onPress: () => {
                       // Navigate to video mode without changing preference
+                      void appwriteService.incrementAppView(naat.$id).catch(() => {});
                       router.push({
                         pathname: "/video",
                         params: {
@@ -339,6 +341,7 @@ export default function HistoryScreen() {
         };
 
         await loadAndPlay(audioMetadata);
+        void appwriteService.incrementAppView(naat.$id).catch(() => {});
       } catch (err) {
         // Error loading audio - ask user before falling back to video
         console.error("Failed to load audio:", err);
@@ -360,6 +363,7 @@ export default function HistoryScreen() {
                 text: "Play Video",
                 onPress: () => {
                   // Navigate to video mode without changing preference
+                  void appwriteService.incrementAppView(naat.$id).catch(() => {});
                   router.push({
                     pathname: "/video",
                     params: {
@@ -399,6 +403,7 @@ export default function HistoryScreen() {
 
         // If user prefers video mode, navigate to video screen
         if (savedMode === "video") {
+          void appwriteService.incrementAppView(naat.$id).catch(() => {});
           router.push({
             pathname: "/video",
             params: {
@@ -471,6 +476,7 @@ export default function HistoryScreen() {
 
     if (savedPlaybackMode === "audio") {
       // Play as video
+      void appwriteService.incrementAppView(selectedNaat.$id).catch(() => {});
       router.push({
         pathname: "/video",
         params: {

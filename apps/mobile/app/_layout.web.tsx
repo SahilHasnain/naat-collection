@@ -25,6 +25,7 @@ Sentry.init({
 
 const navItems = [
   { href: "/home", label: "Home", icon: "grid-outline" },
+  { href: "/best", label: "Best", icon: "trophy-outline" },
   { href: "/live", label: "Live", icon: "radio-outline" },
   { href: "/history", label: "History", icon: "time-outline" },
 ] as const;

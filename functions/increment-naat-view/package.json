@@ -1,0 +1,10 @@
+{
+  "name": "increment-naat-view",
+  "version": "1.0.0",
+  "description": "Appwrite Function to increment the in-app view count (appView) for a naat document",
+  "main": "src/main.js",
+  "type": "module",
+  "dependencies": {
+    "node-appwrite": "^21.1.0"
+  }
+}

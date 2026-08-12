@@ -44,6 +44,7 @@ export function useNaatPlayback(displayData: Naat[]) {
       isFallback: boolean,
       preservePreference: boolean = false,
     ) => {
+      void appwriteService.incrementAppView(naat.$id).catch(() => {});
       router.push({
         pathname: "/video",
         params: {
@@ -142,6 +143,7 @@ export function useNaatPlayback(displayData: Naat[]) {
           naatId: naat.$id,
         };
         await loadAndPlay(audioMetadata);
+        void appwriteService.incrementAppView(naat.$id).catch(() => {});
         return true;
       } catch (err) {
         console.error("Failed to load audio:", err);

@@ -528,4 +528,33 @@ export class AppwriteService implements IAppwriteService {
       };
     }
   }
+
+  /**
+   * Increments the in-app view count (appView) for a naat.
+   *
+   * Uses an Appwrite function for the server-side increment so the client
+   * never needs write access to the naats collection. This is a best-effort,
+   * fire-and-forget call — it never throws so playback is never affected.
+   */
+  async incrementAppView(naatId: string): Promise<void> {
+    if (!naatId || !this.config.appViewIncrementFunctionUrl) {
+      return;
+    }
+
+    try {
+      await fetch(this.config.appViewIncrementFunctionUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ naatId }),
+      });
+    } catch (error) {
+      console.error("[Appwrite] incrementAppView failed:", error);
+      this.onError?.(error as Error, {
+        context: "incrementAppView",
+        naatId,
+      });
+    }
+  }
 }

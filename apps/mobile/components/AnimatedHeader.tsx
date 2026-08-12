@@ -1,5 +1,4 @@
 import { colors } from "@/constants/theme";
-import type { Channel, DurationOption, SortOption } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { useEffect, useRef } from "react";
@@ -13,14 +12,7 @@ import Pressable from "./ResponsivePressable";
 interface AnimatedHeaderProps {
   translateY: SharedValue<number>;
   isScrolledDown: SharedValue<boolean>;
-  // Filter props
-  selectedSort: SortOption;
-  selectedChannelId: string | null;
-  selectedDuration: DurationOption;
-  channels: Channel[];
-  onFilterPress: () => void;
   onSearchPress: () => void;
-  disableFilter?: boolean;
   // Search mode props
   isSearchActive?: boolean;
   searchInput?: string;
@@ -32,13 +24,7 @@ interface AnimatedHeaderProps {
 export function AnimatedHeader({
   translateY,
   isScrolledDown,
-  selectedSort,
-  selectedChannelId,
-  selectedDuration,
-  channels,
-  onFilterPress,
   onSearchPress,
-  disableFilter = false,
   isSearchActive = false,
   searchInput = "",
   onSearchInputChange,
@@ -61,12 +47,6 @@ export function AnimatedHeader({
       transform: [{ translateY: translateY.value }],
     };
   });
-
-  // Check if any non-default filters are active
-  const hasActiveFilters =
-    selectedSort !== "forYou" ||
-    selectedChannelId !== null ||
-    selectedDuration !== "all";
 
   return (
     <Animated.View
@@ -180,24 +160,6 @@ export function AnimatedHeader({
                 accessibilityRole="button"
               >
                 <Ionicons name="search" size={24} color={colors.text.primary} />
-              </Pressable>
-
-              {/* Filter */}
-              <Pressable
-                onPress={onFilterPress}
-                accessibilityLabel="Open filters"
-                accessibilityRole="button"
-                disabled={disableFilter}
-                style={{ opacity: disableFilter ? 0.3 : 1 }}
-              >
-                <Ionicons
-                  name="options-outline"
-                  size={24}
-                  color={hasActiveFilters ? "#3b82f6" : colors.text.primary}
-                />
-                {hasActiveFilters && (
-                  <View className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
-                )}
               </Pressable>
             </View>
           </View>

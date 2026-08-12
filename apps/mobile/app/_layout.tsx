@@ -6,10 +6,7 @@ import MiniPlayer from "@/components/MiniPlayer";
 import Pressable from "@/components/ResponsivePressable";
 import { colors, layout } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
-import {
-  FilterModalProvider,
-  useFilterModal,
-} from "@/contexts/FilterModalContext";
+import { FilterModalProvider } from "@/contexts/FilterModalContext";
 import {
   HeaderVisibilityProvider,
   useHeaderVisibility,
@@ -34,8 +31,10 @@ import { VideoProvider } from "@/contexts/VideoContext";
 import { useAppMessage } from "@/hooks/useAppMessage";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useReviewPrompt } from "@/hooks/useReviewPrompt";
 import { appwriteService } from "@/services/appwrite";
 import AppMessageBanner from "@/components/AppMessageBanner";
+import ReviewPromptModal from "@/components/ReviewPromptModal";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import * as Sentry from "@sentry/react-native";
@@ -73,7 +72,6 @@ function RootLayoutContent() {
   const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
   const { translateY } = useTabBarVisibility();
   const { translateY: headerTranslateY } = useHeaderVisibility();
-  const { setShowFilterModal } = useFilterModal();
   const insets = useSafeAreaInsets();
   const {
     isSearchActive,
@@ -83,6 +81,8 @@ function RootLayoutContent() {
     setSearchInput,
     submitSearch,
   } = useSearchContext();
+
+  const reviewPrompt = useReviewPrompt();
 
   // Check if user is currently on the live tab
   const isOnLiveTab = segments[0] === "live";
@@ -158,18 +158,12 @@ function RootLayoutContent() {
         <AnimatedHeader
           translateY={headerTranslateY}
           isScrolledDown={isScrolledDownValue}
-          selectedSort="forYou"
-          selectedChannelId={null}
-          selectedDuration="all"
-          channels={[]}
-          onFilterPress={() => setShowFilterModal(true)}
           onSearchPress={() => {
             activateSearch();
             if (!isOnHomepage) {
               router.push("/home");
             }
           }}
-          disableFilter={!isOnHomepage || isSearchActive}
           isSearchActive={isSearchActive}
           searchInput={searchInput}
           onSearchInputChange={setSearchInput}
@@ -213,9 +207,23 @@ function RootLayoutContent() {
           }}
         />
         <Tabs.Screen
+          name="best"
+          options={{
+            title: "Best",
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? "trophy" : "trophy-outline"}
+                size={24}
+                color={color}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="live"
           options={{
             title: "Live",
+            href: null,
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? "radio" : "radio-outline"}
@@ -351,6 +359,15 @@ function RootLayoutContent() {
         <AppMessageBanner message={appMessage} onDismiss={dismiss} />
       )}
 
+      {/* In-app review prompt */}
+      <ReviewPromptModal
+        visible={reviewPrompt.visible}
+        onClose={reviewPrompt.onClose}
+        onRate={reviewPrompt.onRate}
+        onSnooze={reviewPrompt.onSnooze}
+        onNever={reviewPrompt.onNever}
+      />
+
       {/* Offline modal — shown when connection drops while using the app */}
       {showOfflineModal && (
         <>
@@ -463,7 +480,10 @@ function RootLayoutContent() {
       )}
 
       {__DEV__ && (
-        <View
+        <Pressable
+          onPress={() => {
+            void reviewPrompt.forceShowForTest();
+          }}
           style={{
             position: "absolute",
             top: insets.top + 8,
@@ -474,11 +494,13 @@ function RootLayoutContent() {
             borderRadius: 4,
             zIndex: 2000,
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Force show review prompt"
         >
           <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600" }}>
             {appwriteService.getDataSource() === 'static' ? '📄 Static' : '🗄️ DB'}
           </Text>
-        </View>
+        </Pressable>
       )}
     </>
   );

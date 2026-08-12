@@ -13,6 +13,7 @@ export interface Naat {
   channelId: string;
   duration: number;
   views: number;
+  appView?: number; // in-app view count (tracked separately from YouTube views)
   uploadDate: string;
   audioId?: string;
   cutAudio?: string;
@@ -62,6 +63,7 @@ export interface IAppwriteService {
   searchNaats(query: string, channelId?: string | null): Promise<Naat[]>;
   getChannels(): Promise<Channel[]>;
   getAudioUrl(audioId?: string | null): Promise<AudioUrlResponse>;
+  incrementAppView(naatId: string): Promise<void>;
 }
 
 export type { AppwriteConfig };

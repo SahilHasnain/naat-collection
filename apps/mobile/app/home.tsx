@@ -1,4 +1,5 @@
 import EmptyState from "@/components/EmptyState";
+import FloatingFilterButton from "@/components/FloatingFilterButton";
 import NaatActionSheet from "@/components/NaatActionSheet";
 import NaatCard from "@/components/NaatCard";
 import { SearchFilterBar } from "@/components/SearchFilterBar";
@@ -540,6 +541,13 @@ export default function HomeScreen() {
             onSuggestionInsert={(s) => setSearchInput(s.text)}
           />
         </View>
+      )}
+
+      {!isSearchActive && !showSuggestionsOverlay && (
+        <FloatingFilterButton
+          onPress={() => filters.setShowFilterModal(true)}
+          hasActiveFilters={filters.hasActiveHomeFilters}
+        />
       )}
 
       <NaatActionSheet

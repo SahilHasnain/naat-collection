@@ -10,6 +10,7 @@ export interface Naat {
   channelId: string;
   youtubeId: string;
   views: number; // view count for popularity sorting
+  appView?: number; // in-app view count (tracked separately from YouTube views)
   audioId?: string; // Appwrite Storage file ID for audio
   cutAudio?: string; // Appwrite Storage file ID for cut/processed audio (prioritized over audioId)
   cutDuration?: number; // duration in seconds of the cut audio
@@ -107,6 +108,7 @@ export interface IAppwriteService {
   searchNaats(query: string, channelId?: string | null, pureOnly?: boolean): Promise<Naat[]>;
   getAudioUrl(audioId?: string | null): Promise<AudioUrlResponse>;
   getChannels(): Promise<Channel[]>;
+  incrementAppView(naatId: string): Promise<void>;
 }
 
 // Audio extraction types

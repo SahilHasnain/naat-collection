@@ -33,6 +33,7 @@ export function AnimatedTabBar({
   // Filter out routes that should be hidden
   const visibleRoutes = state.routes.filter((route) => {
     return (
+      route.name !== "live" &&
       route.name !== "video" &&
       route.name !== "player" &&
       route.name !== "naat" &&
