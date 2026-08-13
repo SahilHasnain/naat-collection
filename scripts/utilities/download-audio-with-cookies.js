@@ -5,7 +5,7 @@
  * Appwrite extract-audio function.
  *
  * Usage:
- *   node scripts/utilities/download-audio-with-cookies.js [--limit=10] [--test]
+ *   node scripts/utilities/download-audio-with-cookies.js [--limit=10] [--gap=15] [--test] [--no-log]
  */
 
 const { spawn } = require("child_process");
@@ -18,12 +18,30 @@ const {
   readFileSync,
   readdirSync,
   writeFileSync,
+  appendFileSync,
 } = require("fs");
 const { Client, Databases, Query, Storage, ID } = require("node-appwrite");
 const { InputFile } = require("node-appwrite/file");
-const { join } = require("path");
+const { join, dirname } = require("path");
 
+dotenv.config({ path: "apps/mobile/.env.local" });
 dotenv.config({ path: "apps/mobile/.env" });
+
+const LOG_DIR = join(process.cwd(), "logs");
+const LOG_FILE = join(LOG_DIR, "download-audio-with-cookies.log");
+
+function log(level, message) {
+  const line = `[${new Date().toISOString()}] [${level}] ${message}`;
+  console.log(line);
+  if (process.env.AUDIO_DOWNLOAD_LOG !== "false") {
+    try {
+      mkdirSync(LOG_DIR, { recursive: true });
+      appendFileSync(LOG_FILE, `${line}\n`, "utf8");
+    } catch (error) {
+      console.error(`  Log write warning: ${error.message}`);
+    }
+  }
+}
 
 const APPWRITE_ENDPOINT =
   process.env.APPWRITE_ENDPOINT ||
@@ -48,6 +66,9 @@ const args = process.argv.slice(2);
 const limit =
   parseInt(args.find((arg) => arg.startsWith("--limit="))?.split("=")[1], 10) ||
   null;
+const gapSeconds =
+  parseInt(args.find((arg) => arg.startsWith("--gap="))?.split("=")[1], 10) ||
+  15;
 const testMode = args.includes("--test");
 
 const TEMP_DIR = join(process.cwd(), "temp-audio");
@@ -197,7 +218,7 @@ function cleanupTempFile(filePath) {
 }
 
 async function processNaat(naat, index, total) {
-  console.log(`\n[${index + 1}/${total}] Processing: ${naat.title}`);
+  log("INFO", `\n[${index + 1}/${total}] Processing: ${naat.title}`);
 
   let tempFilePath = null;
 
@@ -208,13 +229,13 @@ async function processNaat(naat, index, total) {
       const audioFileId = await uploadAudio(tempFilePath, naat.youtubeId);
       await updateNaatWithAudioId(naat.$id, audioFileId);
     } else {
-      console.log("  Test mode: skipping upload");
+      log("INFO", "  Test mode: skipping upload");
     }
 
-    console.log("  Success");
+    log("INFO", "  Success");
     return { success: true, naatId: naat.$id };
   } catch (error) {
-    console.error(`  Error: ${error.message}`);
+    log("ERROR", `  Error: ${error.message}`);
     return { success: false, naatId: naat.$id, error: error.message };
   } finally {
     if (tempFilePath && !testMode) {
@@ -231,7 +252,7 @@ async function fetchAllNaatsWithoutAudio(userLimit = null) {
   let offset = 0;
   let hasMore = true;
 
-  console.log("Fetching naats from database in batches...");
+  log("INFO", "Fetching naats from database in batches...");
 
   while (hasMore) {
     const response = await databases.listDocuments(DATABASE_ID, NAATS_COLLECTION_ID, [
@@ -242,7 +263,7 @@ async function fetchAllNaatsWithoutAudio(userLimit = null) {
 
     const batch = response.documents;
     allNaats.push(...batch);
-    console.log(`  Fetched batch: ${batch.length} naats (total: ${allNaats.length})`);
+    log("INFO", `  Fetched batch: ${batch.length} naats (total: ${allNaats.length})`);
 
     hasMore = batch.length === batchSize;
     offset += batchSize;
@@ -257,22 +278,23 @@ async function fetchAllNaatsWithoutAudio(userLimit = null) {
 }
 
 async function main() {
-  console.log("Audio Download and Upload Script with Cookies\n");
-  console.log(`Endpoint: ${APPWRITE_ENDPOINT}`);
-  console.log(`Project: ${APPWRITE_PROJECT_ID}`);
-  console.log(`Database: ${DATABASE_ID}`);
-  console.log(`Collection: ${NAATS_COLLECTION_ID}`);
-  console.log(`Bucket: ${AUDIO_BUCKET_ID}`);
-  console.log(`Limit: ${limit || "All videos"}`);
-  console.log(`Mode: ${testMode ? "Test" : "Full"}\n`);
+  log("INFO", "Audio Download and Upload Script with Cookies\n");
+  log("INFO", `Endpoint: ${APPWRITE_ENDPOINT}`);
+  log("INFO", `Project: ${APPWRITE_PROJECT_ID}`);
+  log("INFO", `Database: ${DATABASE_ID}`);
+  log("INFO", `Collection: ${NAATS_COLLECTION_ID}`);
+  log("INFO", `Bucket: ${AUDIO_BUCKET_ID}`);
+  log("INFO", `Limit: ${limit || "All videos"}`);
+  log("INFO", `Gap: ${gapSeconds}s between downloads`);
+  log("INFO", `Mode: ${testMode ? "Test" : "Full"}\n`);
 
   ensureTempDir();
 
   const naats = await fetchAllNaatsWithoutAudio(limit);
-  console.log(`Found ${naats.length} naats without audio\n`);
+  log("INFO", `Found ${naats.length} naats without audio\n`);
 
   if (naats.length === 0) {
-    console.log("No naats to process.");
+    log("INFO", "No naats to process.");
     return;
   }
 
@@ -282,21 +304,21 @@ async function main() {
     results.push(result);
 
     if (i < naats.length - 1) {
-      console.log("  Waiting 2 seconds before next download...");
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      log("INFO", `  Waiting ${gapSeconds}s before next download...`);
+      await new Promise((resolve) => setTimeout(resolve, gapSeconds * 1000));
     }
   }
 
   const failed = results.filter((result) => !result.success);
-  console.log("\nSummary:");
-  console.log(`  Total processed: ${results.length}`);
-  console.log(`  Successful: ${results.length - failed.length}`);
-  console.log(`  Failed: ${failed.length}`);
+  log("INFO", "\nSummary:");
+  log("INFO", `  Total processed: ${results.length}`);
+  log("INFO", `  Successful: ${results.length - failed.length}`);
+  log("INFO", `  Failed: ${failed.length}`);
 
   if (failed.length > 0) {
-    console.log("\nFailed naats:");
+    log("WARN", "\nFailed naats:");
     failed.forEach((item) => {
-      console.log(`  - ${item.naatId}: ${item.error}`);
+      log("WARN", `  - ${item.naatId}: ${item.error}`);
     });
   }
 }
