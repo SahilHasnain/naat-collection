@@ -1,0 +1,54 @@
+name: Refresh Static Exports
+
+on:
+  schedule:
+    # Daily at 02:00 UTC — runs after the Appwrite ingest-playlists function (00:00 UTC)
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-static-exports
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install deps
+        run: npm install --no-save node-appwrite fs-extra dotenv
+
+      - name: Export static data
+        env:
+          APPWRITE_ENDPOINT: "https://sgp.cloud.appwrite.io/v1"
+          APPWRITE_PROJECT_ID: "695bb97700213f4ef5dd"
+          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+          APPWRITE_DATABASE_ID: "695bba86001b50478ed4"
+          APPWRITE_NAATS_COLLECTION_ID: "695bc8e70038db72df5b"
+          APPWRITE_CHANNELS_COLLECTION_ID: "channels"
+        run: node scripts/export-naats-to-json.js
+
+      - name: Commit updated exports
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add static-exports/
+          if git diff --cached --quiet; then
+            echo "No changes to static exports"
+            exit 0
+          fi
+          git commit -m "chore: refresh static exports - $(date -u +%Y-%m-%d)"
+          git push
