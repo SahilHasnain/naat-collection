@@ -281,12 +281,6 @@ function RootLayoutContent() {
           }}
         />
         <Tabs.Screen
-          name="privacy-policy"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
           name="player"
           options={{
             href: null,

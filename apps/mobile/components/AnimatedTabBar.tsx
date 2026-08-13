@@ -41,8 +41,7 @@ export function AnimatedTabBar({
       route.name !== "naat" &&
       !route.name.startsWith("naat/") &&
       route.name !== "+not-found" &&
-      route.name !== "index" &&
-      route.name !== "privacy-policy"
+      route.name !== "index"
     );
   });
 
