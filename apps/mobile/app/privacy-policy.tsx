@@ -1,4 +1,5 @@
 import React from "react";
+import { APP_NAME } from "@/config/brand";
 
 export default function PrivacyPolicy() {
     return (
@@ -45,7 +46,7 @@ export default function PrivacyPolicy() {
                             color: "#374151",
                             lineHeight: "1.75"
                         }}>
-                            Welcome to Naat Collection. We respect your privacy and are committed to
+                            Welcome to {APP_NAME}. We respect your privacy and are committed to
                             protecting your personal data. This privacy policy explains how we
                             handle your information when you use our mobile application.
                         </p>
@@ -288,7 +289,7 @@ export default function PrivacyPolicy() {
                         fontSize: "14px",
                         color: "#6B7280"
                     }}>
-                        © {new Date().getFullYear()} Naat Collection. All rights reserved.
+                        © {new Date().getFullYear()} {APP_NAME}. All rights reserved.
                     </p>
                 </div>
             </div>
