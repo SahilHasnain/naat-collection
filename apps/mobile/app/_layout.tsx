@@ -75,11 +75,12 @@ function RootLayoutContent() {
   const insets = useSafeAreaInsets();
   const {
     isSearchActive,
-    activateSearch,
     deactivateSearch,
     searchInput,
     setSearchInput,
     submitSearch,
+    searchFocusNonce,
+    requestSearchFocus,
   } = useSearchContext();
 
   const reviewPrompt = useReviewPrompt();
@@ -158,14 +159,9 @@ function RootLayoutContent() {
         <AnimatedHeader
           translateY={headerTranslateY}
           isScrolledDown={isScrolledDownValue}
-          onSearchPress={() => {
-            activateSearch();
-            if (!isOnHomepage) {
-              router.push("/home");
-            }
-          }}
           isSearchActive={isSearchActive}
           searchInput={searchInput}
+          searchFocusNonce={searchFocusNonce}
           onSearchInputChange={setSearchInput}
           onSearchSubmit={() => {
             const trimmed = searchInput.trim();
@@ -190,6 +186,12 @@ function RootLayoutContent() {
             {...props}
             translateY={translateY}
             networkIndicatorOffset={networkIndicatorOffset}
+            onSearchTabPress={() => {
+              requestSearchFocus();
+              if (!isOnHomepage) {
+                router.push("/home");
+              }
+            }}
           />
         )}
       >
@@ -213,6 +215,19 @@ function RootLayoutContent() {
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? "trophy" : "trophy-outline"}
+                size={24}
+                color={color}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="search"
+          options={{
+            title: "Search",
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? "search" : "search-outline"}
                 size={24}
                 color={color}
               />

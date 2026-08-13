@@ -4,7 +4,7 @@
  * Service for interacting with Appwrite backend.
  */
 
-import { Client, Databases, Query } from "appwrite";
+import { Client, Databases, ExecutionMethod, Functions, Query } from "appwrite";
 import type {
     AppwriteConfig,
     AudioUrlResponse,
@@ -22,6 +22,7 @@ export interface AppwriteServiceOptions {
 export class AppwriteService implements IAppwriteService {
   private client: Client;
   private database: Databases;
+  private functions: Functions;
   private config: AppwriteConfig;
   private isInitialized: boolean = false;
   private onError?: (error: Error, context?: Record<string, any>) => void;
@@ -31,6 +32,7 @@ export class AppwriteService implements IAppwriteService {
     this.onError = options.onError;
     this.client = new Client();
     this.database = new Databases(this.client);
+    this.functions = new Functions(this.client);
   }
 
   private initialize(): void {
@@ -226,17 +228,17 @@ export class AppwriteService implements IAppwriteService {
    * Best-effort: never throws.
    */
   async incrementAppView(naatId: string): Promise<void> {
-    if (!naatId || !this.config.appViewIncrementFunctionUrl) {
+    if (!naatId) {
       return;
     }
 
     try {
-      await fetch(this.config.appViewIncrementFunctionUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      this.initialize();
+      await this.functions.createExecution({
+        functionId: "increment-naat-view",
         body: JSON.stringify({ naatId }),
+        async: true,
+        method: ExecutionMethod.POST,
       });
     } catch (error) {
       console.error("[Web Appwrite] incrementAppView failed:", error);

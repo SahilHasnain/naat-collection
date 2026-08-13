@@ -12,10 +12,10 @@ import Pressable from "./ResponsivePressable";
 interface AnimatedHeaderProps {
   translateY: SharedValue<number>;
   isScrolledDown: SharedValue<boolean>;
-  onSearchPress: () => void;
   // Search mode props
   isSearchActive?: boolean;
   searchInput?: string;
+  searchFocusNonce?: number;
   onSearchInputChange?: (text: string) => void;
   onSearchSubmit?: () => void;
   onSearchClose?: () => void;
@@ -24,23 +24,23 @@ interface AnimatedHeaderProps {
 export function AnimatedHeader({
   translateY,
   isScrolledDown,
-  onSearchPress,
   isSearchActive = false,
   searchInput = "",
+  searchFocusNonce = 0,
   onSearchInputChange,
   onSearchSubmit,
   onSearchClose,
 }: AnimatedHeaderProps) {
   const inputRef = useRef<TextInput>(null);
 
-  // Auto-focus input when search mode activates
+  // Auto-focus input when search mode activates or focus is re-requested
   useEffect(() => {
     if (isSearchActive) {
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
     }
-  }, [isSearchActive]);
+  }, [isSearchActive, searchFocusNonce]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -130,7 +130,7 @@ export function AnimatedHeader({
           </View>
         ) : (
           /* Normal Mode */
-          <View className="flex-row items-center justify-between mb-3">
+          <View className="flex-row items-center mb-3">
             {/* Logo */}
             <View className="flex-row items-center gap-2">
               <View
@@ -149,18 +149,6 @@ export function AnimatedHeader({
               >
                 Owais Raza Qadri
               </Text>
-            </View>
-
-            {/* Action Icons */}
-            <View className="flex-row items-center gap-4">
-              {/* Search */}
-              <Pressable
-                onPress={onSearchPress}
-                accessibilityLabel="Search"
-                accessibilityRole="button"
-              >
-                <Ionicons name="search" size={24} color={colors.text.primary} />
-              </Pressable>
             </View>
           </View>
         )}

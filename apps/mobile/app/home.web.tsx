@@ -89,10 +89,12 @@ export default function HomeWebScreen() {
     setMenuOpenFor(null);
 
     if (savedPlaybackMode === "audio") {
+      await storageService.savePlaybackMode("video").catch(() => {});
       await playAsVideo(naatId);
       return;
     }
 
+    await storageService.savePlaybackMode("audio").catch(() => {});
     await playAsAudio(naatId);
   };
 

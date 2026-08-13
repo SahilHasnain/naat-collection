@@ -265,10 +265,12 @@ export default function HomeScreen() {
     closeActionSheet();
 
     if (savedPlaybackMode === "audio") {
+      await storageService.savePlaybackMode("video").catch(() => {});
       await playAsVideo(selectedNaat.$id);
       return;
     }
 
+    await storageService.savePlaybackMode("audio").catch(() => {});
     await playAsAudio(selectedNaat.$id);
   }, [
     closeActionSheet,

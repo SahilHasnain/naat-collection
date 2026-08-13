@@ -475,7 +475,8 @@ export default function HistoryScreen() {
     closeActionSheet();
 
     if (savedPlaybackMode === "audio") {
-      // Play as video
+      // Play as video and persist the new preference
+      await storageService.savePlaybackMode("video").catch(() => {});
       void appwriteService.incrementAppView(selectedNaat.$id).catch(() => {});
       router.push({
         pathname: "/video",
@@ -491,7 +492,8 @@ export default function HistoryScreen() {
         },
       });
     } else {
-      // Play as audio
+      // Play as audio and persist the new preference
+      await storageService.savePlaybackMode("audio").catch(() => {});
       await loadAudioDirectly(selectedNaat);
     }
   }, [closeActionSheet, savedPlaybackMode, selectedNaat, router, loadAudioDirectly]);
