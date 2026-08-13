@@ -3,18 +3,27 @@
 # sync-family.sh
 #
 # One-way sync of SHARED code from the canonical family repo to the sibling
-# naat apps. Each repo is a clone of the same codebase with only brand-specific
-# files differing (app identity, Appwrite project IDs, keystores, assets, env).
+# naat apps. Each repo is a clone of the same codebase. The ONLY file that
+# differs between repos is apps/mobile/brand.config.js (plus native signing
+# keystores, assets and local env). Everything else is kept identical here.
 #
 # Canonical repo:  ./ (the repo this script lives in)
 # Sibling repos:   configured below via FAMILY_REPOS (absolute or ~ paths)
+#
+# Uses GNU tar (bundled with Git for Windows) to copy directories — no rsync
+# required. Works in Git Bash / WSL / Linux / macOS.
+#
+# Semantics: ADD/OVERWRITE only. Files present in the canonical repo are copied
+# over the sibling versions; files unique to a sibling (e.g. production-only web
+# admin pages) are kept. It does NOT delete sibling-only files, so a removed
+# canonical file is not auto-removed from siblings.
 #
 # Usage:
 #   ./scripts/sync-family.sh            # real sync
 #   ./scripts/sync-family.sh --dry-run  # show what would change
 #   ./scripts/sync-family.sh --help
 #
-# Brand-specific files are NEVER overwritten (see BRAND_FILES below).
+# Brand-specific files are NEVER overwritten (see BRAND_PATHS below).
 set -euo pipefail
 
 # ── Family members ────────────────────────────────────────────────────────────
@@ -28,8 +37,7 @@ FAMILY_REPOS=(
 )
 
 # ── Shared paths that are synced recursively (relative to repo root) ─────────
-# These directories contain pure shared code. They are rsynced with --delete so
-# files deleted in the canonical repo are also removed from the siblings.
+# These directories contain pure shared code. They are mirrored add/overwrite.
 SHARED_DIRS=(
   "apps/mobile/app"
   "apps/mobile/components"
@@ -39,6 +47,7 @@ SHARED_DIRS=(
   "apps/mobile/utils"
   "apps/mobile/types"
   "apps/mobile/constants"
+  "apps/mobile/config"
   "apps/mobile/patches"
   "apps/mobile/scripts"
   "apps/mobile/tests"
@@ -51,19 +60,16 @@ SHARED_DIRS=(
   "docker"
   "scripts"
   "patches"
-  "docs"
-  "ref"
   "tests"
-  "training-data"
 )
 
 # Shared single files that are always overwritten.
 SHARED_FILES=(
+  "apps/mobile/app.config.js"
   "apps/mobile/babel.config.js"
   "apps/mobile/metro.config.js"
   "apps/mobile/global.css"
   "apps/mobile/expo-env.d.ts"
-  "apps/mobile/app.config.example.js"
   "apps/web/next.config.mjs"
   "apps/web/package.json"
   "apps/web/postcss.config.mjs"
@@ -74,29 +80,40 @@ SHARED_FILES=(
 # Brand-specific paths: skipped even if they live inside a SHARED_DIR.
 # These must NEVER be overwritten during a sync.
 BRAND_PATHS=(
-  # App identity / store config
-  "apps/mobile/app.config.js"
-  "apps/mobile/eas.json"
+  # ── THE single source of brand differences ──
+  "apps/mobile/brand.config.js"
+  # Native signing / store secrets
+  "apps/mobile/*.jks"
   "apps/mobile/credentials.json"
   "apps/mobile/upload_certificate.pem"
-  "apps/mobile/*.jks"
-  # Per-repo Appwrite project IDs
-  "apps/mobile/config/appwrite.ts"
-  "apps/mobile/.env.local"
+  "apps/mobile/google-services.json"
+  "apps/mobile/GoogleService-Info.plist"
+  # Local env / secrets
+  ".env"
+  ".env.local"
+  ".env.*"
   "apps/mobile/.env"
+  "apps/mobile/.env.local"
   "apps/mobile/.env.*"
-  "apps/web/.env.local"
   "apps/web/.env"
+  "apps/web/.env.local"
   "apps/web/.env.*"
-  # Native build output / package dirs
+  # Native build output / assets
   "apps/mobile/android"
   "apps/mobile/ios"
   "apps/mobile/assets"
-  # Entry / build config that differs per repo
+  # Entry point / bootstrap (real code fork between repos)
   "apps/mobile/index.js"
   "apps/mobile/bootstrap.js"
   "apps/mobile/bootstrap.native.js"
   "apps/mobile/bootstrap.web.js"
+  # Root-level per-repo config
+  "package.json"
+  "tsconfig.json"
+  "babel.config.js"
+  "metro.config.js"
+  "eslint.config.js"
+  # Repo-specific build config that is allowed to diverge
   "apps/mobile/package.json"
   "apps/mobile/tsconfig.json"
   "apps/mobile/tailwind.config.js"
@@ -105,12 +122,6 @@ BRAND_PATHS=(
   "apps/mobile/sentry.properties"
   "apps/web/tsconfig.json"
   "apps/web/next-env.d.ts"
-  # Root-level per-repo config
-  "package.json"
-  "tsconfig.json"
-  "babel.config.js"
-  "metro.config.js"
-  "eslint.config.js"
 )
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -118,22 +129,25 @@ BRAND_PATHS=(
 log()  { printf "\033[1;34m[sync-family]\033[0m %s\n" "$*"; }
 warn() { printf "\033[1;33m[sync-family]\033[0m %s\n" "$*"; }
 
-build_rsync_args() {
-  local args=(-a --delete --exclude=".git" --exclude="node_modules" --exclude=".expo"
-              --exclude="dist" --exclude=".next" --exclude="*.jks" --exclude=".env.local"
-              --exclude=".env" --exclude=".env.*")
-  # Convert brand paths into rsync --exclude filters (anchored at repo root).
+# Builds the --exclude list for tar.
+build_tar_excludes() {
+  local excludes=(
+    --exclude=".git"
+    --exclude="node_modules"
+    --exclude=".expo"
+    --exclude="dist"
+    --exclude=".next"
+    --exclude="*.jks"
+    --exclude=".env.local"
+    --exclude=".env"
+    --exclude=".env.*"
+    --exclude="brand.config.js"
+  )
   local p
   for p in "${BRAND_PATHS[@]}"; do
-    # "apps/mobile/*.jks" style globs -> keep as-is; plain dirs -> trailing slash.
-    if [[ "$p" == *"*"* ]]; then
-      args+=(--exclude="$p")
-    else
-      args+=(--exclude="/$p/")
-      args+=(--exclude="/$p")
-    fi
+    excludes+=(--exclude="$p")
   done
-  printf '%s\n' "${args[@]}"
+  printf '%s\n' "${excludes[@]}"
 }
 
 sync_one() {
@@ -167,21 +181,50 @@ sync_one() {
     if [[ ! -d "$CANONICAL_DIR/$dir" ]]; then
       continue
     fi
-    mkdir -p "$repo/$dir"
-
-    local args=()
-    # shellcheck disable=SC2207
-    args=($(build_rsync_args))
 
     if [[ -n "$dry" ]]; then
-      log "  [dry-run] rsync $dir"
-      # shellcheck disable=SC2046
-      rsync -a --dry-run "${args[@]}" "$CANONICAL_DIR/$dir/" "$repo/$dir/" 2>/dev/null \
-        | head -40 || true
-    else
-      # shellcheck disable=SC2046
-      rsync -a "${args[@]}" "$CANONICAL_DIR/$dir/" "$repo/$dir/"
+      # Show per-file diffs without writing anything.
+      local excludes=()
+      # shellcheck disable=SC2207
+      excludes=($(build_tar_excludes))
+
+      local src_list dest_list
+      src_list="$(cd "$CANONICAL_DIR" && tar cf - "${excludes[@]}" "./$dir" 2>/dev/null | tar tf - 2>/dev/null | grep -v '/$' || true)"
+      dest_list="$(cd "$repo" && tar cf - "${excludes[@]}" "./$dir" 2>/dev/null | tar tf - 2>/dev/null | grep -v '/$' || true)"
+
+      local changed=""
+      while IFS= read -r f; do
+        [[ -z "$f" ]] && continue
+        local rel="${f#./}"
+        if [[ ! -e "$repo/$rel" ]]; then
+          changed="$changed\n  + $rel"
+        elif ! diff -q "$CANONICAL_DIR/$rel" "$repo/$rel" >/dev/null 2>&1; then
+          changed="$changed\n  ~ $rel"
+        fi
+      done <<< "$src_list"
+
+      if [[ -n "$changed" ]]; then
+        log "  [dry-run] $dir"
+        printf "%b\n" "$changed"
+      fi
+      continue
     fi
+
+    mkdir -p "$repo/$dir"
+
+    local excludes=()
+    # shellcheck disable=SC2207
+    excludes=($(build_tar_excludes))
+
+    # Pipe the canonical directory through tar (excluding brand/config files)
+    # and extract over the sibling. Add/overwrite only — sibling-only files stay.
+    (
+      cd "$CANONICAL_DIR"
+      tar cf - "${excludes[@]}" "./$dir" 2>/dev/null || true
+    ) | (
+      cd "$repo"
+      tar xf - 2>/dev/null || true
+    )
   done
 }
 
@@ -190,7 +233,7 @@ sync_one() {
 DRY=""
 case "${1:-}" in
   --help|-h)
-    sed -n '2,20p' "${BASH_SOURCE[0]}"
+    sed -n '2,26p' "${BASH_SOURCE[0]}"
     exit 0
     ;;
   --dry-run|-n)

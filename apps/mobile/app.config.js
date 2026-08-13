@@ -1,34 +1,36 @@
+const brand = require("./brand.config.js");
+
 const IS_DEV = process.env.APP_VARIANT === "development";
 const IS_PREVIEW = process.env.APP_VARIANT === "preview";
 
 const getUniqueIdentifier = () => {
   if (IS_DEV) {
-    return "com.owaisrazaqadri.dev";
+    return brand.app.packageIdDev;
   }
   if (IS_PREVIEW) {
-    return "com.owaisrazaqadri.preview";
+    return brand.app.packageIdPreview;
   }
-  return "com.owaisrazaqadri";
+  return brand.app.packageId;
 };
 
 const getAppName = () => {
   if (IS_DEV) {
-    return "Owais Raza Qadri (Dev)";
+    return `${brand.app.name} (Dev)`;
   }
   if (IS_PREVIEW) {
-    return "Owais Raza Qadri (Preview)";
+    return `${brand.app.name} (Preview)`;
   }
-  return "Owais Raza Qadri";
+  return brand.app.name;
 };
 
 export default {
   expo: {
     name: getAppName(),
-    slug: "owais-raza-qadri",
+    slug: brand.app.slug,
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/android-icon-foreground.png",
-    scheme: "ubaidraza",
+    scheme: brand.app.scheme,
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
@@ -37,10 +39,10 @@ export default {
       infoPlist: {
         UIBackgroundModes: ["audio"],
       },
-      associatedDomains: ["applinks:owaisrazaqadri.appwrite.network"],
+      associatedDomains: [`applinks:${brand.app.applinksHost}`],
     },
     android: {
-      versionCode: 25,
+      versionCode: brand.app.versionCode,
       adaptiveIcon: {
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundColor: "#000000",
@@ -65,7 +67,7 @@ export default {
           autoVerify: true,
           data: [
             {
-              scheme: "ubaidraza",
+              scheme: brand.app.scheme,
               host: "*",
             },
           ],
@@ -77,7 +79,7 @@ export default {
           data: [
             {
               scheme: "https",
-              host: "owaisrazaqadri.appwrite.network",
+              host: brand.app.applinksHost,
               pathPrefix: "/naat",
             },
           ],
@@ -100,13 +102,17 @@ export default {
           backgroundColor: "#000000",
         }
       ],
-      [
-        "@sentry/react-native",
-        {
-          organization: "sahil-hasnain",
-          project: "ubaid-raza-naats",
-        },
-      ],
+      ...(brand.sentry.enabled
+        ? [
+            [
+              "@sentry/react-native",
+              {
+                organization: brand.sentry.org,
+                project: brand.sentry.project,
+              },
+            ],
+          ]
+        : []),
       [
         "expo-speech-recognition",
         {
@@ -127,7 +133,7 @@ export default {
     extra: {
       router: {},
       eas: {
-        "projectId": "f5025967-41a5-4d6d-b430-c89bada9c40b"
+        projectId: brand.eas.projectId,
       },
     },
   },

@@ -3,6 +3,9 @@
  *
  * This file adapts the shared Appwrite config for Expo's environment variables.
  * Environment variables must be prefixed with EXPO_PUBLIC_ to be accessible.
+ *
+ * Brand-specific values (Appwrite project, static export repo) come from
+ * brand.config.js — the only file that differs between family repos.
  */
 
 import {
@@ -10,26 +13,27 @@ import {
     validateAppwriteConfig as validateConfig,
 } from "@naat-collection/shared";
 
-// Hardcoded fallback values
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const brand = require("../brand.config.js");
+
+// Brand-provided fallback values
 const FALLBACK_CONFIG = {
-  APPWRITE_ENDPOINT: "https://sgp.cloud.appwrite.io/v1",
-  APPWRITE_PROJECT_ID: "695bb97700213f4ef5dd",
-  APPWRITE_DATABASE_ID: "695bba86001b50478ed4",
-  APPWRITE_NAATS_COLLECTION_ID: "695bc8e70038db72df5b",
-  APPWRITE_CHANNELS_COLLECTION_ID: "channels",
-  APPWRITE_AUDIO_CACHE_COLLECTION_ID: "695e43b700281bb0cc99",
+  APPWRITE_ENDPOINT: brand.appwrite.endpoint,
+  APPWRITE_PROJECT_ID: brand.appwrite.projectId,
+  APPWRITE_DATABASE_ID: brand.appwrite.databaseId,
+  APPWRITE_NAATS_COLLECTION_ID: brand.appwrite.naatsCollectionId,
+  APPWRITE_CHANNELS_COLLECTION_ID: brand.appwrite.channelsCollectionId,
+  APPWRITE_AUDIO_CACHE_COLLECTION_ID: brand.appwrite.audioCacheCollectionId,
   AUDIO_EXTRACTION_FUNCTION_URL: "",
   AUDIO_STREAMING_FUNCTION_URL: "",
   RAPIDAPI_KEY: "",
-  SEMANTIC_SEARCH_FUNCTION_URL: "https://69a8e9000021d2eaafd9.sgp.appwrite.run",
+  SEMANTIC_SEARCH_FUNCTION_URL: brand.appwrite.semanticSearchFunctionUrl,
   APPWRITE_VIEW_INCREMENT_FUNCTION_URL: "",
 };
 
 export const STATIC_FALLBACK_URLS = {
-  NAATS: process.env.EXPO_PUBLIC_STATIC_NAATS_URL || 
-    'https://raw.githubusercontent.com/sahilhasnain/naat-collection/main/static-exports/naats-export.json',
-  CHANNELS: process.env.EXPO_PUBLIC_STATIC_CHANNELS_URL ||
-    'https://raw.githubusercontent.com/sahilhasnain/naat-collection/main/static-exports/channels-export.json',
+  NAATS: process.env.EXPO_PUBLIC_STATIC_NAATS_URL || brand.static.naatsUrl,
+  CHANNELS: process.env.EXPO_PUBLIC_STATIC_CHANNELS_URL || brand.static.channelsUrl,
 };
 
 // Map Expo environment variables to shared config format with fallbacks
