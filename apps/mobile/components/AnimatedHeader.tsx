@@ -1,4 +1,5 @@
 import { colors } from "@/constants/theme";
+import { APP_NAME } from "@/config/brand";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { useEffect, useRef } from "react";
@@ -147,7 +148,7 @@ export function AnimatedHeader({
                 className="text-lg font-semibold"
                 style={{ color: colors.text.primary }}
               >
-                Owais Raza Qadri
+                {APP_NAME}
               </Text>
             </View>
           </View>

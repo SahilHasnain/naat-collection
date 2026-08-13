@@ -1,5 +1,6 @@
 import LiveRadioMiniPlayer from "@/components/LiveRadioMiniPlayer";
 import MiniPlayer from "@/components/MiniPlayer";
+import { APP_NAME } from "@/config/brand";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext.web";
 import { FilterModalProvider } from "@/contexts/FilterModalContext";
 import { LiveRadioProvider, useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
@@ -59,7 +60,7 @@ function DesktopShell() {
         >
           <View style={{ marginBottom: 28 }}>
             <Text style={{ color: "#f6f7fb", fontSize: 26, fontWeight: "700" }}>
-              Owais Raza Qadri
+              {APP_NAME}
             </Text>
           </View>
 
