@@ -83,6 +83,7 @@ export interface NaatCardProps {
   isDownloading?: boolean;
   downloadProgress?: number;
   isCut?: boolean;
+  variant?: "grid" | "youtube";
 }
 
 export interface VideoPlayerProps {

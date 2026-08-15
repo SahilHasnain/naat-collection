@@ -8,6 +8,57 @@ import React from "react";
 import { Text, View } from "react-native";
 import Pressable from "./ResponsivePressable";
 
+const YouTubeThumbnail: React.FC<{
+  thumbnail: string;
+  duration: number;
+  imageError: boolean;
+  imageLoading: boolean;
+  onError: () => void;
+  onLoad: () => void;
+}> = ({ thumbnail, duration, imageError, imageLoading, onError, onLoad }) => (
+  <View
+    className="relative w-full bg-neutral-900"
+    style={{ height: 200 }}
+  >
+    {imageError || !thumbnail ? (
+      <View className="h-full w-full items-center justify-center bg-neutral-700">
+        <View className="items-center">
+          <Ionicons name="musical-notes" size={48} color="#737373" />
+          <Text className="mt-2 text-sm font-medium text-neutral-400">
+            No Thumbnail
+          </Text>
+        </View>
+      </View>
+    ) : (
+      <>
+        <Image
+          source={{ uri: thumbnail }}
+          style={{ width: "100%", height: 200 }}
+          contentFit="cover"
+          onError={onError}
+          onLoad={onLoad}
+          cachePolicy="memory-disk"
+          transition={300}
+        />
+        {imageLoading && (
+          <View className="absolute inset-0 items-center justify-center bg-neutral-700">
+            <Ionicons name="hourglass" size={32} color="#737373" />
+          </View>
+        )}
+      </>
+    )}
+
+    <View
+      className="absolute bottom-2.5 right-2.5 rounded-lg px-3 py-1.5"
+      style={{ backgroundColor: colors.overlay.dark }}
+    >
+      <Text className="text-xs font-bold tracking-wider text-white">
+        {formatDuration(duration)}
+      </Text>
+    </View>
+  </View>
+);
+
 const formatDuration = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -24,13 +75,74 @@ const NaatCard: React.FC<NaatCardProps> = ({
   thumbnail,
   duration,
   uploadDate,
+  channelName,
   views,
   onPress,
   onLongPress,
   isCut,
+  variant = "grid",
 }) => {
   const [imageError, setImageError] = React.useState(false);
   const [imageLoading, setImageLoading] = React.useState(true);
+
+  const handleError = React.useCallback(() => {
+    setImageError(true);
+    setImageLoading(false);
+  }, []);
+
+  const handleLoad = React.useCallback(() => {
+    setImageLoading(false);
+  }, []);
+
+  if (variant === "youtube") {
+    return (
+      <Pressable
+        onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={260}
+        className="mb-4"
+        style={({ pressed }) => ({
+          opacity: pressed ? 0.72 : 1,
+        })}
+      >
+        {/* Full-width thumbnail, no rounded corners (YouTube style) */}
+        <YouTubeThumbnail
+          thumbnail={thumbnail}
+          duration={duration}
+          imageError={imageError}
+          imageLoading={imageLoading}
+          onError={handleError}
+          onLoad={handleLoad}
+        />
+
+        {/* Content Section - With horizontal padding (YouTube style) */}
+        <View className="px-4 pt-3">
+          <View className="flex-row gap-3">
+            {/* Title and Metadata */}
+            <View className="flex-1">
+              <Text
+                className="mb-1 text-sm font-medium leading-tight"
+                numberOfLines={2}
+                ellipsizeMode="tail"
+                style={{ color: colors.text.primary }}
+              >
+                {title}
+              </Text>
+
+              <Text
+                className="text-xs"
+                numberOfLines={1}
+                style={{ color: colors.text.secondary }}
+              >
+                {formatViews(views)} views · {formatRelativeTime(uploadDate)}
+                {isCut && " • Pure"}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable
@@ -90,13 +202,8 @@ const NaatCard: React.FC<NaatCardProps> = ({
                   left: 0,
                 }}
                 contentFit="cover"
-                onError={() => {
-                  setImageError(true);
-                  setImageLoading(false);
-                }}
-                onLoad={() => {
-                  setImageLoading(false);
-                }}
+                onError={handleError}
+                onLoad={handleLoad}
                 cachePolicy="memory-disk"
                 transition={220}
               />

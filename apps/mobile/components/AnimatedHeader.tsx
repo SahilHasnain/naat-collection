@@ -1,5 +1,6 @@
 import { colors } from "@/constants/theme";
 import { APP_NAME } from "@/config/brand";
+import { useLayoutMode } from "@/contexts/LayoutModeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { useEffect, useRef } from "react";
@@ -33,6 +34,7 @@ export function AnimatedHeader({
   onSearchClose,
 }: AnimatedHeaderProps) {
   const inputRef = useRef<TextInput>(null);
+  const { layoutMode, toggleLayoutMode } = useLayoutMode();
 
   // Auto-focus input when search mode activates or focus is re-requested
   useEffect(() => {
@@ -133,7 +135,7 @@ export function AnimatedHeader({
           /* Normal Mode */
           <View className="flex-row items-center mb-3">
             {/* Logo */}
-            <View className="flex-row items-center gap-2">
+            <View className="flex-row items-center gap-2 flex-1">
               <View
                 className="rounded-full overflow-hidden"
                 style={{ width: 32, height: 32 }}
@@ -151,6 +153,30 @@ export function AnimatedHeader({
                 {APP_NAME}
               </Text>
             </View>
+
+            {/* Layout mode toggle */}
+            <Pressable
+              onPress={toggleLayoutMode}
+              className="items-center justify-center rounded-full"
+              accessibilityLabel={
+                layoutMode === "grid"
+                  ? "Switch to YouTube layout"
+                  : "Switch to grid layout"
+              }
+              accessibilityRole="button"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={{
+                width: 36,
+                height: 36,
+                backgroundColor: colors.background.secondary,
+              }}
+            >
+              <Ionicons
+                name={layoutMode === "grid" ? "list" : "grid"}
+                size={20}
+                color={colors.text.secondary}
+              />
+            </Pressable>
           </View>
         )}
       </View>

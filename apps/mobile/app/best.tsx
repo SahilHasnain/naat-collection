@@ -5,6 +5,7 @@ import NaatCard from "@/components/NaatCard";
 import { colors } from "@/constants/theme";
 import { useFilterModal } from "@/contexts/FilterModalContext";
 import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated";
+import { useLayoutMode } from "@/contexts/LayoutModeContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
@@ -28,7 +29,6 @@ import {
 
 const POPULAR_FETCH_LIMIT = 500;
 const BEST_COUNT = 100;
-const NUM_COLUMNS = 2;
 
 function shuffleAndPick(naats: Naat[], count: number): Naat[] {
   const shuffled = [...naats];
@@ -40,6 +40,8 @@ function shuffleAndPick(naats: Naat[], count: number): Naat[] {
 }
 
 export default function BestScreen() {
+  const { layoutMode } = useLayoutMode();
+  const NUM_COLUMNS = layoutMode === "grid" ? 2 : 1;
   const flatListRef = useRef<FlatList>(null);
   const [naats, setNaats] = useState<Naat[]>([]);
   const [loading, setLoading] = useState(false);
@@ -164,15 +166,19 @@ export default function BestScreen() {
   const renderNaatCard = React.useCallback<ListRenderItem<Naat>>(
     ({ item, index }) => {
       const ds = downloadStates[item.$id];
-      const isLeftColumn = index % NUM_COLUMNS === 0;
+      const isYouTube = NUM_COLUMNS === 1;
 
       return (
         <View
-          style={{
-            flex: 1,
-            marginLeft: isLeftColumn ? 16 : 6,
-            marginRight: isLeftColumn ? 6 : 16,
-          }}
+          style={
+            isYouTube
+              ? { flex: 1 }
+              : {
+                  flex: 1,
+                  marginLeft: index % NUM_COLUMNS === 0 ? 16 : 6,
+                  marginRight: index % NUM_COLUMNS === 0 ? 6 : 16,
+                }
+          }
         >
           <NaatCard
             id={item.$id}
@@ -189,6 +195,7 @@ export default function BestScreen() {
             isDownloading={ds?.isDownloading}
             downloadProgress={ds?.progress}
             isCut={!!item.cutAudio}
+            variant={isYouTube ? "youtube" : "grid"}
           />
         </View>
       );
@@ -198,6 +205,7 @@ export default function BestScreen() {
       handleCardLongPress,
       handleDownload,
       downloadStates,
+      NUM_COLUMNS,
     ],
   );
 
@@ -281,7 +289,9 @@ export default function BestScreen() {
           maxToRenderPerBatch={10}
           windowSize={10}
           initialNumToRender={10}
-          columnWrapperStyle={{ alignItems: "flex-start" }}
+          columnWrapperStyle={
+            NUM_COLUMNS === 1 ? undefined : { alignItems: "flex-start" }
+          }
         />
       </View>
 

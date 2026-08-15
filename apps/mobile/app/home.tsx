@@ -1,5 +1,6 @@
 import EmptyState from "@/components/EmptyState";
 import FloatingFilterButton from "@/components/FloatingFilterButton";
+import { LayoutModeHint } from "@/components/LayoutModeHint";
 import NaatActionSheet from "@/components/NaatActionSheet";
 import NaatCard from "@/components/NaatCard";
 import { SearchFilterBar } from "@/components/SearchFilterBar";
@@ -7,6 +8,7 @@ import { SearchSuggestions } from "@/components/SearchSuggestions";
 import UnifiedFilterBar from "@/components/UnifiedFilterBar";
 import { colors } from "@/constants/theme";
 import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated";
+import { useLayoutMode } from "@/contexts/LayoutModeContext";
 import { useSearch as useSearchContext } from "@/contexts/SearchContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
@@ -37,7 +39,8 @@ import {
 
 export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
-  const NUM_COLUMNS = 2;
+  const { layoutMode } = useLayoutMode();
+  const NUM_COLUMNS = layoutMode === "grid" ? 2 : 1;
   const router = useRouter();
   const params = useLocalSearchParams<{
     autoPlayNaatId?: string;
@@ -47,6 +50,7 @@ export default function HomeScreen() {
 
   // First-time hint state
   const [showDownloadHint, setShowDownloadHint] = useState(false);
+  const [showLayoutHint, setShowLayoutHint] = useState(false);
   const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
   const [savedPlaybackMode, setSavedPlaybackMode] = useState<"audio" | "video">(
     "audio",
@@ -128,6 +132,30 @@ export default function HomeScreen() {
   useEffect(() => {
     checkFirstTimeHint();
   }, [checkFirstTimeHint]);
+
+  // Layout mode hint — show once per install
+  useEffect(() => {
+    let mounted = true;
+    AsyncStorage.getItem("naat_layout_hint_shown")
+      .then((shown) => {
+        if (mounted && !shown) {
+          setShowLayoutHint(true);
+        }
+      })
+      .catch(() => {
+        if (mounted) setShowLayoutHint(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const dismissLayoutHint = useCallback(() => {
+    setShowLayoutHint(false);
+    AsyncStorage.setItem("naat_layout_hint_shown", "1").catch((error) => {
+      console.log("Error saving layout hint preference:", error);
+    });
+  }, []);
 
   // --- Search orchestration effects ---
 
@@ -285,15 +313,19 @@ export default function HomeScreen() {
   const renderNaatCard = React.useCallback<ListRenderItem<Naat>>(
     ({ item, index }) => {
       const ds = downloadStates[item.$id];
-      const isLeftColumn = index % NUM_COLUMNS === 0;
+      const isYouTube = NUM_COLUMNS === 1;
 
       return (
         <View
-          style={{
-            flex: 1,
-            marginLeft: isLeftColumn ? 16 : 6,
-            marginRight: isLeftColumn ? 6 : 16,
-          }}
+          style={
+            isYouTube
+              ? { flex: 1 }
+              : {
+                  flex: 1,
+                  marginLeft: index % NUM_COLUMNS === 0 ? 16 : 6,
+                  marginRight: index % NUM_COLUMNS === 0 ? 6 : 16,
+                }
+          }
         >
           <NaatCard
             id={item.$id}
@@ -310,6 +342,7 @@ export default function HomeScreen() {
             isDownloading={ds?.isDownloading}
             downloadProgress={ds?.progress}
             isCut={!!item.cutAudio}
+            variant={isYouTube ? "youtube" : "grid"}
           />
         </View>
       );
@@ -507,9 +540,15 @@ export default function HomeScreen() {
           maxToRenderPerBatch={10}
           windowSize={10}
           initialNumToRender={10}
-          columnWrapperStyle={{ alignItems: "flex-start" }}
+          columnWrapperStyle={
+            NUM_COLUMNS === 1 ? undefined : { alignItems: "flex-start" }
+          }
         />
       </View>
+
+      {showLayoutHint && !isSearchActive && (
+        <LayoutModeHint onDismiss={dismissLayoutHint} />
+      )}
 
       {showSuggestionsOverlay && (
         <View
