@@ -15,7 +15,6 @@ import { appwriteService } from "@/services/appwrite";
 import type { MenuAnchor, Naat } from "@/types";
 import { getPreferredDuration } from "@naat-collection/shared";
 import { useFocusEffect } from "@react-navigation/native";
-import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -130,21 +129,13 @@ export default function BestScreen() {
       setSelectedNaat(naat);
       setMenuAnchor(anchor);
 
-      void (async () => {
-        try {
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        } catch (error) {
-          console.log("Haptics unavailable:", error);
-        }
-
-        try {
-          const mode = (await storageService.loadPlaybackMode()) || "audio";
-          setSavedPlaybackMode(mode);
-        } catch (error) {
-          console.log("Failed to load playback mode:", error);
-          setSavedPlaybackMode("audio");
-        }
-      })();
+      try {
+        const mode = (await storageService.loadPlaybackMode()) || "audio";
+        setSavedPlaybackMode(mode);
+      } catch (error) {
+        console.log("Failed to load playback mode:", error);
+        setSavedPlaybackMode("audio");
+      }
     },
     [],
   );

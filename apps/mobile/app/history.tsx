@@ -439,21 +439,13 @@ export default function HistoryScreen() {
       setSelectedNaat(naat);
       setMenuAnchor(anchor);
 
-      void (async () => {
-        try {
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        } catch (error) {
-          console.log("Haptics unavailable:", error);
-        }
-
-        try {
-          const mode = (await storageService.loadPlaybackMode()) || "audio";
-          setSavedPlaybackMode(mode);
-        } catch (error) {
-          console.log("Failed to load playback mode:", error);
-          setSavedPlaybackMode("audio");
-        }
-      })();
+      try {
+        const mode = (await storageService.loadPlaybackMode()) || "audio";
+        setSavedPlaybackMode(mode);
+      } catch (error) {
+        console.log("Failed to load playback mode:", error);
+        setSavedPlaybackMode("audio");
+      }
     },
     [history],
   );
