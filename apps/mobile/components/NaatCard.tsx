@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
 import { Text, View } from "react-native";
+import KebabMenuButton from "./KebabMenuButton";
 import Pressable from "./ResponsivePressable";
 
 const YouTubeThumbnail: React.FC<{
@@ -78,7 +79,7 @@ const NaatCard: React.FC<NaatCardProps> = ({
   channelName,
   views,
   onPress,
-  onLongPress,
+  onMenuPress,
   isCut,
   variant = "grid",
 }) => {
@@ -98,7 +99,6 @@ const NaatCard: React.FC<NaatCardProps> = ({
     return (
       <Pressable
         onPress={onPress}
-        onLongPress={onLongPress}
         delayLongPress={260}
         className="mb-4"
         style={({ pressed }) => ({
@@ -138,6 +138,13 @@ const NaatCard: React.FC<NaatCardProps> = ({
                 {isCut && " • Pure"}
               </Text>
             </View>
+
+            {/* Kebab menu */}
+            {onMenuPress && (
+              <View className="pt-0.5">
+                <KebabMenuButton onPress={onMenuPress} />
+              </View>
+            )}
           </View>
         </View>
       </Pressable>
@@ -147,7 +154,6 @@ const NaatCard: React.FC<NaatCardProps> = ({
   return (
     <Pressable
       onPress={onPress}
-      onLongPress={onLongPress}
       delayLongPress={260}
       className="mb-4"
       style={({ pressed }) => ({
@@ -252,21 +258,30 @@ const NaatCard: React.FC<NaatCardProps> = ({
             {title}
           </Text>
 
-          <View className="mt-2">
-            <Text
-              className="text-[11px]"
-              style={{ color: colors.text.secondary }}
-              numberOfLines={1}
-            >
-              {formatRelativeTime(uploadDate)}
-            </Text>
-            <Text
-              className="mt-0.5 text-[11px]"
-              style={{ color: colors.text.tertiary }}
-              numberOfLines={1}
-            >
-              {formatViews(views)} views{isCut && " • Pure"}
-            </Text>
+          <View className="mt-2 flex-row items-center">
+            <View className="flex-1">
+              <Text
+                className="text-[11px]"
+                style={{ color: colors.text.secondary }}
+                numberOfLines={1}
+              >
+                {formatRelativeTime(uploadDate)}
+              </Text>
+              <Text
+                className="mt-0.5 text-[11px]"
+                style={{ color: colors.text.tertiary }}
+                numberOfLines={1}
+              >
+                {formatViews(views)} views{isCut && " • Pure"}
+              </Text>
+            </View>
+
+            {/* Kebab menu */}
+            {onMenuPress && (
+              <View className="ml-1">
+                <KebabMenuButton onPress={onMenuPress} size={16} />
+              </View>
+            )}
           </View>
         </View>
       </View>

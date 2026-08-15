@@ -43,6 +43,7 @@ interface AudioContextType {
   toggleRepeat: () => Promise<void>;
   toggleAutoplay: () => Promise<void>;
   setAutoplayCallback: (callback: (() => Promise<void>) | null) => void;
+  setTrackCompleteCallback: (callback: ((naatId: string | undefined) => void) | null) => void;
   setABRepeatPointA: (position: number | null) => void;
   setABRepeatPointB: (position: number | null) => void;
   clearABRepeat: () => void;
@@ -60,6 +61,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   const { setMode, isLiveRadioActive, isNormalAudioActive } = usePlaybackMode();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const autoplayCallbackRef = useRef<(() => Promise<void>) | null>(null);
+  const trackCompleteCallbackRef = useRef<
+    ((naatId: string | undefined) => void) | null
+  >(null);
+  const currentAudioRef = useRef<AudioMetadata | null>(null);
   const isRepeatEnabledRef = useRef(false);
   const isAutoplayEnabledRef = useRef(false);
   const abRepeatPointARef = useRef<number | null>(null);
@@ -89,6 +94,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     isAutoplayEnabledRef.current = isAutoplayEnabled;
   }, [isAutoplayEnabled]);
+
+  useEffect(() => {
+    currentAudioRef.current = currentAudio;
+  }, [currentAudio]);
 
   useEffect(() => {
     abRepeatPointARef.current = abRepeatPointA;
@@ -176,6 +185,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!isNormalAudioActive) {
         return;
       }
+
+      // Notify completion listeners (used for personalization signals)
+      trackCompleteCallbackRef.current?.(currentAudioRef.current?.naatId);
 
       if (isAutoplayEnabledRef.current && autoplayCallbackRef.current) {
         await autoplayCallbackRef.current();
@@ -345,6 +357,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     [],
   );
 
+  const setTrackCompleteCallback = useCallback(
+    (callback: ((naatId: string | undefined) => void) | null) => {
+      trackCompleteCallbackRef.current = callback;
+    },
+    [],
+  );
+
   const setABRepeatPointAFunc = useCallback((point: number | null) => {
     setAbRepeatPointA(point);
   }, []);
@@ -394,6 +413,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     toggleRepeat,
     toggleAutoplay,
     setAutoplayCallback,
+    setTrackCompleteCallback,
     setABRepeatPointA: setABRepeatPointAFunc,
     setABRepeatPointB: setABRepeatPointBFunc,
     clearABRepeat,

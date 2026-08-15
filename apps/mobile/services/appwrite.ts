@@ -16,8 +16,8 @@ import { AppError, ErrorCode } from "@naat-collection/shared";
 import * as Sentry from "@sentry/react-native";
 import { appwriteConfig, validateAppwriteConfig, STATIC_FALLBACK_URLS } from "../config/appwrite";
 import {
-    DEFAULT_TIMEOUT,
     logError,
+    STATIC_DATA_TIMEOUT,
     withCacheFallback,
     wrapError,
 } from "../utils/errorHandling";
@@ -80,7 +80,7 @@ export class AppwriteService implements IAppwriteService {
         () => this.baseService.getNaats(limit, offset, sortBy, channelId, pureOnly),
         cacheKey,
         {
-          timeoutMs: DEFAULT_TIMEOUT,
+          timeoutMs: STATIC_DATA_TIMEOUT,
           maxAttempts: 3,
         },
       );
@@ -118,7 +118,7 @@ export class AppwriteService implements IAppwriteService {
         () => this.baseService.getNaatById(id),
         cacheKey,
         {
-          timeoutMs: DEFAULT_TIMEOUT,
+          timeoutMs: STATIC_DATA_TIMEOUT,
           maxAttempts: 3,
         },
       );
@@ -151,7 +151,7 @@ export class AppwriteService implements IAppwriteService {
         () => this.baseService.searchNaats(query, channelId, pureOnly),
         cacheKey,
         {
-          timeoutMs: DEFAULT_TIMEOUT,
+          timeoutMs: STATIC_DATA_TIMEOUT,
           maxAttempts: 3,
         },
       );
@@ -179,7 +179,7 @@ export class AppwriteService implements IAppwriteService {
         () => this.baseService.getChannels(),
         cacheKey,
         {
-          timeoutMs: DEFAULT_TIMEOUT,
+          timeoutMs: STATIC_DATA_TIMEOUT,
           maxAttempts: 3,
         },
       );

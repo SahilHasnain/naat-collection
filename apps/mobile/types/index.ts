@@ -68,6 +68,13 @@ export interface IStorageService {
 }
 
 // Component prop types (React Native specific)
+
+/** Screen coordinates (window space) used to anchor the card context menu. */
+export interface MenuAnchor {
+  x: number;
+  y: number;
+}
+
 export interface NaatCardProps {
   id: string;
   title: string;
@@ -77,7 +84,7 @@ export interface NaatCardProps {
   channelName: string;
   views: number;
   onPress: () => void;
-  onLongPress?: () => void;
+  onMenuPress?: (anchor: MenuAnchor) => void;
   onDownload?: () => void;
   isDownloaded?: boolean;
   isDownloading?: boolean;

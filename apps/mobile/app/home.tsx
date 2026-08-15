@@ -1,8 +1,8 @@
 import EmptyState from "@/components/EmptyState";
 import FloatingFilterButton from "@/components/FloatingFilterButton";
 import { LayoutModeHint } from "@/components/LayoutModeHint";
-import NaatActionSheet from "@/components/NaatActionSheet";
 import NaatCard from "@/components/NaatCard";
+import NaatCardMenu from "@/components/NaatCardMenu";
 import { SearchFilterBar } from "@/components/SearchFilterBar";
 import { SearchSuggestions } from "@/components/SearchSuggestions";
 import UnifiedFilterBar from "@/components/UnifiedFilterBar";
@@ -16,8 +16,8 @@ import { useHomeFilters } from "@/hooks/useHomeFilters";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { useSearchSuggestions } from "@/hooks/useSearchSuggestions";
 import { storageService } from "@/services/storage";
-import type { Naat } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
+import { userProfileService } from "@/services/userProfile";
+import type { MenuAnchor, Naat } from "@/types";
 import { getPreferredDuration } from "@naat-collection/shared";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
@@ -33,7 +33,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -49,13 +48,12 @@ export default function HomeScreen() {
   const lastAutoPlayedNaatIdRef = useRef<string | null>(null);
 
   // First-time hint state
-  const [showDownloadHint, setShowDownloadHint] = useState(false);
   const [showLayoutHint, setShowLayoutHint] = useState(false);
   const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
   const [savedPlaybackMode, setSavedPlaybackMode] = useState<"audio" | "video">(
     "audio",
   );
-  const [isActionSheetVisible, setIsActionSheetVisible] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
 
   // Contexts
   const {
@@ -90,48 +88,6 @@ export default function HomeScreen() {
   );
 
   const showSuggestionsOverlay = isSearchActive && !activeSearchQuery;
-
-  const checkFirstTimeHint = useCallback(async () => {
-    try {
-      const rawShownCount = await AsyncStorage.getItem(
-        "naat_card_download_hint-count",
-      );
-      const shownCount = rawShownCount ? Number(rawShownCount) : 0;
-
-      if (shownCount >= 3 || filters.displayData.length === 0) {
-        return;
-      }
-
-      await AsyncStorage.setItem(
-        "naat_card_download_hint-count",
-        String(shownCount + 1),
-      );
-
-      // Show hint after a short delay to let the UI settle
-      setTimeout(() => {
-        setShowDownloadHint(true);
-        // Auto-hide hint after 5 seconds
-        setTimeout(() => {
-          setShowDownloadHint(false);
-        }, 5000);
-      }, 1000);
-    } catch (error) {
-      console.log("Error checking first-time hint:", error);
-    }
-  }, [filters.displayData.length]);
-
-  const dismissHint = useCallback(async () => {
-    try {
-      setShowDownloadHint(false);
-    } catch (error) {
-      console.log("Error saving hint preference:", error);
-    }
-  }, []);
-
-  // Check for first-time hint on mount
-  useEffect(() => {
-    checkFirstTimeHint();
-  }, [checkFirstTimeHint]);
 
   // Layout mode hint — show once per install
   useEffect(() => {
@@ -256,37 +212,48 @@ export default function HomeScreen() {
   };
 
   const closeActionSheet = useCallback(() => {
-    setIsActionSheetVisible(false);
+    setMenuAnchor(null);
     setSelectedNaat(null);
   }, []);
 
-  const handleCardLongPress = useCallback(async (naat: Naat) => {
-    setSelectedNaat(naat);
-    setIsActionSheetVisible(true);
+  const handleCardMenuPress = useCallback(
+    async (naat: Naat, anchor: MenuAnchor) => {
+      setSelectedNaat(naat);
+      setMenuAnchor(anchor);
 
-    // Keep sheet opening instant; load haptics/mode asynchronously.
-    void (async () => {
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch (error) {
-        console.log("Haptics unavailable:", error);
-      }
+      void (async () => {
+        try {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        } catch (error) {
+          console.log("Haptics unavailable:", error);
+        }
 
-      try {
-        const mode = (await storageService.loadPlaybackMode()) || "audio";
-        setSavedPlaybackMode(mode);
-      } catch (error) {
-        console.log("Failed to load playback mode:", error);
-        setSavedPlaybackMode("audio");
-      }
-    })();
-  }, []);
+        try {
+          const mode = (await storageService.loadPlaybackMode()) || "audio";
+          setSavedPlaybackMode(mode);
+        } catch (error) {
+          console.log("Failed to load playback mode:", error);
+          setSavedPlaybackMode("audio");
+        }
+      })();
+    },
+    [],
+  );
 
   const handleDownloadFromSheet = useCallback(async () => {
     if (!selectedNaat) return;
     closeActionSheet();
     await handleDownload(selectedNaat);
   }, [closeActionSheet, handleDownload, selectedNaat]);
+
+  const handleNotForYou = useCallback(async () => {
+    if (!selectedNaat) return;
+    closeActionSheet();
+    // Record negative signal and refresh the For You feed so it takes effect
+    await userProfileService.recordNotForYou(selectedNaat);
+    await storageService.clearForYouSession();
+    filters.refresh();
+  }, [closeActionSheet, filters, selectedNaat]);
 
   const handleAlternatePlay = useCallback(async () => {
     if (!selectedNaat) return;
@@ -336,7 +303,7 @@ export default function HomeScreen() {
             channelName={item.channelName}
             views={item.views}
             onPress={() => handleNaatPress(item.$id)}
-            onLongPress={() => handleCardLongPress(item)}
+            onMenuPress={(anchor) => handleCardMenuPress(item, anchor)}
             onDownload={() => handleDownload(item)}
             isDownloaded={ds?.isDownloaded}
             isDownloading={ds?.isDownloading}
@@ -349,7 +316,7 @@ export default function HomeScreen() {
     },
     [
       handleNaatPress,
-      handleCardLongPress,
+      handleCardMenuPress,
       handleDownload,
       downloadStates,
       NUM_COLUMNS,
@@ -465,33 +432,6 @@ export default function HomeScreen() {
                 </>
               ) : !isSearchActive ? (
                 <>
-                  {showDownloadHint && (
-                    <View className="mx-4 mb-3">
-                      <View
-                        className="rounded-lg px-3 py-2.5 flex-row items-center"
-                        style={{ backgroundColor: colors.accent.primary }}
-                      >
-                        <Ionicons
-                          name="information-circle"
-                          size={18}
-                          color={colors.text.primary}
-                        />
-                        <Text
-                          className="text-xs font-medium ml-2 flex-1"
-                          style={{ color: colors.text.primary }}
-                        >
-                          Long press any card for download and quick play actions
-                        </Text>
-                        <TouchableOpacity onPress={dismissHint} className="ml-2 p-1">
-                          <Ionicons
-                            name="close"
-                            size={18}
-                            color={colors.text.primary}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  )}
                   <UnifiedFilterBar
                     selectedSort={filters.selectedFilter}
                     onSortChange={filters.setSelectedFilter}
@@ -591,13 +531,15 @@ export default function HomeScreen() {
         />
       )}
 
-      <NaatActionSheet
-        visible={isActionSheetVisible}
+      <NaatCardMenu
+        visible={menuAnchor !== null && !!selectedNaat}
+        anchor={menuAnchor}
         selectedNaat={selectedNaat}
         savedPlaybackMode={savedPlaybackMode}
         onClose={closeActionSheet}
         onDownload={handleDownloadFromSheet}
         onAlternatePlay={handleAlternatePlay}
+        onNotForYou={handleNotForYou}
         isDownloaded={selectedNaat ? downloadStates[selectedNaat.$id]?.isDownloaded : false}
         showDownload={true}
       />

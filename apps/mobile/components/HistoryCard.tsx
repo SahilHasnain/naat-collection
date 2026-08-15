@@ -5,6 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
 import { Text, View } from "react-native";
+import type { MenuAnchor } from "@/types";
+import KebabMenuButton from "./KebabMenuButton";
 import Pressable from "./ResponsivePressable";
 
 const formatDuration = (seconds: number): string => {
@@ -21,17 +23,16 @@ interface HistoryCardProps {
   views: number;
   watchedAt: number;
   onPress: () => void;
-  onLongPress?: () => void;
+  onMenuPress?: (anchor: MenuAnchor) => void;
 }
 
 const HistoryCard: React.FC<HistoryCardProps> = React.memo(
-  ({ title, thumbnail, duration, channelName, views, watchedAt, onPress, onLongPress }) => {
+  ({ title, thumbnail, duration, channelName, views, watchedAt, onPress, onMenuPress }) => {
     const [imageError, setImageError] = React.useState(false);
 
     return (
       <Pressable
         onPress={onPress}
-        onLongPress={onLongPress}
         delayLongPress={260}
         className="flex-row items-start gap-3 rounded-lg"
         style={({ pressed }) => ({
@@ -81,7 +82,7 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
         </View>
 
         {/* Content Section */}
-        <View className="justify-between flex-1 py-2 pr-3">
+        <View className="justify-between flex-1 py-2 pl-3">
           {/* Title */}
           <Text
             className="text-sm font-semibold leading-tight mb-1.5"
@@ -102,6 +103,13 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
             </Text>
           </View>
         </View>
+
+        {/* Kebab menu */}
+        {onMenuPress && (
+          <View className="justify-center pr-2">
+            <KebabMenuButton onPress={onMenuPress} size={16} />
+          </View>
+        )}
       </Pressable>
     );
   },

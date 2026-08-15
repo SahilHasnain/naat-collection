@@ -1,7 +1,7 @@
 import EmptyState from "@/components/EmptyState";
 import FloatingFilterButton from "@/components/FloatingFilterButton";
-import NaatActionSheet from "@/components/NaatActionSheet";
 import NaatCard from "@/components/NaatCard";
+import NaatCardMenu from "@/components/NaatCardMenu";
 import { colors } from "@/constants/theme";
 import { useFilterModal } from "@/contexts/FilterModalContext";
 import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated";
@@ -10,8 +10,9 @@ import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated
 import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { storageService } from "@/services/storage";
+import { userProfileService } from "@/services/userProfile";
 import { appwriteService } from "@/services/appwrite";
-import type { Naat } from "@/types";
+import type { MenuAnchor, Naat } from "@/types";
 import { getPreferredDuration } from "@naat-collection/shared";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
@@ -48,7 +49,7 @@ export default function BestScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
-  const [isActionSheetVisible, setIsActionSheetVisible] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const [savedPlaybackMode, setSavedPlaybackMode] = useState<"audio" | "video">(
     "audio",
   );
@@ -70,7 +71,11 @@ export default function BestScreen() {
         0,
         "popular",
       );
-      setNaats(shuffleAndPick(popular, BEST_COUNT));
+      const profile = await userProfileService.getProfile();
+      const filtered = popular.filter(
+        (n) => (profile.dislikedNaats[n.$id] || 0) === 0,
+      );
+      setNaats(shuffleAndPick(filtered, BEST_COUNT));
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to load naats"));
     } finally {
@@ -87,7 +92,11 @@ export default function BestScreen() {
         0,
         "popular",
       );
-      setNaats(shuffleAndPick(popular, BEST_COUNT));
+      const profile = await userProfileService.getProfile();
+      const filtered = popular.filter(
+        (n) => (profile.dislikedNaats[n.$id] || 0) === 0,
+      );
+      setNaats(shuffleAndPick(filtered, BEST_COUNT));
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to refresh naats"));
     } finally {
@@ -112,36 +121,48 @@ export default function BestScreen() {
   };
 
   const closeActionSheet = useCallback(() => {
-    setIsActionSheetVisible(false);
+    setMenuAnchor(null);
     setSelectedNaat(null);
   }, []);
 
-  const handleCardLongPress = useCallback(async (naat: Naat) => {
-    setSelectedNaat(naat);
-    setIsActionSheetVisible(true);
+  const handleCardMenuPress = useCallback(
+    async (naat: Naat, anchor: MenuAnchor) => {
+      setSelectedNaat(naat);
+      setMenuAnchor(anchor);
 
-    void (async () => {
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch (error) {
-        console.log("Haptics unavailable:", error);
-      }
+      void (async () => {
+        try {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        } catch (error) {
+          console.log("Haptics unavailable:", error);
+        }
 
-      try {
-        const mode = (await storageService.loadPlaybackMode()) || "audio";
-        setSavedPlaybackMode(mode);
-      } catch (error) {
-        console.log("Failed to load playback mode:", error);
-        setSavedPlaybackMode("audio");
-      }
-    })();
-  }, []);
+        try {
+          const mode = (await storageService.loadPlaybackMode()) || "audio";
+          setSavedPlaybackMode(mode);
+        } catch (error) {
+          console.log("Failed to load playback mode:", error);
+          setSavedPlaybackMode("audio");
+        }
+      })();
+    },
+    [],
+  );
 
   const handleDownloadFromSheet = useCallback(async () => {
     if (!selectedNaat) return;
     closeActionSheet();
     await handleDownload(selectedNaat);
   }, [closeActionSheet, handleDownload, selectedNaat]);
+
+  const handleNotForYou = useCallback(async () => {
+    if (!selectedNaat) return;
+    closeActionSheet();
+    // Record negative signal and refresh so the item disappears
+    await userProfileService.recordNotForYou(selectedNaat);
+    await storageService.clearForYouSession();
+    refresh();
+  }, [closeActionSheet, refresh, selectedNaat]);
 
   const handleAlternatePlay = useCallback(async () => {
     if (!selectedNaat) return;
@@ -189,7 +210,7 @@ export default function BestScreen() {
             channelName={item.channelName}
             views={item.views}
             onPress={() => handleNaatPress(item.$id)}
-            onLongPress={() => handleCardLongPress(item)}
+            onMenuPress={(anchor) => handleCardMenuPress(item, anchor)}
             onDownload={() => handleDownload(item)}
             isDownloaded={ds?.isDownloaded}
             isDownloading={ds?.isDownloading}
@@ -202,7 +223,7 @@ export default function BestScreen() {
     },
     [
       handleNaatPress,
-      handleCardLongPress,
+      handleCardMenuPress,
       handleDownload,
       downloadStates,
       NUM_COLUMNS,
@@ -300,13 +321,15 @@ export default function BestScreen() {
         hasActiveFilters={false}
       />
 
-      <NaatActionSheet
-        visible={isActionSheetVisible}
+      <NaatCardMenu
+        visible={menuAnchor !== null && !!selectedNaat}
+        anchor={menuAnchor}
         selectedNaat={selectedNaat}
         savedPlaybackMode={savedPlaybackMode}
         onClose={closeActionSheet}
         onDownload={handleDownloadFromSheet}
         onAlternatePlay={handleAlternatePlay}
+        onNotForYou={handleNotForYou}
         isDownloaded={selectedNaat ? downloadStates[selectedNaat.$id]?.isDownloaded : false}
         showDownload={true}
       />

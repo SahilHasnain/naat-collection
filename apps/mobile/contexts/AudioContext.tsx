@@ -57,6 +57,7 @@ interface AudioContextType {
   toggleRepeat: () => Promise<void>;
   toggleAutoplay: () => Promise<void>;
   setAutoplayCallback: (callback: (() => Promise<void>) | null) => void;
+  setTrackCompleteCallback: (callback: ((naatId: string | undefined) => void) | null) => void;
   setABRepeatPointA: (position: number | null) => void;
   setABRepeatPointB: (position: number | null) => void;
   clearABRepeat: () => void;
@@ -95,6 +96,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [currentAudio]);
 
   const autoplayCallbackRef = useRef<(() => Promise<void>) | null>(null);
+  const trackCompleteCallbackRef = useRef<
+    ((naatId: string | undefined) => void) | null
+  >(null);
   const isRepeatEnabledRef = useRef(false);
   const isAutoplayEnabledRef = useRef(false);
   const isLoadingRef = useRef(false);
@@ -227,6 +231,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 
     console.log("[AudioContext] Track finished");
     setIsPlaying(false);
+
+    // Notify completion listeners (used for personalization signals)
+    trackCompleteCallbackRef.current?.(currentAudio?.naatId);
 
     const autoplayEnabled = isAutoplayEnabledRef.current;
 
@@ -408,6 +415,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     [],
   );
 
+  // Set track-complete callback (notifies when a track finishes, regardless of autoplay)
+  const setTrackCompleteCallback = useCallback(
+    (callback: ((naatId: string | undefined) => void) | null) => {
+      trackCompleteCallbackRef.current = callback;
+    },
+    [],
+  );
+
   // A/B Repeat functions
   const setABRepeatPointAFunc = useCallback((position: number | null) => {
     setAbRepeatPointA(position);
@@ -476,6 +491,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     toggleRepeat,
     toggleAutoplay,
     setAutoplayCallback,
+    setTrackCompleteCallback,
     setABRepeatPointA: setABRepeatPointAFunc,
     setABRepeatPointB: setABRepeatPointBFunc,
     clearABRepeat,

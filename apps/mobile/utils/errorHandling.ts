@@ -13,6 +13,17 @@ import { AppError, ErrorCode } from "../types";
 export const DEFAULT_TIMEOUT = 10000;
 
 /**
+ * Generous timeout for static-first data loads.
+ *
+ * The app now prefers the static JSON export (permanent static-export mode),
+ * which can be a large file (e.g. ~3MB naats-export.json). On slow connections
+ * downloading it can take longer than DEFAULT_TIMEOUT, which used to make the
+ * outer withTimeout fire a synthetic NETWORK_ERROR and kill the fallback even
+ * though the static fetch would have succeeded.
+ */
+export const STATIC_DATA_TIMEOUT = 45000;
+
+/**
  * Maximum number of retry attempts
  */
 export const MAX_RETRY_ATTEMPTS = 3;
@@ -172,13 +183,21 @@ export async function withTimeout<T>(
     timeoutMessage = "Request timed out. Please check your connection and try again.",
   } = options;
 
+  // The race settles as soon as one side resolves/rejects, but the losing
+  // promise keeps running. Attach a no-op catch to it so that if it rejects
+  // AFTER the timeout already won, React Native does not surface it as an
+  // unhandled promise rejection (which crashes the app).
+  const handledPromise = promise.catch(() => {
+    /* swallowed: the race already settled */
+  }) as Promise<T>;
+
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => {
       reject(new AppError(timeoutMessage, ErrorCode.NETWORK_ERROR, true));
     }, timeoutMs);
   });
 
-  return Promise.race([promise, timeoutPromise]);
+  return Promise.race([handledPromise, timeoutPromise]);
 }
 
 /**

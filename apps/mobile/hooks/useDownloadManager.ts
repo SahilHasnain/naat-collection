@@ -1,5 +1,6 @@
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
+import { userProfileService } from "@/services/userProfile";
 import type { Naat } from "@/types";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { getPreferredAudioId, getPreferredDuration } from "@naat-collection/shared";
@@ -86,6 +87,9 @@ export function useDownloadManager(displayData: Naat[]) {
         [naat.$id]: { isDownloaded: true, isDownloading: false, progress: 1 },
       }));
       showSuccessToast("Downloaded successfully");
+
+      // Strong positive personalization signal
+      void userProfileService.recordDownload(naat).catch(() => {});
     } catch (error) {
       console.error("Download failed:", error);
       showErrorToast(error instanceof Error ? error.message : "Download failed");

@@ -1,6 +1,6 @@
 import EmptyState from "@/components/EmptyState";
 import HistoryCard from "@/components/HistoryCard";
-import NaatActionSheet from "@/components/NaatActionSheet";
+import NaatCardMenu from "@/components/NaatCardMenu";
 import { colors } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
@@ -10,7 +10,7 @@ import { HistoryItem, useHistory } from "@/hooks/useHistory";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
-import type { Naat } from "@/types";
+import type { MenuAnchor, Naat } from "@/types";
 import { DateGroup, groupByDate } from "@/utils/dateGrouping";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
@@ -55,12 +55,12 @@ interface HistorySection {
 function SwipeableHistoryCard({
   item,
   onPress,
-  onLongPress,
+  onMenuPress,
   onDelete,
 }: {
   item: HistoryItem;
   onPress: () => void;
-  onLongPress: () => void;
+  onMenuPress: (anchor: MenuAnchor) => void;
   onDelete: () => void;
 }) {
   const translateX = useSharedValue(0);
@@ -136,7 +136,7 @@ function SwipeableHistoryCard({
             views={item.views}
             watchedAt={item.watchedAt}
             onPress={onPress}
-            onLongPress={onLongPress}
+            onMenuPress={onMenuPress}
           />
         </Animated.View>
       </GestureDetector>
@@ -158,8 +158,8 @@ export default function HistoryScreen() {
   // Tab bar visibility context
   const { handleScroll: handleTabBarScroll, showTabBar } = useTabBarVisibility();
 
-  // Action sheet state
-  const [isActionSheetVisible, setIsActionSheetVisible] = useState(false);
+  // Context menu state
+  const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
   const [savedPlaybackMode, setSavedPlaybackMode] = useState<"audio" | "video">("audio");
 
@@ -430,35 +430,37 @@ export default function HistoryScreen() {
     [history, loadAudioDirectly, router],
   );
 
-  // Handle long press on card
-  const handleCardLongPress = useCallback(async (naatId: string) => {
-    const naat = history.find((n) => n.$id === naatId);
-    if (!naat) return;
+  // Handle kebab menu button
+  const handleCardMenuPress = useCallback(
+    async (naatId: string, anchor: MenuAnchor) => {
+      const naat = history.find((n) => n.$id === naatId);
+      if (!naat) return;
 
-    setSelectedNaat(naat);
-    setIsActionSheetVisible(true);
+      setSelectedNaat(naat);
+      setMenuAnchor(anchor);
 
-    // Load haptics and playback mode asynchronously
-    void (async () => {
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch (error) {
-        console.log("Haptics unavailable:", error);
-      }
+      void (async () => {
+        try {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        } catch (error) {
+          console.log("Haptics unavailable:", error);
+        }
 
-      try {
-        const mode = (await storageService.loadPlaybackMode()) || "audio";
-        setSavedPlaybackMode(mode);
-      } catch (error) {
-        console.log("Failed to load playback mode:", error);
-        setSavedPlaybackMode("audio");
-      }
-    })();
-  }, [history]);
+        try {
+          const mode = (await storageService.loadPlaybackMode()) || "audio";
+          setSavedPlaybackMode(mode);
+        } catch (error) {
+          console.log("Failed to load playback mode:", error);
+          setSavedPlaybackMode("audio");
+        }
+      })();
+    },
+    [history],
+  );
 
   // Close action sheet
   const closeActionSheet = useCallback(() => {
-    setIsActionSheetVisible(false);
+    setMenuAnchor(null);
     setSelectedNaat(null);
   }, []);
 
@@ -606,12 +608,12 @@ export default function HistoryScreen() {
         <SwipeableHistoryCard
           item={item}
           onPress={() => handleNaatPress(item.$id)}
-          onLongPress={() => handleCardLongPress(item.$id)}
+          onMenuPress={(anchor) => handleCardMenuPress(item.$id, anchor)}
           onDelete={() => handleDeleteItem(item.$id, item.title)}
         />
       </View>
     ),
-    [handleNaatPress, handleCardLongPress, handleDeleteItem],
+    [handleNaatPress, handleCardMenuPress, handleDeleteItem],
   );
 
   // Handle infinite scroll
@@ -751,8 +753,9 @@ export default function HistoryScreen() {
           */}
         </View>
 
-        <NaatActionSheet
-          visible={isActionSheetVisible}
+        <NaatCardMenu
+          visible={menuAnchor !== null && !!selectedNaat}
+          anchor={menuAnchor}
           selectedNaat={selectedNaat}
           savedPlaybackMode={savedPlaybackMode}
           onClose={closeActionSheet}

@@ -2,6 +2,7 @@ import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext.web";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
+import { userProfileService } from "@/services/userProfile";
 import type { Naat } from "@/types";
 import { showErrorToast } from "@/utils/toast";
 import { hasAudio } from "@naat-collection/shared";
@@ -11,7 +12,10 @@ import { Alert, Platform } from "react-native";
 
 export function useNaatPlayback(displayData: Naat[]) {
   const router = useRouter();
-  const { loadAndPlay, setAutoplayCallback } = useAudioPlayer();
+  const { loadAndPlay, setAutoplayCallback, setTrackCompleteCallback } =
+    useAudioPlayer();
+
+  const currentNaatRef = React.useRef<Naat | null>(null);
 
   const naatsMapRef = React.useRef<Map<string, Naat>>(new Map());
   React.useEffect(() => {
@@ -78,6 +82,11 @@ export function useNaatPlayback(displayData: Naat[]) {
       fallbackMode: "alert" | "auto-video" = "alert",
     ): Promise<boolean> => {
       await storageService.addToWatchHistory(naat.$id);
+
+      // Record engagement signal for personalization
+      currentNaatRef.current = naat;
+      void userProfileService.recordPlay(naat).catch(() => {});
+
       const audioId = naat.cutAudio || naat.audioId;
 
       if (!audioId) {
@@ -163,12 +172,25 @@ export function useNaatPlayback(displayData: Naat[]) {
     return () => setAutoplayCallback(null);
   }, [displayData, loadAudioDirectly, setAutoplayCallback]);
 
+  // Record completion signal when a track finishes
+  useEffect(() => {
+    const handleTrackComplete = (naatId: string | undefined) => {
+      const naat = currentNaatRef.current;
+      if (!naat || (naatId && naat.$id !== naatId)) return;
+      void userProfileService.recordCompletion(naat).catch(() => {});
+    };
+    setTrackCompleteCallback(handleTrackComplete);
+    return () => setTrackCompleteCallback(null);
+  }, [setTrackCompleteCallback]);
+
   const handleNaatPress = React.useCallback(
     async (naatId: string) => {
       const naat = await getNaatById(naatId);
       if (!naat) return;
 
       await storageService.addToWatchHistory(naat.$id);
+      currentNaatRef.current = naat;
+      void userProfileService.recordPlay(naat).catch(() => {});
 
       try {
         const savedMode = await storageService.loadPlaybackMode();
@@ -200,6 +222,8 @@ export function useNaatPlayback(displayData: Naat[]) {
       if (!naat) return;
 
       await storageService.addToWatchHistory(naat.$id);
+      currentNaatRef.current = naat;
+      void userProfileService.recordPlay(naat).catch(() => {});
       const preferredAudioId = naat.cutAudio || naat.audioId;
       navigateToVideo(naat, preferredAudioId, false, true);
     },

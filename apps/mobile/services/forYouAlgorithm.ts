@@ -1,17 +1,29 @@
 /**
  * For You Algorithm Service
  *
- * Smart content discovery algorithm that provides personalized,
- * randomized content recommendations based on:
- * - Watch history (avoid recently watched)
- * - Recency (newer content prioritized)
- * - Engagement (views count)
- * - Channel diversity (mix different channels)
- * - Random factor (keep it interesting)
+ * Personalized content discovery based on an on-device taste profile.
+ * Scoring signals (weighted):
+ * - Channel affinity: your engagement with channels (plays/completions/downloads)
+ * - Topic affinity: title terms you have engaged with
+ * - Recency: newer content prioritized (exponential decay)
+ * - Unseen: content you haven't watched recently (recency-decayed)
+ * - Channel diversity: mix different channels
+ * - Random factor: keep it interesting (exploration)
+ *
+ * Explicit "Not for you" feedback excludes naats and heavily penalizes channels.
+ * Cold start (few plays) naturally falls back to near-default behavior because
+ * channel/topic affinity is neutral until the user builds a profile.
  */
 
 import type { Naat } from "../types";
+import { getPreferredDuration } from "@naat-collection/shared";
 import { storageService } from "./storage";
+import {
+  COLD_START_PLAYS,
+  DurationBucket,
+  UserProfile,
+  userProfileService,
+} from "./userProfile";
 
 interface ScoredNaat {
   naat: Naat;
@@ -22,12 +34,32 @@ interface ScoredNaat {
  * Algorithm weights for scoring
  */
 const WEIGHTS = {
-  RECENCY: 0.25, // How new the content is
-  ENGAGEMENT: 0.3, // View count popularity
-  DIVERSITY: 0.2, // Channel variety
-  UNSEEN: 0.15, // Not in watch history
-  RANDOM: 0.1, // Random factor for discovery
+  AFFINITY: 0.28, // Your channel affinity
+  TOPIC: 0.14, // Your title-topic affinity
+  RECENCY: 0.15, // How new the content is
+  DIVERSITY: 0.12, // Channel variety
+  UNSEEN: 0.2, // Not watched recently (recency-decayed)
+  DURATION: 0.08, // Your preferred length
+  RANDOM: 0.03, // Random factor for discovery
 };
+
+/** How recently a watch still counts as "seen" (3 days). */
+const SEEN_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+
+/** Weight penalty per dislike on a channel. */
+const DISLIKED_CHANNEL_PENALTY = 0.15;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+/**
+ * Normalize an affinity score to 0-1 using a sigmoid.
+ * 0 affinity -> 0.5 (neutral).
+ */
+function normalizeAffinity(affinity: number): number {
+  return 1 / (1 + Math.exp(-affinity / 2));
+}
 
 /**
  * Calculate recency score (0-1)
@@ -43,12 +75,34 @@ function calculateRecencyScore(uploadDate: string): number {
 }
 
 /**
- * Calculate engagement score (0-1)
- * Normalized by max views in the dataset
+ * Calculate unseen score (0-1) with recency decay.
+ * Never-watched items score 1; recently watched items score low and recover
+ * over time so old history doesn't permanently hide content.
  */
-function calculateEngagementScore(views: number, maxViews: number): number {
-  if (maxViews === 0) return 0;
-  return Math.min(views / maxViews, 1);
+function calculateUnseenScore(
+  watchedAt: number | undefined,
+): number {
+  if (!watchedAt) return 1;
+  const elapsed = Date.now() - watchedAt;
+  return clamp(elapsed / SEEN_WINDOW_MS, 0, 1);
+}
+
+/**
+ * Calculate topic affinity score (0-1)
+ * Higher when the naat's title shares terms the user engaged with.
+ */
+function calculateTopicScore(title: string, topicTerms: Record<string, number>): number {
+  const words = title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 2);
+
+  let sum = 0;
+  for (const word of words) {
+    sum += topicTerms[word] || 0;
+  }
+  return clamp(sum / 2, 0, 1);
 }
 
 /**
@@ -98,55 +152,93 @@ function weightedShuffle(scoredNaats: ScoredNaat[]): Naat[] {
 }
 
 /**
- * Generate For You feed with smart randomization
+ * Generate For You feed with personalized scoring
  *
  * @param naats - All available naats
  * @param channelId - Optional channel filter
- * @returns Smartly randomized array of naats
+ * @param profile - Pre-loaded user profile (optional)
+ * @returns Personalized ordered array of naats
  */
 export async function generateForYouFeed(
   naats: Naat[],
-  channelId?: string | null
+  channelId?: string | null,
+  profile?: UserProfile,
 ): Promise<Naat[]> {
   if (naats.length === 0) return [];
 
-  // Get watch history
-  const watchHistory = await storageService.getWatchHistory();
-  const watchedSet = new Set(watchHistory);
+  const userProfile = profile || (await userProfileService.getProfile());
 
-  // Calculate max views for normalization
-  const maxViews = Math.max(...naats.map((n) => n.views), 1);
+  // Exclude explicitly disliked naats
+  const candidates = naats.filter(
+    (n) => (userProfile.dislikedNaats[n.$id] || 0) === 0,
+  );
+  if (candidates.length === 0) return [];
+
+  // Get watch history timestamps for recency-decayed "unseen"
+  const watchTimestamps = await storageService.getWatchHistoryTimestamps();
+  const maxViews = Math.max(...candidates.map((n) => n.views), 1);
+
+  // Cold start: rely on engagement/recency more until the profile is meaningful
+  const isColdStart = userProfile.totalPlays < COLD_START_PLAYS;
+  const preferredDuration = userProfileService.getPreferredDuration(userProfile);
 
   // Track recent channels for diversity
   const recentChannels = new Map<string, number>();
 
   // Score each naat
-  const scoredNaats: ScoredNaat[] = naats.map((naat) => {
+  const scoredNaats: ScoredNaat[] = candidates.map((naat) => {
+    // Channel affinity score (your taste)
+    const affinity = userProfile.channelAffinity[naat.channelId] || 0;
+    const affinityScore = normalizeAffinity(affinity);
+
+    // Topic affinity score
+    const topicScore = calculateTopicScore(naat.title, userProfile.topicTerms);
+
     // Recency score
     const recencyScore = calculateRecencyScore(naat.uploadDate);
 
-    // Engagement score
-    const engagementScore = calculateEngagementScore(naat.views, maxViews);
+    // Engagement score (fallback popularity for cold start / neutral affinity)
+    const engagementScore = Math.min(naat.views / maxViews, 1);
+
+    // Unseen score with recency decay
+    const unseenScore = calculateUnseenScore(watchTimestamps[naat.$id]);
 
     // Diversity score
-    const diversityScore = calculateDiversityScore(
-      naat.channelId,
-      recentChannels
-    );
+    const diversityScore = calculateDiversityScore(naat.channelId, recentChannels);
 
-    // Unseen bonus (higher score if not watched)
-    const unseenScore = watchedSet.has(naat.$id) ? 0 : 1;
+    // Duration preference score
+    const naatDuration: DurationBucket =
+      getPreferredDuration(naat) / 60 < 5
+        ? "short"
+        : getPreferredDuration(naat) / 60 <= 15
+          ? "medium"
+          : "long";
+    const durationScore = preferredDuration === naatDuration ? 1 : 0.4;
 
     // Random factor
     const randomScore = Math.random();
 
+    // Blend affinity: during cold start rely more on engagement so the feed
+    // isn't empty/random before the user has built a taste profile
+    const affinityBlend = isColdStart ? 0.4 : 1;
+    const effectiveAffinity =
+      affinityScore * affinityBlend + engagementScore * (1 - affinityBlend);
+
     // Calculate weighted total score
-    const score =
+    let score =
+      effectiveAffinity * WEIGHTS.AFFINITY +
+      topicScore * WEIGHTS.TOPIC +
       recencyScore * WEIGHTS.RECENCY +
-      engagementScore * WEIGHTS.ENGAGEMENT +
       diversityScore * WEIGHTS.DIVERSITY +
       unseenScore * WEIGHTS.UNSEEN +
+      durationScore * WEIGHTS.DURATION +
       randomScore * WEIGHTS.RANDOM;
+
+    // Strong penalty for channels the user has disliked repeatedly
+    const dislikeCount = userProfile.dislikedChannels[naat.channelId] || 0;
+    if (dislikeCount > 0) {
+      score *= Math.pow(DISLIKED_CHANNEL_PENALTY, Math.min(dislikeCount, 3));
+    }
 
     return { naat, score };
   });
@@ -165,8 +257,10 @@ export async function generateForYouFeed(
  */
 export async function getForYouFeed(
   naats: Naat[],
-  channelId?: string | null
+  channelId?: string | null,
 ): Promise<Naat[]> {
+  const profile = await userProfileService.getProfile();
+
   // Check for existing session
   const sessionIds = await storageService.getForYouSession();
 
@@ -175,7 +269,9 @@ export async function getForYouFeed(
     const naatMap = new Map(naats.map((n) => [n.$id, n]));
     const orderedNaats = sessionIds
       .map((id) => naatMap.get(id))
-      .filter((n): n is Naat => n !== undefined);
+      .filter((n): n is Naat => n !== undefined)
+      // Keep session fresh w.r.t. dislikes
+      .filter((n) => (profile.dislikedNaats[n.$id] || 0) === 0);
 
     // If we have most of the naats, use cached order
     if (orderedNaats.length >= naats.length * 0.8) {
@@ -184,7 +280,7 @@ export async function getForYouFeed(
   }
 
   // Generate new order
-  const orderedNaats = await generateForYouFeed(naats, channelId);
+  const orderedNaats = await generateForYouFeed(naats, channelId, profile);
 
   // Save session
   await storageService.saveForYouSession(orderedNaats.map((n) => n.$id));
