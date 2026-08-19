@@ -122,14 +122,10 @@
     "p8mrxQmh9tg",
     "RSQvBQsoJrc",
     "YpA5v__7YEc",
-    "moeN1axgPqM"
+    "moeN1axgPqM",
+    "SWmYwj5-4rQ"
   ],
   "failed": [
-    {
-      "youtubeId": "SWmYwj5-4rQ",
-      "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
-      "time": "2026-07-18T01:45:21.220Z"
-    },
     {
       "youtubeId": "zEDuSDmCfaw",
       "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
@@ -186,6 +182,6 @@
       "time": "2026-07-18T01:53:50.990Z"
     }
   ],
-  "today": 34,
-  "lastDate": "2026-07-18"
+  "today": 1,
+  "lastDate": "2026-08-19"
 }

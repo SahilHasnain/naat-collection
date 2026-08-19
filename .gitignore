@@ -59,3 +59,7 @@ play-store-key.json
 sentry.properties
 secrets/
 config.bat
+
+logs/
+.env
+.npm-cache/

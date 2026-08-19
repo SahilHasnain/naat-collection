@@ -200,6 +200,9 @@ function sleep(ms) {
 }
 
 async function processNaat(naat) {
+  fs.mkdirSync(CONFIG.tempDir, { recursive: true });
+  fs.mkdirSync(CONFIG.outputDir, { recursive: true });
+
   const audioPath = path.join(CONFIG.tempDir, `${naat.cutAudio}.m4a`);
   const thumbPath = path.join(CONFIG.tempDir, `${naat.youtubeId}.jpg`);
   const videoName = `${naat.youtubeId}_reel.mp4`;
@@ -289,7 +292,18 @@ async function main() {
   console.log("📱 Open Instagram → Reel → Upload from gallery → Paste caption.");
 }
 
-main().catch((err) => {
-  console.error("\nFatal:", err.message);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error("\nFatal:", err.message);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  CONFIG,
+  loadNaats,
+  loadProgress,
+  saveProgress,
+  processNaat,
+  generateCaption,
+};

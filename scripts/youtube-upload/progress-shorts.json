@@ -125,19 +125,11 @@
     "YpA5v__7YEc",
     "UbOpqoyxwZY",
     "jxC9dJiTBBs",
-    "WiVwYZeU_aY"
+    "WiVwYZeU_aY",
+    "SWmYwj5-4rQ",
+    "zEDuSDmCfaw"
   ],
   "failed": [
-    {
-      "youtubeId": "SWmYwj5-4rQ",
-      "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
-      "time": "2026-07-18T01:45:21.889Z"
-    },
-    {
-      "youtubeId": "zEDuSDmCfaw",
-      "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
-      "time": "2026-07-18T01:45:51.335Z"
-    },
     {
       "youtubeId": "a1fm2W1naFE",
       "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
@@ -244,6 +236,6 @@
       "time": "2026-07-18T01:53:40.591Z"
     }
   ],
-  "today": 66,
-  "lastDate": "2026-07-18"
+  "today": 2,
+  "lastDate": "2026-08-19"
 }
