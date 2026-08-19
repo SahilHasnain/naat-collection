@@ -61,5 +61,12 @@ secrets/
 config.bat
 
 logs/
-.env
 .npm-cache/
+
+# youtube-upload working files (temp media, reels, bot profiles)
+reels-uploads/
+scripts/youtube-upload/temp/
+scripts/youtube-upload/temp-reels/
+scripts/youtube-upload/temp-instagram/
+scripts/youtube-upload/instagram-debug/
+scripts/youtube-upload/instagram-profile/
