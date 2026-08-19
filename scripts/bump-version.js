@@ -35,10 +35,16 @@ if (dryRun) {
   process.exit(0);
 }
 
-// --- commit & push ---------------------------------------------------------------
+// --- prebuild -------------------------------------------------------------------
 const repoRoot = path.join(__dirname, "..");
 const exec = (cmd) => execSync(cmd, { cwd: repoRoot, stdio: "inherit" });
 
+console.log("Running prebuild...");
+exec("npx expo prebuild --clean", {
+  cwd: path.join(repoRoot, "apps", "mobile"),
+});
+
+// --- commit & push ---------------------------------------------------------------
 exec("git add apps/mobile/brand.config.js");
 exec(`git commit -m "Bump versionCode to ${next}"`);
 exec("git push origin main");
