@@ -315,6 +315,33 @@ async function fetchYouTubeVideos(channelId, apiKey, maxResults = 5000, log) {
 }
 
 /**
+ * Filters videos by a title regex filter (case-insensitive).
+ * Returns only videos whose title matches the filter.
+ * @param {Array} videos - Video objects
+ * @param {string|null} titleFilter - Regex pattern to match against video titles
+ * @param {Function} log - Logging function
+ * @returns {Array} Filtered videos
+ */
+function filterVideosByTitle(videos, titleFilter, log) {
+  if (!titleFilter) return videos;
+
+  let regex;
+  try {
+    regex = new RegExp(titleFilter, "i");
+  } catch (err) {
+    log(`Invalid title filter regex "${titleFilter}": ${err.message} — skipping filter`);
+    return videos;
+  }
+
+  const filtered = videos.filter((video) => regex.test(video.title || ""));
+  const filteredCount = videos.length - filtered.length;
+  if (filteredCount > 0) {
+    log(`Title filter "${titleFilter}" excluded ${filteredCount} video(s)`);
+  }
+  return filtered;
+}
+
+/**
  * Parses ISO 8601 duration format (PT#H#M#S) to seconds
  * @param {string} duration - ISO 8601 duration string
  * @returns {number} Duration in seconds
@@ -470,9 +497,14 @@ async function processSource(
       fetchedData = await fetchYouTubeVideos(sourceId, youtubeApiKey, 5000, log);
     }
 
-    const { videos } = fetchedData;
+    let { videos } = fetchedData;
     const displayName =
       fetchedData.channelName || fetchedData.playlistName || sourceName;
+
+    const titleFilter = source.titleFilter || null;
+    if (titleFilter) {
+      videos = filterVideosByTitle(videos, titleFilter, log);
+    }
 
     log(`Found ${videos.length} videos for ${sourceType}: ${displayName}`);
 
