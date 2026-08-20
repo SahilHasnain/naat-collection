@@ -26,6 +26,7 @@ export interface UseNaatsReturn {
   hasMore: boolean;
   loadMore: () => void;
   refresh: () => Promise<void>;
+  removeNaat: (naatId: string) => void;
 }
 
 export interface UseChannelsReturn {

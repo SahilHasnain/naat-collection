@@ -24,7 +24,7 @@ export function useHomeFilters() {
 
   // Data fetching
   const { channels, loading: channelsLoading, refresh: refreshChannels } = useChannels();
-  const { naats, loading, error, hasMore, loadMore, refresh } = useNaats(selectedChannelId, selectedFilter, pureOnly);
+  const { naats, loading, error, hasMore, loadMore, refresh, removeNaat } = useNaats(selectedChannelId, selectedFilter, pureOnly);
   const { results: searchResults, loading: searchLoading, setQuery } = useSearch(searchChannelId, searchPureOnly);
 
   const isShowingSearchResults = isSearchActive && activeSearchQuery.length > 0;
@@ -69,7 +69,7 @@ export function useHomeFilters() {
     showFilterModal, setShowFilterModal,
     // Data
     channels, channelsLoading, refreshChannels,
-    naats, loading, error, hasMore, loadMore, refresh,
+    naats, loading, error, hasMore, loadMore, refresh, removeNaat,
     searchResults, searchLoading, setQuery,
     // Derived
     isShowingSearchResults,

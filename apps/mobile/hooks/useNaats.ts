@@ -151,9 +151,9 @@ export function useNaats(
         return;
       }
 
-      // Progressive loading: Start with 1000 videos for fast initial load
+      // Progressive loading: Start with 300 videos for fast initial load
       // Background fetch will get the rest
-      const initialBatchSize = 1000;
+      const initialBatchSize = 300;
 
       appwriteService
         .getNaats(initialBatchSize, 0, "latest", channelId, pureOnly)
@@ -333,8 +333,8 @@ export function useNaats(
 
     try {
       if (filter === "forYou") {
-        // Progressive loading: Start with 1000 videos for fast refresh
-        const initialBatchSize = 1000;
+        // Progressive loading: Start with 300 videos for fast refresh
+        const initialBatchSize = 300;
 
         const initialNaats = await appwriteService.getNaats(
           initialBatchSize,
@@ -466,6 +466,33 @@ export function useNaats(
     }
   }, [filter, channelId, cacheKey]);
 
+  /**
+   * Remove a single naat from the current list and all caches without
+   * triggering a network refresh. Used for "Not for you" feedback so the
+   * item disappears instantly and doesn't reappear on pagination.
+   */
+  const removeNaat = useCallback((naatId: string) => {
+    setNaats((prev) => prev.filter((n) => n.$id !== naatId));
+
+    // Remove from the cached full ordered list so pagination skips it
+    fullOrderedListRef.current.forEach((orderedList, key) => {
+      fullOrderedListRef.current.set(
+        key,
+        orderedList.filter((n) => n.$id !== naatId),
+      );
+    });
+
+    // Remove from all page caches so it never comes back on loadMore
+    cacheRef.current.forEach((filterCache) => {
+      filterCache.forEach((pageNaats, offset) => {
+        filterCache.set(
+          offset,
+          pageNaats.filter((n) => n.$id !== naatId),
+        );
+      });
+    });
+  }, []);
+
   return {
     naats,
     loading,
@@ -473,5 +500,6 @@ export function useNaats(
     hasMore,
     loadMore,
     refresh,
+    removeNaat,
   };
 }

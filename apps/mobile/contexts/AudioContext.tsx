@@ -101,7 +101,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   >(null);
   const isRepeatEnabledRef = useRef(false);
   const isAutoplayEnabledRef = useRef(false);
-  const isLoadingRef = useRef(false);
   const isSetupRef = useRef(false);
   const abRepeatPointARef = useRef<number | null>(null);
   const abRepeatPointBRef = useRef<number | null>(null);
@@ -115,10 +114,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     isAutoplayEnabledRef.current = isAutoplayEnabled;
   }, [isAutoplayEnabled]);
-
-  useEffect(() => {
-    isLoadingRef.current = isLoading;
-  }, [isLoading]);
 
   useEffect(() => {
     abRepeatPointARef.current = abRepeatPointA;
@@ -248,13 +243,15 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   });
 
+  // Track the latest load request so a rapid re-tap supersedes an in-flight
+  // load instead of being silently dropped (replace-not-drop).
+  const loadVersionRef = useRef(0);
+
   // Load and play audio
   const loadAndPlay = useCallback(
     async (audio: AudioMetadata) => {
-      if (isLoadingRef.current) {
-        console.log("[AudioContext] Already loading audio, ignoring request");
-        return;
-      }
+      // Every request bumps the version; stale async steps check it and bail
+      const version = ++loadVersionRef.current;
 
       try {
         setIsLoading(true);
@@ -270,16 +267,18 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
         // Switch to normal audio mode
         setMode("normal");
 
-        // Give LiveRadioContext a moment to stop if it's active
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Reset queue and add new track
+        // Reset queue and add new track. No fixed sleep needed: LiveRadio
+        // stops itself via its own effect when normal mode becomes active,
+        // and reset() below takes over the shared TrackPlayer instance.
         await TrackPlayer.reset();
+        if (version !== loadVersionRef.current) return; // superseded
+
         await TrackPlayer.add({
           url: audio.audioUrl,
           title: audio.title,
           artwork: audio.thumbnailUrl,
         });
+        if (version !== loadVersionRef.current) return; // superseded
 
         // Update notification capabilities for normal mode (with seek) AFTER adding track
         await updateNotificationCapabilities(false);
@@ -301,6 +300,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 
         console.log("[AudioContext] Audio loaded and playing");
       } catch (err) {
+        // Ignore errors from superseded loads
+        if (version !== loadVersionRef.current) return;
         console.error("[AudioContext] Error loading audio:", err);
         setError(err as Error);
         setIsLoading(false);

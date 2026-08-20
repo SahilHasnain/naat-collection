@@ -1,5 +1,8 @@
 import Pressable from "@/components/ResponsivePressable";
 import { layout } from "@/constants/theme";
+import { useAudioPlayer } from "@/contexts/AudioContext";
+import { useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
+import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -7,6 +10,9 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const MINI_PLAYER_HEIGHT = 64;
+const MINI_PLAYER_GAP = 8;
 
 interface FloatingFilterButtonProps {
   onPress: () => void;
@@ -21,16 +27,34 @@ export default function FloatingFilterButton({
 }: FloatingFilterButtonProps) {
   const insets = useSafeAreaInsets();
   const { translateY } = useTabBarVisibility();
+  const { currentAudio } = useAudioPlayer();
+  const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
+  const { showMiniPlayer } = useLiveRadioPlayer();
+
+  // Miniplayer (normal audio or live radio) is rendered above the tab bar.
+  // When one is visible the filter button must sit above it instead of
+  // overlapping it.
+  const isMiniPlayerVisible =
+    (isNormalAudioActive && !!currentAudio) ||
+    showMiniPlayer ||
+    isLiveRadioActive;
 
   // Track the tab bar: sit above it when visible (translateY = 0) and slide
   // down with it (translateY > 0), but never go below the safe area so it
-  // always rests just above the system navigation bar.
-  const animatedStyle = useAnimatedStyle(() => ({
-    bottom: Math.max(
-      layout.tabBarHeight + insets.bottom + bottomOffset - translateY.value,
-      insets.bottom + bottomOffset,
-    ),
-  }));
+  // always rests just above the system navigation bar. When a miniplayer is
+  // showing, add its height so the button clears it.
+  const animatedStyle = useAnimatedStyle(() => {
+    const miniPlayerOffset = isMiniPlayerVisible
+      ? MINI_PLAYER_HEIGHT + MINI_PLAYER_GAP
+      : 0;
+    return {
+      bottom: Math.max(
+        layout.tabBarHeight + insets.bottom + bottomOffset - translateY.value +
+          miniPlayerOffset,
+        insets.bottom + bottomOffset + miniPlayerOffset,
+      ),
+    };
+  });
 
   return (
     <Animated.View style={[styles.wrapper, animatedStyle]}>

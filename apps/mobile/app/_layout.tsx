@@ -215,7 +215,7 @@ function RootLayoutContent() {
             title: "Best",
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
-                name={focused ? "trophy" : "trophy-outline"}
+                name={focused ? "flame" : "flame-outline"}
                 size={24}
                 color={color}
               />

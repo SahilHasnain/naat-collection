@@ -27,8 +27,8 @@ import {
   View,
 } from "react-native";
 
-const POPULAR_FETCH_LIMIT = 500;
-const BEST_COUNT = 100;
+const POPULAR_FETCH_LIMIT = 200;
+const BEST_COUNT = 50;
 
 function shuffleAndPick(naats: Naat[], count: number): Naat[] {
   const shuffled = [...naats];
@@ -149,11 +149,11 @@ export default function BestScreen() {
   const handleNotForYou = useCallback(async () => {
     if (!selectedNaat) return;
     closeActionSheet();
-    // Record negative signal and refresh so the item disappears
+    // Record negative signal and remove the item locally without refetching
     await userProfileService.recordNotForYou(selectedNaat);
     await storageService.clearForYouSession();
-    refresh();
-  }, [closeActionSheet, refresh, selectedNaat]);
+    setNaats((prev) => prev.filter((n) => n.$id !== selectedNaat.$id));
+  }, [closeActionSheet, selectedNaat]);
 
   const handleAlternatePlay = useCallback(async () => {
     if (!selectedNaat) return;

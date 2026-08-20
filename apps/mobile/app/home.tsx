@@ -70,7 +70,7 @@ export default function HomeScreen() {
 
   // Custom hooks
   const filters = useHomeFilters();
-  const { setQuery, resetSearchFilters, loadMore, isShowingSearchResults } =
+  const { setQuery, resetSearchFilters, loadMore, isShowingSearchResults, removeNaat } =
     filters;
   const { downloadStates, handleDownload } = useDownloadManager(
     filters.displayData,
@@ -240,11 +240,12 @@ export default function HomeScreen() {
   const handleNotForYou = useCallback(async () => {
     if (!selectedNaat) return;
     closeActionSheet();
-    // Record negative signal and refresh the For You feed so it takes effect
+    // Record negative signal and remove the item from the current feed
+    // without refetching the whole list.
     await userProfileService.recordNotForYou(selectedNaat);
     await storageService.clearForYouSession();
-    filters.refresh();
-  }, [closeActionSheet, filters, selectedNaat]);
+    removeNaat(selectedNaat.$id);
+  }, [closeActionSheet, removeNaat, selectedNaat]);
 
   const handleAlternatePlay = useCallback(async () => {
     if (!selectedNaat) return;
