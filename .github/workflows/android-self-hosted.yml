@@ -131,10 +131,6 @@ jobs:
           defaults.project=ubaid-raza-naats
           EOF
 
-      - name: Expo prebuild
-        run: npx expo prebuild
-        working-directory: apps/mobile
-
       - name: Build Android artifact
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}

@@ -1,0 +1,49 @@
+name: Expo Prebuild
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  prebuild:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      EXPO_USE_METRO_WORKSPACE_ROOT: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Expo prebuild
+        working-directory: apps/mobile
+        run: npx expo prebuild --no-install
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit regenerated native folders
+        if: steps.git-check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/mobile/android apps/mobile/ios
+          git commit -m "chore: regenerate native projects via expo prebuild [skip ci]"
+          git push
