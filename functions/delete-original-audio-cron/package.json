@@ -1,0 +1,13 @@
+{
+  "name": "delete-original-audio-cron",
+  "version": "1.0.0",
+  "description": "Cron function to delete original audio files for naats that have a cut audio",
+  "main": "src/main.ts",
+  "type": "module",
+  "dependencies": {
+    "node-appwrite": "^21.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}
