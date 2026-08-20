@@ -231,16 +231,30 @@ async function uploadReel(page, videoPath, caption) {
   const shareBtn = page.getByText("Share", { exact: true }).last();
   await humanClick(page, shareBtn);
 
-  // Wait for share to complete (dialog disappears)
-  await sleep(rand(3000, 5000));
-  const stillOpen = await page.locator('[role="dialog"]').isVisible({ timeout: 3000 }).catch(() => false);
-  if (stillOpen) {
-    // Possibly a "share to feed too" or similar — dismiss
-    const done = page.getByText(/Done|Close|Share again|OK/, { exact: true }).last();
-    await humanClick(page, done);
-    await sleep(rand(2000, 3000));
+  // Wait for the upload to actually finish. The dialog stays open while
+  // the video uploads (progress spinner), and only closes/navigates away
+  // once the reel is published. Poll for up to 3 minutes — never dismiss it.
+  log("  ⏳ Uploading... (waiting for completion, up to 3 min)");
+  let shared = false;
+  for (let i = 0; i < 36; i++) {
+    await sleep(5000);
+    const dialogOpen = await page
+      .locator('[role="dialog"]')
+      .isVisible({ timeout: 2000 })
+      .catch(() => false);
+    const uploading = await page
+      .getByText(/Sharing|Uploading|Posting/, { exact: true })
+      .isVisible({ timeout: 1500 })
+      .catch(() => false);
+    if (!dialogOpen && !uploading) {
+      shared = true;
+      break;
+    }
   }
   await screenshot(page, "after-share.png");
+  if (!shared) {
+    throw new Error("Share did not complete within 3 minutes — check instagram-debug/after-share.png");
+  }
   log("  ✅ Reel shared!");
 }
 
