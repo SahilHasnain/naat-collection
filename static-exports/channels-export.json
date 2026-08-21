@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "exportedAt": "2026-08-21T03:02:04.995Z",
-    "totalItems": 4,
+    "exportedAt": "2026-08-21T17:42:46.120Z",
+    "totalItems": 3,
     "version": "1.0",
     "source": "Appwrite Database",
     "expiresAt": null,
@@ -44,26 +44,6 @@
       "$sequence": 2,
       "$createdAt": "2026-01-07T16:08:04.927+00:00",
       "$updatedAt": "2026-08-20T16:00:58.310+00:00",
-      "$permissions": [],
-      "$databaseId": "695bba86001b50478ed4",
-      "$collectionId": "channels"
-    },
-    {
-      "channelId": "UCHV-bsO-jhfj_WN_3xoicrw",
-      "channelName": "Tayyiba Production",
-      "naatCount": 0,
-      "lastUpdated": "2026-02-09T18:27:11.501+00:00",
-      "isOfficial": false,
-      "isOther": true,
-      "type": "channel",
-      "playlistId": null,
-      "isOWQ": null,
-      "isSpeech": null,
-      "titleFilter": null,
-      "$id": "UCHV-bsO-jhfj_WN_3xoicrw",
-      "$sequence": 3,
-      "$createdAt": "2026-02-09T18:27:11.382+00:00",
-      "$updatedAt": "2026-02-09T18:28:28.085+00:00",
       "$permissions": [],
       "$databaseId": "695bba86001b50478ed4",
       "$collectionId": "channels"
