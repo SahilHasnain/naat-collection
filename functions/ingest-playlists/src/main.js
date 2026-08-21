@@ -636,8 +636,22 @@ async function getSources(databases, databaseId, channelsCollectionId, sourceTyp
       offset += limit;
     }
 
+    const sources = allSources.filter((source) => {
+      const sourceType = source.type || "channel";
+
+      if (!sourceTypes.includes(sourceType)) {
+        return false;
+      }
+
+      // Only explicitly approved channels are ingested. Other channels such as
+      // Tayyiba remain available for historical data and UI display, but are
+      // not part of the scheduled ingestion set.
+      return sourceType !== "channel" || source.isOther !== true;
+    });
+
     log(`Fetched ${allSources.length} source(s) from database`);
-    return allSources;
+    log(`Selected ${sources.length} source(s) for ingestion`);
+    return sources;
   } catch (error) {
     throw new Error(`Failed to fetch sources: ${error.message}`);
   }
