@@ -75,6 +75,8 @@ SHARED_FILES=(
   "apps/web/postcss.config.mjs"
   "apps/web/eslint.config.mjs"
   "apps/web/README.md"
+  "cookies.txt"
+  "vm-audio-worker/cookies.txt"
 )
 
 # Brand-specific paths: skipped even if they live inside a SHARED_DIR.
