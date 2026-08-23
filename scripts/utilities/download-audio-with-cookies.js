@@ -22,7 +22,7 @@ const {
 } = require("fs");
 const { Client, Databases, Query, Storage, ID } = require("node-appwrite");
 const { InputFile } = require("node-appwrite/file");
-const { join, dirname } = require("path");
+const { join, dirname, resolve } = require("path");
 
 dotenv.config({ path: "apps/mobile/.env.local" });
 dotenv.config({ path: "apps/mobile/.env" });
@@ -96,8 +96,12 @@ function sanitizeTitle(title) {
 function getCookiesPath() {
   ensureTempDir();
 
+  const REPO_ROOT = resolve(__dirname, "../..");
+
   const candidates = [
     process.env.YTDLP_COOKIES_PATH,
+    join(REPO_ROOT, "cookies.txt"),
+    join(REPO_ROOT, "youtube-cookies.txt"),
     join(process.cwd(), "cookies.txt"),
     join(process.cwd(), "youtube-cookies.txt"),
   ].filter(Boolean);

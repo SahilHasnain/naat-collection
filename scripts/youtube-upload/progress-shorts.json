@@ -137,65 +137,35 @@
     "1tOe3PBq6iQ",
     "b8piPOuKD5c",
     "QJW7dECEjTw",
-    "PBdw3dwfs70"
+    "PBdw3dwfs70",
+    "8B05n9yB8Vo",
+    "B3B954I24Y4",
+    "lb7CNmwDTxI",
+    "CBsfvCNWUhQ",
+    "omeR7H3q0R0",
+    "n7uv208GZi0",
+    "VtmVzhxmlo4",
+    "REFwFrRwhZ4",
+    "cLhM6HE1QCA",
+    "L3fgcCzSa-U",
+    "X3FjiHb6ABs",
+    "BMLfhVB_PEw",
+    "53NvomJerj4",
+    "QS_3CkpT7o0",
+    "swov7YrsFb4",
+    "Tdl9_ZLoQNE",
+    "rlNXdMCUTEU",
+    "HcwARQbsSPw",
+    "biup75R56g8",
+    "S4_RE8UwaiU"
   ],
   "failed": [
     {
       "youtubeId": "xnguaL6kVtc",
       "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
       "time": "2026-07-18T01:47:33.456Z"
-    },
-    {
-      "youtubeId": "8B05n9yB8Vo",
-      "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
-      "time": "2026-07-18T01:51:34.283Z"
-    },
-    {
-      "youtubeId": "B3B954I24Y4",
-      "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
-      "time": "2026-07-18T01:51:47.280Z"
-    },
-    {
-      "youtubeId": "lb7CNmwDTxI",
-      "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
-      "time": "2026-07-18T01:52:08.873Z"
-    },
-    {
-      "youtubeId": "CBsfvCNWUhQ",
-      "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
-      "time": "2026-07-18T01:52:17.910Z"
-    },
-    {
-      "youtubeId": "omeR7H3q0R0",
-      "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
-      "time": "2026-07-18T01:52:37.043Z"
-    },
-    {
-      "youtubeId": "n7uv208GZi0",
-      "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
-      "time": "2026-07-18T01:52:47.057Z"
-    },
-    {
-      "youtubeId": "VtmVzhxmlo4",
-      "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
-      "time": "2026-07-18T01:53:09.148Z"
-    },
-    {
-      "youtubeId": "REFwFrRwhZ4",
-      "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
-      "time": "2026-07-18T01:53:21.301Z"
-    },
-    {
-      "youtubeId": "cLhM6HE1QCA",
-      "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
-      "time": "2026-07-18T01:53:31.675Z"
-    },
-    {
-      "youtubeId": "L3fgcCzSa-U",
-      "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
-      "time": "2026-07-18T01:53:40.591Z"
     }
   ],
   "today": 10,
-  "lastDate": "2026-08-21"
+  "lastDate": "2026-08-23"
 }
