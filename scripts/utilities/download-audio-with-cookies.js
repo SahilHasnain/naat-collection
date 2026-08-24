@@ -261,6 +261,7 @@ async function fetchAllNaatsWithoutAudio(userLimit = null) {
   while (hasMore) {
     const response = await databases.listDocuments(DATABASE_ID, NAATS_COLLECTION_ID, [
       Query.isNull("audioId"),
+      Query.isNull("cutAudio"),
       Query.limit(batchSize),
       Query.offset(offset),
     ]);
