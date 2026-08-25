@@ -15,6 +15,7 @@ import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useHomeFilters } from "@/hooks/useHomeFilters";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { useSearchSuggestions } from "@/hooks/useSearchSuggestions";
+import { triggerReviewCheck } from "@/hooks/useReviewPrompt";
 import { storageService } from "@/services/storage";
 import { userProfileService } from "@/services/userProfile";
 import type { MenuAnchor, Naat } from "@/types";
@@ -194,6 +195,7 @@ export default function HomeScreen() {
         deactivateSearch();
         return true;
       }
+      triggerReviewCheck();
       return false;
     });
     return () => sub.remove();

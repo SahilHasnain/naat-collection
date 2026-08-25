@@ -3,11 +3,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 
 /**
+ * Module-level trigger so screens like home.tsx can request a review check
+ * (e.g. on Android back-press) without prop-drilling through _layout.
+ */
+let _registeredCheck: (() => void) | null = null;
+
+export function triggerReviewCheck() {
+  _registeredCheck?.();
+}
+
+/**
  * Handles the in-app review prompt lifecycle.
  *
- * - Records app opens (distinct active days) on launch and foreground.
- * - Shows the review modal once the user has returned on a day after
- *   becoming eligible (i.e. after using the app on 3 separate days).
+ * - Records app opens (distinct active days) on foreground.
+ * - Shows the review modal when the user presses back to exit
+ *   (registered via module-level trigger).
  */
 export function useReviewPrompt() {
   const [visible, setVisible] = useState(false);
@@ -31,15 +41,10 @@ export function useReviewPrompt() {
   }, []);
 
   useEffect(() => {
-    void checkAndMaybeShow();
-
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      if (nextState === "active") {
-        void checkAndMaybeShow();
-      }
-    });
-
-    return () => subscription.remove();
+    _registeredCheck = checkAndMaybeShow;
+    return () => {
+      _registeredCheck = null;
+    };
   }, [checkAndMaybeShow]);
 
   const close = useCallback(() => setVisible(false), []);
@@ -73,5 +78,6 @@ export function useReviewPrompt() {
     onSnooze: handleSnooze,
     onNever: handleNever,
     forceShowForTest,
+    checkAndMaybeShow,
   };
 }
