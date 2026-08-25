@@ -21,8 +21,19 @@ from appwrite.services.storage import Storage
 
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging — always write to logs/worker.log for cron debugging
+LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FILE = os.path.join(LOG_DIR, "worker.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE, encoding="utf-8"),
+        logging.StreamHandler(),
+    ],
+)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -150,6 +161,7 @@ def claim_next_job():
         ]
 
     if not documents:
+        logger.debug("[claim] No pending or expired-running jobs found")
         return None
 
     documents.sort(key=lambda item: item.get("$createdAt", ""))
@@ -304,12 +316,18 @@ def worker_loop():
         APPWRITE_NAATS_COLLECTION_ID,
         APPWRITE_AI_JOBS_COLLECTION_ID,
     ]
-    if not all(required):
-        logger.warning("[worker] Appwrite job worker disabled: missing Appwrite env vars")
+    missing = [k for k, v in zip(
+        ["ENDPOINT","PROJECT_ID","API_KEY","DATABASE_ID","NAATS_COLLECTION_ID","AI_JOBS_COLLECTION_ID"],
+        required,
+    ) if not v]
+    if missing:
+        logger.warning(f"[worker] Disabled — missing env vars: {missing}")
         return
 
     init_appwrite()
     logger.info(f"[worker] AI job worker started as {WORKER_ID}")
+    logger.info(f"[worker] Poll interval={POLL_INTERVAL_SECONDS}s, lease={LEASE_SECONDS}s")
+    logger.info(f"[worker] Log file: {LOG_FILE}")
 
     while True:
         try:
@@ -317,7 +335,10 @@ def worker_loop():
                 try:
                     job = claim_next_job()
                     if job:
+                        logger.info(f"[worker] Claimed job {job['$id']} for naat {job.get('naatId')}")
                         process_job(job)
+                    else:
+                        logger.debug("[worker] No pending jobs")
                 finally:
                     worker_lock.release()
             time.sleep(POLL_INTERVAL_SECONDS)

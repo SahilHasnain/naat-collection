@@ -5,12 +5,16 @@ REM for 2 hours then terminates it.
 
 setlocal
 set "SERVICE_DIR=D:\Projects\naat-collection\apps\ai-service"
+set "LOG_DIR=%SERVICE_DIR%\logs"
 set "WINDOW_MINUTES=120"
+
+if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
 cd /d "%SERVICE_DIR%"
 
 REM Start the worker (app.py loads .env from this dir, spawns worker_loop)
-start "naat-ai-worker" /min cmd /c "python app.py"
+REM Stdout/stderr go to logs/worker-stdout.log as a fallback
+start "naat-ai-worker" /min cmd /c "python app.py >> "%LOG_DIR%\worker-stdout.log" 2>&1"
 
 REM Let it run for the window (120 min = 7200 seconds)
 echo Worker started at %date% %time%. Running for %WINDOW_MINUTES% minutes...
