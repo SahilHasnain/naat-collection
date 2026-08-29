@@ -4,7 +4,7 @@ import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { useEffect } from "react";
-import { Platform, Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import Animated, {
   SharedValue,
   useAnimatedStyle,
@@ -13,7 +13,6 @@ import Animated, {
   withTiming
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import MiniPlayerWeb from "./MiniPlayer.web";
 import Pressable from "./ResponsivePressable";
 
 interface MiniPlayerProps {
@@ -213,10 +212,6 @@ const NativeMiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand, networkIndicato
 };
 
 const MiniPlayer: React.FC<MiniPlayerProps> = (props) => {
-  if (Platform.OS === "web") {
-    return <MiniPlayerWeb {...(props as any)} />;
-  }
-
   return <NativeMiniPlayer {...props} />;
 };
 

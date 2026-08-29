@@ -10,7 +10,7 @@ import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect } from "react";
-import { Image, Platform, Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
   SharedValue,
   useAnimatedStyle,
@@ -19,7 +19,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import LiveRadioMiniPlayerWeb from "./LiveRadioMiniPlayer.web";
 import Pressable from "./ResponsivePressable";
 
 interface LiveRadioMiniPlayerProps {
@@ -210,10 +209,6 @@ const NativeLiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
 };
 
 const LiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = (props) => {
-  if (Platform.OS === "web") {
-    return <LiveRadioMiniPlayerWeb {...(props as any)} />;
-  }
-
   return <NativeLiveRadioMiniPlayer {...props} />;
 };
 

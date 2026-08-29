@@ -63,7 +63,6 @@ config.bat
 logs/
 .npm-cache/
 cookies.txt
-vm-audio-worker/cookies.txt
 
 # youtube-upload working files (temp media, reels, bot profiles)
 reels-uploads/
@@ -73,3 +72,7 @@ scripts/youtube-upload/temp-instagram/
 scripts/youtube-upload/instagram-debug/
 scripts/youtube-upload/instagram-profile/
 apps/ai-service/logs/
+
+# python
+__pycache__/
+*.pyc

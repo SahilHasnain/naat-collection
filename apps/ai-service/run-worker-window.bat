@@ -1,26 +1,53 @@
 @echo off
-REM Runs the AI classifier worker for a fixed window each day.
-REM Task Scheduler launches this at 14:00 daily; it runs app.py
-REM for 2 hours then terminates it.
+REM Runs the AI classifier worker for a fixed window each day via Docker.
+REM Task Scheduler launches this at 14:00 daily; it starts the container
+REM for 2 hours then stops it.
+REM
+REM If Docker Desktop is not running, it starts it and waits up to 90s.
 
-setlocal
+setlocal enabledelayedexpansion
 set "SERVICE_DIR=D:\Projects\naat-collection\apps\ai-service"
+set "DOCKER=C:\Program Files\Docker\Docker\resources\bin\docker.exe"
+set "DOCKER_DESKTOP=C:\Program Files\Docker\Docker\Docker Desktop.exe"
 set "LOG_DIR=%SERVICE_DIR%\logs"
-set "WINDOW_MINUTES=120"
-
-if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
+set "WINDOW_SECONDS=7200"
 
 cd /d "%SERVICE_DIR%"
 
-REM Start the worker (app.py loads .env from this dir, spawns worker_loop)
-REM Stdout/stderr go to logs/worker-stdout.log as a fallback
-start "naat-ai-worker" /min cmd /c "python app.py >> "%LOG_DIR%\worker-stdout.log" 2>&1"
+REM === Wait for Docker daemon to be ready ===
+"%DOCKER%" info >nul 2>&1
+if errorlevel 1 (
+    echo [%date% %time%] Docker daemon not running, starting Docker Desktop...
+    start "" "%DOCKER_DESKTOP%"
 
-REM Let it run for the window (120 min = 7200 seconds)
-echo Worker started at %date% %time%. Running for %WINDOW_MINUTES% minutes...
-timeout /t 7200 /nobreak >nul
+    set /a "WAITED=0"
+    :wait_docker
+    if !WAITED! geq 90 (
+        echo [%date% %time%] ERROR: Docker not ready after 90s. Aborting.
+        exit /b 1
+    )
+    timeout /t 5 /nobreak >nul
+    set /a "WAITED+=5"
+    "%DOCKER%" info >nul 2>&1
+    if errorlevel 1 goto wait_docker
+    echo [%date% %time%] Docker ready after !WAITED!s.
+)
 
-echo Stopping worker at %date% %time%...
-taskkill /fi "WINDOWTITLE eq naat-ai-worker*" /t /f >nul 2>nul
+REM === Start the worker container ===
+echo [%date% %time%] Starting worker container...
+"%DOCKER%" compose up -d 2>&1
+if errorlevel 1 (
+    echo [%date% %time%] ERROR: docker compose up failed.
+    exit /b 1
+)
 
+REM === Run for the window ===
+echo [%date% %time%] Worker running for %WINDOW_SECONDS%s...
+timeout /t %WINDOW_SECONDS% /nobreak >nul
+
+REM === Stop the worker ===
+echo [%date% %time%] Stopping worker...
+"%DOCKER%" compose down 2>&1
+
+echo [%date% %time%] Done.
 endlocal

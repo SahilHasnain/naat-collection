@@ -42,7 +42,7 @@ import * as Sentry from "@sentry/react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { Platform, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import {
@@ -50,7 +50,6 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import "../global.css";
-import WebRootLayout from "./_layout.web";
 
 // Initialize Sentry
 Sentry.init({
@@ -517,10 +516,6 @@ function RootLayoutContent() {
 }
 
 function RootLayout() {
-  if (Platform.OS === "web") {
-    return <WebRootLayout />;
-  }
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <BottomSheetModalProvider>
