@@ -45,7 +45,7 @@ console.log("Running prebuild...");
 });
 
 // --- commit & push ---------------------------------------------------------------
-exec("git add apps/mobile/brand.config.js");
+exec("git add apps/mobile/brand.config.js apps/mobile/android/app/build.gradle");
 exec(`git commit -m "Bump versionCode to ${next}"`);
 exec("git push origin main");
 console.log("Pushed.");
