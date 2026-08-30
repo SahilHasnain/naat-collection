@@ -37,10 +37,10 @@ if (dryRun) {
 
 // --- prebuild -------------------------------------------------------------------
 const repoRoot = path.join(__dirname, "..");
-const exec = (cmd) => execSync(cmd, { cwd: repoRoot, stdio: "inherit" });
+const exec = (cmd, options = {}) => execSync(cmd, { cwd: options.cwd || repoRoot, stdio: "inherit" });
 
 console.log("Running prebuild...");
-exec("npx expo prebuild --clean", {
+  exec("npx expo prebuild", {
   cwd: path.join(repoRoot, "apps", "mobile"),
 });
 
