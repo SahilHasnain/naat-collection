@@ -19,7 +19,7 @@ module.exports = {
     packageId: "com.owaisrazaqadri", // production package
     packageIdDev: "com.owaisrazaqadri.dev",
     packageIdPreview: "com.owaisrazaqadri.preview",
-    versionCode: 27,
+    versionCode: 28,
     // Deep-link host for universal links (used in intent filters + associatedDomains)
     applinksHost: "owaisrazaqadri.appwrite.network",
   },
