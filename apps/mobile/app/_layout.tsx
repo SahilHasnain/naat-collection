@@ -51,9 +51,12 @@ import {
 } from "react-native-safe-area-context";
 import "../global.css";
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const brand = require("../brand.config.js");
+
 // Initialize Sentry
 Sentry.init({
-  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  dsn: brand.sentry.dsn || undefined,
   debug: false, // Disabled for cleaner console in development
   enabled: !__DEV__, // Disable Sentry in development mode
   tracesSampleRate: 1.0,

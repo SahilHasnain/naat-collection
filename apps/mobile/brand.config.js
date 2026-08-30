@@ -50,6 +50,12 @@ module.exports = {
     enabled: true, // set false to disable the Sentry plugin (e.g. some family apps)
     org: "sahil-hasnain",
     project: "ubaid-raza-naats",
+    dsn: "https://26f7852901dbe4c65a101e2300db1d8f@o4509954219966464.ingest.de.sentry.io/4510675297501264",
+  },
+
+  features: {
+    useSemanticSearch: false,
+    disableSearchSuggestions: true,
   },
 
   // ── EAS ───────────────────────────────────────────────────────────────────

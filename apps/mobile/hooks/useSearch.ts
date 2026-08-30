@@ -3,6 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { appwriteService } from "../services/appwrite";
 import type { Naat, UseSearchReturn } from "../types";
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const brand = require("../brand.config.js");
+
 /**
  * Custom hook for searching naats with AI-powered semantic search
  *
@@ -23,7 +26,7 @@ export function useSearch(channelId: string | null = null, pureOnly: boolean = f
   const [loading, setLoading] = useState<boolean>(false);
 
   // Check if semantic search is enabled
-  const useSemanticSearch = process.env.EXPO_PUBLIC_USE_SEMANTIC_SEARCH === "true";
+  const useSemanticSearch = brand.features.useSemanticSearch;
 
   // Ref to store all naats for client-side fallback search
   const allNaatsRef = useRef<Naat[]>([]);
