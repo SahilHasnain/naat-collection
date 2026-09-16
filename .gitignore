@@ -38,6 +38,11 @@ yarn-error.*
 .env*
 !.env.example
 
+# secrets & session cookies (never commit)
+cookies.txt
+**/cookies.txt
+**/youtube-cookies.txt
+
 # typescript
 *.tsbuildinfo
 
