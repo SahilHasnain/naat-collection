@@ -151,6 +151,12 @@ export function useNaatPlayback(displayData: Naat[]) {
           youtubeId: naat.youtubeId,
           naatId: naat.$id,
         };
+        console.log("[useNaatPlayback] Web audio URL:", {
+          title: naat.title,
+          audioId,
+          isLocalFile,
+          url: audioUrl,
+        });
         await loadAndPlay(audioMetadata);
         void appwriteService.incrementAppView(naat.$id).catch(() => {});
         return true;

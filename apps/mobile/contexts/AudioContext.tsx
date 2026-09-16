@@ -273,6 +273,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
         await TrackPlayer.reset();
         if (version !== loadVersionRef.current) return; // superseded
 
+        console.log("[AudioContext] Playback source URL:", audio.audioUrl);
         await TrackPlayer.add({
           url: audio.audioUrl,
           title: audio.title,
