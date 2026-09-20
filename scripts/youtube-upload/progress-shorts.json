@@ -254,65 +254,25 @@
     "h7nIbtN0F5s",
     "30OxHcKfdBw",
     "QKgZq1B-Ruw",
-    "riAmd-ZxcmI"
+    "riAmd-ZxcmI",
+    "TsHCHoNATJc",
+    "thKFa3kYJeg",
+    "jy0YoDrXm14",
+    "Gsa-pkPTHv4",
+    "A9HJxV5XF2k",
+    "JSww0cZFNUI",
+    "5bbjunpOBOc",
+    "FZPPj755IlQ",
+    "p8yzVbL7ER4",
+    "D7TR-huC5kY"
   ],
   "failed": [
     {
       "youtubeId": "xnguaL6kVtc",
       "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
       "time": "2026-07-18T01:47:33.456Z"
-    },
-    {
-      "youtubeId": "TsHCHoNATJc",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:14.814Z"
-    },
-    {
-      "youtubeId": "thKFa3kYJeg",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:23.327Z"
-    },
-    {
-      "youtubeId": "jy0YoDrXm14",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:32.348Z"
-    },
-    {
-      "youtubeId": "Gsa-pkPTHv4",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:38.628Z"
-    },
-    {
-      "youtubeId": "A9HJxV5XF2k",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:43.965Z"
-    },
-    {
-      "youtubeId": "JSww0cZFNUI",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:49.189Z"
-    },
-    {
-      "youtubeId": "5bbjunpOBOc",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:54.428Z"
-    },
-    {
-      "youtubeId": "FZPPj755IlQ",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:59.901Z"
-    },
-    {
-      "youtubeId": "p8yzVbL7ER4",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:31:05.189Z"
-    },
-    {
-      "youtubeId": "D7TR-huC5kY",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:31:12.051Z"
     }
   ],
-  "today": 0,
-  "lastDate": "2026-09-16"
+  "today": 10,
+  "lastDate": "2026-09-20"
 }

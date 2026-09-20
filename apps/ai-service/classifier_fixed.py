@@ -17,6 +17,10 @@ class AudioClassifier:
         self.hop_duration = 1
         self.sample_rate = 16000
         self.merge_gap = 10
+        # A second is only cut as explanation if the model is confident enough.
+        # Low-confidence/quiet audio defaults to naat so quiet naat passages
+        # (fades, soft recitation) are never clipped away.
+        self.explanation_threshold = 0.6
         
         self.load_model()
         
@@ -137,8 +141,12 @@ class AudioClassifier:
                 continue
             avg_naat = naat_scores[s] / vote_counts[s]
             avg_expl = expl_scores[s] / vote_counts[s]
-            # CRITICAL: Use >= like original script
-            label = "naat" if avg_naat >= avg_expl else "explanation"
+            # CRITICAL: Use >= like original script. Explanation only cut when confident,
+            # otherwise keep as naat (protects quiet naat portions from being clipped).
+            if avg_expl >= avg_naat and avg_expl >= self.explanation_threshold:
+                label = "explanation"
+            else:
+                label = "naat"
             score = max(avg_naat, avg_expl)
             sec_end = min(s + 1, total_duration)
             chunks.append({

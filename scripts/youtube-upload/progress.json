@@ -135,20 +135,16 @@
     "b8piPOuKD5c",
     "jxC9dJiTBBs",
     "QJW7dECEjTw",
-    "WiVwYZeU_aY"
+    "WiVwYZeU_aY",
+    "PBdw3dwfs70"
   ],
   "failed": [
     {
       "youtubeId": "xnguaL6kVtc",
       "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
       "time": "2026-07-18T01:49:36.316Z"
-    },
-    {
-      "youtubeId": "PBdw3dwfs70",
-      "error": "Resource limit for the current billing cycle has been exceeded. Please upgrade to a higher plan.",
-      "time": "2026-09-16T06:30:08.978Z"
     }
   ],
-  "today": 0,
-  "lastDate": "2026-09-16"
+  "today": 1,
+  "lastDate": "2026-09-20"
 }
