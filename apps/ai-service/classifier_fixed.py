@@ -8,11 +8,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class AudioClassifier:
-    def __init__(self, model_name: str = "sahilhasnain07/naat-classifier-model", device: str = None):
+    def __init__(self, model_name: str = "sahilhasnain07/naat-classifier-model", device: str = None, revision: str = None):
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         logger.info(f"Using device: {self.device}")
         
         self.model_name = model_name
+        self.revision = revision or "main"
         self.chunk_duration = 5
         self.hop_duration = 1
         self.sample_rate = 16000
@@ -21,15 +22,19 @@ class AudioClassifier:
         # Low-confidence/quiet audio defaults to naat so quiet naat passages
         # (fades, soft recitation) are never clipped away.
         self.explanation_threshold = 0.6
+        # The window's decision flips *before* the window is half-filled with the new
+        # class (model is biased toward the dominant class). Empirically L/2=2.5s
+        # overshoots; 1.5s lands nearest on known ground truth.
+        self.boundary_offset = 1.5
         
         self.load_model()
         
     def load_model(self):
         """Load the trained model from Hugging Face"""
         try:
-            logger.info(f"Loading model: {self.model_name}")
-            self.feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_name)
-            self.model = AutoModelForAudioClassification.from_pretrained(self.model_name)
+            logger.info(f"Loading model: {self.model_name}@{self.revision}")
+            self.feature_extractor = AutoFeatureExtractor.from_pretrained(self.model_name, revision=self.revision)
+            self.model = AutoModelForAudioClassification.from_pretrained(self.model_name, revision=self.revision)
             self.model.to(self.device)
             self.model.eval()
             
@@ -56,35 +61,108 @@ class AudioClassifier:
             logger.error(f"Failed to load model: {e}")
             raise
     
-    def find_transition_point(self, audio: np.ndarray, rough_time: float, search_radius: float = 2.5) -> float:
-        """Find exact transition point using RMS energy change"""
+    def boundary_trajectory(self, audio: np.ndarray, center: float, window: float, hop: float):
+        """Fine-grained (2-class) probability trajectory around a boundary.
+        Returns [(t, expl_prob, naat_prob), ...] using single classification windows."""
         sr = self.sample_rate
-        start_sample = max(0, int((rough_time - search_radius) * sr))
-        end_sample = min(len(audio), int((rough_time + search_radius) * sr))
-        segment = audio[start_sample:end_sample]
+        n = len(audio)
+        dur = n / sr
+        last_start = dur - self.chunk_duration
+        traj = []
+        t = max(0.0, center - window)
+        t_end = min(last_start, center + window)
+        while t <= t_end:
+            start = int(t * sr)
+            a = audio[start : start + int(self.chunk_duration * sr)]
+            if len(a) < sr:
+                break
+            if len(a) < self.chunk_duration * sr:
+                a = np.pad(a, (0, self.chunk_duration * sr - len(a)))
+            inputs = self.feature_extractor(
+                a,
+                sampling_rate=sr,
+                max_length=self.chunk_duration * sr,
+                truncation=True,
+                return_tensors="pt",
+            )
+            with torch.no_grad():
+                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                probs = torch.softmax(self.model(**inputs).logits, dim=-1).squeeze().cpu().numpy()
+            traj.append((t, float(probs[self.expl_idx]), float(probs[self.naat_idx])))
+            t += hop
+        return traj
 
-        if len(segment) < sr * 0.5:
-            return rough_time
+    def _first_sustained_crossing(self, traj, wins_a_over_b, hyst=2):
+        """Locate the exact probability 0.5-crossing (interpolated) where class A becomes
+        dominant over B and stays dominant for >= hyst consecutive points.
+        Returns the interpolated crossing time."""
+        for i in range(1, len(traj)):
+            t0, e0, n0 = traj[i - 1]
+            t1, e1, n1 = traj[i]
+            r0 = e0 / (e0 + n0) if (e0 + n0) > 0 else 0.5
+            r1 = e1 / (e1 + n1) if (e1 + n1) > 0 else 0.5
+            if abs(r1 - r0) < 1e-9:
+                continue
+            if wins_a_over_b and not (r0 < 0.5 <= r1):
+                continue
+            if not wins_a_over_b and not (r0 >= 0.5 > r1):
+                continue
+            ok = True
+            for j in range(i, min(i + hyst, len(traj))):
+                tj, ej, nj = traj[j]
+                rj = ej / (ej + nj) if (ej + nj) > 0 else 0.5
+                if wins_a_over_b and rj < 0.5:
+                    ok = False
+                    break
+                if not wins_a_over_b and rj > 0.5:
+                    ok = False
+                    break
+            if ok:
+                frac = (0.5 - r0) / (r1 - r0)
+                return t0 + frac * (t1 - t0)
+        return None
 
-        # Compute short-time RMS with 100ms frames
-        frame_length = int(0.1 * sr)
-        hop = frame_length // 2
-        rms = []
-        for i in range(0, len(segment) - frame_length, hop):
-            frame = segment[i : i + frame_length]
-            rms.append(np.sqrt(np.mean(frame**2)))
+    def _steepest_gradient(self, audio: np.ndarray, center: float, window: float = 3.0, hop: float = 0.25):
+        """Where explanation probability changes fastest — content-based transition point."""
+        traj = self.boundary_trajectory(audio, center, window, hop)
+        if len(traj) < 3:
+            return None
+        best = None
+        best_g = -1.0
+        for i in range(1, len(traj)):
+            dt = traj[i][0] - traj[i - 1][0]
+            if dt <= 0:
+                continue
+            g = abs(traj[i][1] - traj[i - 1][1]) / dt
+            if g > best_g:
+                best_g = g
+                best = traj[i][0]
+        return round(best + self.boundary_offset / 2.0, 2) if best is not None else None
 
-        if len(rms) < 3:
-            return rough_time
+    def find_conf_boundary(self, audio: np.ndarray, rough_time: float, direction: str, window: float = 3.0, hop: float = 0.25, hyst: int = 2):
+        """Content-based boundary. The 5s window frames content at its leading edge, so a
+        0.5-crossing in window-start time sits L/2 before the true content boundary:
+        true_boundary = crossing + chunk_duration / 2."""
+        traj = self.boundary_trajectory(audio, rough_time, window, hop)
+        crossing = self._first_sustained_crossing(
+            traj, wins_a_over_b=(direction == "start"), hyst=hyst
+        )
+        if crossing is None:
+            # The coarse boundary may sit inside the explanation, so the window scan
+            # never sees the pre-crossing side. Retry wider with no hysteresis.
+            traj = self.boundary_trajectory(audio, rough_time, window + 2.0, hop)
+            crossing = self._first_sustained_crossing(
+                traj, wins_a_over_b=(direction == "start"), hyst=1
+            )
+        if crossing is None:
+            return None
+        refined = crossing + self.boundary_offset
+        # Edge guard: only accept if comfortably inside the scanned window.
+        lo, hi = rough_time - window + 0.5, rough_time + window + 0.5
+        if not (lo <= refined <= hi):
+            return self._steepest_gradient(audio, rough_time)
+        return round(refined, 2)
 
-        rms = np.array(rms)
-        # Find the point of maximum RMS change
-        diff = np.abs(np.diff(rms))
-        peak_idx = np.argmax(diff)
-        # Convert frame index back to time
-        refined_time = rough_time - search_radius + (peak_idx * hop) / sr
-        return max(0.0, round(refined_time, 2))
-    
     def classify_audio(self, audio: np.ndarray) -> Dict:
         """Classify audio using EXACT logic from original script"""
         total_duration = len(audio) / self.sample_rate
@@ -184,14 +262,18 @@ class AudioClassifier:
             else:
                 merged.append(dict(r))
         
-        # --- Refine boundaries using energy detection ---
+        # --- Refine boundaries using content-based confidence crossing ---
         logger.info("Refining segment boundaries...")
         for seg in merged:
             if seg["label"] == "explanation":
                 if seg["start"] > 0:
-                    seg["start"] = self.find_transition_point(audio, seg["start"])
+                    refined = self.find_conf_boundary(audio, seg["start"], "start")
+                    if refined is not None:
+                        seg["start"] = refined
                 if seg["end"] < total_duration:
-                    seg["end"] = self.find_transition_point(audio, seg["end"])
+                    refined = self.find_conf_boundary(audio, seg["end"], "end")
+                    if refined is not None:
+                        seg["end"] = refined
         
         # --- Build output (EXACT format) ---
         speech_segments = []

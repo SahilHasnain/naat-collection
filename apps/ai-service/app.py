@@ -40,7 +40,10 @@ app = Flask(__name__)
 
 # Initialize components
 audio_processor = AudioProcessor(sample_rate=16000)
-audio_classifier = AudioClassifier(model_name="sahilhasnain07/naat-classifier-model")
+audio_classifier = AudioClassifier(
+    model_name="sahilhasnain07/naat-classifier-model",
+    revision=os.getenv("MODEL_REVISION", None) or "main",
+)
 
 APPWRITE_ENDPOINT = os.getenv("APPWRITE_ENDPOINT", "").rstrip("/")
 APPWRITE_PROJECT_ID = os.getenv("APPWRITE_PROJECT_ID", "")
@@ -113,11 +116,11 @@ def update_naat_cut_segments(naat_id, result):
     speech_segments = result.get("speechSegments", [])
     cut_segments = [
         {
-            "start": round(segment["start"]),
-            "end": round(segment["end"]),
+            "start": round(segment["start"], 2),
+            "end": round(segment["end"], 2),
         }
         for segment in speech_segments
-        if round(segment["start"]) < round(segment["end"])
+        if segment["start"] < segment["end"]
     ]
 
     return appwrite_databases.update_document(
@@ -271,7 +274,6 @@ def process_job(job):
         heartbeat(job_id, 50)
         ensure_job_not_stopped(job_id)
         audio, duration = audio_processor.load_audio(normalized_path)
-        audio = audio_processor.preprocess_audio(audio)
 
         heartbeat(job_id, 70)
         ensure_job_not_stopped(job_id)
@@ -384,10 +386,9 @@ def detect_segments():
                 tmp_path = tmp_file.name
         
         try:
-            # Load and preprocess audio
+            # Load audio
             logger.info("Loading audio file")
             audio, duration = audio_processor.load_audio(tmp_path)
-            audio = audio_processor.preprocess_audio(audio)
             
             logger.info(f"Audio duration: {duration:.2f} seconds")
             
