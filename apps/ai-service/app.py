@@ -133,6 +133,7 @@ def update_naat_cut_segments(naat_id, result):
             "cutStatus": None,
             "cutAudio": None,
             "cutDuration": None,
+            "cutModelVersion": audio_classifier.revision,
         },
     )
 

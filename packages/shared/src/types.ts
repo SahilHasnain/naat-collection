@@ -16,6 +16,7 @@ export interface Naat {
   cutDuration?: number; // duration in seconds of the cut audio
   cutSegments?: string; // JSON string of cut segments [{start, end}] for AI training data
   cutStatus?: string; // "processing" | "done" | "failed" | null
+  cutModelVersion?: string; // model revision that produced cutSegments; null/absent = older model
   createdAt: string;
   updatedAt: string;
 }

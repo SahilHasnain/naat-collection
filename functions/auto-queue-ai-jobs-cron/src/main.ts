@@ -71,6 +71,7 @@ async function fetchEligibleCandidates(
     const existingJobs = await databases.listDocuments(databaseId, jobsCollectionId, [
       Query.equal("type", ["manual-cut-detect"]),
       Query.equal("naatId", naatIds),
+      Query.equal("status", ["pending", "running", "stop_requested"]),
       Query.limit(Math.min(naatIds.length * 5, 500)),
     ]);
 
