@@ -63,6 +63,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [isABRepeatMode, setIsABRepeatMode] = useState(false);
   const [isExportingAB, setIsExportingAB] = useState(false);
+  const [hasExportedAB, setHasExportedAB] = useState(false);
 
   useEffect(() => {
     const checkDownloadStatus = async () => {
@@ -80,6 +81,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
 
     checkDownloadStatus();
     setIsABRepeatMode(false);
+    setHasExportedAB(false);
   }, [currentAudio]);
 
   const handleDownload = async () => {
@@ -154,6 +156,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
 
   const handleSetPointA = () => {
     setABRepeatPointA(position);
+    setHasExportedAB(false);
     showSuccessToast("Point A set");
   };
 
@@ -167,6 +170,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
       return;
     }
     setABRepeatPointB(position);
+    setHasExportedAB(false);
     showSuccessToast("Point B set - Loop active");
   };
 
@@ -175,11 +179,13 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     setIsABRepeatMode(newMode);
     if (!newMode) {
       clearABRepeat();
+      setHasExportedAB(false);
     }
   };
 
   const handleExportAB = async () => {
     if (
+      hasExportedAB ||
       !currentAudio?.audioId ||
       abRepeatPointA === null ||
       abRepeatPointB === null
@@ -210,6 +216,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         abRepeatPointA,
         abRepeatPointB,
       );
+      setHasExportedAB(true);
       showSuccessToast("A/B audio saved to Downloads");
     } catch (error) {
       console.error("A/B export failed:", error);
@@ -683,17 +690,27 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 <TouchableOpacity
                   onPress={() => void handleExportAB()}
                   style={styles.abExportButton}
-                  disabled={isExportingAB}
+                  disabled={isExportingAB || hasExportedAB}
                   accessibilityRole="button"
                   accessibilityLabel="Export A/B audio"
                 >
                   <Ionicons
-                    name={isExportingAB ? "hourglass" : "download-outline"}
+                    name={
+                      isExportingAB
+                        ? "hourglass"
+                        : hasExportedAB
+                          ? "checkmark-circle"
+                          : "download-outline"
+                    }
                     size={18}
                     color={colors.background.primary}
                   />
                   <Text style={styles.abExportButtonText}>
-                    {isExportingAB ? "Exporting..." : "Export A/B Audio"}
+                    {isExportingAB
+                      ? "Exporting..."
+                      : hasExportedAB
+                        ? "A/B Audio Saved"
+                        : "Export A/B Audio"}
                   </Text>
                 </TouchableOpacity>
               )}
