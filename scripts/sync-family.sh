@@ -108,7 +108,7 @@ BRAND_PATHS=(
   "apps/mobile/bootstrap.js"
   "apps/mobile/bootstrap.native.js"
   # Root-level per-repo config
-  "package.json"
+  "./package.json"
   "tsconfig.json"
   "babel.config.js"
   "metro.config.js"
