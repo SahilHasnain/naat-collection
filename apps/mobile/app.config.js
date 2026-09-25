@@ -31,7 +31,7 @@ export default {
     orientation: "portrait",
     icon: "./assets/images/android-icon-foreground.png",
     scheme: brand.app.scheme,
-    userInterfaceStyle: "automatic",
+    userInterfaceStyle: "dark",
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
