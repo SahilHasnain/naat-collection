@@ -16,6 +16,10 @@ export interface DownloadMetadata {
   title: string;
   localUri: string;
   thumbnailLocalUri?: string;
+  sourceAudioId?: string;
+  isABExport?: boolean;
+  segmentStartMs?: number;
+  segmentEndMs?: number;
   downloadedAt: number;
   fileSize: number;
   duration: number; // in seconds
@@ -58,9 +62,22 @@ class AudioDownloadService {
   /**
    * Download thumbnail image for offline use
    */
-  async downloadThumbnail(youtubeId: string, audioId: string): Promise<string | null> {
+  async downloadThumbnail(
+    youtubeId: string,
+    audioId: string,
+  ): Promise<string | null> {
+    if (!youtubeId) return null;
+    return this.downloadThumbnailFromUrl(
+      `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`,
+      audioId,
+    );
+  }
+
+  async downloadThumbnailFromUrl(
+    thumbnailUrl: string,
+    audioId: string,
+  ): Promise<string | null> {
     try {
-      const thumbnailUrl = `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`;
       const localPath = this.getThumbnailPath(audioId);
 
       const result = await FileSystem.downloadAsync(thumbnailUrl, localPath);
@@ -225,6 +242,10 @@ class AudioDownloadService {
     title: string,
     duration: number,
     channelName: string,
+    thumbnailUrl?: string,
+    sourceAudioId?: string,
+    startMs?: number,
+    endMs?: number,
   ): Promise<string> {
     await this.initialize();
     const localPath = this.getLocalPath(audioId);
@@ -235,11 +256,19 @@ class AudioDownloadService {
     }
 
     const fileInfo = await FileSystem.getInfoAsync(result.uri);
+    const thumbnailLocalUri = thumbnailUrl
+      ? await this.downloadThumbnailFromUrl(thumbnailUrl, audioId)
+      : null;
     await this.saveDownloadMetadata({
       audioId,
       youtubeId: "",
       title,
       localUri: result.uri,
+      thumbnailLocalUri: thumbnailLocalUri ?? undefined,
+      sourceAudioId,
+      isABExport: true,
+      segmentStartMs: startMs,
+      segmentEndMs: endMs,
       downloadedAt: Date.now(),
       fileSize: fileInfo.exists && "size" in fileInfo ? fileInfo.size : 0,
       duration,

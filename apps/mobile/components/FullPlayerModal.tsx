@@ -170,12 +170,6 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     showSuccessToast("Point B set - Loop active");
   };
 
-  const handleClearABRepeat = () => {
-    clearABRepeat();
-    setIsABRepeatMode(false);
-    showSuccessToast("A/B repeat cleared");
-  };
-
   const handleToggleABRepeatMode = () => {
     const newMode = !isABRepeatMode;
     setIsABRepeatMode(newMode);
@@ -185,7 +179,11 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   };
 
   const handleExportAB = async () => {
-    if (!currentAudio?.audioId || abRepeatPointA === null || abRepeatPointB === null) {
+    if (
+      !currentAudio?.audioId ||
+      abRepeatPointA === null ||
+      abRepeatPointB === null
+    ) {
       return;
     }
 
@@ -207,11 +205,17 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         `${currentAudio.title} (A-B)`,
         result.duration || Math.floor((abRepeatPointB - abRepeatPointA) / 1000),
         currentAudio.channelName || "Unknown Channel",
+        currentAudio.thumbnailUrl,
+        currentAudio.audioId,
+        abRepeatPointA,
+        abRepeatPointB,
       );
       showSuccessToast("A/B audio saved to Downloads");
     } catch (error) {
       console.error("A/B export failed:", error);
-      showErrorToast(error instanceof Error ? error.message : "A/B export failed");
+      showErrorToast(
+        error instanceof Error ? error.message : "A/B export failed",
+      );
     } finally {
       setIsExportingAB(false);
     }
@@ -429,32 +433,32 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   </Text>
                 </TouchableOpacity>
 
-                {!bothPointsSet && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      handleToggleABRepeatMode();
-                      setShowOptionsMenu(false);
-                    }}
-                    style={styles.menuItem}
+                <TouchableOpacity
+                  onPress={() => {
+                    handleToggleABRepeatMode();
+                    setShowOptionsMenu(false);
+                  }}
+                  style={styles.menuItemLast}
+                >
+                  <View
+                    style={[
+                      styles.menuItemIcon,
+                      isABRepeatMode && {
+                        backgroundColor: colors.accent.primary + "20",
+                      },
+                    ]}
                   >
-                    <View
-                      style={[
-                        styles.menuItemIcon,
-                        isABRepeatMode && {
-                          backgroundColor: colors.accent.primary + "20",
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name="repeat"
-                        size={20}
-                        color={
-                          isABRepeatMode
-                            ? colors.accent.primary
-                            : colors.text.secondary
-                        }
-                      />
-                    </View>
+                    <Ionicons
+                      name="repeat"
+                      size={20}
+                      color={
+                        isABRepeatMode
+                          ? colors.accent.primary
+                          : colors.text.secondary
+                      }
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
                     <Text
                       style={[
                         styles.menuItemText,
@@ -463,86 +467,11 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     >
                       A/B Repeat
                     </Text>
-                  </TouchableOpacity>
-                )}
-
-                {bothPointsSet && (
-                  <>
-                    <View style={styles.menuItem}>
-                      <View
-                        style={[
-                          styles.menuItemIcon,
-                          { backgroundColor: colors.accent.primary + "20" },
-                        ]}
-                      >
-                        <Ionicons
-                          name="repeat"
-                          size={20}
-                          color={colors.accent.primary}
-                        />
-                    </View>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={[styles.menuItemText, { color: colors.accent.primary }]}
-                        >
-                          A/B Repeat
-                        </Text>
-                        <Text style={styles.menuItemSubtext}>Loop active</Text>
-                      </View>
-                      </View>
-
-                      <TouchableOpacity
-                        onPress={() => {
-                          setShowOptionsMenu(false);
-                          void handleExportAB();
-                        }}
-                        style={styles.menuItem}
-                        disabled={isExportingAB}
-                      >
-                        <View style={styles.menuItemIcon}>
-                          <Ionicons
-                            name={isExportingAB ? "hourglass" : "download-outline"}
-                            size={20}
-                            color={
-                              isExportingAB
-                                ? colors.accent.secondary
-                                : colors.text.secondary
-                            }
-                          />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.menuItemText}>
-                            {isExportingAB ? "Exporting..." : "Export A/B Audio"}
-                          </Text>
-                          <Text style={styles.menuItemSubtext}>
-                            Save loop to Downloads
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={() => {
-                        handleClearABRepeat();
-                        setShowOptionsMenu(false);
-                      }}
-                      style={styles.menuItemLast}
-                    >
-                      <View style={styles.menuItemIcon}>
-                        <Ionicons
-                          name="close-circle-outline"
-                          size={20}
-                          color={colors.text.secondary}
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.menuItemText}>Clear Loop</Text>
-                        <Text style={styles.menuItemSubtext}>
-                          Remove A/B points
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  </>
-                )}
+                    {bothPointsSet && (
+                      <Text style={styles.menuItemSubtext}>Loop active</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
               </View>
             </>
           )}
@@ -748,6 +677,25 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     </Text>
                   </TouchableOpacity>
                 </View>
+              )}
+
+              {bothPointsSet && (
+                <TouchableOpacity
+                  onPress={() => void handleExportAB()}
+                  style={styles.abExportButton}
+                  disabled={isExportingAB}
+                  accessibilityRole="button"
+                  accessibilityLabel="Export A/B audio"
+                >
+                  <Ionicons
+                    name={isExportingAB ? "hourglass" : "download-outline"}
+                    size={18}
+                    color={colors.background.primary}
+                  />
+                  <Text style={styles.abExportButtonText}>
+                    {isExportingAB ? "Exporting..." : "Export A/B Audio"}
+                  </Text>
+                </TouchableOpacity>
               )}
             </View>
           )}
@@ -957,6 +905,22 @@ const styles = StyleSheet.create({
   abButtonText: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  abExportButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginHorizontal: 24,
+    marginTop: 16,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: colors.accent.primary,
+  },
+  abExportButtonText: {
+    color: colors.background.primary,
+    fontSize: 14,
+    fontWeight: "700",
   },
 });
 
