@@ -10,7 +10,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming
+  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Pressable from "./ResponsivePressable";
@@ -20,9 +20,20 @@ interface MiniPlayerProps {
   networkIndicatorOffset: SharedValue<number>;
 }
 
-const NativeMiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand, networkIndicatorOffset }) => {
-  const { currentAudio, isPlaying, togglePlayPause, stop, position, duration } =
-    useAudioPlayer();
+const NativeMiniPlayer: React.FC<MiniPlayerProps> = ({
+  onExpand,
+  networkIndicatorOffset,
+}) => {
+  const {
+    currentAudio,
+    isPlaying,
+    togglePlayPause,
+    stop,
+    position,
+    duration,
+    abRepeatPointA,
+    abRepeatPointB,
+  } = useAudioPlayer();
   const { translateY: tabBarTranslateY } = useTabBarVisibility();
   const insets = useSafeAreaInsets();
 
@@ -142,6 +153,32 @@ const NativeMiniPlayer: React.FC<MiniPlayerProps> = ({ onExpand, networkIndicato
                 backgroundColor: colors.accent.primary,
               }}
             />
+            {duration > 0 && abRepeatPointA !== null && (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  left: `${(abRepeatPointA / duration) * 100}%`,
+                  top: -2,
+                  width: 3,
+                  height: 6,
+                  backgroundColor: colors.accent.success,
+                }}
+              />
+            )}
+            {duration > 0 && abRepeatPointB !== null && (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  left: `${(abRepeatPointB / duration) * 100}%`,
+                  top: -2,
+                  width: 3,
+                  height: 6,
+                  backgroundColor: colors.accent.error,
+                }}
+              />
+            )}
           </View>
 
           <View className="flex-row items-center h-full px-4">
