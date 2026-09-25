@@ -867,9 +867,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 6,
     marginTop: 8,
-    borderRadius: 3,
-    overflow: "hidden",
-    backgroundColor: colors.background.tertiary,
   },
   abMarker: {
     position: "absolute",
