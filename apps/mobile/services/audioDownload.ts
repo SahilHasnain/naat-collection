@@ -80,6 +80,14 @@ class AudioDownloadService {
     try {
       const localPath = this.getThumbnailPath(audioId);
 
+      if (thumbnailUrl.startsWith("file://")) {
+        const sourceInfo = await FileSystem.getInfoAsync(thumbnailUrl);
+        if (!sourceInfo.exists) return null;
+
+        await FileSystem.copyAsync({ from: thumbnailUrl, to: localPath });
+        return localPath;
+      }
+
       const result = await FileSystem.downloadAsync(thumbnailUrl, localPath);
       if (result && result.status === 200) {
         return result.uri;
