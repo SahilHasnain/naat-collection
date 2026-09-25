@@ -35,7 +35,10 @@ export function useNaatPlayback(displayData: Naat[]) {
       try {
         return await appwriteService.getNaatById(naatId);
       } catch (error) {
-        console.error(`[useNaatPlayback] Failed to fetch naat "${naatId}"`, error);
+        console.error(
+          `[useNaatPlayback] Failed to fetch naat "${naatId}"`,
+          error,
+        );
         return null;
       }
     },
@@ -54,7 +57,11 @@ export function useNaatPlayback(displayData: Naat[]) {
         pathname: "/video",
         params: {
           naatId: naat.$id,
-          videoUrl: naat.videoUrl || (naat.youtubeId ? `https://www.youtube.com/watch?v=${naat.youtubeId}` : ""),
+          videoUrl:
+            naat.videoUrl ||
+            (naat.youtubeId
+              ? `https://www.youtube.com/watch?v=${naat.youtubeId}`
+              : ""),
           title: naat.title,
           channelName: naat.channelName,
           thumbnailUrl: naat.thumbnailUrl,
@@ -74,7 +81,10 @@ export function useNaatPlayback(displayData: Naat[]) {
         // Intentionally no cancel toast here. "Playback cancelled" is noise and was removed on purpose;
         // keep it absent so future edits do not reintroduce it from prior assumptions.
         { text: "Cancel", style: "cancel" },
-        { text: "Play Video", onPress: () => navigateToVideo(naat, audioId, true) },
+        {
+          text: "Play Video",
+          onPress: () => navigateToVideo(naat, audioId, true),
+        },
       ]);
     },
     [navigateToVideo],
@@ -83,8 +93,8 @@ export function useNaatPlayback(displayData: Naat[]) {
   const loadAudioDirectly = React.useCallback(
     async (
       naat: Naat,
-    fallbackMode: "alert" | "auto-video" = "alert",
-  ): Promise<boolean> => {
+      fallbackMode: "alert" | "auto-video" = "alert",
+    ): Promise<boolean> => {
       await storageService.addToWatchHistory(naat.$id);
 
       // Record engagement signal for personalization
@@ -150,6 +160,7 @@ export function useNaatPlayback(displayData: Naat[]) {
           audioId,
           youtubeId: naat.youtubeId,
           naatId: naat.$id,
+          views: naat.views || 0,
         };
         console.log("[useNaatPlayback] Web audio URL:", {
           title: naat.title,
@@ -182,7 +193,8 @@ export function useNaatPlayback(displayData: Naat[]) {
     const handleAutoplay = async () => {
       const available = displayData.filter((naat) => hasAudio(naat));
       if (available.length === 0) return;
-      const randomNaat = available[Math.floor(Math.random() * available.length)];
+      const randomNaat =
+        available[Math.floor(Math.random() * available.length)];
       await loadAudioDirectly(randomNaat);
     };
     setAutoplayCallback(handleAutoplay);
@@ -209,7 +221,7 @@ export function useNaatPlayback(displayData: Naat[]) {
         cutAudio: naat.cutAudio,
         audioId: naat.audioId,
       });
-      
+
       await storageService.addToWatchHistory(naat.$id);
       currentNaatRef.current = naat;
       void userProfileService.recordPlay(naat).catch(() => {});

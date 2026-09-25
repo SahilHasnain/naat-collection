@@ -100,7 +100,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         currentAudio.title,
         Math.floor(duration / 1000),
         currentAudio.channelName || "Unknown Channel",
-        0,
+        currentAudio.views || 0,
         (progress) => {
           setDownloadProgress(progress.progress);
         },
@@ -211,6 +211,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         `${currentAudio.title} (A-B)`,
         result.duration || Math.floor((abRepeatPointB - abRepeatPointA) / 1000),
         currentAudio.channelName || "Unknown Channel",
+        currentAudio.views || 0,
         currentAudio.thumbnailUrl,
         currentAudio.audioId,
         abRepeatPointA,

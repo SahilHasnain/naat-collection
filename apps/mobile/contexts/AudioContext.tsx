@@ -29,6 +29,7 @@ export interface AudioMetadata {
   audioId?: string;
   youtubeId?: string;
   naatId?: string; // Naat document ID for deep linking
+  views?: number;
 }
 
 interface AudioContextType {
@@ -57,7 +58,9 @@ interface AudioContextType {
   toggleRepeat: () => Promise<void>;
   toggleAutoplay: () => Promise<void>;
   setAutoplayCallback: (callback: (() => Promise<void>) | null) => void;
-  setTrackCompleteCallback: (callback: ((naatId: string | undefined) => void) | null) => void;
+  setTrackCompleteCallback: (
+    callback: ((naatId: string | undefined) => void) | null,
+  ) => void;
   setABRepeatPointA: (position: number | null) => void;
   setABRepeatPointB: (position: number | null) => void;
   clearABRepeat: () => void;

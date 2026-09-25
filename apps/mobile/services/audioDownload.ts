@@ -242,6 +242,7 @@ class AudioDownloadService {
     title: string,
     duration: number,
     channelName: string,
+    views: number,
     thumbnailUrl?: string,
     sourceAudioId?: string,
     startMs?: number,
@@ -273,7 +274,7 @@ class AudioDownloadService {
       fileSize: fileInfo.exists && "size" in fileInfo ? fileInfo.size : 0,
       duration,
       channelName,
-      views: 0,
+      views,
     });
 
     return result.uri;

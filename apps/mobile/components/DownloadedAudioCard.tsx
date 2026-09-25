@@ -37,7 +37,7 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
           style={{ width: 168, height: 94 }}
           accessible={false}
         >
-          {imageError || !audio.youtubeId ? (
+          {imageError || (!audio.youtubeId && !audio.thumbnailLocalUri) ? (
             <View className="h-full w-full items-center justify-center bg-neutral-700">
               <Ionicons name="musical-notes" size={32} color="#737373" />
             </View>
