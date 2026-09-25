@@ -297,6 +297,10 @@ export class AppwriteService implements IAppwriteService {
     }
   }
 
+  async exportABAudio(audioId: string, startMs: number, endMs: number) {
+    return this.baseService.exportABAudio(audioId, startMs, endMs);
+  }
+
   /**
    * Get the current data source (useful for dev mode debugging)
    */

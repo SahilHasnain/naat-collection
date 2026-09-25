@@ -1,6 +1,7 @@
 import { colors, shadows } from "@/constants/theme";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { audioDownloadService } from "@/services/audioDownload";
+import { appwriteService } from "@/services/appwrite";
 import { shareService } from "@/services/shareService";
 import { showErrorToast, showSuccessToast } from "@/utils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
@@ -61,6 +62,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [isABRepeatMode, setIsABRepeatMode] = useState(false);
+  const [isExportingAB, setIsExportingAB] = useState(false);
 
   useEffect(() => {
     const checkDownloadStatus = async () => {
@@ -179,6 +181,39 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     setIsABRepeatMode(newMode);
     if (!newMode) {
       clearABRepeat();
+    }
+  };
+
+  const handleExportAB = async () => {
+    if (!currentAudio?.audioId || abRepeatPointA === null || abRepeatPointB === null) {
+      return;
+    }
+
+    try {
+      setIsExportingAB(true);
+      const result = await appwriteService.exportABAudio(
+        currentAudio.audioId,
+        abRepeatPointA,
+        abRepeatPointB,
+      );
+
+      if (!result.success || !result.downloadUrl || !result.fileId) {
+        throw new Error(result.error || "A/B export failed");
+      }
+
+      await audioDownloadService.downloadExportedAudio(
+        result.downloadUrl,
+        result.fileId,
+        `${currentAudio.title} (A-B)`,
+        result.duration || Math.floor((abRepeatPointB - abRepeatPointA) / 1000),
+        currentAudio.channelName || "Unknown Channel",
+      );
+      showSuccessToast("A/B audio saved to Downloads");
+    } catch (error) {
+      console.error("A/B export failed:", error);
+      showErrorToast(error instanceof Error ? error.message : "A/B export failed");
+    } finally {
+      setIsExportingAB(false);
     }
   };
 
@@ -445,7 +480,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                           size={20}
                           color={colors.accent.primary}
                         />
-                      </View>
+                    </View>
                       <View style={{ flex: 1 }}>
                         <Text
                           style={[styles.menuItemText, { color: colors.accent.primary }]}
@@ -454,7 +489,36 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                         </Text>
                         <Text style={styles.menuItemSubtext}>Loop active</Text>
                       </View>
-                    </View>
+                      </View>
+
+                      <TouchableOpacity
+                        onPress={() => {
+                          setShowOptionsMenu(false);
+                          void handleExportAB();
+                        }}
+                        style={styles.menuItem}
+                        disabled={isExportingAB}
+                      >
+                        <View style={styles.menuItemIcon}>
+                          <Ionicons
+                            name={isExportingAB ? "hourglass" : "download-outline"}
+                            size={20}
+                            color={
+                              isExportingAB
+                                ? colors.accent.secondary
+                                : colors.text.secondary
+                            }
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.menuItemText}>
+                            {isExportingAB ? "Exporting..." : "Export A/B Audio"}
+                          </Text>
+                          <Text style={styles.menuItemSubtext}>
+                            Save loop to Downloads
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
 
                     <TouchableOpacity
                       onPress={() => {

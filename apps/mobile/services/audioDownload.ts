@@ -219,6 +219,37 @@ class AudioDownloadService {
     return result.uri;
   }
 
+  async downloadExportedAudio(
+    downloadUrl: string,
+    audioId: string,
+    title: string,
+    duration: number,
+    channelName: string,
+  ): Promise<string> {
+    await this.initialize();
+    const localPath = this.getLocalPath(audioId);
+    const result = await FileSystem.downloadAsync(downloadUrl, localPath);
+
+    if (result.status !== 200) {
+      throw new Error(`Export download failed (${result.status})`);
+    }
+
+    const fileInfo = await FileSystem.getInfoAsync(result.uri);
+    await this.saveDownloadMetadata({
+      audioId,
+      youtubeId: "",
+      title,
+      localUri: result.uri,
+      downloadedAt: Date.now(),
+      fileSize: fileInfo.exists && "size" in fileInfo ? fileInfo.size : 0,
+      duration,
+      channelName,
+      views: 0,
+    });
+
+    return result.uri;
+  }
+
   /**
    * Delete downloaded audio and its thumbnail
    */

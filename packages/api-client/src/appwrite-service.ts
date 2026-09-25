@@ -24,6 +24,14 @@ export interface AppwriteServiceOptions {
   };
 }
 
+export interface ABExportResponse {
+  success: boolean;
+  fileId?: string;
+  duration?: number;
+  downloadUrl?: string;
+  error?: string;
+}
+
 /**
  * AppwriteService class handles all Appwrite database operations
  */
@@ -557,6 +565,38 @@ export class AppwriteService implements IAppwriteService {
         context: "incrementAppView",
         naatId,
       });
+    }
+  }
+
+  async exportABAudio(
+    audioId: string,
+    startMs: number,
+    endMs: number,
+  ): Promise<ABExportResponse> {
+    try {
+      this.initialize();
+      const execution = await this.functions.createExecution({
+        functionId: "ab-audio-export",
+        body: JSON.stringify({ audioId, startMs, endMs }),
+        async: false,
+        method: ExecutionMethod.POST,
+      });
+      const payload = JSON.parse(execution.responseBody || "{}");
+
+      if (!payload.fileId) {
+        return { success: false, error: payload.error || "A/B export failed" };
+      }
+
+      const downloadUrl = `${this.config.endpoint}/storage/buckets/audio-files/files/${payload.fileId}/download?project=${encodeURIComponent(this.config.projectId)}`;
+      return {
+        success: true,
+        fileId: payload.fileId,
+        duration: payload.duration,
+        downloadUrl,
+      };
+    } catch (error) {
+      this.onError?.(error as Error, { context: "exportABAudio", audioId, startMs, endMs });
+      return { success: false, error: "A/B export failed" };
     }
   }
 }

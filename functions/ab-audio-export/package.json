@@ -1,0 +1,17 @@
+{
+  "name": "ab-audio-export",
+  "version": "1.0.0",
+  "description": "Create an exported audio clip from A/B repeat points",
+  "main": "src/main.ts",
+  "type": "module",
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "node-appwrite": "^21.1.0"
+  },
+  "devDependencies": {
+    "@types/fluent-ffmpeg": "^2.1.27",
+    "typescript": "^5.7.0"
+  }
+}
