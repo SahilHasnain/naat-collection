@@ -143,8 +143,13 @@
       "youtubeId": "xnguaL6kVtc",
       "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
       "time": "2026-07-18T01:49:36.316Z"
+    },
+    {
+      "youtubeId": "8B05n9yB8Vo",
+      "error": "The requested file could not be found.",
+      "time": "2026-09-25T06:30:08.546Z"
     }
   ],
-  "today": 1,
-  "lastDate": "2026-09-20"
+  "today": 0,
+  "lastDate": "2026-09-25"
 }

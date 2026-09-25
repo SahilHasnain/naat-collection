@@ -264,15 +264,46 @@
     "5bbjunpOBOc",
     "FZPPj755IlQ",
     "p8yzVbL7ER4",
-    "D7TR-huC5kY"
+    "D7TR-huC5kY",
+    "vMwx6ZgCXcQ",
+    "4R9LtmlX17o",
+    "SI4XmIozUdg",
+    "-pC0jiCJaGU",
+    "fZsWogm96TE",
+    "Xgt3t7XsrJc",
+    "xgKtXNj8Sl8",
+    "nwPXF8z2faA",
+    "7SHFTMptq5I",
+    "7qfar9Bp6h0",
+    "Rr2M2pmgCCk",
+    "1D_uxZO29-E",
+    "IKvU-BJpsbk",
+    "rSA7dKAJnHo",
+    "L6lUAuogonM",
+    "IdxfS2DRaF8",
+    "QPlNpmbwnBk",
+    "JKKQfXSYy6Y",
+    "1qh5xCSRguY",
+    "mZLcJGbQ4KQ",
+    "T_8LS8XeVys"
   ],
   "failed": [
     {
       "youtubeId": "xnguaL6kVtc",
       "error": "Quota exceeded for quota metric 'Video Uploads' and limit 'Video Uploads per day' of service 'youtube.googleapis.com' for consumer 'project_number:485658090053'.",
       "time": "2026-07-18T01:47:33.456Z"
+    },
+    {
+      "youtubeId": "7p6F8WCGwcI",
+      "error": "The requested file could not be found.",
+      "time": "2026-09-25T06:30:12.619Z"
+    },
+    {
+      "youtubeId": "AYh8SEMNZoI",
+      "error": "The requested file could not be found.",
+      "time": "2026-09-25T06:30:17.824Z"
     }
   ],
-  "today": 10,
-  "lastDate": "2026-09-20"
+  "today": 0,
+  "lastDate": "2026-09-25"
 }
