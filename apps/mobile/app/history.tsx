@@ -14,7 +14,10 @@ import type { MenuAnchor, Naat } from "@/types";
 import { DateGroup, groupByDate } from "@/utils/dateGrouping";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
-import { getPreferredAudioId, getPreferredDuration } from "@naat-collection/shared";
+import {
+  getPreferredAudioId,
+  getPreferredDuration,
+} from "@naat-collection/shared";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
@@ -134,7 +137,6 @@ function SwipeableHistoryCard({
             duration={getPreferredDuration(item)}
             channelName={item.channelName}
             views={item.views}
-            watchedAt={item.watchedAt}
             onPress={onPress}
             onMenuPress={onMenuPress}
           />
@@ -156,12 +158,15 @@ export default function HistoryScreen() {
   const { isNormalAudioActive, isLiveRadioActive } = usePlaybackMode();
 
   // Tab bar visibility context
-  const { handleScroll: handleTabBarScroll, showTabBar } = useTabBarVisibility();
+  const { handleScroll: handleTabBarScroll, showTabBar } =
+    useTabBarVisibility();
 
   // Context menu state
   const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
-  const [savedPlaybackMode, setSavedPlaybackMode] = useState<"audio" | "video">("audio");
+  const [savedPlaybackMode, setSavedPlaybackMode] = useState<"audio" | "video">(
+    "audio",
+  );
 
   // Data fetching hook
   const {
@@ -182,7 +187,7 @@ export default function HistoryScreen() {
   useFocusEffect(
     useCallback(() => {
       refresh();
-    }, [refresh])
+    }, [refresh]),
   );
 
   // Force tab bar to show when this screen is focused
@@ -246,11 +251,17 @@ export default function HistoryScreen() {
                 text: "Play Video",
                 onPress: () => {
                   // Navigate to video mode without changing preference
-                  void appwriteService.incrementAppView(naat.$id).catch(() => {});
+                  void appwriteService
+                    .incrementAppView(naat.$id)
+                    .catch(() => {});
                   router.push({
                     pathname: "/video",
                     params: {
-                      videoUrl: naat.videoUrl || (naat.youtubeId ? `https://www.youtube.com/watch?v=${naat.youtubeId}` : ""),
+                      videoUrl:
+                        naat.videoUrl ||
+                        (naat.youtubeId
+                          ? `https://www.youtube.com/watch?v=${naat.youtubeId}`
+                          : ""),
                       title: naat.title,
                       channelName: naat.channelName,
                       thumbnailUrl: naat.thumbnailUrl,
@@ -306,7 +317,9 @@ export default function HistoryScreen() {
                     text: "Play Video",
                     onPress: () => {
                       // Navigate to video mode without changing preference
-                      void appwriteService.incrementAppView(naat.$id).catch(() => {});
+                      void appwriteService
+                        .incrementAppView(naat.$id)
+                        .catch(() => {});
                       router.push({
                         pathname: "/video",
                         params: {
@@ -363,11 +376,17 @@ export default function HistoryScreen() {
                 text: "Play Video",
                 onPress: () => {
                   // Navigate to video mode without changing preference
-                  void appwriteService.incrementAppView(naat.$id).catch(() => {});
+                  void appwriteService
+                    .incrementAppView(naat.$id)
+                    .catch(() => {});
                   router.push({
                     pathname: "/video",
                     params: {
-                      videoUrl: naat.videoUrl || (naat.youtubeId ? `https://www.youtube.com/watch?v=${naat.youtubeId}` : ""),
+                      videoUrl:
+                        naat.videoUrl ||
+                        (naat.youtubeId
+                          ? `https://www.youtube.com/watch?v=${naat.youtubeId}`
+                          : ""),
                       title: naat.title,
                       channelName: naat.channelName,
                       thumbnailUrl: naat.thumbnailUrl,
@@ -407,7 +426,11 @@ export default function HistoryScreen() {
           router.push({
             pathname: "/video",
             params: {
-              videoUrl: naat.videoUrl || (naat.youtubeId ? `https://www.youtube.com/watch?v=${naat.youtubeId}` : ""),
+              videoUrl:
+                naat.videoUrl ||
+                (naat.youtubeId
+                  ? `https://www.youtube.com/watch?v=${naat.youtubeId}`
+                  : ""),
               title: naat.title,
               channelName: naat.channelName,
               thumbnailUrl: naat.thumbnailUrl,
@@ -475,7 +498,11 @@ export default function HistoryScreen() {
       router.push({
         pathname: "/video",
         params: {
-          videoUrl: selectedNaat.videoUrl || (selectedNaat.youtubeId ? `https://www.youtube.com/watch?v=${selectedNaat.youtubeId}` : ""),
+          videoUrl:
+            selectedNaat.videoUrl ||
+            (selectedNaat.youtubeId
+              ? `https://www.youtube.com/watch?v=${selectedNaat.youtubeId}`
+              : ""),
           title: selectedNaat.title,
           channelName: selectedNaat.channelName,
           thumbnailUrl: selectedNaat.thumbnailUrl,
@@ -490,7 +517,13 @@ export default function HistoryScreen() {
       await storageService.savePlaybackMode("audio").catch(() => {});
       await loadAudioDirectly(selectedNaat);
     }
-  }, [closeActionSheet, savedPlaybackMode, selectedNaat, router, loadAudioDirectly]);
+  }, [
+    closeActionSheet,
+    savedPlaybackMode,
+    selectedNaat,
+    router,
+    loadAudioDirectly,
+  ]);
 
   // Handle delete single item
   const handleDeleteItem = useCallback(
@@ -753,7 +786,11 @@ export default function HistoryScreen() {
           onClose={closeActionSheet}
           onDownload={handleDownloadFromSheet}
           onAlternatePlay={handleAlternatePlay}
-          isDownloaded={selectedNaat ? downloadStates[selectedNaat.$id]?.isDownloaded : false}
+          isDownloaded={
+            selectedNaat
+              ? downloadStates[selectedNaat.$id]?.isDownloaded
+              : false
+          }
           showDownload={true}
         />
       </SafeAreaView>

@@ -1,6 +1,5 @@
 import { colors } from "@/constants/theme";
 import { formatViews } from "@/utils";
-import { formatRelativeTime } from "@/utils/dateGrouping";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
@@ -21,13 +20,20 @@ interface HistoryCardProps {
   duration: number;
   channelName: string;
   views: number;
-  watchedAt: number;
   onPress: () => void;
   onMenuPress?: (anchor: MenuAnchor) => void;
 }
 
 const HistoryCard: React.FC<HistoryCardProps> = React.memo(
-  ({ title, thumbnail, duration, channelName, views, watchedAt, onPress, onMenuPress }) => {
+  ({
+    title,
+    thumbnail,
+    duration,
+    channelName,
+    views,
+    onPress,
+    onMenuPress,
+  }) => {
     const [imageError, setImageError] = React.useState(false);
 
     return (
@@ -93,13 +99,13 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
             {title}
           </Text>
 
-          {/* Views and time - aligned right */}
+          {/* Views - aligned right */}
           <View className="flex-row justify-end">
             <Text
               className="text-[11px]"
               style={{ color: colors.text.tertiary }}
             >
-              {formatViews(views)} views · {formatRelativeTime(watchedAt)}
+              {formatViews(views)} views
             </Text>
           </View>
         </View>

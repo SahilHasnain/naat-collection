@@ -1,5 +1,4 @@
 import { DownloadedAudioCardProps } from "@/types";
-import { formatRelativeTime } from "@/utils/dateGrouping";
 import { formatDuration } from "@/utils/formatters";
 import { formatViews } from "@/utils/numberUtils";
 import { Ionicons } from "@expo/vector-icons";
@@ -82,11 +81,10 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
             {audio.title}
           </Text>
 
-          {/* Views and download time - aligned right */}
+          {/* Views - aligned right */}
           <View className="flex-row justify-end items-end" accessible={false}>
             <Text className="text-xs text-neutral-400" accessible={false}>
-              {formatViews(audio.views)} views ·{" "}
-              {formatRelativeTime(audio.downloadedAt)}
+              {formatViews(audio.views)} views
             </Text>
           </View>
         </View>
