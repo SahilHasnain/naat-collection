@@ -71,7 +71,11 @@ export default async ({ req, res, log, error: logError }: any) => {
   const client = new Client()
     .setEndpoint(process.env.APPWRITE_ENDPOINT || "https://cloud.appwrite.io/v1")
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID || process.env.APPWRITE_PROJECT_ID || "")
-    .setKey(process.env.APPWRITE_API_KEY || "");
+    .setKey(
+      process.env.APPWRITE_FUNCTION_API_KEY ||
+        process.env.APPWRITE_API_KEY ||
+        "",
+    );
   const storage = new Storage(client);
   const tempDir = "/tmp/ab-audio-export";
   const inputPath = join(tempDir, `${audioId}-input`);
