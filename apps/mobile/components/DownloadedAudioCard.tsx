@@ -69,7 +69,7 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
         </View>
 
         {/* Content Section */}
-        <View className="flex-1 ml-3 justify-start" accessible={false}>
+        <View className="flex-1 ml-3 justify-center" accessible={false}>
           {/* Title */}
           <Text
             className="text-sm font-normal leading-tight mb-1.5"
