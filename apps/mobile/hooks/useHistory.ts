@@ -2,7 +2,7 @@
  * Custom hook for managing watch history
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { appwriteService } from "../services/appwrite";
 import { storageService } from "../services/storage";
 import type { Naat } from "../types";
@@ -32,6 +32,7 @@ export function useHistory(): UseHistoryReturn {
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [allHistoryIds, setAllHistoryIds] = useState<string[]>([]);
   const [timestamps, setTimestamps] = useState<Record<string, number>>({});
+  const loadingMoreRef = useRef(false);
 
   /**
    * Initialize history IDs and timestamps, then load first page
@@ -46,17 +47,19 @@ export function useHistory(): UseHistoryReturn {
       const historyTimestamps =
         await storageService.getWatchHistoryTimestamps();
 
-      setAllHistoryIds(historyIds);
+      const uniqueHistoryIds = Array.from(new Set(historyIds));
+
+      setAllHistoryIds(uniqueHistoryIds);
       setTimestamps(historyTimestamps);
 
-      if (historyIds.length === 0) {
+      if (uniqueHistoryIds.length === 0) {
         setHasMore(false);
         setHistory([]);
         return;
       }
 
       // Load first page immediately
-      const idsToLoad = historyIds.slice(0, PAGE_SIZE);
+      const idsToLoad = uniqueHistoryIds.slice(0, PAGE_SIZE);
       const naatPromises = idsToLoad.map(async (naatId) => {
         try {
           const naat = await appwriteService.getNaatById(naatId);
@@ -77,7 +80,7 @@ export function useHistory(): UseHistoryReturn {
 
       setHistory(validNaats);
       setCurrentPage(1);
-      setHasMore(historyIds.length > PAGE_SIZE);
+      setHasMore(uniqueHistoryIds.length > PAGE_SIZE);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to initialize history";
@@ -92,7 +95,9 @@ export function useHistory(): UseHistoryReturn {
    * Load more history items (pagination)
    */
   const loadMore = useCallback(async () => {
-    if (loading || !hasMore) return;
+    if (loading || loadingMoreRef.current || !hasMore) return;
+
+    loadingMoreRef.current = true;
 
     try {
       setLoading(true);
@@ -130,7 +135,13 @@ export function useHistory(): UseHistoryReturn {
       );
 
       // Append to existing history
-      setHistory((prev) => [...prev, ...validNaats]);
+      setHistory((prev) => {
+        const existingIds = new Set(prev.map((item) => item.$id));
+        return [
+          ...prev,
+          ...validNaats.filter((item) => !existingIds.has(item.$id)),
+        ];
+      });
       setCurrentPage((prev) => prev + 1);
 
       // Check if there are more items to load
@@ -141,6 +152,7 @@ export function useHistory(): UseHistoryReturn {
       setError(new Error(errorMessage));
       console.error("Error loading more history:", err);
     } finally {
+      loadingMoreRef.current = false;
       setLoading(false);
     }
   }, [loading, hasMore, currentPage, allHistoryIds, timestamps]);
@@ -158,10 +170,12 @@ export function useHistory(): UseHistoryReturn {
       const historyTimestamps =
         await storageService.getWatchHistoryTimestamps();
 
-      setAllHistoryIds(historyIds);
+      const uniqueHistoryIds = Array.from(new Set(historyIds));
+
+      setAllHistoryIds(uniqueHistoryIds);
       setTimestamps(historyTimestamps);
 
-      if (historyIds.length === 0) {
+      if (uniqueHistoryIds.length === 0) {
         setCurrentPage(0);
         setHistory([]);
         setHasMore(false);
@@ -169,7 +183,7 @@ export function useHistory(): UseHistoryReturn {
       }
 
       // Load first page
-      const idsToLoad = historyIds.slice(0, PAGE_SIZE);
+      const idsToLoad = uniqueHistoryIds.slice(0, PAGE_SIZE);
       const naatPromises = idsToLoad.map(async (naatId) => {
         try {
           const naat = await appwriteService.getNaatById(naatId);
@@ -190,7 +204,7 @@ export function useHistory(): UseHistoryReturn {
 
       setHistory(validNaats);
       setCurrentPage(1);
-      setHasMore(historyIds.length > PAGE_SIZE);
+      setHasMore(uniqueHistoryIds.length > PAGE_SIZE);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to refresh history";

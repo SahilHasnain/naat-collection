@@ -35,6 +35,7 @@ yarn-error.*
 *.pem
 
 # local env files
+.env*
 !.env.example
 
 # secrets & session cookies (never commit)
