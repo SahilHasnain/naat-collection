@@ -87,6 +87,9 @@ export default {
         },
       ],
     },
+    web: {
+      favicon: "./assets/images/android-icon-foreground.png",
+    },
     plugins: [
       "expo-router",
       [
