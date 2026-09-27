@@ -149,8 +149,13 @@
       "youtubeId": "8B05n9yB8Vo",
       "error": "The requested file could not be found.",
       "time": "2026-09-25T06:30:08.546Z"
+    },
+    {
+      "youtubeId": "REFwFrRwhZ4",
+      "error": "fetch failed",
+      "time": "2026-09-27T08:01:51.232Z"
     }
   ],
-  "today": 1,
-  "lastDate": "2026-09-26"
+  "today": 0,
+  "lastDate": "2026-09-27"
 }
