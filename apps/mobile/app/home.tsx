@@ -8,13 +8,13 @@ import { SearchSuggestions } from "@/components/SearchSuggestions";
 import UnifiedFilterBar from "@/components/UnifiedFilterBar";
 import { colors } from "@/constants/theme";
 import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated";
-import { useLayoutMode } from "@/contexts/LayoutModeContext";
 import { useSearch as useSearchContext } from "@/contexts/SearchContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useHomeFilters } from "@/hooks/useHomeFilters";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { useSearchSuggestions } from "@/hooks/useSearchSuggestions";
+import { useResponsiveColumns } from "@/hooks/useResponsiveColumns";
 import { triggerReviewCheck } from "@/hooks/useReviewPrompt";
 import { storageService } from "@/services/storage";
 import { userProfileService } from "@/services/userProfile";
@@ -38,8 +38,7 @@ import {
 
 export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
-  const { layoutMode } = useLayoutMode();
-  const NUM_COLUMNS = layoutMode === "grid" ? 2 : 1;
+  const { columns: NUM_COLUMNS, maxContentWidth } = useResponsiveColumns();
   const router = useRouter();
   const params = useLocalSearchParams<{
     autoPlayNaatId?: string;
@@ -404,6 +403,11 @@ export default function HomeScreen() {
           keyExtractor={(item) => item.$id}
           numColumns={NUM_COLUMNS}
           showsVerticalScrollIndicator={false}
+          style={
+            maxContentWidth
+              ? { width: "100%", maxWidth: maxContentWidth, alignSelf: "center" }
+              : undefined
+          }
           contentContainerStyle={{
             flexGrow: 1,
             paddingTop: 100,

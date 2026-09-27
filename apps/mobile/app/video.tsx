@@ -3,6 +3,7 @@ import { colors, shadows } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useVideoPlayer } from "@/contexts/VideoContext";
+import { WEB_MAX_CONTENT_WIDTH } from "@/hooks/useResponsiveColumns";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
@@ -16,13 +17,33 @@ import React from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import YoutubePlayer from "react-native-youtube-iframe";
+
+// On web the content area scrolls so the tall 16:9 player fits on short
+// viewports; on native the screen is fixed and the tab bar sits on top.
+const VideoContentContainer: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) =>
+  Platform.OS === "web" ? (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ flexGrow: 1 }}
+      showsVerticalScrollIndicator={false}
+    >
+      {children}
+    </ScrollView>
+  ) : (
+    <View style={{ flex: 1 }}>{children}</View>
+  );
 
 export default function VideoScreen() {
   const router = useRouter();
@@ -68,6 +89,16 @@ export default function VideoScreen() {
   const [videoDuration, setVideoDuration] = React.useState(0);
   const [videoPosition, setVideoPosition] = React.useState(0);
   const playerRef = React.useRef<any>(null);
+
+  // Web layout: constrain content width and keep the player at 16:9.
+  const isWeb = Platform.OS === "web";
+  const windowWidth = useWindowDimensions().width;
+  // Initial width accounts for the 224px sidebar; corrected on layout.
+  const [playerWidth, setPlayerWidth] = React.useState(
+    isWeb ? windowWidth - 224 : 0,
+  );
+  const playerHeight =
+    isWeb && playerWidth > 0 ? Math.round((playerWidth * 9) / 16) : 300;
 
   // Parse params
   const videoUrl = params.videoUrl || "";
@@ -221,6 +252,9 @@ export default function VideoScreen() {
   // Handle fullscreen changes
   const handleFullscreenChange = async (isFullscreen: boolean) => {
     setIsFullscreen(isFullscreen);
+    if (isWeb) {
+      return;
+    }
 
     if (isFullscreen) {
       await ScreenOrientation.lockAsync(
@@ -234,11 +268,11 @@ export default function VideoScreen() {
   // Cleanup: unlock orientation when screen unmounts
   React.useEffect(() => {
     return () => {
-      if (isFullscreen) {
+      if (isFullscreen && !isWeb) {
         ScreenOrientation.unlockAsync();
       }
     };
-  }, [isFullscreen]);
+  }, [isFullscreen, isWeb]);
 
   // Update video position periodically and check duration
   React.useEffect(() => {
@@ -359,17 +393,34 @@ export default function VideoScreen() {
           style={StyleSheet.absoluteFill}
         />
 
-        <View className="flex-1">
+        <VideoContentContainer>
           <View
-            className="flex-1 bg-neutral-900 overflow-hidden"
-            style={shadows.lg}
+            className={isWeb ? "bg-neutral-900 overflow-hidden" : "flex-1 bg-neutral-900 overflow-hidden"}
+            style={[
+              shadows.lg,
+              isWeb
+                ? {
+                    width: "100%",
+                    maxWidth: WEB_MAX_CONTENT_WIDTH,
+                    alignSelf: "center",
+                  }
+                : undefined,
+            ]}
+            onLayout={(e) => {
+              if (isWeb) {
+                setPlayerWidth(e.nativeEvent.layout.width);
+              }
+            }}
           >
             {/* Video Player */}
-            <View className="flex-1 bg-black">
-              <View className="relative flex-1">
+            <View className={isWeb ? "bg-black" : "flex-1 bg-black"}>
+              <View
+                className="relative"
+                style={isWeb ? { height: playerHeight } : undefined}
+              >
                 <YoutubePlayer
                   ref={playerRef}
-                  height={300}
+                  height={playerHeight}
                   videoId={videoId}
                   play={videoPlaying}
                   onReady={() => {
@@ -433,30 +484,32 @@ export default function VideoScreen() {
               </View>
 
               {/* Custom Video Controls */}
-              <View className="px-6 pb-24 bg-black">
-                {/* Progress Bar */}
-                <View className="mb-4">
-                  <Slider
-                    style={{ width: "100%", height: 40 }}
-                    minimumValue={0}
-                    maximumValue={videoDuration}
-                    value={videoPosition}
-                    onSlidingComplete={seekToPosition}
-                    minimumTrackTintColor={colors.accent.primary}
-                    maximumTrackTintColor={colors.background.elevated}
-                    thumbTintColor={colors.accent.primary}
-                  />
+              <View className={isWeb ? "px-6 pb-8 bg-black" : "px-6 pb-24 bg-black"}>
+                {/* Progress Bar (hidden on web: YouTube iframe provides its own controls) */}
+                {!isWeb && (
+                  <View className="mb-4">
+                    <Slider
+                      style={{ width: "100%", height: 40 }}
+                      minimumValue={0}
+                      maximumValue={videoDuration}
+                      value={videoPosition}
+                      onSlidingComplete={seekToPosition}
+                      minimumTrackTintColor={colors.accent.primary}
+                      maximumTrackTintColor={colors.background.elevated}
+                      thumbTintColor={colors.accent.primary}
+                    />
 
-                  {/* Time Labels */}
-                  <View className="flex-row justify-between">
-                    <Text className="text-sm text-neutral-400">
-                      {formatTime(videoPosition)}
-                    </Text>
-                    <Text className="text-sm text-neutral-400">
-                      {videoDuration > 0 ? formatTime(videoDuration) : "--:--"}
-                    </Text>
+                    {/* Time Labels */}
+                    <View className="flex-row justify-between">
+                      <Text className="text-sm text-neutral-400">
+                        {formatTime(videoPosition)}
+                      </Text>
+                      <Text className="text-sm text-neutral-400">
+                        {videoDuration > 0 ? formatTime(videoDuration) : "--:--"}
+                      </Text>
+                    </View>
                   </View>
-                </View>
+                )}
 
                 {/* Repeat button intentionally hidden. Keep repeat logic wired for future use. */}
                 {/*
@@ -496,11 +549,18 @@ export default function VideoScreen() {
                 <Pressable
                   onPress={switchToAudio}
                   disabled={audioLoading}
-                  className="flex-row items-center justify-center rounded-2xl px-6 py-4 active:opacity-80"
-                  style={{
-                    backgroundColor: colors.accent.primary,
-                    ...shadows.accent,
-                  }}
+                  className={
+                    isWeb
+                      ? "flex-row items-center justify-center self-center rounded-full px-8 py-3 active:opacity-80"
+                      : "flex-row items-center justify-center rounded-2xl px-6 py-4 active:opacity-80"
+                  }
+                  style={[
+                    {
+                      backgroundColor: colors.accent.primary,
+                      ...shadows.accent,
+                    },
+                    isWeb ? { maxWidth: 360 } : undefined,
+                  ]}
                   accessibilityLabel="Switch to audio mode"
                   accessibilityRole="button"
                 >
@@ -536,7 +596,7 @@ export default function VideoScreen() {
               </View>
             </View>
           </View>
-        </View>
+        </VideoContentContainer>
       </SafeAreaView>
     </>
   );

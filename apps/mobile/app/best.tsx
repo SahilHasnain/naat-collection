@@ -5,7 +5,7 @@ import NaatCardMenu from "@/components/NaatCardMenu";
 import { colors } from "@/constants/theme";
 import { useFilterModal } from "@/contexts/FilterModalContext";
 import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated";
-import { useLayoutMode } from "@/contexts/LayoutModeContext";
+import { useResponsiveColumns } from "@/hooks/useResponsiveColumns";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
@@ -40,8 +40,7 @@ function shuffleAndPick(naats: Naat[], count: number): Naat[] {
 }
 
 export default function BestScreen() {
-  const { layoutMode } = useLayoutMode();
-  const NUM_COLUMNS = layoutMode === "grid" ? 2 : 1;
+  const { columns: NUM_COLUMNS, maxContentWidth } = useResponsiveColumns();
   const flatListRef = useRef<FlatList>(null);
   const [naats, setNaats] = useState<Naat[]>([]);
   const [loading, setLoading] = useState(false);
@@ -281,6 +280,11 @@ export default function BestScreen() {
           keyExtractor={(item) => item.$id}
           numColumns={NUM_COLUMNS}
           showsVerticalScrollIndicator={false}
+          style={
+            maxContentWidth
+              ? { width: "100%", maxWidth: maxContentWidth, alignSelf: "center" }
+              : undefined
+          }
           contentContainerStyle={{
             flexGrow: 1,
             paddingTop: 100,

@@ -43,6 +43,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
+import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import {
@@ -143,6 +144,9 @@ function RootLayoutContent() {
   // Shared value for header (must be called unconditionally)
   const isScrolledDownValue = useSharedValue(false);
 
+  // On web the header is always visible, so translate it by 0 (must be unconditional)
+  const headerOffsetWeb = useSharedValue(0);
+
   // Shared value for network indicator offset — drives tab bar / mini player shift
   const networkIndicatorOffset = useSharedValue(0);
 
@@ -160,7 +164,7 @@ function RootLayoutContent() {
       {/* Animated Header - Global across all screens except video */}
       {!isOnVideoScreen && (
         <AnimatedHeader
-          translateY={headerTranslateY}
+          translateY={Platform.OS === "web" ? headerOffsetWeb : headerTranslateY}
           isScrolledDown={isScrolledDownValue}
           isSearchActive={isSearchActive}
           searchInput={searchInput}
@@ -183,20 +187,38 @@ function RootLayoutContent() {
           detachInactiveScreens: false,
           tabBarActiveTintColor: colors.accent.secondary,
           tabBarInactiveTintColor: colors.text.secondary,
-        }}
-        tabBar={(props) => (
-          <AnimatedTabBar
-            {...props}
-            translateY={translateY}
-            networkIndicatorOffset={networkIndicatorOffset}
-            onSearchTabPress={() => {
-              requestSearchFocus();
-              if (!isOnHomepage) {
-                router.push("/home");
+          ...(Platform.OS === "web"
+            ? {
+                tabBarPosition: "left",
+                tabBarVariant: "material",
+                tabBarStyle: {
+                  width: 224,
+                  minWidth: 224,
+                  backgroundColor: colors.background.secondary,
+                  borderColor: colors.border.secondary,
+                },
+                tabBarActiveBackgroundColor: colors.background.elevated,
+                tabBarInactiveBackgroundColor: "transparent",
               }
-            }}
-          />
-        )}
+            : {}),
+        }}
+        tabBar={
+          Platform.OS === "web"
+            ? undefined
+            : (props) => (
+                <AnimatedTabBar
+                  {...props}
+                  translateY={translateY}
+                  networkIndicatorOffset={networkIndicatorOffset}
+                  onSearchTabPress={() => {
+                    requestSearchFocus();
+                    if (!isOnHomepage) {
+                      router.push("/home");
+                    }
+                  }}
+                />
+              )
+        }
       >
         <Tabs.Screen
           name="home"
@@ -296,6 +318,12 @@ function RootLayoutContent() {
           }}
         />
         <Tabs.Screen
+          name="naat/[naatId]"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
           name="index"
           options={{
             href: null,
@@ -341,7 +369,7 @@ function RootLayoutContent() {
           style={{
             position: "absolute",
             bottom: insets.bottom,
-            left: 0,
+            left: Platform.OS === "web" ? 224 : 0,
             right: 0,
             backgroundColor: showBackOnline
               ? "#2e7d32"

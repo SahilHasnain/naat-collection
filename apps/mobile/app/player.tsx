@@ -7,10 +7,14 @@ import { storageService } from "@/services/storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useGlobalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const PLAYER_HEADER_OFFSET = 84;
+
+// On web there is a sidebar but no bottom tab bar, so no bottom inset is needed.
+const PLAYER_BOTTOM_INSET =
+  Platform.OS === "web" ? 0 : layout.tabBarHeight;
 
 export default function PlayerScreen() {
   const router = useRouter();
@@ -87,7 +91,7 @@ export default function PlayerScreen() {
     <FullPlayerModal
       onSwitchToVideo={handleSwitchToVideo}
       topInset={PLAYER_HEADER_OFFSET}
-      bottomInset={layout.tabBarHeight + insets.bottom}
+      bottomInset={PLAYER_BOTTOM_INSET + insets.bottom}
     />
   );
 }

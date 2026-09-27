@@ -27,6 +27,7 @@ import {
   AccessibilityInfo,
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   RefreshControl,
   SectionList,
@@ -47,6 +48,10 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Web: row cards look stretched at the full 1248 content width; constrain the
+// single-column list like the app's YouTube layout mode does (720).
+const WEB_HISTORY_MAX_WIDTH = 720;
 
 // Section type for grouped history
 interface HistorySection {
@@ -728,6 +733,15 @@ export default function HistoryScreen() {
               renderSectionHeader={renderSectionHeader}
               keyExtractor={(item) => item.$id}
               showsVerticalScrollIndicator={false}
+              style={
+                Platform.OS === "web"
+                  ? {
+                      width: "100%",
+                      maxWidth: WEB_HISTORY_MAX_WIDTH,
+                      alignSelf: "center",
+                    }
+                  : undefined
+              }
               contentContainerStyle={{
                 flexGrow: 1,
                 paddingTop: 50,
