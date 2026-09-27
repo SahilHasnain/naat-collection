@@ -3,13 +3,9 @@
  *
  * Daily scheduled ingestion of naat documents from the channel collection.
  * Reads channel collection documents and ingests their videos into the
- * naats collection. Which source types are ingested is controlled by the
- * INGEST_SOURCE_TYPES environment variable:
- *
- *   - "playlist"            -> only documents with type == "playlist"
- *   - "channel"             -> only documents with type == "channel"
- *   - "channel,playlist"    -> ALL documents (channels + playlists)
- *   - (unset)               -> defaults to "playlist"
+ * naats collection. There is no source-type restriction: every document in
+ * the channels collection is ingested, and each document's `type` field
+ * ("playlist" vs "channel") decides how its videos are fetched.
  *
  * Environment Variables Required:
  * - APPWRITE_FUNCTION_PROJECT_ID: Appwrite project ID (auto-provided)
@@ -18,7 +14,6 @@
  * - APPWRITE_NAATS_COLLECTION_ID: Naats collection ID
  * - APPWRITE_CHANNELS_COLLECTION_ID: Channels collection ID
  * - YOUTUBE_API_KEY: YouTube Data API v3 key
- * - INGEST_SOURCE_TYPES (optional): "playlist" (default), "channel", or "channel,playlist"
  */
 
 import { Client, Databases, ID, Query } from "node-appwrite";
@@ -603,29 +598,26 @@ async function processSource(
 }
 
 /**
- * Fetches channel/playlist source documents from the channel collection
- * filtered by the configured source types
+ * Fetches channel/playlist source documents from the channel collection.
+ * Every document is returned; each document's `type` field decides how its
+ * videos are fetched.
  * @param {Databases} databases - Appwrite Databases instance
  * @param {string} databaseId - Database ID
  * @param {string} channelsCollectionId - Channels collection ID
- * @param {string[]} sourceTypes - List of source types to ingest
  * @param {Function} log - Logging function
  * @returns {Promise<Array>} Array of source documents
  */
-async function getSources(databases, databaseId, channelsCollectionId, sourceTypes, log) {
+async function getSources(databases, databaseId, channelsCollectionId, log) {
   try {
     const allSources = [];
     let offset = 0;
     const limit = 100;
 
     while (true) {
-      const queries = [Query.limit(limit), Query.offset(offset)];
-
-      if (sourceTypes.length === 1) {
-        queries.push(Query.equal("type", sourceTypes));
-      }
-
-      const response = await databases.listDocuments(databaseId, channelsCollectionId, queries);
+      const response = await databases.listDocuments(databaseId, channelsCollectionId, [
+        Query.limit(limit),
+        Query.offset(offset),
+      ]);
 
       allSources.push(...response.documents);
 
@@ -637,16 +629,10 @@ async function getSources(databases, databaseId, channelsCollectionId, sourceTyp
     }
 
     const sources = allSources.filter((source) => {
-      const sourceType = source.type || "channel";
-
-      if (!sourceTypes.includes(sourceType)) {
-        return false;
-      }
-
       // Only explicitly approved channels are ingested. Other channels such as
       // Tayyiba remain available for historical data and UI display, but are
       // not part of the scheduled ingestion set.
-      return sourceType !== "channel" || source.isOther !== true;
+      return (source.type || "channel") !== "channel" || source.isOther !== true;
     });
 
     log(`Fetched ${allSources.length} source(s) from database`);
@@ -689,16 +675,7 @@ export default async ({ req, res, log, error: logError }) => {
       );
     }
 
-    const sourceTypesRaw = (process.env.INGEST_SOURCE_TYPES || "playlist")
-      .split(",")
-      .map((s) => s.trim().toLowerCase())
-      .filter((s) => s === "channel" || s === "playlist");
-
-    if (sourceTypesRaw.length === 0) {
-      sourceTypesRaw.push("playlist");
-    }
-
-    log(`Ingesting source types: ${sourceTypesRaw.join(", ")}`);
+    log("Ingesting all sources (no type restriction)");
 
     const client = new Client()
       .setEndpoint(process.env.APPWRITE_ENDPOINT || "https://sgp.cloud.appwrite.io/v1")
@@ -713,18 +690,12 @@ export default async ({ req, res, log, error: logError }) => {
     const youtubeApiKey = process.env.YOUTUBE_API_KEY;
 
     log("Fetching sources from database...");
-    const sources = await getSources(
-      databases,
-      databaseId,
-      channelsCollectionId,
-      sourceTypesRaw,
-      log,
-    );
+    const sources = await getSources(databases, databaseId, channelsCollectionId, log);
 
     if (sources.length === 0) {
       const errorMsg =
-        `No source documents found for types: ${sourceTypesRaw.join(", ")}. ` +
-        "Please add sources to the channels collection first.";
+        "No source documents found in the channels collection. " +
+        "Please add sources before running ingestion.";
       logError(errorMsg);
       return res.json(
         {
