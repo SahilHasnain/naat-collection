@@ -3,24 +3,26 @@ import { layout } from "@/constants/theme";
 import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { storageService } from "@/services/storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useGlobalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef } from "react";
-import { Platform, View } from "react-native";
+import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const PLAYER_HEADER_OFFSET = 84;
-
-// On web there is a sidebar but no bottom tab bar, so no bottom inset is needed.
-const PLAYER_BOTTOM_INSET =
-  Platform.OS === "web" ? 0 : layout.tabBarHeight;
 
 export default function PlayerScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { source } = useGlobalSearchParams<{ source: string }>();
   const insets = useSafeAreaInsets();
+  const { isDesktopWeb } = useResponsiveLayout();
+  // On desktop web there is a sidebar but no bottom tab bar, so no bottom
+  // inset is needed. On mobile (native or phone browser) the tab bar sits
+  // at the bottom.
+  const playerBottomInset = isDesktopWeb ? 0 : layout.tabBarHeight;
   const { currentAudio, stop } = useAudioPlayer();
   const { showTabBar } = useTabBarVisibility();
   const { showHeader } = useHeaderVisibility();
@@ -91,7 +93,7 @@ export default function PlayerScreen() {
     <FullPlayerModal
       onSwitchToVideo={handleSwitchToVideo}
       topInset={PLAYER_HEADER_OFFSET}
-      bottomInset={PLAYER_BOTTOM_INSET + insets.bottom}
+      bottomInset={playerBottomInset + insets.bottom}
     />
   );
 }

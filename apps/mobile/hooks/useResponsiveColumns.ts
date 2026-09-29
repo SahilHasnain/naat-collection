@@ -1,5 +1,6 @@
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { useLayoutMode } from "@/contexts/LayoutModeContext";
-import { Platform, useWindowDimensions } from "react-native";
+import { useWindowDimensions } from "react-native";
 
 export const WEB_MAX_CONTENT_WIDTH = 1248;
 const DESIRED_CARD_WIDTH = 264;
@@ -12,15 +13,16 @@ interface ResponsiveColumns {
 export const useResponsiveColumns = (): ResponsiveColumns => {
   const { width } = useWindowDimensions();
   const { layoutMode } = useLayoutMode();
+  const { isDesktopWeb } = useResponsiveLayout();
 
   if (layoutMode === "youtube") {
     return {
       columns: 1,
-      maxContentWidth: Platform.OS === "web" ? 720 : undefined,
+      maxContentWidth: isDesktopWeb ? 720 : undefined,
     };
   }
 
-  if (Platform.OS !== "web") {
+  if (!isDesktopWeb) {
     return { columns: 2, maxContentWidth: undefined };
   }
 

@@ -32,6 +32,7 @@ import { VideoProvider } from "@/contexts/VideoContext";
 import { useAppMessage } from "@/hooks/useAppMessage";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { useReviewPrompt } from "@/hooks/useReviewPrompt";
 import { appwriteService } from "@/services/appwrite";
 import AppMessageBanner from "@/components/AppMessageBanner";
@@ -43,7 +44,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
-import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import {
@@ -77,6 +77,7 @@ function RootLayoutContent() {
   const { translateY } = useTabBarVisibility();
   const { translateY: headerTranslateY } = useHeaderVisibility();
   const insets = useSafeAreaInsets();
+  const { isDesktopWeb } = useResponsiveLayout();
   const {
     isSearchActive,
     deactivateSearch,
@@ -164,7 +165,7 @@ function RootLayoutContent() {
       {/* Animated Header - Global across all screens except video */}
       {!isOnVideoScreen && (
         <AnimatedHeader
-          translateY={Platform.OS === "web" ? headerOffsetWeb : headerTranslateY}
+          translateY={isDesktopWeb ? headerOffsetWeb : headerTranslateY}
           isScrolledDown={isScrolledDownValue}
           isSearchActive={isSearchActive}
           searchInput={searchInput}
@@ -187,7 +188,7 @@ function RootLayoutContent() {
           detachInactiveScreens: false,
           tabBarActiveTintColor: colors.accent.secondary,
           tabBarInactiveTintColor: colors.text.secondary,
-          ...(Platform.OS === "web"
+          ...(isDesktopWeb
             ? {
                 tabBarPosition: "left",
                 tabBarVariant: "material",
@@ -203,7 +204,7 @@ function RootLayoutContent() {
             : {}),
         }}
         tabBar={
-          Platform.OS === "web"
+          isDesktopWeb
             ? undefined
             : (props) => (
                 <AnimatedTabBar
@@ -369,7 +370,7 @@ function RootLayoutContent() {
           style={{
             position: "absolute",
             bottom: insets.bottom,
-            left: Platform.OS === "web" ? 224 : 0,
+            left: isDesktopWeb ? 224 : 0,
             right: 0,
             backgroundColor: showBackOnline
               ? "#2e7d32"

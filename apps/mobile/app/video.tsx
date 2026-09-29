@@ -4,6 +4,7 @@ import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useVideoPlayer } from "@/contexts/VideoContext";
 import { WEB_MAX_CONTENT_WIDTH } from "@/hooks/useResponsiveColumns";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
@@ -17,7 +18,6 @@ import React from "react";
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -28,12 +28,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import YoutubePlayer from "react-native-youtube-iframe";
 
-// On web the content area scrolls so the tall 16:9 player fits on short
-// viewports; on native the screen is fixed and the tab bar sits on top.
+// On desktop web the content area scrolls so the tall 16:9 player fits on
+// short viewports; on mobile (native or phone browser) the screen is fixed
+// and the tab bar sits at the bottom.
 const VideoContentContainer: React.FC<{ children: React.ReactNode }> = ({
   children,
-}) =>
-  Platform.OS === "web" ? (
+}) => {
+  const { isDesktopWeb } = useResponsiveLayout();
+  return isDesktopWeb ? (
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={{ flexGrow: 1 }}
@@ -44,6 +46,7 @@ const VideoContentContainer: React.FC<{ children: React.ReactNode }> = ({
   ) : (
     <View style={{ flex: 1 }}>{children}</View>
   );
+};
 
 export default function VideoScreen() {
   const router = useRouter();
@@ -90,15 +93,15 @@ export default function VideoScreen() {
   const [videoPosition, setVideoPosition] = React.useState(0);
   const playerRef = React.useRef<any>(null);
 
-  // Web layout: constrain content width and keep the player at 16:9.
-  const isWeb = Platform.OS === "web";
+  // Desktop-web layout: constrain content width and keep the player at 16:9.
+  const { isWeb, isDesktopWeb } = useResponsiveLayout();
   const windowWidth = useWindowDimensions().width;
   // Initial width accounts for the 224px sidebar; corrected on layout.
   const [playerWidth, setPlayerWidth] = React.useState(
-    isWeb ? windowWidth - 224 : 0,
+    isDesktopWeb ? windowWidth - 224 : 0,
   );
   const playerHeight =
-    isWeb && playerWidth > 0 ? Math.round((playerWidth * 9) / 16) : 300;
+    isDesktopWeb && playerWidth > 0 ? Math.round((playerWidth * 9) / 16) : 300;
 
   // Parse params
   const videoUrl = params.videoUrl || "";
@@ -395,10 +398,10 @@ export default function VideoScreen() {
 
         <VideoContentContainer>
           <View
-            className={isWeb ? "bg-neutral-900 overflow-hidden" : "flex-1 bg-neutral-900 overflow-hidden"}
+            className={isDesktopWeb ? "bg-neutral-900 overflow-hidden" : "flex-1 bg-neutral-900 overflow-hidden"}
             style={[
               shadows.lg,
-              isWeb
+              isDesktopWeb
                 ? {
                     width: "100%",
                     maxWidth: WEB_MAX_CONTENT_WIDTH,
@@ -407,16 +410,16 @@ export default function VideoScreen() {
                 : undefined,
             ]}
             onLayout={(e) => {
-              if (isWeb) {
+              if (isDesktopWeb) {
                 setPlayerWidth(e.nativeEvent.layout.width);
               }
             }}
           >
             {/* Video Player */}
-            <View className={isWeb ? "bg-black" : "flex-1 bg-black"}>
+            <View className={isDesktopWeb ? "bg-black" : "flex-1 bg-black"}>
               <View
                 className="relative"
-                style={isWeb ? { height: playerHeight } : undefined}
+                style={isDesktopWeb ? { height: playerHeight } : undefined}
               >
                 <YoutubePlayer
                   ref={playerRef}
@@ -484,7 +487,7 @@ export default function VideoScreen() {
               </View>
 
               {/* Custom Video Controls */}
-              <View className={isWeb ? "px-6 pb-8 bg-black" : "px-6 pb-24 bg-black"}>
+              <View className={isDesktopWeb ? "px-6 pb-8 bg-black" : "px-6 pb-24 bg-black"}>
                 {/* Progress Bar (hidden on web: YouTube iframe provides its own controls) */}
                 {!isWeb && (
                   <View className="mb-4">
@@ -550,7 +553,7 @@ export default function VideoScreen() {
                   onPress={switchToAudio}
                   disabled={audioLoading}
                   className={
-                    isWeb
+                    isDesktopWeb
                       ? "flex-row items-center justify-center self-center rounded-full px-8 py-3 active:opacity-80"
                       : "flex-row items-center justify-center rounded-2xl px-6 py-4 active:opacity-80"
                   }
@@ -559,7 +562,7 @@ export default function VideoScreen() {
                       backgroundColor: colors.accent.primary,
                       ...shadows.accent,
                     },
-                    isWeb ? { maxWidth: 360 } : undefined,
+                    isDesktopWeb ? { maxWidth: 360 } : undefined,
                   ]}
                   accessibilityLabel="Switch to audio mode"
                   accessibilityRole="button"

@@ -7,6 +7,7 @@ import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { HistoryItem, useHistory } from "@/hooks/useHistory";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
@@ -27,7 +28,6 @@ import {
   AccessibilityInfo,
   ActivityIndicator,
   Alert,
-  Platform,
   Pressable,
   RefreshControl,
   SectionList,
@@ -153,6 +153,7 @@ function SwipeableHistoryCard({
 
 export default function HistoryScreen() {
   const router = useRouter();
+  const { isDesktopWeb } = useResponsiveLayout();
 
   const sectionListRef = useRef<SectionList<HistoryItem, HistorySection>>(null);
 
@@ -734,7 +735,7 @@ export default function HistoryScreen() {
               keyExtractor={(item) => item.$id}
               showsVerticalScrollIndicator={false}
               style={
-                Platform.OS === "web"
+                isDesktopWeb
                   ? {
                       width: "100%",
                       maxWidth: WEB_HISTORY_MAX_WIDTH,
