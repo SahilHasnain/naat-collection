@@ -285,7 +285,8 @@
     "JKKQfXSYy6Y",
     "1qh5xCSRguY",
     "mZLcJGbQ4KQ",
-    "T_8LS8XeVys"
+    "T_8LS8XeVys",
+    "AYh8SEMNZoI"
   ],
   "failed": [
     {
@@ -297,13 +298,8 @@
       "youtubeId": "7p6F8WCGwcI",
       "error": "The requested file could not be found.",
       "time": "2026-09-25T06:30:12.619Z"
-    },
-    {
-      "youtubeId": "AYh8SEMNZoI",
-      "error": "fetch failed",
-      "time": "2026-09-27T08:01:56.653Z"
     }
   ],
-  "today": 0,
-  "lastDate": "2026-09-27"
+  "today": 1,
+  "lastDate": "2026-09-28"
 }

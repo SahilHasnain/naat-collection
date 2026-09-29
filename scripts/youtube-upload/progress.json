@@ -137,7 +137,9 @@
     "QJW7dECEjTw",
     "WiVwYZeU_aY",
     "PBdw3dwfs70",
-    "n7uv208GZi0"
+    "n7uv208GZi0",
+    "REFwFrRwhZ4",
+    "HcwARQbsSPw"
   ],
   "failed": [
     {
@@ -149,13 +151,8 @@
       "youtubeId": "8B05n9yB8Vo",
       "error": "The requested file could not be found.",
       "time": "2026-09-25T06:30:08.546Z"
-    },
-    {
-      "youtubeId": "REFwFrRwhZ4",
-      "error": "fetch failed",
-      "time": "2026-09-27T08:01:51.232Z"
     }
   ],
-  "today": 0,
-  "lastDate": "2026-09-27"
+  "today": 1,
+  "lastDate": "2026-09-29"
 }
