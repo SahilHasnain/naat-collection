@@ -1,5 +1,6 @@
 import { colors, shadows } from "@/constants/theme";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { audioDownloadService } from "@/services/audioDownload";
 import { appwriteService } from "@/services/appwrite";
 import { shareService } from "@/services/shareService";
@@ -11,6 +12,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   StatusBar,
   StyleSheet,
   Text,
@@ -32,17 +34,47 @@ const formatTime = (millis: number): string => {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 };
 
+interface WebVolumeSliderProps {
+  value: number;
+  onChange: (value: number) => void;
+}
+
+const WebVolumeSlider: React.FC<WebVolumeSliderProps> = ({ value, onChange }) => {
+  if (Platform.OS !== "web") return null;
+
+  return React.createElement("input", {
+    type: "range",
+    min: 0,
+    max: 1,
+    step: 0.01,
+    value,
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+      onChange(Number(event.currentTarget.value));
+    },
+    "aria-label": "Volume",
+    style: {
+      accentColor: colors.accent.primary,
+      cursor: "pointer",
+      height: 150,
+      writingMode: "vertical-lr",
+      direction: "rtl",
+    },
+  });
+};
+
 const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   onSwitchToVideo,
   topInset = 0,
   bottomInset = 0,
 }) => {
+  const { isDesktopWeb, isWeb } = useResponsiveLayout();
   const {
     currentAudio,
     isPlaying,
     isLoading,
     position,
     duration,
+    volume,
     isRepeatEnabled,
     isAutoplayEnabled,
     abRepeatPointA,
@@ -50,6 +82,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     isABRepeatActive,
     togglePlayPause,
     seek,
+    setVolume,
     toggleRepeat,
     toggleAutoplay,
     setABRepeatPointA,
@@ -601,6 +634,29 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     />
                   </TouchableOpacity>
                 </View>
+
+                {isWeb && !isDesktopWeb && (
+                  <View style={styles.volumeControl}>
+                    <Ionicons
+                      name={volume > 0 ? "volume-high" : "volume-mute"}
+                      size={18}
+                      color={colors.text.secondary}
+                    />
+                    <Slider
+                      style={styles.volumeSlider}
+                      minimumValue={0}
+                      maximumValue={1}
+                      value={volume}
+                      onValueChange={(nextVolume) => {
+                        void setVolume(nextVolume);
+                      }}
+                      minimumTrackTintColor={colors.accent.primary}
+                      maximumTrackTintColor={colors.background.elevated}
+                      thumbTintColor={colors.accent.primary}
+                      accessibilityLabel="Volume"
+                    />
+                  </View>
+                )}
               </View>
 
               {isABRepeatMode && !bothPointsSet && (
@@ -714,6 +770,24 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                         : "Export A/B Audio"}
                   </Text>
                 </TouchableOpacity>
+              )}
+
+              {isDesktopWeb && (
+                <View style={styles.desktopVolumeControl}>
+                  <Ionicons
+                    name={volume > 0 ? "volume-high" : "volume-mute"}
+                    size={18}
+                    color={colors.text.secondary}
+                  />
+                  <View style={styles.desktopVolumeSliderFrame}>
+                    <WebVolumeSlider
+                      value={volume}
+                      onChange={(nextVolume) => {
+                        void setVolume(nextVolume);
+                      }}
+                    />
+                  </View>
+                </View>
               )}
             </View>
           )}
@@ -846,6 +920,33 @@ const styles = StyleSheet.create({
   },
   controlsArea: {
     paddingBottom: 8,
+  },
+  volumeControl: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 16,
+    paddingHorizontal: 8,
+  },
+  volumeSlider: {
+    flex: 1,
+    height: 32,
+  },
+  desktopVolumeControl: {
+    position: "absolute",
+    top: 0,
+    right: 8,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    zIndex: 2,
+  },
+  desktopVolumeSliderFrame: {
+    width: 32,
+    height: 150,
+    alignItems: "center",
+    justifyContent: "center",
   },
   slider: {
     width: "100%",
