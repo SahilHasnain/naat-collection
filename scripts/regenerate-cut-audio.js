@@ -299,8 +299,8 @@ async function processNaat(naat, index, total) {
 
   if (testMode) {
     const action = naat.audioId
-      ? `reuse existing audioId ${naat.audioId}, delete stale jobs, reset flags`
-      : `download ${naat.youtubeId} from YouTube, upload, delete stale jobs, reset flags`;
+      ? `stage existing audioId ${naat.audioId}, delete stale jobs`
+      : `download ${naat.youtubeId} from YouTube, upload as pending source, delete stale jobs`;
     log("INFO", `  Test mode: would ${action}`);
     return { success: true, naatId: naat.$id, test: true };
   }
@@ -312,21 +312,15 @@ async function processNaat(naat, index, total) {
       const deletedJobs = await deleteStaleJobs(naat.$id);
       console.log(`    Removed ${deletedJobs} stale job(s)`);
 
-      await deleteOldCutFile(
-        naat.cutAudio && naat.cutAudio !== naat.audioId ? naat.cutAudio : null,
-        naat.$id
-      );
-
       await databases.updateDocument(DATABASE_ID, NAATS_COLLECTION_ID, naat.$id, {
-        audioId: naat.audioId,
-        isAiCut: false,
-        cutSegments: null,
-        cutStatus: null,
-        cutAudio: null,
-        cutDuration: null,
-        cutModelVersion: null,
+        pendingSourceAudioId: naat.audioId,
+        pendingCutSegments: null,
+        pendingCutAudio: null,
+        pendingCutDuration: null,
+        pendingCutStatus: null,
+        pendingCutModelVersion: MODEL_VERSION,
       });
-      console.log("  Reset AI-cut flags; naat will be re-queued by cron");
+      console.log("  Staged source audio; current Pure remains live");
     } catch (error) {
       log("ERROR", `  Error: ${error.message}`);
       return { success: false, naatId: naat.$id, error: error.message };
@@ -351,18 +345,15 @@ async function processNaat(naat, index, total) {
     const deletedJobs = await deleteStaleJobs(naat.$id);
     console.log(`  Removed ${deletedJobs} stale job(s)`);
 
-    await deleteOldCutFile(naat.cutAudio, naat.$id);
-
     await databases.updateDocument(DATABASE_ID, NAATS_COLLECTION_ID, naat.$id, {
-      audioId: audioFileId,
-      isAiCut: false,
-      cutSegments: null,
-      cutStatus: null,
-      cutAudio: null,
-      cutDuration: null,
-      cutModelVersion: null,
+      pendingSourceAudioId: audioFileId,
+      pendingCutSegments: null,
+      pendingCutAudio: null,
+      pendingCutDuration: null,
+      pendingCutStatus: null,
+      pendingCutModelVersion: MODEL_VERSION,
     });
-    console.log("  Reset AI-cut flags; naat will be re-queued by cron");
+    console.log("  Staged new source audio; current Pure remains live");
 
     log("INFO", "  Success");
     return { success: true, naatId: naat.$id, newAudio: true };
@@ -396,6 +387,7 @@ async function fetchOldModelAiCutNaats(userLimit = null) {
 
     const batch = response.documents
       .filter((naat) => (naat.cutModelVersion || null) !== MODEL_VERSION)
+      .filter((naat) => (naat.pendingCutModelVersion || null) !== MODEL_VERSION)
       .filter((naat) => !naat.exclude);
 
     allNaats.push(...batch);

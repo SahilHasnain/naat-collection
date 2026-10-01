@@ -31,8 +31,17 @@ interface Segment {
 interface NaatDoc {
   $id: string;
   title?: string;
-  audioId: string;
-  cutSegments: string;
+  audioId?: string | null;
+  cutAudio?: string | null;
+  cutSegments?: string | null;
+  cutStatus?: string | null;
+  cutModelVersion?: string | null;
+  pendingSourceAudioId?: string | null;
+  pendingCutSegments?: string | null;
+  pendingCutAudio?: string | null;
+  pendingCutDuration?: number | null;
+  pendingCutStatus?: string | null;
+  pendingCutModelVersion?: string | null;
 }
 
 type LogFn = (msg: string) => void;
@@ -128,6 +137,52 @@ function cutAudio(inputPath: string, keepSegments: Segment[], outputPath: string
   });
 }
 
+async function deleteFileIfPresent(storage: Storage, fileId: string, log: LogFn) {
+  try {
+    await storage.deleteFile(AUDIO_BUCKET, fileId);
+    log(`  Deleted replaced cut audio ${fileId}`);
+  } catch (err) {
+    const code = (err as { code?: number })?.code;
+    if (code !== 404) throw err;
+    log(`  Replaced cut audio ${fileId} was already missing`);
+  }
+}
+
+async function promoteStagedCut(
+  naat: NaatDoc,
+  storage: Storage,
+  databases: Databases,
+  databaseId: string,
+  collectionId: string,
+  log: LogFn,
+) {
+  if (!naat.pendingSourceAudioId || !naat.pendingCutAudio) return false;
+
+  await databases.updateDocument(databaseId, collectionId, naat.$id, {
+    audioId: naat.pendingSourceAudioId,
+    cutAudio: naat.pendingCutAudio,
+    cutSegments: naat.pendingCutSegments || JSON.stringify([]),
+    cutDuration: naat.pendingCutDuration,
+    cutStatus: "done",
+    cutModelVersion: naat.pendingCutModelVersion,
+    pendingSourceAudioId: null,
+    pendingCutSegments: null,
+    pendingCutAudio: null,
+    pendingCutDuration: null,
+    pendingCutStatus: null,
+    pendingCutModelVersion: null,
+  });
+
+  if (
+    naat.cutAudio &&
+    naat.cutAudio !== naat.pendingSourceAudioId &&
+    naat.cutAudio !== naat.pendingCutAudio
+  ) {
+    await deleteFileIfPresent(storage, naat.cutAudio, log);
+  }
+  return true;
+}
+
 async function processNaat(
   naat: NaatDoc,
   storage: Storage,
@@ -140,20 +195,34 @@ async function processNaat(
   const naatId = naat.$id;
   const inputPath = join(tmpDir, `${naatId}_original.mp4`);
   const outputPath = join(tmpDir, `${naatId}_cut.mp4`);
+  const staged = Boolean(naat.pendingSourceAudioId);
+  const sourceAudioId = staged ? naat.pendingSourceAudioId : naat.audioId;
+  const oldCutAudio = naat.cutAudio;
 
-  // Mark as processing immediately
-  await databases.updateDocument(databaseId, collectionId, naatId, {
-    cutStatus: "processing",
-  });
+  if (!sourceAudioId) {
+    log(`  Skipping ${naatId}: no source audio available`);
+    return false;
+  }
+
+  await databases.updateDocument(databaseId, collectionId, naatId,
+    staged ? { pendingCutStatus: "processing" } : { cutStatus: "processing" });
 
   try {
+    if (staged && naat.pendingCutAudio) {
+      await promoteStagedCut(naat, storage, databases, databaseId, collectionId, log);
+      log(`  ${naatId}: promoted previously uploaded staged cut`);
+      return true;
+    }
+
     let cutSegments: Segment[];
     try {
-      cutSegments = JSON.parse(naat.cutSegments);
+      cutSegments = JSON.parse(
+        staged ? naat.pendingCutSegments || "[]" : naat.cutSegments || "[]",
+      );
     } catch {
       log(`  Skipping ${naatId}: invalid cutSegments JSON`);
       await databases.updateDocument(databaseId, collectionId, naatId, {
-        cutStatus: "failed",
+        ...(staged ? { pendingCutStatus: "failed" } : { cutStatus: "failed" }),
       });
       return false;
     }
@@ -161,21 +230,47 @@ async function processNaat(
     if (!Array.isArray(cutSegments) || cutSegments.length === 0) {
       // No cuts — download to get duration, then link original
       log(`  Downloading audio for ${naat.title || naatId} (no cuts)...`);
-      const audioBuffer = await storage.getFileDownload(AUDIO_BUCKET, naat.audioId);
+      const audioBuffer = await storage.getFileDownload(AUDIO_BUCKET, sourceAudioId);
       writeFileSync(inputPath, Buffer.from(audioBuffer));
       const originalDuration = await getAudioDuration(inputPath);
 
-      await databases.updateDocument(databaseId, collectionId, naatId, {
-        cutAudio: naat.audioId,
-        cutDuration: Math.floor(originalDuration),
-        cutStatus: "done",
-      });
-      log(`  ${naatId}: no cuts needed, linked original audio (${Math.floor(originalDuration)}s)`);
+      const duration = Math.floor(originalDuration);
+      if (staged) {
+        await databases.updateDocument(databaseId, collectionId, naatId, {
+          pendingCutAudio: sourceAudioId,
+          pendingCutDuration: duration,
+          pendingCutStatus: "ready",
+        });
+        await databases.updateDocument(databaseId, collectionId, naatId, {
+          audioId: sourceAudioId,
+          cutAudio: sourceAudioId,
+          cutSegments: JSON.stringify([]),
+          cutDuration: duration,
+          cutStatus: "done",
+          cutModelVersion: naat.pendingCutModelVersion,
+          pendingSourceAudioId: null,
+          pendingCutSegments: null,
+          pendingCutAudio: null,
+          pendingCutDuration: null,
+          pendingCutStatus: null,
+          pendingCutModelVersion: null,
+        });
+        if (oldCutAudio && oldCutAudio !== sourceAudioId) {
+          await deleteFileIfPresent(storage, oldCutAudio, log);
+        }
+      } else {
+        await databases.updateDocument(databaseId, collectionId, naatId, {
+          cutAudio: sourceAudioId,
+          cutDuration: duration,
+          cutStatus: "done",
+        });
+      }
+      log(`  ${naatId}: no cuts needed, linked original audio (${duration}s)`);
       return true;
     }
 
     log(`  Downloading audio for ${naat.title || naatId}...`);
-    const audioBuffer = await storage.getFileDownload(AUDIO_BUCKET, naat.audioId);
+    const audioBuffer = await storage.getFileDownload(AUDIO_BUCKET, sourceAudioId);
     writeFileSync(inputPath, Buffer.from(audioBuffer));
 
     const duration = await getAudioDuration(inputPath);
@@ -184,7 +279,7 @@ async function processNaat(
     if (keepSegments.length === 0) {
       log(`  ${naatId}: no audio would remain after cuts`);
       await databases.updateDocument(databaseId, collectionId, naatId, {
-        cutStatus: "failed",
+        ...(staged ? { pendingCutStatus: "failed" } : { cutStatus: "failed" }),
       });
       return false;
     }
@@ -204,17 +299,42 @@ async function processNaat(
       [Permission.read(Role.any())],
     );
 
-    await databases.updateDocument(databaseId, collectionId, naatId, {
-      cutAudio: file.$id,
-      cutDuration,
-      cutStatus: "done",
-    });
+    if (staged) {
+      await databases.updateDocument(databaseId, collectionId, naatId, {
+        pendingCutAudio: file.$id,
+        pendingCutDuration: cutDuration,
+        pendingCutStatus: "ready",
+      });
+      await databases.updateDocument(databaseId, collectionId, naatId, {
+        audioId: sourceAudioId,
+        cutAudio: file.$id,
+        cutSegments: naat.pendingCutSegments,
+        cutDuration,
+        cutStatus: "done",
+        cutModelVersion: naat.pendingCutModelVersion,
+        pendingSourceAudioId: null,
+        pendingCutSegments: null,
+        pendingCutAudio: null,
+        pendingCutDuration: null,
+        pendingCutStatus: null,
+        pendingCutModelVersion: null,
+      });
+      if (oldCutAudio && oldCutAudio !== sourceAudioId && oldCutAudio !== file.$id) {
+        await deleteFileIfPresent(storage, oldCutAudio, log);
+      }
+    } else {
+      await databases.updateDocument(databaseId, collectionId, naatId, {
+        cutAudio: file.$id,
+        cutDuration,
+        cutStatus: "done",
+      });
+    }
 
     log(`  ✅ ${naatId}: cut audio saved as ${file.$id}`);
     return true;
   } catch (err) {
     await databases.updateDocument(databaseId, collectionId, naatId, {
-      cutStatus: "failed",
+      ...(staged ? { pendingCutStatus: "failed" } : { cutStatus: "failed" }),
     });
     throw err;
   } finally {
@@ -257,7 +377,19 @@ export default async ({ res, log, error: logError }: AppwriteContext) => {
       Query.limit(BATCH_SIZE),
     ]);
 
-    const naats = response.documents as unknown as NaatDoc[];
+    const stagedResponse = await databases.listDocuments(databaseId, collectionId, [
+      Query.isNotNull("pendingCutSegments"),
+      Query.isNotNull("pendingSourceAudioId"),
+      Query.or([
+        Query.isNull("pendingCutAudio"),
+        Query.equal("pendingCutStatus", ["failed", "ready"]),
+      ]),
+      Query.limit(BATCH_SIZE),
+    ]);
+
+    const naats = [...response.documents, ...stagedResponse.documents]
+      .filter((naat, index, all) => all.findIndex((item) => item.$id === naat.$id) === index)
+      .slice(0, BATCH_SIZE) as unknown as NaatDoc[];
     log(`Found ${naats.length} naats to process`);
 
     if (naats.length === 0) {

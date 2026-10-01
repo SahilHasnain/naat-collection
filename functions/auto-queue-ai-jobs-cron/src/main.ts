@@ -11,6 +11,9 @@ interface NaatDoc {
   exclude?: boolean;
   isAiCut?: boolean;
   cutSegments?: string | null;
+  pendingSourceAudioId?: string | null;
+  pendingCutSegments?: string | null;
+  pendingCutStatus?: string | null;
 }
 
 interface AppwriteContext {
@@ -64,7 +67,22 @@ async function fetchEligibleCandidates(
       Query.or([Query.equal("exclude", false), Query.isNull("exclude")]),
     ]);
 
-    const page = response.documents as unknown as NaatDoc[];
+    const stagedResponse = await databases.listDocuments(databaseId, naatsCollectionId, [
+      Query.limit(PAGE_SIZE),
+      Query.offset(offset),
+      Query.orderDesc("views"),
+      Query.isNotNull("pendingSourceAudioId"),
+      Query.isNull("pendingCutSegments"),
+      Query.or([
+        Query.isNull("pendingCutStatus"),
+        Query.equal("pendingCutStatus", "failed"),
+      ]),
+      Query.or([Query.equal("exclude", false), Query.isNull("exclude")]),
+    ]);
+
+    const page = [...response.documents, ...stagedResponse.documents].filter(
+      (naat, index, all) => all.findIndex((item) => item.$id === naat.$id) === index,
+    ) as unknown as NaatDoc[];
     if (page.length === 0) break;
 
     const naatIds = page.map((naat) => naat.$id);
@@ -126,12 +144,13 @@ export default async ({ req, res, log, error }: AppwriteContext) => {
     const queuedIds: string[] = [];
 
     for (const naat of candidates) {
-      if (!naat.audioId) continue;
+      const audioId = naat.pendingSourceAudioId || naat.audioId;
+      if (!audioId) continue;
 
       await databases.createDocument(databaseId, jobsCollectionId, ID.unique(), {
         type: "manual-cut-detect",
         naatId: naat.$id,
-        audioId: naat.audioId,
+        audioId,
         status: "pending",
         progress: 0,
         attempts: 0,

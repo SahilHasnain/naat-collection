@@ -81,4 +81,36 @@ async function addCutModelVersionAttribute() {
   }
 }
 
-addCutModelVersionAttribute().catch(console.error);
+async function addStagedCutAttributes() {
+  const databaseId = process.env.APPWRITE_DATABASE_ID || process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID;
+  const collectionId = process.env.APPWRITE_NAATS_COLLECTION_ID || process.env.EXPO_PUBLIC_APPWRITE_NAATS_COLLECTION_ID;
+  const attributes = [
+    ["pendingSourceAudioId", "string", 255],
+    ["pendingCutSegments", "string", 5000],
+    ["pendingCutAudio", "string", 255],
+    ["pendingCutStatus", "string", 50],
+    ["pendingCutModelVersion", "string", 100],
+    ["pendingCutDuration", "integer"],
+  ];
+
+  for (const [key, type, size] of attributes) {
+    try {
+      if (type === "integer") {
+        await databases.createIntegerAttribute(databaseId, collectionId, key, false, 0);
+      } else {
+        await databases.createStringAttribute(databaseId, collectionId, key, size, false);
+      }
+      console.log(`✅ Created ${key}`);
+    } catch (error) {
+      if (error.code === 409) console.log(`ℹ️  Attribute '${key}' already exists`);
+      else throw error;
+    }
+  }
+}
+
+addCutModelVersionAttribute()
+  .then(addStagedCutAttributes)
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });

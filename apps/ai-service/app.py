@@ -123,18 +123,37 @@ def update_naat_cut_segments(naat_id, result):
         if segment["start"] < segment["end"]
     ]
 
-    return appwrite_databases.update_document(
+    naat = appwrite_databases.get_document(
         APPWRITE_DATABASE_ID,
         APPWRITE_NAATS_COLLECTION_ID,
         naat_id,
-        {
-            "isAiCut": True,
+    )
+    staged = bool(naat.get("pendingSourceAudioId"))
+    payload = {
+        "isAiCut": True,
+    }
+    if staged:
+        payload.update({
+            "pendingCutSegments": json.dumps(cut_segments),
+            "pendingCutStatus": None,
+            "pendingCutAudio": None,
+            "pendingCutDuration": None,
+            "pendingCutModelVersion": audio_classifier.revision,
+        })
+    else:
+        payload.update({
             "cutSegments": json.dumps(cut_segments),
             "cutStatus": None,
             "cutAudio": None,
             "cutDuration": None,
             "cutModelVersion": audio_classifier.revision,
-        },
+        })
+
+    return appwrite_databases.update_document(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_NAATS_COLLECTION_ID,
+        naat_id,
+        payload,
     )
 
 def claim_next_job():
@@ -298,6 +317,26 @@ def process_job(job):
             logger.info(f"[worker] Job {job_id} stopped by admin")
             return
         logger.error(f"[worker] Job {job_id} failed: {exc}", exc_info=True)
+        try:
+            failed_job = get_job(job_id)
+            failed_naat = failed_job.get("naatId")
+            if failed_naat:
+                failed_doc = appwrite_databases.get_document(
+                    APPWRITE_DATABASE_ID,
+                    APPWRITE_NAATS_COLLECTION_ID,
+                    failed_naat,
+                )
+            else:
+                failed_doc = {}
+            if failed_naat and failed_doc.get("pendingSourceAudioId"):
+                appwrite_databases.update_document(
+                    APPWRITE_DATABASE_ID,
+                    APPWRITE_NAATS_COLLECTION_ID,
+                    failed_naat,
+                    {"pendingCutStatus": "failed"},
+                )
+        except Exception:
+            logger.exception("[worker] Failed to mark staged cut as failed")
         update_job(job_id, {
             "status": "failed",
             "progress": 100,
