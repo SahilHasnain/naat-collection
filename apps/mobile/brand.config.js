@@ -20,6 +20,7 @@ module.exports = {
     packageIdDev: "com.owaisrazaqadri.dev",
     packageIdPreview: "com.owaisrazaqadri.preview",
     versionCode: 30,
+    adaptiveIconBackgroundColor: "#160B3A",
     // Deep-link host for universal links (used in intent filters + associatedDomains)
     applinksHost: "owaisrazaqadri.appwrite.network",
   },
