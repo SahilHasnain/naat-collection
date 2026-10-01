@@ -23,6 +23,7 @@ interface NaatDoc {
   title?: string;
   audioId?: string | null;
   cutAudio?: string | null;
+  pendingSourceAudioId?: string | null;
 }
 
 interface AppwriteContext {
@@ -66,6 +67,7 @@ export default async ({ res, log, error: logError }: AppwriteContext) => {
       const response = await databases.listDocuments(databaseId, naatsCollectionId, [
         Query.isNotNull("cutAudio"),
         Query.isNotNull("audioId"),
+        Query.isNull("pendingSourceAudioId"),
         Query.limit(PAGE_SIZE),
         Query.offset(offset),
       ]);
