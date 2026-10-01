@@ -4,13 +4,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, StyleSheet, Text, View } from "react-native";
 import Animated, {
   SharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Pressable from "./ResponsivePressable";
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const brand = require("../brand.config.js");
+const NATIVE_APP_URL = `https://play.google.com/store/apps/details?id=${brand.app.packageId}`;
 
 interface AnimatedTabBarProps extends BottomTabBarProps {
   translateY: SharedValue<number>;
@@ -256,6 +260,20 @@ export function AnimatedTabBar({
             <Ionicons name="person-outline" size={18} color={colors.text.primary} />
             <Text style={styles.libraryItemText}>Profile</Text>
           </Pressable>
+          {!isDesktopWeb && Platform.OS === "web" && (
+            <Pressable
+              onPress={() => {
+                setLibraryOpen(false);
+                void Linking.openURL(NATIVE_APP_URL);
+              }}
+              style={styles.libraryItem}
+              accessibilityRole="button"
+              accessibilityLabel="Install app"
+            >
+              <Ionicons name="download-outline" size={18} color={colors.text.primary} />
+              <Text style={styles.libraryItemText}>Install App</Text>
+            </Pressable>
+          )}
         </View>
       )}
       <AuthModal
