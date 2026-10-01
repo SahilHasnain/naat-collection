@@ -6,8 +6,10 @@ import { colors } from "@/constants/theme";
 import { useFilterModal } from "@/contexts/FilterModalContext";
 import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated";
 import { useResponsiveColumns } from "@/hooks/useResponsiveColumns";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
+import { useFavorites } from "@/hooks/useFavorites";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { storageService } from "@/services/storage";
 import { userProfileService } from "@/services/userProfile";
@@ -41,6 +43,7 @@ function shuffleAndPick(naats: Naat[], count: number): Naat[] {
 
 export default function BestScreen() {
   const { columns: NUM_COLUMNS, maxContentWidth } = useResponsiveColumns();
+  const { isDesktopWeb } = useResponsiveLayout();
   const flatListRef = useRef<FlatList>(null);
   const [naats, setNaats] = useState<Naat[]>([]);
   const [loading, setLoading] = useState(false);
@@ -58,6 +61,7 @@ export default function BestScreen() {
   const { setShowFilterModal } = useFilterModal();
 
   const { downloadStates, handleDownload } = useDownloadManager(naats);
+  const { isFavorite, toggleFavorite } = useFavorites();
   const { handleNaatPress, playAsAudio, playAsVideo } = useNaatPlayback(naats);
 
   const loadBest = useCallback(async () => {
@@ -174,6 +178,13 @@ export default function BestScreen() {
     selectedNaat,
   ]);
 
+  const handleToggleFavorite = useCallback(() => {
+    if (!selectedNaat) return;
+    const naatId = selectedNaat.$id;
+    closeActionSheet();
+    void toggleFavorite(naatId);
+  }, [closeActionSheet, selectedNaat, toggleFavorite]);
+
   const renderNaatCard = React.useCallback<ListRenderItem<Naat>>(
     ({ item, index }) => {
       const ds = downloadStates[item.$id];
@@ -287,7 +298,7 @@ export default function BestScreen() {
           }
           contentContainerStyle={{
             flexGrow: 1,
-            paddingTop: 100,
+            paddingTop: isDesktopWeb ? 72 : 100,
             paddingBottom: 120,
           }}
           ListEmptyComponent={renderEmptyState}
@@ -323,6 +334,8 @@ export default function BestScreen() {
         savedPlaybackMode={savedPlaybackMode}
         onClose={closeActionSheet}
         onDownload={handleDownloadFromSheet}
+        isFavorite={selectedNaat ? isFavorite(selectedNaat.$id) : false}
+        onToggleFavorite={handleToggleFavorite}
         onAlternatePlay={handleAlternatePlay}
         onNotForYou={handleNotForYou}
         isDownloaded={selectedNaat ? downloadStates[selectedNaat.$id]?.isDownloaded : false}

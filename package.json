@@ -47,7 +47,8 @@
     "ssh:build": "ssh Sahilhasnain@98.70.32.91",
     "ssh:radio": "ssh root@168.144.23.181",
     "bump": "node scripts/bump-version.js",
-    "bump:dry": "node scripts/bump-version.js --dry"
+    "bump:dry": "node scripts/bump-version.js --dry",
+    "lint": "expo lint"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.39.0",

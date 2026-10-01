@@ -4,14 +4,13 @@ import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { audioDownloadService } from "@/services/audioDownload";
 import { appwriteService } from "@/services/appwrite";
 import { shareService } from "@/services/shareService";
-import { showErrorToast, showSuccessToast } from "@/utils";
+import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { Image } from "expo-image";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   StatusBar,
   StyleSheet,
@@ -22,6 +21,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface FullPlayerModalProps {
+  onBack?: () => void;
+  naatId?: string;
+  isFavorite?: boolean;
+  onFavoritePress?: () => void;
   onSwitchToVideo?: () => void;
   topInset?: number;
   bottomInset?: number;
@@ -63,6 +66,10 @@ const WebVolumeSlider: React.FC<WebVolumeSliderProps> = ({ value, onChange }) =>
 };
 
 const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
+  onBack,
+  naatId,
+  isFavorite = false,
+  onFavoritePress,
   onSwitchToVideo,
   topInset = 0,
   bottomInset = 0,
@@ -94,6 +101,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [isABRepeatMode, setIsABRepeatMode] = useState(false);
   const [isExportingAB, setIsExportingAB] = useState(false);
   const [hasExportedAB, setHasExportedAB] = useState(false);
@@ -151,30 +159,24 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     }
   };
 
-  const handleDeleteDownload = async () => {
+  const handleDeleteDownload = () => {
     if (!currentAudio?.audioId) return;
 
-    Alert.alert(
-      "Delete Download",
-      "Are you sure you want to delete this downloaded audio?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await audioDownloadService.deleteAudio(currentAudio.audioId!);
-              setIsDownloaded(false);
-              showSuccessToast("Download deleted successfully");
-            } catch (error) {
-              console.error("Failed to delete download:", error);
-              showErrorToast("Failed to delete download");
-            }
-          },
-        },
-      ],
-    );
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmDeleteDownload = async () => {
+    if (!currentAudio?.audioId) return;
+
+    setShowDeleteConfirmation(false);
+    try {
+      await audioDownloadService.deleteAudio(currentAudio.audioId);
+      setIsDownloaded(false);
+      showSuccessToast("Download deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete download:", error);
+      showErrorToast("Failed to delete download");
+    }
   };
 
   const seekBackward = () => {
@@ -285,37 +287,110 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
             paddingBottom: bottomInset,
           }}
         >
-          <View style={styles.header}>
-            {currentAudio.youtubeId && onSwitchToVideo ? (
+          {isDesktopWeb ? (
+            <View
+              style={[
+                styles.header,
+                styles.headerDesktopWeb,
+                styles.headerDesktopWebPosition,
+              ]}
+            >
               <TouchableOpacity
-                onPress={onSwitchToVideo}
+                onPress={onBack}
                 style={styles.headerButton}
                 accessibilityRole="button"
-                accessibilityLabel="Switch to video"
+                accessibilityLabel="Go back"
               >
                 <Ionicons
-                  name="videocam"
+                  name="chevron-back"
+                  size={24}
+                  color={colors.text.secondary}
+                />
+              </TouchableOpacity>
+
+              <View style={styles.headerActions}>
+                {naatId && onFavoritePress && (
+                  <TouchableOpacity
+                    onPress={onFavoritePress}
+                    style={styles.headerButton}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      isFavorite ? "Remove from favorites" : "Add to favorites"
+                    }
+                  >
+                    <Ionicons
+                      name={isFavorite ? "heart" : "heart-outline"}
+                      size={22}
+                      color={
+                        isFavorite
+                          ? colors.accent.error
+                          : colors.text.secondary
+                      }
+                    />
+                  </TouchableOpacity>
+                )}
+                {currentAudio.youtubeId && onSwitchToVideo && (
+                  <TouchableOpacity
+                    onPress={onSwitchToVideo}
+                    style={styles.headerButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Switch to video"
+                  >
+                    <Ionicons
+                      name="videocam"
+                      size={22}
+                      color={colors.text.secondary}
+                    />
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  onPress={() => setShowOptionsMenu(!showOptionsMenu)}
+                  style={styles.headerButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Options menu"
+                >
+                  <Ionicons
+                    name="ellipsis-horizontal"
+                    size={22}
+                    color={colors.text.secondary}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.header}>
+              {currentAudio.youtubeId && onSwitchToVideo ? (
+                <TouchableOpacity
+                  onPress={onSwitchToVideo}
+                  style={styles.headerButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Switch to video"
+                >
+                  <Ionicons
+                    name="videocam"
+                    size={22}
+                    color={colors.text.secondary}
+                  />
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.headerButton} />
+              )}
+
+              <TouchableOpacity
+                onPress={() => setShowOptionsMenu(!showOptionsMenu)}
+                style={styles.headerButton}
+                accessibilityRole="button"
+                accessibilityLabel="Options menu"
+              >
+                <Ionicons
+                  name="ellipsis-horizontal"
                   size={22}
                   color={colors.text.secondary}
                 />
               </TouchableOpacity>
-            ) : (
-              <View style={styles.headerButton} />
-            )}
-
-            <TouchableOpacity
-              onPress={() => setShowOptionsMenu(!showOptionsMenu)}
-              style={styles.headerButton}
-              accessibilityRole="button"
-              accessibilityLabel="Options menu"
-            >
-              <Ionicons
-                name="ellipsis-horizontal"
-                size={22}
-                color={colors.text.secondary}
-              />
-            </TouchableOpacity>
-          </View>
+            </View>
+          )}
 
           {showOptionsMenu && (
             <>
@@ -335,10 +410,8 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       if (isDownloaded) {
                         handleDeleteDownload();
                       } else if (isDownloading) {
-                        Alert.alert(
-                          "Download in Progress",
+                        showInfoToast(
                           `Downloading... ${Math.round(downloadProgress * 100)}%`,
-                          [{ text: "OK" }],
                         );
                       } else {
                         handleDownload();
@@ -515,6 +588,40 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 </TouchableOpacity>
               </View>
             </>
+          )}
+
+          {showDeleteConfirmation && (
+            <View style={styles.confirmationOverlay}>
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={() => setShowDeleteConfirmation(false)}
+                style={StyleSheet.absoluteFill}
+                accessibilityRole="button"
+                accessibilityLabel="Close delete confirmation"
+              />
+              <View style={styles.confirmationCard}>
+                <Text style={styles.confirmationTitle}>Delete Download?</Text>
+                <Text style={styles.confirmationMessage}>
+                  Are you sure you want to delete this downloaded audio?
+                </Text>
+                <View style={styles.confirmationActions}>
+                  <TouchableOpacity
+                    onPress={() => setShowDeleteConfirmation(false)}
+                    style={styles.confirmationCancelButton}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.confirmationCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => void confirmDeleteDownload()}
+                    style={styles.confirmationDeleteButton}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.confirmationDeleteText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           )}
 
           {isLoading ? (
@@ -809,6 +916,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
+  headerDesktopWeb: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    justifyContent: "space-between",
+  },
+  headerDesktopWebPosition: {
+    top: 0,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   headerButton: {
     alignItems: "center",
     justifyContent: "center",
@@ -830,6 +952,61 @@ const styles = StyleSheet.create({
     minWidth: 220,
     backgroundColor: colors.background.secondary,
     ...shadows.lg,
+  },
+  confirmationOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 60,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    paddingHorizontal: 24,
+  },
+  confirmationCard: {
+    width: "100%",
+    maxWidth: 360,
+    borderRadius: 16,
+    padding: 24,
+    backgroundColor: colors.background.secondary,
+    ...shadows.lg,
+  },
+  confirmationTitle: {
+    color: colors.text.primary,
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  confirmationMessage: {
+    marginTop: 8,
+    color: colors.text.secondary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  confirmationActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+    marginTop: 24,
+  },
+  confirmationCancelButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: colors.background.tertiary,
+  },
+  confirmationCancelText: {
+    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  confirmationDeleteButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: colors.accent.error,
+  },
+  confirmationDeleteText: {
+    color: colors.background.primary,
+    fontSize: 14,
+    fontWeight: "700",
   },
   menuItem: {
     flexDirection: "row",

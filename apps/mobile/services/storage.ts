@@ -12,6 +12,9 @@ const STORAGE_KEYS = {
   PLAYBACK_MODE: "@naat_playback_mode",
   WATCH_HISTORY: "@naat_watch_history",
   WATCH_HISTORY_TIMESTAMPS: "@naat_watch_history_timestamps",
+  FAVORITE_NAAT_IDS: "@naat_favorite_ids",
+  FAVORITE_SYNC_QUEUE: "@naat_favorite_sync_queue",
+  DEVICE_ID: "@naat_device_id",
   FOR_YOU_SESSION: "@naat_for_you_session",
 } as const;
 
@@ -24,6 +27,13 @@ const MAX_RECENT_POSITIONS = 10;
  * Maximum number of watch history items to maintain
  */
 const MAX_WATCH_HISTORY = 100;
+
+export interface FavoriteSyncEvent {
+  naatId: string;
+  isFavorite: boolean;
+  clientUpdatedAt: string;
+  deviceId: string;
+}
 
 /**
  * Service for managing local storage operations
@@ -91,6 +101,99 @@ export class StorageService implements IStorageService {
         true
       );
     }
+  }
+
+  async getFavoriteNaatIds(): Promise<string[]> {
+    try {
+      const storedIds = await AsyncStorage.getItem(STORAGE_KEYS.FAVORITE_NAAT_IDS);
+      if (!storedIds) return [];
+
+      const parsedIds: unknown = JSON.parse(storedIds);
+      return Array.isArray(parsedIds)
+        ? parsedIds.filter((id): id is string => typeof id === "string")
+        : [];
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "getFavoriteNaatIds",
+      });
+      return [];
+    }
+  }
+
+  async setFavoriteNaat(naatId: string, isFavorite: boolean): Promise<void> {
+    try {
+      const favoriteIds = new Set(await this.getFavoriteNaatIds());
+      if (isFavorite) {
+        favoriteIds.add(naatId);
+      } else {
+        favoriteIds.delete(naatId);
+      }
+
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.FAVORITE_NAAT_IDS,
+        JSON.stringify([...favoriteIds]),
+      );
+      await this.enqueueFavoriteSync({
+        naatId,
+        isFavorite,
+        clientUpdatedAt: new Date().toISOString(),
+        deviceId: await this.getDeviceId(),
+      });
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "setFavoriteNaat",
+        naatId,
+        isFavorite,
+      });
+      throw new AppError(
+        "Failed to update favorite.",
+        ErrorCode.STORAGE_ERROR,
+        true,
+      );
+    }
+  }
+
+  async setFavoriteNaatIds(naatIds: string[]): Promise<void> {
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.FAVORITE_NAAT_IDS,
+      JSON.stringify([...new Set(naatIds)]),
+    );
+  }
+
+  async getFavoriteSyncQueue(): Promise<FavoriteSyncEvent[]> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.FAVORITE_SYNC_QUEUE);
+      if (!raw) return [];
+      const parsed: unknown = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as FavoriteSyncEvent[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async clearFavoriteSyncQueue(): Promise<void> {
+    await AsyncStorage.removeItem(STORAGE_KEYS.FAVORITE_SYNC_QUEUE);
+  }
+
+  private async enqueueFavoriteSync(event: FavoriteSyncEvent): Promise<void> {
+    const queue = await this.getFavoriteSyncQueue();
+    const nextQueue = [
+      ...queue.filter((queuedEvent) => queuedEvent.naatId !== event.naatId),
+      event,
+    ];
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.FAVORITE_SYNC_QUEUE,
+      JSON.stringify(nextQueue),
+    );
+  }
+
+  private async getDeviceId(): Promise<string> {
+    const existingDeviceId = await AsyncStorage.getItem(STORAGE_KEYS.DEVICE_ID);
+    if (existingDeviceId) return existingDeviceId;
+
+    const deviceId = `device-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    await AsyncStorage.setItem(STORAGE_KEYS.DEVICE_ID, deviceId);
+    return deviceId;
   }
 
   /**

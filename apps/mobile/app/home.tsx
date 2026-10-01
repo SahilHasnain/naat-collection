@@ -11,10 +11,12 @@ import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated
 import { useSearch as useSearchContext } from "@/contexts/SearchContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
+import { useFavorites } from "@/hooks/useFavorites";
 import { useHomeFilters } from "@/hooks/useHomeFilters";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { useSearchSuggestions } from "@/hooks/useSearchSuggestions";
 import { useResponsiveColumns } from "@/hooks/useResponsiveColumns";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { triggerReviewCheck } from "@/hooks/useReviewPrompt";
 import { storageService } from "@/services/storage";
 import { userProfileService } from "@/services/userProfile";
@@ -39,6 +41,7 @@ import {
 export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
   const { columns: NUM_COLUMNS, maxContentWidth } = useResponsiveColumns();
+  const { isDesktopWeb } = useResponsiveLayout();
   const router = useRouter();
   const params = useLocalSearchParams<{
     autoPlayNaatId?: string;
@@ -75,6 +78,7 @@ export default function HomeScreen() {
   const { downloadStates, handleDownload } = useDownloadManager(
     filters.displayData,
   );
+  const { isFavorite, toggleFavorite } = useFavorites();
   const { handleNaatPress, playAsAudio, playAsVideo, playSharedNaatById } = useNaatPlayback(
     filters.displayData,
   );
@@ -268,6 +272,13 @@ export default function HomeScreen() {
     selectedNaat,
   ]);
 
+  const handleToggleFavorite = useCallback(() => {
+    if (!selectedNaat) return;
+    const naatId = selectedNaat.$id;
+    closeActionSheet();
+    void toggleFavorite(naatId);
+  }, [closeActionSheet, selectedNaat, toggleFavorite]);
+
   // --- Render helpers ---
 
   const renderNaatCard = React.useCallback<ListRenderItem<Naat>>(
@@ -311,6 +322,8 @@ export default function HomeScreen() {
       handleNaatPress,
       handleCardMenuPress,
       handleDownload,
+      isFavorite,
+      toggleFavorite,
       downloadStates,
       NUM_COLUMNS,
     ],
@@ -410,7 +423,7 @@ export default function HomeScreen() {
           }
           contentContainerStyle={{
             flexGrow: 1,
-            paddingTop: 100,
+            paddingTop: isDesktopWeb ? 72 : 100,
             paddingBottom: 120,
           }}
           ListHeaderComponent={
@@ -496,7 +509,7 @@ export default function HomeScreen() {
             left: 0,
             right: 0,
             bottom: 0,
-            paddingTop: 100,
+            paddingTop: isDesktopWeb ? 72 : 100,
             backgroundColor: colors.background.primary,
             zIndex: 40,
           }}
@@ -535,8 +548,10 @@ export default function HomeScreen() {
         selectedNaat={selectedNaat}
         savedPlaybackMode={savedPlaybackMode}
         onClose={closeActionSheet}
-        onDownload={handleDownloadFromSheet}
-        onAlternatePlay={handleAlternatePlay}
+          onDownload={handleDownloadFromSheet}
+          isFavorite={selectedNaat ? isFavorite(selectedNaat.$id) : false}
+          onToggleFavorite={handleToggleFavorite}
+          onAlternatePlay={handleAlternatePlay}
         onNotForYou={handleNotForYou}
         isDownloaded={selectedNaat ? downloadStates[selectedNaat.$id]?.isDownloaded : false}
         showDownload={true}

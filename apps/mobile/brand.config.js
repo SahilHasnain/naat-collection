@@ -36,6 +36,10 @@ module.exports = {
     semanticSearchFunctionUrl: "https://69a8e9000021d2eaafd9.sgp.appwrite.run",
   },
 
+  auth: {
+    googleWebClientId: "54913434337-226cbfet04pjn52fbgqulf6s83c2pggt.apps.googleusercontent.com",
+  },
+
   // ── Static export fallback (raw GitHub / jsDelivr) ────────────────────────
   static: {
     // Used when Appwrite reads are rate-limited or unavailable.

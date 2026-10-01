@@ -6,6 +6,7 @@ import MiniPlayer from "@/components/MiniPlayer";
 import Pressable from "@/components/ResponsivePressable";
 import { colors, layout } from "@/constants/theme";
 import { AudioProvider, useAudioPlayer } from "@/contexts/AudioContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { FilterModalProvider } from "@/contexts/FilterModalContext";
 import {
   HeaderVisibilityProvider,
@@ -188,38 +189,21 @@ function RootLayoutContent() {
           detachInactiveScreens: false,
           tabBarActiveTintColor: colors.accent.secondary,
           tabBarInactiveTintColor: colors.text.secondary,
-          ...(isDesktopWeb
-            ? {
-                tabBarPosition: "left",
-                tabBarVariant: "material",
-                tabBarStyle: {
-                  width: 224,
-                  minWidth: 224,
-                  backgroundColor: colors.background.secondary,
-                  borderColor: colors.border.secondary,
-                },
-                tabBarActiveBackgroundColor: colors.background.elevated,
-                tabBarInactiveBackgroundColor: "transparent",
-              }
-            : {}),
+          sceneStyle: isDesktopWeb ? { marginLeft: 224 } : undefined,
         }}
-        tabBar={
-          isDesktopWeb
-            ? undefined
-            : (props) => (
-                <AnimatedTabBar
-                  {...props}
-                  translateY={translateY}
-                  networkIndicatorOffset={networkIndicatorOffset}
-                  onSearchTabPress={() => {
-                    requestSearchFocus();
-                    if (!isOnHomepage) {
-                      router.push("/home");
-                    }
-                  }}
-                />
-              )
-        }
+        tabBar={(props) => (
+          <AnimatedTabBar
+            {...props}
+            translateY={translateY}
+            networkIndicatorOffset={networkIndicatorOffset}
+            onSearchTabPress={() => {
+              requestSearchFocus();
+              if (!isOnHomepage) {
+                router.push("/home");
+              }
+            }}
+          />
+        )}
       >
         <Tabs.Screen
           name="home"
@@ -245,6 +229,12 @@ function RootLayoutContent() {
                 color={color}
               />
             ),
+          }}
+        />
+        <Tabs.Screen
+          name="favorites"
+          options={{
+            href: null,
           }}
         />
         <Tabs.Screen
@@ -290,10 +280,16 @@ function RootLayoutContent() {
         <Tabs.Screen
           name="downloads"
           options={{
-            title: "Downloads",
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="library"
+          options={{
+            title: "Library",
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
-                name={focused ? "cloud-download" : "cloud-download-outline"}
+                name={focused ? "library" : "library-outline"}
                 size={24}
                 color={color}
               />
@@ -553,25 +549,27 @@ function RootLayout() {
       <BottomSheetModalProvider>
         <SafeAreaProvider>
           <PlaybackModeProvider>
-            <AudioProvider>
-              <LiveRadioProvider>
-                <VideoProvider>
-                  <ErrorBoundary>
-                    <SearchProvider>
-                      <FilterModalProvider>
-                        <HeaderVisibilityProvider headerHeight={140}>
-                          <TabBarVisibilityProvider tabBarHeight={150}>
-                            <LayoutModeProvider>
-                              <RootLayoutContent />
-                            </LayoutModeProvider>
-                          </TabBarVisibilityProvider>
-                        </HeaderVisibilityProvider>
-                      </FilterModalProvider>
-                    </SearchProvider>
-                  </ErrorBoundary>
-                </VideoProvider>
-              </LiveRadioProvider>
-            </AudioProvider>
+            <AuthProvider>
+              <AudioProvider>
+                <LiveRadioProvider>
+                  <VideoProvider>
+                    <ErrorBoundary>
+                      <SearchProvider>
+                        <FilterModalProvider>
+                          <HeaderVisibilityProvider headerHeight={140}>
+                            <TabBarVisibilityProvider tabBarHeight={150}>
+                              <LayoutModeProvider>
+                                <RootLayoutContent />
+                              </LayoutModeProvider>
+                            </TabBarVisibilityProvider>
+                          </HeaderVisibilityProvider>
+                        </FilterModalProvider>
+                      </SearchProvider>
+                    </ErrorBoundary>
+                  </VideoProvider>
+                </LiveRadioProvider>
+              </AudioProvider>
+            </AuthProvider>
           </PlaybackModeProvider>
         </SafeAreaProvider>
       </BottomSheetModalProvider>

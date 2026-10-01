@@ -6,6 +6,7 @@ import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useDownloadManager } from "@/hooks/useDownloadManager";
+import { useFavorites } from "@/hooks/useFavorites";
 import { HistoryItem, useHistory } from "@/hooks/useHistory";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { appwriteService } from "@/services/appwrite";
@@ -188,6 +189,7 @@ export default function HistoryScreen() {
 
   // Download manager (must be after history is declared)
   const { downloadStates, handleDownload } = useDownloadManager(history);
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   // Refresh data when screen comes into focus
   useFocusEffect(
@@ -491,6 +493,13 @@ export default function HistoryScreen() {
     closeActionSheet();
     await handleDownload(selectedNaat);
   }, [closeActionSheet, handleDownload, selectedNaat]);
+
+  const handleToggleFavorite = useCallback(() => {
+    if (!selectedNaat) return;
+    const naatId = selectedNaat.$id;
+    closeActionSheet();
+    void toggleFavorite(naatId);
+  }, [closeActionSheet, selectedNaat, toggleFavorite]);
 
   // Handle alternate play from action sheet
   const handleAlternatePlay = useCallback(async () => {
@@ -800,6 +809,8 @@ export default function HistoryScreen() {
           savedPlaybackMode={savedPlaybackMode}
           onClose={closeActionSheet}
           onDownload={handleDownloadFromSheet}
+          isFavorite={selectedNaat ? isFavorite(selectedNaat.$id) : false}
+          onToggleFavorite={handleToggleFavorite}
           onAlternatePlay={handleAlternatePlay}
           isDownloaded={
             selectedNaat

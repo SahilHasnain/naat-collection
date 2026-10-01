@@ -1,15 +1,18 @@
 import { colors } from "@/constants/theme";
 import { APP_NAME } from "@/config/brand";
 import { useLayoutMode } from "@/contexts/LayoutModeContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Text, TextInput, View } from "react-native";
 import Animated, {
     useAnimatedStyle,
     type SharedValue,
 } from "react-native-reanimated";
 import Pressable from "./ResponsivePressable";
+import { AuthModal } from "./AuthModal";
 
 interface AnimatedHeaderProps {
   translateY: SharedValue<number>;
@@ -35,6 +38,9 @@ export function AnimatedHeader({
 }: AnimatedHeaderProps) {
   const inputRef = useRef<TextInput>(null);
   const { layoutMode, toggleLayoutMode } = useLayoutMode();
+  const { user } = useAuth();
+  const { isDesktopWeb } = useResponsiveLayout();
+  const [isAuthModalVisible, setIsAuthModalVisible] = useState(false);
 
   // Auto-focus input when search mode activates or focus is re-requested
   useEffect(() => {
@@ -177,9 +183,35 @@ export function AnimatedHeader({
                 color={colors.text.secondary}
               />
             </Pressable>
+
+            {isDesktopWeb && (
+              <Pressable
+                onPress={() => setIsAuthModalVisible(true)}
+                className="ml-2 items-center justify-center rounded-full"
+                accessibilityLabel={user ? "Open account" : "Sign in"}
+                accessibilityRole="button"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={{
+                  width: 36,
+                  height: 36,
+                  backgroundColor: colors.background.secondary,
+                }}
+              >
+                <Ionicons
+                  name={user ? "person" : "person-outline"}
+                  size={20}
+                  color={colors.text.secondary}
+                />
+              </Pressable>
+            )}
           </View>
         )}
       </View>
+
+      <AuthModal
+        visible={isAuthModalVisible}
+        onClose={() => setIsAuthModalVisible(false)}
+      />
     </Animated.View>
   );
 }

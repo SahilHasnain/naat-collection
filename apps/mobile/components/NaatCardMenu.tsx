@@ -34,6 +34,8 @@ interface NaatCardMenuProps {
   onDownload?: () => void;
   onAlternatePlay: () => void;
   onNotForYou?: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
   isDownloaded?: boolean;
   showDownload?: boolean;
 }
@@ -53,6 +55,8 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
   onDownload,
   onAlternatePlay,
   onNotForYou,
+  isFavorite = false,
+  onToggleFavorite,
   isDownloaded = false,
   showDownload = true,
 }) => {
@@ -73,6 +77,15 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
       icon: isDownloaded ? "checkmark-circle" : "download-outline",
       color: colors.text.primary,
       onPress: onDownload,
+    });
+  }
+  if (onToggleFavorite) {
+    items.push({
+      key: "favorite",
+      label: isFavorite ? "Remove from favorites" : "Add to favorites",
+      icon: isFavorite ? "heart" : "heart-outline",
+      color: isFavorite ? colors.accent.error : colors.text.primary,
+      onPress: onToggleFavorite,
     });
   }
   items.push({

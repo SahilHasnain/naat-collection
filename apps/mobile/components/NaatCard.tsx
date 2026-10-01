@@ -246,6 +246,7 @@ const NaatCard: React.FC<NaatCardProps> = ({
               {formatDuration(duration)}
             </Text>
           </View>
+
         </View>
 
         <View className="px-3 pb-3 pt-2.5">

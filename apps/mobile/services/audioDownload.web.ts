@@ -1,8 +1,7 @@
 /**
  * Audio Download Service — web build
- * Downloads require the local file system (expo-file-system), which is not
- * available on web. This stub keeps the same public API so web screens render
- * without crashing; download actions report that they are unsupported.
+ * Web downloads are handed to the browser, which saves them to the user's
+ * configured Downloads folder.
  */
 
 import type {
@@ -11,6 +10,48 @@ import type {
 } from "./audioDownload";
 
 export type { DownloadMetadata, DownloadProgress } from "./audioDownload";
+
+const sanitizeFilename = (value: string, fallback: string): string => {
+  const filename = value
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return filename || fallback;
+};
+
+const downloadInBrowser = async (
+  url: string,
+  filename: string,
+  onProgress?: (progress: DownloadProgress) => void,
+): Promise<string> => {
+  onProgress?.({ totalBytes: 0, bytesWritten: 0, progress: 0 });
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Download failed (${response.status})`);
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = objectUrl;
+  link.download = filename;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
+
+  onProgress?.({
+    totalBytes: blob.size,
+    bytesWritten: blob.size,
+    progress: 1,
+  });
+
+  return filename;
+};
 
 class AudioDownloadService {
   async initialize(): Promise<void> {}
@@ -50,22 +91,23 @@ class AudioDownloadService {
   async saveDownloadMetadata(_metadata: DownloadMetadata): Promise<void> {}
 
   async downloadAudio(
-    _audioId: string,
-    _audioUrl: string,
+    audioId: string,
+    audioUrl: string,
     _youtubeId: string,
-    _title: string,
+    title: string,
     _duration: number,
     _channelName: string,
     _views: number,
-    _onProgress?: (progress: DownloadProgress) => void,
+    onProgress?: (progress: DownloadProgress) => void,
   ): Promise<string> {
-    throw new Error("Downloads are only available in the mobile app.");
+    const filename = `${sanitizeFilename(title, audioId)}.m4a`;
+    return downloadInBrowser(audioUrl, filename, onProgress);
   }
 
   async downloadExportedAudio(
-    _downloadUrl: string,
-    _audioId: string,
-    _title: string,
+    downloadUrl: string,
+    audioId: string,
+    title: string,
     _duration: number,
     _channelName: string,
     _views: number,
@@ -74,7 +116,8 @@ class AudioDownloadService {
     _startMs?: number,
     _endMs?: number,
   ): Promise<string> {
-    throw new Error("Downloads are only available in the mobile app.");
+    const filename = `${sanitizeFilename(title, audioId)}-ab-export.m4a`;
+    return downloadInBrowser(downloadUrl, filename);
   }
 
   async deleteAudio(_audioId: string): Promise<void> {}

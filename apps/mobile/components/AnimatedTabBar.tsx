@@ -1,7 +1,10 @@
 import { colors } from "@/constants/theme";
+import { AuthModal } from "@/components/AuthModal";
+import { Ionicons } from "@expo/vector-icons";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
-import { Platform, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import Animated, {
   SharedValue,
   useAnimatedStyle,
@@ -24,18 +27,29 @@ export function AnimatedTabBar({
   onSearchTabPress,
 }: AnimatedTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { isDesktopWeb } = useResponsiveLayout();
   const TAB_BAR_HEIGHT = 56; // Reduced height for cleaner look
+  const [libraryOpen, setLibraryOpen] = React.useState(false);
+  const [authModalVisible, setAuthModalVisible] = React.useState(false);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-    // Shift up by network indicator height when tab bar is visible
-    bottom: translateY.value > 0 ? 0 : networkIndicatorOffset.value,
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    if (isDesktopWeb) {
+      return {};
+    }
+
+    return {
+      transform: [{ translateY: translateY.value }],
+      // Shift up by network indicator height when tab bar is visible
+      bottom: translateY.value > 0 ? 0 : networkIndicatorOffset.value,
+    };
+  });
 
   // Filter out routes that should be hidden
   const visibleRoutes = state.routes.filter((route) => {
     return (
       route.name !== "live" &&
+      route.name !== "favorites" &&
+      route.name !== "downloads" &&
       route.name !== "video" &&
       route.name !== "player" &&
       route.name !== "naat" &&
@@ -44,21 +58,46 @@ export function AnimatedTabBar({
       route.name !== "index"
     );
   });
+  const libraryIndex = visibleRoutes.findIndex((route) => route.name === "library");
 
   return (
-    <Animated.View
+    <>
+      {libraryOpen && (
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => setLibraryOpen(false)}
+          accessibilityLabel="Close library menu"
+        />
+      )}
+      <Animated.View
       style={[
         {
           position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          flexDirection: "row",
+          ...(isDesktopWeb
+            ? {
+                top: 0,
+                bottom: 0,
+                left: 0,
+                width: 224,
+                flexDirection: "column",
+                paddingTop: 72,
+              }
+            : {
+                bottom: 0,
+                left: 0,
+                right: 0,
+                flexDirection: "row",
+              }),
           backgroundColor: colors.background.primary, // YouTube dark gray
           borderTopColor: colors.border.secondary,
-          borderTopWidth: 0.5,
-          height: TAB_BAR_HEIGHT + insets.bottom,
-          paddingBottom: insets.bottom + 4,
+          ...(isDesktopWeb
+            ? { borderRightColor: colors.border.secondary, borderRightWidth: 1 }
+            : {
+                borderTopWidth: 0.5,
+                height: TAB_BAR_HEIGHT + insets.bottom,
+                paddingBottom: insets.bottom + 4,
+              }),
+          zIndex: 100,
           ...Platform.select({
             ios: {
               shadowColor: "#000",
@@ -87,6 +126,11 @@ export function AnimatedTabBar({
         const isFocused = state.index === index;
 
         const onPress = () => {
+          if (route.name === "library") {
+            setLibraryOpen((open) => !open);
+            return;
+          }
+
           // The Search tab is an action, not a screen: focus the global search bar.
           if (route.name === "search") {
             onSearchTabPress?.();
@@ -129,13 +173,29 @@ export function AnimatedTabBar({
             onPress={onPress}
             onLongPress={onLongPress}
             style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              paddingTop: 8,
+              ...(isDesktopWeb
+                ? {
+                    height: 56,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingHorizontal: 20,
+                    gap: 12,
+                  }
+                : {
+                    flex: 1,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingTop: 8,
+                  }),
             }}
           >
-            <View style={{ alignItems: "center" }}>
+            <View
+              style={
+                isDesktopWeb
+                  ? { flexDirection: "row", alignItems: "center", gap: 12 }
+                  : { alignItems: "center" }
+              }
+            >
               {icon}
               <Text
                 style={{
@@ -151,6 +211,87 @@ export function AnimatedTabBar({
           </Pressable>
         );
       })}
-    </Animated.View>
+      </Animated.View>
+
+      {libraryOpen && (
+        <View
+          style={[
+            styles.libraryPopover,
+            isDesktopWeb
+              ? { left: 224, top: 112 + libraryIndex * 56 }
+              : { right: 8, bottom: TAB_BAR_HEIGHT + insets.bottom + 8 },
+          ]}
+        >
+          <Pressable
+            onPress={() => {
+              setLibraryOpen(false);
+              navigation.navigate("favorites");
+            }}
+            style={styles.libraryItem}
+            accessibilityRole="button"
+            accessibilityLabel="Open favorites"
+          >
+            <Text style={styles.libraryItemText}>Favorites</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              setLibraryOpen(false);
+              navigation.navigate("downloads");
+            }}
+            style={styles.libraryItem}
+            accessibilityRole="button"
+            accessibilityLabel="Open downloads"
+          >
+            <Text style={styles.libraryItemText}>Downloads</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              setLibraryOpen(false);
+              setAuthModalVisible(true);
+            }}
+            style={styles.libraryItem}
+            accessibilityRole="button"
+            accessibilityLabel="Open profile"
+          >
+            <Ionicons name="person-outline" size={18} color={colors.text.primary} />
+            <Text style={styles.libraryItemText}>Profile</Text>
+          </Pressable>
+        </View>
+      )}
+      <AuthModal
+        visible={authModalVisible}
+        onClose={() => setAuthModalVisible(false)}
+      />
+    </>
   );
 }
+
+const styles = StyleSheet.create({
+  libraryPopover: {
+    position: "absolute",
+    minWidth: 180,
+    borderRadius: 14,
+    paddingVertical: 6,
+    backgroundColor: colors.background.elevated,
+    borderWidth: 1,
+    borderColor: colors.border.secondary,
+    zIndex: 110,
+    shadowColor: "#000",
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  libraryItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  libraryItemText: {
+    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+});

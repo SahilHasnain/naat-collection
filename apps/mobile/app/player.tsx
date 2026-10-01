@@ -1,6 +1,7 @@
 import FullPlayerModal from "@/components/FullPlayerModal";
 import { layout } from "@/constants/theme";
 import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated";
+import { useFavorites } from "@/hooks/useFavorites";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
@@ -24,6 +25,7 @@ export default function PlayerScreen() {
   // at the bottom.
   const playerBottomInset = isDesktopWeb ? 0 : layout.tabBarHeight;
   const { currentAudio, stop } = useAudioPlayer();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const { showTabBar } = useTabBarVisibility();
   const { showHeader } = useHeaderVisibility();
   const isHandlingClose = useRef(false);
@@ -91,6 +93,14 @@ export default function PlayerScreen() {
 
   return (
     <FullPlayerModal
+      onBack={() => router.back()}
+      naatId={currentAudio.naatId}
+      isFavorite={currentAudio.naatId ? isFavorite(currentAudio.naatId) : false}
+      onFavoritePress={
+        currentAudio.naatId
+          ? () => void toggleFavorite(currentAudio.naatId!)
+          : undefined
+      }
       onSwitchToVideo={handleSwitchToVideo}
       topInset={PLAYER_HEADER_OFFSET}
       bottomInset={playerBottomInset + insets.bottom}
