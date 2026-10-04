@@ -1,0 +1,7 @@
+{
+  "name": "create-voice-transform-job",
+  "private": true,
+  "dependencies": {
+    "node-appwrite": "^21.1.0"
+  }
+}
