@@ -34,9 +34,8 @@ export function AnimatedTabBar({
   const insets = useSafeAreaInsets();
   const { isDesktopWeb } = useResponsiveLayout();
   const TAB_BAR_HEIGHT = 56; // Reduced height for cleaner look
-  const [libraryOpen, setLibraryOpen] = React.useState(false);
   const [authModalVisible, setAuthModalVisible] = React.useState(false);
-  const { preference, cycleTheme } = useTheme();
+  const { preference, cycleTheme, libraryOpen, setLibraryOpen } = useTheme();
 
   const animatedStyle = useAnimatedStyle(() => {
     if (isDesktopWeb) {
@@ -165,7 +164,7 @@ export function AnimatedTabBar({
         const icon = options.tabBarIcon
           ? options.tabBarIcon({
             focused: isFocused,
-            color: isFocused ? colors.accent.secondary : colors.text.tertiary,
+            color: isFocused ? colors.accent.tabActive : colors.text.tertiary,
             size: 24,
           })
           : null;

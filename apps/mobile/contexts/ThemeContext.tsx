@@ -19,6 +19,8 @@ interface ThemeContextValue {
   resolvedTheme: ThemeName;
   setPreference: (preference: ThemePreference) => void;
   cycleTheme: () => void;
+  libraryOpen: boolean;
+  setLibraryOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
@@ -26,6 +28,7 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemTheme = useColorScheme();
   const [preference, setPreferenceState] = useState<ThemePreference>("system");
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const resolvedTheme: ThemeName =
     preference === "system" ? systemTheme ?? "dark" : preference;
 
@@ -55,8 +58,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [preference, setPreference]);
 
   const value = useMemo(
-    () => ({ preference, resolvedTheme, setPreference, cycleTheme }),
-    [preference, resolvedTheme, setPreference, cycleTheme],
+    () => ({
+      preference,
+      resolvedTheme,
+      setPreference,
+      cycleTheme,
+      libraryOpen,
+      setLibraryOpen,
+    }),
+    [preference, resolvedTheme, setPreference, cycleTheme, libraryOpen],
   );
 
   return (

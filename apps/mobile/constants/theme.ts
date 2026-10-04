@@ -32,6 +32,7 @@ const darkColors = {
   accent: {
     primary: "#1DB954", // Spotify green for audio/music
     secondary: "#2563eb", // Blue for primary actions
+    tabActive: "#F59E0B", // Warm amber for active navigation icons
     success: "#10b981", // Green for success states
     error: "#ef4444", // Red for errors
     warning: "#f59e0b", // Orange for warnings
@@ -82,7 +83,7 @@ const lightColors = {
     secondary: "#e4e4e7",
     subtle: "#f0f0f2",
   },
-  accent: darkColors.accent,
+  accent: { ...darkColors.accent, tabActive: "#B45309" },
   interactive: {
     hover: "#e4e4e7",
     active: "#d4d4d8",
@@ -99,10 +100,25 @@ const lightColors = {
 
 export type ThemeName = "light" | "dark";
 
-export const colors = darkColors as typeof darkColors | typeof lightColors;
+export const colors = {
+  background: { ...darkColors.background },
+  text: { ...darkColors.text },
+  border: { ...darkColors.border },
+  accent: { ...darkColors.accent },
+  interactive: { ...darkColors.interactive },
+  overlay: { ...darkColors.overlay },
+};
 
 export function setActiveTheme(theme: ThemeName) {
-  Object.assign(colors, theme === "light" ? lightColors : darkColors);
+  const palette = theme === "light" ? lightColors : darkColors;
+  Object.assign(colors, {
+    background: { ...palette.background },
+    text: { ...palette.text },
+    border: { ...palette.border },
+    accent: { ...palette.accent },
+    interactive: { ...palette.interactive },
+    overlay: { ...palette.overlay },
+  });
 }
 
 // Tailwind class mappings for easy use in components

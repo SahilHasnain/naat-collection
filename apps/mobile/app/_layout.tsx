@@ -13,7 +13,7 @@ import {
   useHeaderVisibility,
 } from "@/contexts/HeaderVisibilityContext.animated";
 import { LayoutModeProvider } from "@/contexts/LayoutModeContext";
-import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import {
   LiveRadioProvider,
   useLiveRadioPlayer,
@@ -67,6 +67,7 @@ Sentry.init({
 });
 
 function RootLayoutContent() {
+  useTheme();
   const router = useRouter();
   const segments = useSegments();
 
