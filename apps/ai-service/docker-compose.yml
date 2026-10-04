@@ -17,3 +17,22 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  naat-ai-test:
+    build: .
+    env_file:
+      - .env.test
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+      - AI_WORKER_MODE=test
+      - AI_WORKER_ID=naat-ai-test
+      - APPWRITE_TEST_JOBS_COLLECTION_ID=ai_model_test_jobs
+      - APPWRITE_TESTS_COLLECTION_ID=naat_model_tests
+      - APPWRITE_TEST_AUDIO_BUCKET_ID=audio-files-test
+      - AI_JOB_LEASE_SECONDS=1800
+    volumes:
+      - ./logs-test:/app/logs
+    restart: unless-stopped
+    profiles:
+      - test

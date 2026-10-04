@@ -49,9 +49,13 @@ APPWRITE_ENDPOINT = os.getenv("APPWRITE_ENDPOINT", "").rstrip("/")
 APPWRITE_PROJECT_ID = os.getenv("APPWRITE_PROJECT_ID", "")
 APPWRITE_API_KEY = os.getenv("APPWRITE_API_KEY", "")
 APPWRITE_DATABASE_ID = os.getenv("APPWRITE_DATABASE_ID", "")
+WORKER_MODE = os.getenv("AI_WORKER_MODE", "prod").lower()
 APPWRITE_AI_JOBS_COLLECTION_ID = os.getenv("APPWRITE_AI_JOBS_COLLECTION_ID", "ai_jobs")
 APPWRITE_NAATS_COLLECTION_ID = os.getenv("APPWRITE_NAATS_COLLECTION_ID", "")
 APPWRITE_AUDIO_BUCKET_ID = os.getenv("APPWRITE_AUDIO_BUCKET_ID", "audio-files")
+APPWRITE_TEST_JOBS_COLLECTION_ID = os.getenv("APPWRITE_TEST_JOBS_COLLECTION_ID", "ai_model_test_jobs")
+APPWRITE_TESTS_COLLECTION_ID = os.getenv("APPWRITE_TESTS_COLLECTION_ID", "naat_model_tests")
+APPWRITE_TEST_AUDIO_BUCKET_ID = os.getenv("APPWRITE_TEST_AUDIO_BUCKET_ID", "audio-files-test")
 POLL_INTERVAL_SECONDS = int(os.getenv("AI_JOB_POLL_INTERVAL_SECONDS", "10"))
 LEASE_SECONDS = int(os.getenv("AI_JOB_LEASE_SECONDS", "120"))
 WORKER_ID = os.getenv("AI_WORKER_ID", f"{socket.gethostname()}-manual-cut")
@@ -80,17 +84,19 @@ def init_appwrite():
     appwrite_storage = Storage(appwrite_client)
 
 def update_job(job_id, payload):
+    collection_id = APPWRITE_TEST_JOBS_COLLECTION_ID if WORKER_MODE == "test" else APPWRITE_AI_JOBS_COLLECTION_ID
     return appwrite_databases.update_document(
         APPWRITE_DATABASE_ID,
-        APPWRITE_AI_JOBS_COLLECTION_ID,
+        collection_id,
         job_id,
         payload,
     )
 
 def get_job(job_id):
+    collection_id = APPWRITE_TEST_JOBS_COLLECTION_ID if WORKER_MODE == "test" else APPWRITE_AI_JOBS_COLLECTION_ID
     return appwrite_databases.get_document(
         APPWRITE_DATABASE_ID,
-        APPWRITE_AI_JOBS_COLLECTION_ID,
+        collection_id,
         job_id,
     )
 
@@ -156,12 +162,36 @@ def update_naat_cut_segments(naat_id, result):
         payload,
     )
 
+def update_test_result(test_id, result):
+    compact_result = {
+        "duration": result.get("duration", 0),
+        "speechSegments": result.get("speechSegments", []),
+        "totalSpeechDuration": result.get("totalSpeechDuration", 0),
+        "totalSingingDuration": result.get("totalSingingDuration", 0),
+    }
+    return appwrite_databases.update_document(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_TESTS_COLLECTION_ID,
+        test_id,
+        {
+            "status": "done",
+            "resultJson": json.dumps(compact_result),
+            "segmentsJson": json.dumps(compact_result["speechSegments"]),
+            "duration": round(result.get("duration", 0)),
+            "modelRevision": audio_classifier.revision,
+            "finishedAt": iso_now(),
+            "error": "",
+        },
+    )
+
 def claim_next_job():
+    collection_id = APPWRITE_TEST_JOBS_COLLECTION_ID if WORKER_MODE == "test" else APPWRITE_AI_JOBS_COLLECTION_ID
+    job_type = "model-test" if WORKER_MODE == "test" else "manual-cut-detect"
     pending_response = appwrite_databases.list_documents(
         APPWRITE_DATABASE_ID,
-        APPWRITE_AI_JOBS_COLLECTION_ID,
+        collection_id,
         [
-            Query.equal("type", "manual-cut-detect"),
+            Query.equal("type", job_type),
             Query.equal("status", "pending"),
             Query.limit(25),
         ],
@@ -170,9 +200,9 @@ def claim_next_job():
     if not documents:
         running_response = appwrite_databases.list_documents(
             APPWRITE_DATABASE_ID,
-            APPWRITE_AI_JOBS_COLLECTION_ID,
+            collection_id,
             [
-                Query.equal("type", "manual-cut-detect"),
+                Query.equal("type", job_type),
                 Query.equal("status", "running"),
                 Query.limit(25),
             ],
@@ -204,6 +234,13 @@ def claim_next_job():
     job["workerId"] = WORKER_ID
     job["leaseUntil"] = lease_until
     job["attempts"] = int(job.get("attempts", 0)) + 1
+    if WORKER_MODE == "test":
+        appwrite_databases.update_document(
+            APPWRITE_DATABASE_ID,
+            APPWRITE_TESTS_COLLECTION_ID,
+            job["testId"],
+            {"status": "processing"},
+        )
     return job
 
 def heartbeat(job_id, progress=None):
@@ -216,7 +253,8 @@ def heartbeat(job_id, progress=None):
     update_job(job_id, payload)
 
 def get_audio_file_info(audio_id):
-    return appwrite_storage.get_file(APPWRITE_AUDIO_BUCKET_ID, audio_id)
+    bucket_id = APPWRITE_TEST_AUDIO_BUCKET_ID if WORKER_MODE == "test" else APPWRITE_AUDIO_BUCKET_ID
+    return appwrite_storage.get_file(bucket_id, audio_id)
 
 def detect_extension(file_info):
     name = file_info.get("name") or ""
@@ -234,8 +272,9 @@ def detect_extension(file_info):
     return ".bin"
 
 def download_audio_from_appwrite(audio_id):
+    bucket_id = APPWRITE_TEST_AUDIO_BUCKET_ID if WORKER_MODE == "test" else APPWRITE_AUDIO_BUCKET_ID
     file_bytes = appwrite_storage.get_file_download(
-        APPWRITE_AUDIO_BUCKET_ID,
+        bucket_id,
         audio_id,
     )
     return bytes(file_bytes)
@@ -273,7 +312,8 @@ def process_job(job):
     normalized_path = None
 
     try:
-        logger.info(f"[worker] Processing job {job_id} for naat {job['naatId']}")
+        target_id = job.get("testId") if WORKER_MODE == "test" else job.get("naatId")
+        logger.info(f"[worker] Processing job {job_id} for target {target_id}")
         heartbeat(job_id, 10)
 
         ensure_job_not_stopped(job_id)
@@ -299,13 +339,24 @@ def process_job(job):
         ensure_job_not_stopped(job_id)
         result = audio_classifier.classify_audio(audio)
         ensure_job_not_stopped(job_id)
-        update_naat_cut_segments(job["naatId"], result)
+        if WORKER_MODE == "test":
+            update_test_result(job["testId"], result)
+        else:
+            update_naat_cut_segments(job["naatId"], result)
 
         ensure_job_not_stopped(job_id)
+        stored_result = result
+        if WORKER_MODE == "test":
+            stored_result = {
+                "duration": result.get("duration", 0),
+                "speechSegments": result.get("speechSegments", []),
+                "totalSpeechDuration": result.get("totalSpeechDuration", 0),
+                "totalSingingDuration": result.get("totalSingingDuration", 0),
+            }
         update_job(job_id, {
             "status": "done",
             "progress": 100,
-            "resultJson": json.dumps(result),
+            "resultJson": json.dumps(stored_result),
             "finishedAt": iso_now(),
             "leaseUntil": iso_now(),
             "error": "",
@@ -319,20 +370,28 @@ def process_job(job):
         logger.error(f"[worker] Job {job_id} failed: {exc}", exc_info=True)
         try:
             failed_job = get_job(job_id)
-            failed_naat = failed_job.get("naatId")
-            if failed_naat:
+            failed_target = failed_job.get("testId") if WORKER_MODE == "test" else failed_job.get("naatId")
+            target_collection = APPWRITE_TESTS_COLLECTION_ID if WORKER_MODE == "test" else APPWRITE_NAATS_COLLECTION_ID
+            if failed_target:
                 failed_doc = appwrite_databases.get_document(
                     APPWRITE_DATABASE_ID,
-                    APPWRITE_NAATS_COLLECTION_ID,
-                    failed_naat,
+                    target_collection,
+                    failed_target,
                 )
             else:
                 failed_doc = {}
-            if failed_naat and failed_doc.get("pendingSourceAudioId"):
+            if WORKER_MODE == "test" and failed_target:
+                appwrite_databases.update_document(
+                    APPWRITE_DATABASE_ID,
+                    target_collection,
+                    failed_target,
+                    {"status": "failed", "finishedAt": iso_now(), "error": str(exc)[:5000]},
+                )
+            elif failed_target and failed_doc.get("pendingSourceAudioId"):
                 appwrite_databases.update_document(
                     APPWRITE_DATABASE_ID,
                     APPWRITE_NAATS_COLLECTION_ID,
-                    failed_naat,
+                    failed_target,
                     {"pendingCutStatus": "failed"},
                 )
         except Exception:
@@ -350,13 +409,15 @@ def process_job(job):
                 os.unlink(path)
 
 def worker_loop():
+    jobs_collection = APPWRITE_TEST_JOBS_COLLECTION_ID if WORKER_MODE == "test" else APPWRITE_AI_JOBS_COLLECTION_ID
+    target_collection = APPWRITE_TESTS_COLLECTION_ID if WORKER_MODE == "test" else APPWRITE_NAATS_COLLECTION_ID
     required = [
         APPWRITE_ENDPOINT,
         APPWRITE_PROJECT_ID,
         APPWRITE_API_KEY,
         APPWRITE_DATABASE_ID,
-        APPWRITE_NAATS_COLLECTION_ID,
-        APPWRITE_AI_JOBS_COLLECTION_ID,
+        target_collection,
+        jobs_collection,
     ]
     missing = [k for k, v in zip(
         ["ENDPOINT","PROJECT_ID","API_KEY","DATABASE_ID","NAATS_COLLECTION_ID","AI_JOBS_COLLECTION_ID"],
@@ -367,7 +428,7 @@ def worker_loop():
         return
 
     init_appwrite()
-    logger.info(f"[worker] AI job worker started as {WORKER_ID}")
+    logger.info(f"[worker] AI job worker started as {WORKER_ID} (mode={WORKER_MODE})")
     logger.info(f"[worker] Poll interval={POLL_INTERVAL_SECONDS}s, lease={LEASE_SECONDS}s")
     logger.info(f"[worker] Log file: {LOG_FILE}")
 

@@ -1,5 +1,6 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
+*.m4a
 # dependencies
 node_modules/
 apps/mobile/node_modules/
