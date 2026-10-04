@@ -1,6 +1,7 @@
 import { colors, shadows } from "@/constants/theme";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
+import { useTheme } from "@/contexts/ThemeContext";
 import { audioDownloadService } from "@/services/audioDownload";
 import { appwriteService } from "@/services/appwrite";
 import { shareService } from "@/services/shareService";
@@ -75,6 +76,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   bottomInset = 0,
 }) => {
   const { isDesktopWeb, isWeb } = useResponsiveLayout();
+  const { resolvedTheme } = useTheme();
   const {
     currentAudio,
     isPlaying,
@@ -274,11 +276,11 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   return (
     <>
       <StatusBar
-        barStyle="light-content"
+        barStyle={resolvedTheme === "dark" ? "light-content" : "dark-content"}
         backgroundColor={colors.background.primary}
       />
 
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background.primary }]}>
         <SafeAreaView
           edges={["top", "bottom"]}
           style={{
@@ -402,7 +404,12 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 accessibilityLabel="Close menu"
               />
 
-              <View style={[styles.menuContainer, { top: topInset + 52 }]}>
+              <View
+                style={[
+                  styles.menuContainer,
+                  { top: topInset + 52, backgroundColor: colors.background.secondary },
+                ]}
+              >
                 {showDownloadButton && (
                   <TouchableOpacity
                     onPress={() => {
@@ -599,7 +606,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 accessibilityRole="button"
                 accessibilityLabel="Close delete confirmation"
               />
-              <View style={styles.confirmationCard}>
+              <View style={[styles.confirmationCard, { backgroundColor: colors.background.secondary }]}>
                 <Text style={styles.confirmationTitle}>Delete Download?</Text>
                 <Text style={styles.confirmationMessage}>
                   Are you sure you want to delete this downloaded audio?
@@ -607,7 +614,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 <View style={styles.confirmationActions}>
                   <TouchableOpacity
                     onPress={() => setShowDeleteConfirmation(false)}
-                    style={styles.confirmationCancelButton}
+                    style={[styles.confirmationCancelButton, { backgroundColor: colors.background.tertiary }]}
                     accessibilityRole="button"
                   >
                     <Text style={styles.confirmationCancelText}>Cancel</Text>

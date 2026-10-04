@@ -60,7 +60,7 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
           >
             <Text
               className="text-xs font-semibold"
-              style={{ color: colors.text.primary }}
+              style={{ color: colors.text.inverse }}
             >
               {duration}
             </Text>

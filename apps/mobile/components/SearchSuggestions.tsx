@@ -113,12 +113,7 @@ export function SearchSuggestions({
     >
       <LinearGradient
         pointerEvents="none"
-        colors={[
-          "rgba(0, 0, 0, 0.32)",
-          "rgba(6, 10, 20, 0.14)",
-          "rgba(0, 0, 0, 0.04)",
-          "rgba(0, 0, 0, 0.2)",
-        ]}
+        colors={colors.overlay.screenGradient}
         locations={[0, 0.18, 0.58, 1]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}

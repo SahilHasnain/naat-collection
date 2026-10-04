@@ -165,7 +165,7 @@ export function AnimatedTabBar({
         const icon = options.tabBarIcon
           ? options.tabBarIcon({
             focused: isFocused,
-            color: isFocused ? colors.text.inverse : colors.text.tertiary,
+            color: isFocused ? colors.accent.secondary : colors.text.tertiary,
             size: 24,
           })
           : null;

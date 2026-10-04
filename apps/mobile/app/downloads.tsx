@@ -488,12 +488,7 @@ export default function DownloadsScreen() {
       >
         <LinearGradient
           pointerEvents="none"
-          colors={[
-            "rgba(0, 0, 0, 0.44)",
-            "rgba(6, 10, 20, 0.22)",
-            "rgba(0, 0, 0, 0.08)",
-            "rgba(0, 0, 0, 0.3)",
-          ]}
+           colors={colors.overlay.screenGradient}
           locations={[0, 0.2, 0.58, 1]}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}

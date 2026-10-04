@@ -384,12 +384,7 @@ export default function VideoScreen() {
       <SafeAreaView edges={["bottom", "top"]} className="flex-1 bg-black">
         <LinearGradient
           pointerEvents="none"
-          colors={[
-            "rgba(0, 0, 0, 0.46)",
-            "rgba(6, 10, 20, 0.24)",
-            "rgba(0, 0, 0, 0.12)",
-            "rgba(0, 0, 0, 0.36)",
-          ]}
+           colors={colors.overlay.screenGradient}
           locations={[0, 0.18, 0.58, 1]}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}

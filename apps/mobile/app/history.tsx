@@ -721,12 +721,7 @@ export default function HistoryScreen() {
       >
         <LinearGradient
           pointerEvents="none"
-          colors={[
-            "rgba(0, 0, 0, 0.46)",
-            "rgba(6, 10, 20, 0.24)",
-            "rgba(0, 0, 0, 0.1)",
-            "rgba(0, 0, 0, 0.32)",
-          ]}
+           colors={colors.overlay.screenGradient}
           locations={[0, 0.2, 0.58, 1]}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}

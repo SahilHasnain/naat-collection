@@ -49,6 +49,17 @@ const darkColors = {
     dark: "rgba(0, 0, 0, 0.8)",
     medium: "rgba(0, 0, 0, 0.5)",
     light: "rgba(0, 0, 0, 0.3)",
+    screenGradient: [
+      "rgba(0, 0, 0, 0.52)",
+      "rgba(6, 10, 20, 0.3)",
+      "rgba(0, 0, 0, 0.12)",
+      "rgba(0, 0, 0, 0.4)",
+    ],
+    suggestionGradient: [
+      "rgba(0, 0, 0, 0.42)",
+      "#0f0f0f",
+      "#0f0f0f",
+    ],
   },
 } as const;
 
@@ -81,6 +92,8 @@ const lightColors = {
     dark: "rgba(0, 0, 0, 0.8)",
     medium: "rgba(0, 0, 0, 0.5)",
     light: "rgba(0, 0, 0, 0.3)",
+    screenGradient: ["transparent", "transparent", "transparent", "transparent"],
+    suggestionGradient: ["transparent", "transparent", "transparent"],
   },
 } as const;
 

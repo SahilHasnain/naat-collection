@@ -241,7 +241,7 @@ const NaatCard: React.FC<NaatCardProps> = ({
           >
             <Text
               className="text-[10px] font-bold tracking-wide"
-              style={{ color: colors.text.primary }}
+              style={{ color: colors.text.inverse }}
             >
               {formatDuration(duration)}
             </Text>

@@ -270,12 +270,7 @@ export default function BestScreen() {
     >
       <LinearGradient
         pointerEvents="none"
-        colors={[
-          "rgba(0, 0, 0, 0.52)",
-          "rgba(6, 10, 20, 0.3)",
-          "rgba(0, 0, 0, 0.12)",
-          "rgba(0, 0, 0, 0.4)",
-        ]}
+         colors={colors.overlay.screenGradient}
         locations={[0, 0.2, 0.56, 1]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
