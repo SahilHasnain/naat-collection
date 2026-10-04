@@ -143,6 +143,15 @@ async function main() {
   await ensureAttribute(databases, "finishedAt", () =>
     databases.createDatetimeAttribute(config.databaseId, config.collectionId, "finishedAt", false),
   );
+  await ensureAttribute(databases, "voicePreset", () =>
+    databases.createStringAttribute(config.databaseId, config.collectionId, "voicePreset", 32, false),
+  );
+  await ensureAttribute(databases, "pitchSemitones", () =>
+    databases.createFloatAttribute(config.databaseId, config.collectionId, "pitchSemitones", false),
+  );
+  await ensureAttribute(databases, "outputAudioId", () =>
+    databases.createStringAttribute(config.databaseId, config.collectionId, "outputAudioId", 64, false),
+  );
 
   await ensureIndex(databases, "type_status_created", sdk.IndexType.Key, ["type", "status", "$createdAt"], ["ASC", "ASC", "ASC"]);
   await ensureIndex(databases, "naatId_idx", sdk.IndexType.Key, ["naatId"], ["ASC"]);

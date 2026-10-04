@@ -10,6 +10,7 @@ import socket
 import subprocess
 import threading
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
 from audio_processor import AudioProcessor
 from classifier_fixed import AudioClassifier
@@ -186,23 +187,28 @@ def update_test_result(test_id, result):
 
 def claim_next_job():
     collection_id = APPWRITE_TEST_JOBS_COLLECTION_ID if WORKER_MODE == "test" else APPWRITE_AI_JOBS_COLLECTION_ID
-    job_type = "model-test" if WORKER_MODE == "test" else "manual-cut-detect"
+    job_type = "model-test" if WORKER_MODE == "test" else None
     pending_response = appwrite_databases.list_documents(
         APPWRITE_DATABASE_ID,
         collection_id,
         [
-            Query.equal("type", job_type),
             Query.equal("status", "pending"),
             Query.limit(25),
         ],
     )
     documents = pending_response["documents"]
+    if job_type:
+        documents = [doc for doc in documents if doc.get("type") == job_type]
+    else:
+        documents = [
+            doc for doc in documents
+            if doc.get("type") in ["manual-cut-detect", "voice-transform"]
+        ]
     if not documents:
         running_response = appwrite_databases.list_documents(
             APPWRITE_DATABASE_ID,
             collection_id,
             [
-                Query.equal("type", job_type),
                 Query.equal("status", "running"),
                 Query.limit(25),
             ],
@@ -211,6 +217,7 @@ def claim_next_job():
         documents = [
             doc for doc in running_response["documents"]
             if doc.get("leaseUntil") and doc.get("leaseUntil") < now
+            and (doc.get("type") == job_type if job_type else doc.get("type") in ["manual-cut-detect", "voice-transform"])
         ]
 
     if not documents:
@@ -306,7 +313,81 @@ def normalize_audio(input_path, output_path):
     if result.returncode != 0:
         raise RuntimeError(f"ffmpeg normalization failed: {result.stderr[-1000:]}")
 
+def pitch_shift_audio(input_path, output_path, semitones):
+    """Shift pitch while preserving duration using FFmpeg's native filters."""
+    ratio = 2 ** (float(semitones) / 12)
+    sample_rate = 44100
+    command = [
+        "ffmpeg", "-y", "-i", input_path,
+        "-filter:a", f"asetrate={sample_rate * ratio},aresample={sample_rate},atempo={1 / ratio}",
+        "-vn", "-c:a", "aac", "-b:a", "256k", output_path,
+    ]
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg pitch shifting failed: {result.stderr[-1000:]}")
+
+def upload_transformed_audio(file_path):
+    endpoint = f"{APPWRITE_ENDPOINT}/storage/buckets/{APPWRITE_AUDIO_BUCKET_ID}/files"
+    file_id = str(uuid.uuid4())
+    with open(file_path, "rb") as audio_file:
+        response = requests.post(
+            endpoint,
+            headers={
+                "X-Appwrite-Project": APPWRITE_PROJECT_ID,
+                "X-Appwrite-Key": APPWRITE_API_KEY,
+            },
+            data={"fileId": file_id},
+            files={"file": (f"voice-{file_id}.m4a", audio_file, "audio/mp4")},
+            timeout=300,
+        )
+    response.raise_for_status()
+    return file_id
+
+def process_voice_transform_job(job):
+    job_id = job["$id"]
+    source_path = None
+    output_path = None
+    try:
+        heartbeat(job_id, 10)
+        file_info = get_audio_file_info(job["audioId"])
+        audio_bytes = download_audio_from_appwrite(job["audioId"])
+        with tempfile.NamedTemporaryFile(suffix=detect_extension(file_info), delete=False) as tmp_file:
+            tmp_file.write(audio_bytes)
+            source_path = tmp_file.name
+
+        heartbeat(job_id, 35)
+        with tempfile.NamedTemporaryFile(suffix=".m4a", delete=False) as tmp_file:
+            output_path = tmp_file.name
+
+        preset = job.get("voicePreset", "younger")
+        semitones = float(job.get("pitchSemitones", {"subtle": 2, "younger": 4, "high": 6}.get(preset, 4)))
+        pitch_shift_audio(source_path, output_path, semitones)
+        heartbeat(job_id, 85)
+        output_file_id = upload_transformed_audio(output_path)
+        update_job(job_id, {
+            "status": "done",
+            "progress": 100,
+            "outputAudioId": output_file_id,
+            "resultJson": json.dumps({"pitchSemitones": semitones, "voicePreset": preset}),
+            "finishedAt": iso_now(),
+            "leaseUntil": iso_now(),
+            "error": "",
+        })
+    except Exception as exc:
+        logger.error(f"[voice-worker] Job {job_id} failed: {exc}", exc_info=True)
+        update_job(job_id, {
+            "status": "failed", "progress": 100, "error": str(exc)[:5000],
+            "finishedAt": iso_now(), "leaseUntil": iso_now(),
+        })
+    finally:
+        for path in [source_path, output_path]:
+            if path and os.path.exists(path):
+                os.unlink(path)
+
 def process_job(job):
+    if WORKER_MODE != "test" and job.get("type") == "voice-transform":
+        process_voice_transform_job(job)
+        return
     job_id = job["$id"]
     source_path = None
     normalized_path = None
