@@ -13,6 +13,7 @@ import {
   useHeaderVisibility,
 } from "@/contexts/HeaderVisibilityContext.animated";
 import { LayoutModeProvider } from "@/contexts/LayoutModeContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import {
   LiveRadioProvider,
   useLiveRadioPlayer,
@@ -559,7 +560,9 @@ function RootLayout() {
                           <HeaderVisibilityProvider headerHeight={140}>
                             <TabBarVisibilityProvider tabBarHeight={150}>
                               <LayoutModeProvider>
-                                <RootLayoutContent />
+                                <ThemeProvider>
+                                  <RootLayoutContent />
+                                </ThemeProvider>
                               </LayoutModeProvider>
                             </TabBarVisibilityProvider>
                           </HeaderVisibilityProvider>

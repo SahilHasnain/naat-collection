@@ -138,7 +138,7 @@ export default function LiveScreen() {
           onPress={refresh}
           style={styles.retryButton}
         >
-          <Ionicons name="refresh" size={18} color="#fff" />
+          <Ionicons name="refresh" size={18} color={colors.text.inverse} />
           <Text style={styles.retryText}>Try Again</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -213,12 +213,12 @@ export default function LiveScreen() {
               accessibilityLabel={isPlaying ? "Pause naat radio" : "Play naat radio"}
             >
               {isBuffering ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={colors.text.inverse} />
               ) : (
                 <Ionicons
                   name={isPlaying ? "pause" : "play"}
                   size={36}
-                  color="#fff"
+                  color={colors.text.inverse}
                 />
               )}
             </TouchableOpacity>
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent.error,
   },
   retryText: {
-    color: "#fff",
+    color: colors.text.inverse,
     fontSize: 15,
     fontWeight: "600",
   },

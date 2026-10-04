@@ -52,7 +52,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
           <Ionicons
             name="alert-circle"
             size={64}
-            color="#ef4444"
+            color={colors.accent.error}
             style={{ marginBottom: 16 }}
           />
           <Text

@@ -18,7 +18,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         <Ionicons
           name={iconName}
           size={64}
-          color="#737373"
+          color={colors.text.tertiary}
           style={{ marginBottom: 24 }}
         />
       )}

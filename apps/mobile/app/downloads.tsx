@@ -110,7 +110,7 @@ function SwipeableDownloadCard({
           className="p-2"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="trash-outline" size={24} color="#ef4444" />
+          <Ionicons name="trash-outline" size={24} color={colors.accent.error} />
         </Pressable>
       </Animated.View>
 
@@ -381,7 +381,7 @@ export default function DownloadsScreen() {
       return (
         <View className="flex-1 items-center justify-center px-8">
           <View className="items-center mb-6">
-            <Ionicons name="download-outline" size={120} color="#525252" />
+            <Ionicons name="download-outline" size={120} color={colors.text.disabled} />
           </View>
           <Text className="text-center text-sm text-neutral-400">
             Videos you download will appear here
@@ -435,12 +435,12 @@ export default function DownloadsScreen() {
                 <Ionicons
                   name={option.iconName}
                   size={16}
-                  color={isSelected ? colors.text.primary : "#d4d4d8"}
+                  color={isSelected ? colors.text.primary : colors.border.primary}
                 />
                 <Text
                   className={`font-semibold text-sm ml-1.5`}
                   style={{
-                    color: isSelected ? colors.text.primary : "#d4d4d8",
+                    color: isSelected ? colors.text.primary : colors.border.primary,
                   }}
                   accessible={false}
                 >

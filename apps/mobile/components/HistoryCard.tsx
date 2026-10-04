@@ -60,7 +60,7 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
               className="items-center justify-center w-full h-full"
               style={{ backgroundColor: colors.background.tertiary }}
             >
-              <Ionicons name="musical-notes" size={28} color="#737373" />
+              <Ionicons name="musical-notes" size={28} color={colors.text.tertiary} />
             </View>
           ) : (
             <Image
@@ -76,7 +76,7 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
           {/* Duration badge */}
           <View
             className="absolute bottom-1 right-1 rounded px-1.5 py-0.5"
-            style={{ backgroundColor: "rgba(0,0,0,0.75)" }}
+              style={{ backgroundColor: colors.overlay.dark }}
           >
             <Text
               className="text-[10px] font-semibold"

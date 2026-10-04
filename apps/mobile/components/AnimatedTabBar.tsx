@@ -2,6 +2,7 @@ import { colors } from "@/constants/theme";
 import { AuthModal } from "@/components/AuthModal";
 import { Ionicons } from "@expo/vector-icons";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
+import { useTheme } from "@/contexts/ThemeContext";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { Linking, Platform, StyleSheet, Text, View } from "react-native";
@@ -35,6 +36,7 @@ export function AnimatedTabBar({
   const TAB_BAR_HEIGHT = 56; // Reduced height for cleaner look
   const [libraryOpen, setLibraryOpen] = React.useState(false);
   const [authModalVisible, setAuthModalVisible] = React.useState(false);
+  const { preference, cycleTheme } = useTheme();
 
   const animatedStyle = useAnimatedStyle(() => {
     if (isDesktopWeb) {
@@ -163,7 +165,7 @@ export function AnimatedTabBar({
         const icon = options.tabBarIcon
           ? options.tabBarIcon({
             focused: isFocused,
-            color: isFocused ? "#ffffff" : "#8e8e93",
+            color: isFocused ? colors.text.inverse : colors.text.tertiary,
             size: 24,
           })
           : null;
@@ -203,7 +205,7 @@ export function AnimatedTabBar({
               {icon}
               <Text
                 style={{
-                  color: isFocused ? colors.text.primary : "#8e8e93",
+                  color: isFocused ? colors.text.primary : colors.text.tertiary,
                   fontSize: 10,
                   fontWeight: "500",
                   marginTop: 4,
@@ -259,6 +261,21 @@ export function AnimatedTabBar({
           >
             <Ionicons name="person-outline" size={18} color={colors.text.primary} />
             <Text style={styles.libraryItemText}>Profile</Text>
+            </Pressable>
+          <Pressable
+            onPress={cycleTheme}
+            style={styles.libraryItem}
+            accessibilityRole="button"
+            accessibilityLabel="Change theme"
+          >
+            <Ionicons
+              name={preference === "light" ? "sunny-outline" : preference === "dark" ? "moon-outline" : "contrast-outline"}
+              size={18}
+              color={colors.text.primary}
+            />
+            <Text style={styles.libraryItemText}>
+              Theme: {preference[0].toUpperCase() + preference.slice(1)}
+            </Text>
           </Pressable>
           {!isDesktopWeb && Platform.OS === "web" && (
             <Pressable

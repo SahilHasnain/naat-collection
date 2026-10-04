@@ -18,7 +18,7 @@ export function AuthModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View
         className="flex-1 items-center justify-center px-6"
-        style={{ backgroundColor: "rgba(0, 0, 0, 0.72)" }}
+        style={{ backgroundColor: colors.overlay.dark }}
       >
         <View
           className="w-full max-w-sm rounded-2xl p-6"

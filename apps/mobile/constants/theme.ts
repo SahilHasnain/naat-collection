@@ -1,9 +1,9 @@
 /**
  * Centralized Theme Configuration
- * Dark mode color palette for consistent styling across the app
+ * Theme palettes for consistent styling across the app.
  */
 
-export const colors = {
+const darkColors = {
   // Background colors - YouTube Dark Mode inspired
   background: {
     primary: "#0f0f0f", // Main background (YouTube dark gray)
@@ -18,6 +18,7 @@ export const colors = {
     secondary: "#aaaaaa", // Secondary text (lighter gray)
     tertiary: "#717171", // Tertiary text (medium gray)
     disabled: "#525252", // Disabled text (neutral-600)
+    inverse: "#ffffff",
   },
 
   // Border colors
@@ -50,6 +51,46 @@ export const colors = {
     light: "rgba(0, 0, 0, 0.3)",
   },
 } as const;
+
+const lightColors = {
+  background: {
+    primary: "#f7f7f8",
+    secondary: "#ffffff",
+    tertiary: "#f0f0f2",
+    elevated: "#ffffff",
+  },
+  text: {
+    primary: "#171717",
+    secondary: "#525252",
+    tertiary: "#737373",
+    disabled: "#a3a3a3",
+    inverse: "#ffffff",
+  },
+  border: {
+    primary: "#d4d4d8",
+    secondary: "#e4e4e7",
+    subtle: "#f0f0f2",
+  },
+  accent: darkColors.accent,
+  interactive: {
+    hover: "#e4e4e7",
+    active: "#d4d4d8",
+    disabled: "#e4e4e7",
+  },
+  overlay: {
+    dark: "rgba(0, 0, 0, 0.8)",
+    medium: "rgba(0, 0, 0, 0.5)",
+    light: "rgba(0, 0, 0, 0.3)",
+  },
+} as const;
+
+export type ThemeName = "light" | "dark";
+
+export const colors = darkColors as typeof darkColors | typeof lightColors;
+
+export function setActiveTheme(theme: ThemeName) {
+  Object.assign(colors, theme === "light" ? lightColors : darkColors);
+}
 
 // Tailwind class mappings for easy use in components
 export const tw = {

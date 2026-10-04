@@ -1,4 +1,5 @@
 import { DownloadedAudioCardProps } from "@/types";
+import { colors } from "@/constants/theme";
 import { formatDuration } from "@/utils/formatters";
 import { formatViews } from "@/utils/numberUtils";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,8 +7,6 @@ import { Image } from "expo-image";
 import React from "react";
 import { Text, View } from "react-native";
 import Pressable from "./ResponsivePressable";
-
-const textPrimary = "rgba(255, 255, 255, 0.92)";
 
 const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
   ({ audio, onPress }) => {
@@ -38,7 +37,7 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
         >
           {imageError || (!audio.youtubeId && !audio.thumbnailLocalUri) ? (
             <View className="h-full w-full items-center justify-center bg-neutral-700">
-              <Ionicons name="musical-notes" size={32} color="#737373" />
+              <Ionicons name="musical-notes" size={32} color={colors.text.tertiary} />
             </View>
           ) : (
             <Image
@@ -56,12 +55,12 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
           {/* Duration overlay */}
           <View
             className="absolute bottom-1 right-1 rounded px-1 py-0.5"
-            style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
+            style={{ backgroundColor: colors.overlay.dark }}
             accessible={false}
           >
             <Text
               className="text-xs font-semibold"
-              style={{ color: textPrimary }}
+              style={{ color: colors.text.primary }}
             >
               {duration}
             </Text>
@@ -76,7 +75,7 @@ const DownloadedAudioCard: React.FC<DownloadedAudioCardProps> = React.memo(
             numberOfLines={2}
             ellipsizeMode="tail"
             accessible={false}
-            style={{ color: textPrimary }}
+            style={{ color: colors.text.primary }}
           >
             {audio.title}
           </Text>

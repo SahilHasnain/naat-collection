@@ -130,7 +130,7 @@ function SwipeableHistoryCard({
           className="p-2"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="trash-outline" size={24} color="#ef4444" />
+          <Ionicons name="trash-outline" size={24} color={colors.accent.error} />
         </Pressable>
       </Animated.View>
 
@@ -786,7 +786,7 @@ export default function HistoryScreen() {
                 style={({ pressed }) => ({
                   opacity: pressed ? 0.8 : 1,
                   elevation: 8,
-                  shadowColor: "#ef4444",
+                  shadowColor: colors.accent.error,
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.3,
                   shadowRadius: 8,
