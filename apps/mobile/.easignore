@@ -3,11 +3,17 @@ node_modules/
 
 # Other apps in monorepo
 ../web/
+apps/web/
+apps/web/.next/
+apps/web/node_modules/
 
 # Build outputs
 .expo/
 dist/
 build/
+apps/mobile/.expo/
+apps/mobile/dist/
+apps/mobile/node_modules/
 ios/
 
 # Cache

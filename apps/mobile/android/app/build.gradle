@@ -177,6 +177,7 @@ dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
     implementation("com.tianscar.soundtouch:soundtouch-jni-android:1.1.1")
+    implementation("com.tianscar.soundtouch:soundtouch-jni-core:1.1.1")
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";

@@ -1,11 +1,16 @@
 # Exclude other apps entirely
 apps/web/
+apps/web/.next/
+apps/web/node_modules/
 
 # Exclude packages not used by mobile
 packages/*/node_modules/
 
 # Root level exclusions
 node_modules/
+apps/mobile/node_modules/
+apps/mobile/.expo/
+apps/mobile/dist/
 scripts/
 *.md
 .git/
@@ -20,7 +25,7 @@ docker
 .kiro
 .*
 admin
-android/
+/android/
 docs
 functions
 infra
