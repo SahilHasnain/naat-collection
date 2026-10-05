@@ -18,6 +18,22 @@ services:
       retries: 3
       start_period: 40s
 
+  naat-ai-voice:
+    build: .
+    command: ["python", "voice_worker.py"]
+    env_file:
+      - .env
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+      - AI_VOICE_WORKER_ID=naat-ai-voice
+      - AI_VOICE_LEASE_SECONDS=1800
+    volumes:
+      - ./logs-voice:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+
   naat-ai-test:
     build: .
     env_file:
