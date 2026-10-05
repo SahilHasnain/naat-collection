@@ -2,7 +2,14 @@ import { colors, shadows } from "@/constants/theme";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { useTheme } from "@/contexts/ThemeContext";
-import { transformVoice, type VoicePreset } from "@/services/voiceTransform";
+import {
+  clearPendingVoiceTransform,
+  getPendingVoiceTransform,
+  getVoiceUrl,
+  startVoiceTransform,
+  watchVoiceTransform,
+  type VoicePreset,
+} from "@/services/voiceTransform";
 import { audioDownloadService } from "@/services/audioDownload";
 import { appwriteService } from "@/services/appwrite";
 import { shareService } from "@/services/shareService";
@@ -37,6 +44,19 @@ const formatTime = (millis: number): string => {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+};
+
+const getVoiceTransformStage = (progress: number): string => {
+  if (progress < 10) return "Queued";
+  if (progress < 35) return "Downloading audio";
+  if (progress < 85) return "Processing audio";
+  return "Uploading transformed audio";
+};
+
+const getVoicePresetLabel = (preset: VoicePreset): string => {
+  if (preset === "subtle") return "Adult";
+  if (preset === "younger") return "Young Adult";
+  return "Teenage";
 };
 
 interface WebVolumeSliderProps {
@@ -111,6 +131,8 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   const [hasExportedAB, setHasExportedAB] = useState(false);
   const [voicePreset, setVoicePreset] = useState<VoicePreset | null>(null);
   const [isTransformingVoice, setIsTransformingVoice] = useState(false);
+  const [voiceTransformProgress, setVoiceTransformProgress] = useState(0);
+  const [voiceTransformRefresh, setVoiceTransformRefresh] = useState(0);
 
   useEffect(() => {
     const checkDownloadStatus = async () => {
@@ -130,6 +152,42 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     setIsABRepeatMode(false);
     setHasExportedAB(false);
   }, [currentAudio]);
+
+  useEffect(() => {
+    setVoicePreset(null);
+    setIsTransformingVoice(false);
+    setVoiceTransformProgress(0);
+  }, [currentAudio?.naatId]);
+
+  useEffect(() => {
+    const audio = currentAudio;
+    const audioId = audio?.voiceSourceAudioId ?? audio?.audioId;
+    if (!audio || !audioId || audio.isLocalFile) return;
+    let stopWatching: (() => void) | undefined;
+    let cancelled = false;
+
+    const resumePendingJob = async () => {
+      const pending = await getPendingVoiceTransform(audioId);
+      if (!pending || cancelled) return;
+      setIsTransformingVoice(true);
+      setVoicePreset(pending.voicePreset);
+      stopWatching = watchVoiceTransform(pending.jobId, async (job) => {
+        if (job.status === "done" && job.outputAudioId) {
+          await clearPendingVoiceTransform(pending.key);
+          setIsTransformingVoice(false);
+          if (cancelled) return;
+          await loadAndPlay({ ...audio, audioId: job.outputAudioId, voiceSourceAudioId: audioId, audioUrl: getVoiceUrl(job.outputAudioId), isLocalFile: false });
+          showSuccessToast(`${getVoicePresetLabel(pending.voicePreset)} tone is ready`);
+        } else if (job.status === "failed") {
+          await clearPendingVoiceTransform(pending.key);
+          setIsTransformingVoice(false);
+          if (!cancelled) showErrorToast(job.error || "Voice transformation failed");
+        }
+      });
+    };
+    void resumePendingJob();
+    return () => { cancelled = true; stopWatching?.(); };
+  }, [currentAudio?.audioId, voiceTransformRefresh]);
 
   const handleDownload = async () => {
     if (!currentAudio?.audioId || currentAudio.isLocalFile || isDownloaded) {
@@ -166,25 +224,25 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   };
 
   const handleVoiceTransform = async (preset: VoicePreset) => {
-    if (!currentAudio?.audioId || currentAudio.isLocalFile || isTransformingVoice) return;
+    const audio = currentAudio;
+    const sourceAudioId = audio?.voiceSourceAudioId ?? audio?.audioId;
+    if (!audio || !sourceAudioId || audio.isLocalFile) return;
+    if (isTransformingVoice) {
+      showInfoToast("Please wait for the current transformation to finish.");
+      return;
+    }
 
     try {
       setIsTransformingVoice(true);
       setVoicePreset(preset);
       setShowOptionsMenu(false);
-      const transformed = await transformVoice(currentAudio.audioId, preset);
-      await loadAndPlay({
-        ...currentAudio,
-        audioId: transformed.audioId,
-        audioUrl: transformed.audioUrl,
-        isLocalFile: false,
-      });
-      showSuccessToast("Voice tone applied");
+      await startVoiceTransform(sourceAudioId, preset);
+      setVoiceTransformRefresh((value) => value + 1);
+      showInfoToast("Voice conversion started in the background.");
     } catch (error) {
+      setIsTransformingVoice(false);
       console.error("Voice transformation failed:", error);
       showErrorToast(error instanceof Error ? error.message : "Voice transformation failed");
-    } finally {
-      setIsTransformingVoice(false);
     }
   };
 
@@ -514,7 +572,6 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 <TouchableOpacity
                   onPress={() => void handleVoiceTransform("subtle")}
                   style={styles.menuItem}
-                  disabled={isTransformingVoice}
                 >
                   <View style={styles.menuItemIcon}>
                     <Ionicons
@@ -529,8 +586,8 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       {isTransformingVoice
                         ? "Processing..."
                         : voicePreset
-                          ? `${voicePreset} selected`
-                          : "Make the voice subtly younger"}
+                          ? `${getVoicePresetLabel(voicePreset)} selected`
+                          : "Choose a voice tone"}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -546,7 +603,6 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                           backgroundColor: colors.accent.tabActive,
                         },
                       ]}
-                      disabled={isTransformingVoice}
                     >
                       <Text
                         style={[
@@ -554,7 +610,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                           voicePreset === preset && { color: colors.text.inverse },
                         ]}
                       >
-                        {preset === "subtle" ? "Subtle" : preset === "younger" ? "Younger" : "High"}
+                        {getVoicePresetLabel(preset)}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -1122,6 +1178,51 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontSize: 11,
     fontWeight: "600",
+  },
+  voiceProgressTrack: {
+    height: 4,
+    overflow: "hidden",
+    borderRadius: 2,
+    marginTop: 6,
+    backgroundColor: colors.background.tertiary,
+  },
+  voiceProgressFill: {
+    height: "100%",
+    borderRadius: 2,
+    backgroundColor: colors.accent.tabActive,
+  },
+  voiceTransformBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 20,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: colors.background.secondary,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border.secondary,
+  },
+  voiceTransformBannerIcon: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 32,
+    height: 32,
+    marginRight: 10,
+    borderRadius: 16,
+    backgroundColor: colors.background.elevated,
+  },
+  voiceTransformBannerContent: {
+    flex: 1,
+  },
+  voiceTransformBannerTitle: {
+    color: colors.text.primary,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  voiceTransformBannerSubtext: {
+    marginTop: 2,
+    color: colors.text.tertiary,
+    fontSize: 11,
   },
   menuItemIcon: {
     alignItems: "center",

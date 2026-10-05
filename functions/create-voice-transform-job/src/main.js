@@ -21,8 +21,32 @@ module.exports = async ({ req, res, log, error }) => {
       .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
       .setKey(process.env.APPWRITE_FUNCTION_API_KEY || process.env.APPWRITE_API_KEY);
     const databases = new sdk.Databases(client);
+    const tablesDB = new sdk.TablesDB(client);
     const databaseId = process.env.APPWRITE_DATABASE_ID;
     const collectionId = process.env.APPWRITE_AI_JOBS_COLLECTION_ID || "ai_jobs";
+    const variantsTableId = process.env.APPWRITE_VOICE_VARIANTS_TABLE_ID || "voice_variants";
+    const variantRows = await tablesDB.listRows({
+      databaseId,
+      tableId: variantsTableId,
+      queries: [
+        sdk.Query.equal("sourceAudioId", audioId),
+        sdk.Query.equal("voicePreset", voicePreset),
+        sdk.Query.limit(1),
+      ],
+    });
+    const existingVariant = variantRows.rows?.[0];
+    if (existingVariant && ["pending", "running"].includes(existingVariant.status)) {
+      return res.json({ ok: true, jobId: existingVariant.jobId, voicePreset, reused: true });
+    }
+    if (existingVariant?.status === "done" && existingVariant.outputAudioId) {
+      return res.json({
+        ok: true,
+        jobId: existingVariant.jobId,
+        outputAudioId: existingVariant.outputAudioId,
+        voicePreset,
+        reused: true,
+      });
+    }
     const existingJobs = await databases.listDocuments(databaseId, collectionId, [
       sdk.Query.equal("type", "voice-transform"),
       sdk.Query.equal("audioId", audioId),
@@ -36,6 +60,12 @@ module.exports = async ({ req, res, log, error }) => {
     );
 
     if (reusableJob) {
+      if (existingVariant) await tablesDB.updateRow({
+        databaseId,
+        tableId: variantsTableId,
+        rowId: existingVariant.$id,
+        data: { status: reusableJob.status, jobId: reusableJob.$id, error: reusableJob.error || "" },
+      }).catch(() => undefined);
       const response = {
         ok: true,
         jobId: reusableJob.$id,
@@ -66,6 +96,41 @@ module.exports = async ({ req, res, log, error }) => {
         error: "",
       },
     );
+
+    try {
+      if (existingVariant) {
+        await tablesDB.updateRow({
+          databaseId,
+          tableId: variantsTableId,
+          rowId: existingVariant.$id,
+          data: { status: "pending", jobId: job.$id, outputAudioId: null, error: "" },
+        });
+        return res.json({ ok: true, jobId: job.$id, voicePreset });
+      }
+      await tablesDB.createRow({
+        databaseId,
+        tableId: variantsTableId,
+        rowId: job.$id,
+        data: {
+          sourceAudioId: audioId,
+          voicePreset,
+          status: "pending",
+          jobId: job.$id,
+          error: "",
+        },
+      });
+    } catch (variantError) {
+      const currentRows = await tablesDB.listRows({
+        databaseId,
+        tableId: variantsTableId,
+        queries: [sdk.Query.equal("sourceAudioId", audioId), sdk.Query.equal("voicePreset", voicePreset), sdk.Query.limit(1)],
+      });
+      const currentVariant = currentRows.rows?.[0];
+      if (currentVariant) {
+        return res.json({ ok: true, jobId: currentVariant.jobId, voicePreset, reused: true });
+      }
+      throw variantError;
+    }
 
     log(`Queued voice transform ${job.$id} for ${audioId}`);
     return res.json({ ok: true, jobId: job.$id, voicePreset });

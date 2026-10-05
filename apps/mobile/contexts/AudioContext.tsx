@@ -27,6 +27,7 @@ export interface AudioMetadata {
   thumbnailUrl: string;
   isLocalFile: boolean;
   audioId?: string;
+  voiceSourceAudioId?: string;
   youtubeId?: string;
   naatId?: string; // Naat document ID for deep linking
   views?: number;
