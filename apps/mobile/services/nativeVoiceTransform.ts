@@ -49,8 +49,13 @@ export async function transformVoiceUrlOnDevice(
   const sourcePath = `${inputDirectory}${audioId}.source`;
   const sourceInfo = await FileSystem.getInfoAsync(sourcePath);
   if (!sourceInfo.exists) {
+    console.log("[NativeVoiceTransform] Downloading source", { audioId, audioUrl });
     await FileSystem.downloadAsync(audioUrl, sourcePath);
+    console.log("[NativeVoiceTransform] Source downloaded", { sourcePath });
+  } else {
+    console.log("[NativeVoiceTransform] Using cached source", { sourcePath });
   }
 
+  console.log("[NativeVoiceTransform] Starting native transform", { sourcePath, preset });
   return transformVoiceOnDevice(sourcePath, preset, onProgress);
 }
