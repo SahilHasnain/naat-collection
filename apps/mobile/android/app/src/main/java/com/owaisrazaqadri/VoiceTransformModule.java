@@ -5,6 +5,7 @@ import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -29,6 +30,7 @@ import java.util.concurrent.Executors;
 
 public final class VoiceTransformModule extends ReactContextBaseJavaModule {
   private static final String MODULE_NAME = "NativeVoiceTransform";
+  private static final String TAG = "NativeVoiceTransform";
   private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
 
   public VoiceTransformModule(ReactApplicationContext context) {
@@ -45,6 +47,7 @@ public final class VoiceTransformModule extends ReactContextBaseJavaModule {
   public void transform(String sourcePath, String preset, Promise promise) {
     EXECUTOR.execute(() -> {
       try {
+        Log.i(TAG, "Starting transform: " + sourcePath + " preset=" + preset);
         File source = new File(sourcePath.replace("file://", ""));
         File outputDirectory = new File(getReactApplicationContext().getCacheDir(), "voice-transform");
         if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
@@ -53,16 +56,21 @@ public final class VoiceTransformModule extends ReactContextBaseJavaModule {
 
         String safePreset = preset == null ? "younger" : preset.toLowerCase(Locale.US);
         File output = new File(outputDirectory, source.getName() + "-" + safePreset + ".wav");
+        File pcmFile = new File(outputDirectory, source.getName() + ".pcm");
         if (!output.exists() || output.length() == 0) {
           ProgressListener progress = value -> emitProgress(source.getAbsolutePath(), value);
-          DecodedAudio audio = decode(source.getAbsolutePath(), progress);
-          short[] transformed = pitchShift(audio.samples, audio.channels, audio.sampleRate, semitones(safePreset), progress);
-          writeWav(output, transformed, audio.channels, audio.sampleRate, progress);
+          Log.i(TAG, "Decoding source: " + source.length() + " bytes");
+          DecodedAudio audio = decode(source.getAbsolutePath(), pcmFile, progress);
+          Log.i(TAG, "Decoded " + audio.sampleCount + " samples at " + audio.sampleRate + "Hz");
+          pitchShift(pcmFile, output, audio, semitones(safePreset), progress);
+          Log.i(TAG, "Wrote output: " + output.length() + " bytes");
         }
+        if (pcmFile.exists()) pcmFile.delete();
 
         emitProgress(source.getAbsolutePath(), 100);
         new Handler(Looper.getMainLooper()).post(() -> promise.resolve(output.getAbsolutePath()));
       } catch (Exception exception) {
+        Log.e(TAG, "Transform failed", exception);
         new Handler(Looper.getMainLooper()).post(() -> promise.reject("VOICE_TRANSFORM_FAILED", exception));
       }
     });
@@ -74,7 +82,7 @@ public final class VoiceTransformModule extends ReactContextBaseJavaModule {
     return 4f;
   }
 
-  private DecodedAudio decode(String path, ProgressListener progress) throws IOException {
+  private DecodedAudio decode(String path, File pcmFile, ProgressListener progress) throws IOException {
     MediaExtractor extractor = new MediaExtractor();
     extractor.setDataSource(path);
     int trackIndex = -1;
@@ -95,8 +103,10 @@ public final class VoiceTransformModule extends ReactContextBaseJavaModule {
     MediaCodec decoder = MediaCodec.createDecoderByType(mime);
     decoder.configure(format, null, null, 0);
     decoder.start();
+    Log.i(TAG, "Decoder started: " + mime);
 
-    ByteArrayOutputStream pcm = new ByteArrayOutputStream();
+    RandomAccessFile pcm = new RandomAccessFile(pcmFile, "rw");
+    pcm.setLength(0);
     MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
     boolean inputEnded = false;
     boolean outputEnded = false;
@@ -137,67 +147,77 @@ public final class VoiceTransformModule extends ReactContextBaseJavaModule {
       decoder.stop();
       decoder.release();
       extractor.release();
+      pcm.close();
     }
 
     int channels = format.containsKey(MediaFormat.KEY_CHANNEL_COUNT) ? format.getInteger(MediaFormat.KEY_CHANNEL_COUNT) : 2;
     int sampleRate = format.containsKey(MediaFormat.KEY_SAMPLE_RATE) ? format.getInteger(MediaFormat.KEY_SAMPLE_RATE) : 44100;
-    ByteBuffer bytes = ByteBuffer.wrap(pcm.toByteArray()).order(ByteOrder.LITTLE_ENDIAN);
-    short[] samples = new short[bytes.remaining() / 2];
-    bytes.asShortBuffer().get(samples);
+    long sampleCount = pcmFile.length() / 2;
     progress.onProgress(35);
-    return new DecodedAudio(samples, channels, sampleRate);
+    Log.i(TAG, "Decoder finished");
+    return new DecodedAudio(pcmFile, sampleCount, channels, sampleRate);
   }
 
-  private static short[] pitchShift(short[] samples, int channels, int sampleRate, float semitones, ProgressListener progress) {
+  private static void pitchShift(File pcmFile, File outputFile, DecodedAudio audio, float semitones, ProgressListener progress) throws IOException {
+    Log.i(TAG, "Pitch processing started: semitones=" + semitones + " frames=" + (audio.sampleCount / audio.channels));
     SoundTouch soundTouch = new SoundTouch();
-    soundTouch.setChannels(channels);
-    soundTouch.setSampleRate(sampleRate);
+    soundTouch.setChannels(audio.channels);
+    soundTouch.setSampleRate(audio.sampleRate);
     soundTouch.setPitchSemiTones(semitones);
-    int chunkFrames = 8192;
-    int totalFrames = samples.length / channels;
-    for (int frameOffset = 0; frameOffset < totalFrames; frameOffset += chunkFrames) {
-      int frames = Math.min(chunkFrames, totalFrames - frameOffset);
-      soundTouch.putSamples(samples, frameOffset * channels, frames);
-      progress.onProgress(35 + (int) (45f * (frameOffset + frames) / totalFrames));
-    }
-    soundTouch.flush();
+    long outputSamples = 0;
+    byte[] inputBytes = new byte[64 * 1024];
+    short[] inputSamples = new short[inputBytes.length / 2];
+    short[] outputSamplesBuffer = new short[64 * 1024];
 
-    short[] output = new short[samples.length + (sampleRate * channels * 2)];
-    int written = 0;
-    while (!soundTouch.isEmpty()) {
-      int frames = soundTouch.receiveSamplesI16(output, written, output.length / channels - written / channels);
-      if (frames == 0) break;
-      written += frames * channels;
-      progress.onProgress(Math.min(85, 80 + (int) (5f * written / output.length)));
-      if (written == output.length) break;
+    try (RandomAccessFile input = new RandomAccessFile(pcmFile, "r");
+         RandomAccessFile output = new RandomAccessFile(outputFile, "rw")) {
+      output.setLength(0);
+      output.write(new byte[44]);
+      int bytesRead;
+      while ((bytesRead = input.read(inputBytes)) > 0) {
+        ByteBuffer inputBuffer = ByteBuffer.wrap(inputBytes, 0, bytesRead).order(ByteOrder.LITTLE_ENDIAN);
+        int sampleCount = bytesRead / 2;
+        inputBuffer.asShortBuffer().get(inputSamples, 0, sampleCount);
+        soundTouch.putSamples(inputSamples, 0, sampleCount / audio.channels);
+        outputSamples += receiveSamples(soundTouch, output, outputSamplesBuffer, audio.channels);
+        progress.onProgress(35 + (int) (50f * input.getFilePointer() / pcmFile.length()));
+      }
+      soundTouch.flush();
+      while (!soundTouch.isEmpty()) {
+        int written = receiveSamples(soundTouch, output, outputSamplesBuffer, audio.channels);
+        if (written == 0) break;
+        outputSamples += written;
+      }
+      writeWavHeader(output, outputSamples, audio.channels, audio.sampleRate);
     }
     soundTouch.dispose();
-    short[] result = new short[written];
-    System.arraycopy(output, 0, result, 0, written);
-    return result;
+    progress.onProgress(95);
   }
 
-  private static void writeWav(File file, short[] samples, int channels, int sampleRate, ProgressListener progress) throws IOException {
-    long dataLength = (long) samples.length * 2;
-    try (RandomAccessFile output = new RandomAccessFile(file, "rw")) {
-      output.setLength(0);
-      output.writeBytes("RIFF");
-      writeIntLE(output, (int) (36 + dataLength));
-      output.writeBytes("WAVEfmt ");
-      writeIntLE(output, 16);
-      writeShortLE(output, (short) 1);
-      writeShortLE(output, (short) channels);
-      writeIntLE(output, sampleRate);
-      writeIntLE(output, sampleRate * channels * 2);
-      writeShortLE(output, (short) (channels * 2));
-      writeShortLE(output, (short) 16);
-      output.writeBytes("data");
-      writeIntLE(output, (int) dataLength);
-      ByteBuffer buffer = ByteBuffer.allocate(samples.length * 2).order(ByteOrder.LITTLE_ENDIAN);
-      buffer.asShortBuffer().put(samples);
-      output.write(buffer.array());
-      progress.onProgress(98);
-    }
+  private static long receiveSamples(SoundTouch soundTouch, RandomAccessFile output, short[] buffer, int channels) throws IOException {
+    int frames = soundTouch.receiveSamplesI16(buffer, 0, buffer.length / channels);
+    if (frames == 0) return 0;
+    ByteBuffer bytes = ByteBuffer.allocate(frames * channels * 2).order(ByteOrder.LITTLE_ENDIAN);
+    bytes.asShortBuffer().put(buffer, 0, frames * channels);
+    output.write(bytes.array());
+    return (long) frames * channels;
+  }
+
+  private static void writeWavHeader(RandomAccessFile output, long sampleCount, int channels, int sampleRate) throws IOException {
+    long dataLength = sampleCount * 2;
+    output.seek(0);
+    output.writeBytes("RIFF");
+    writeIntLE(output, (int) (36 + dataLength));
+    output.writeBytes("WAVEfmt ");
+    writeIntLE(output, 16);
+    writeShortLE(output, (short) 1);
+    writeShortLE(output, (short) channels);
+    writeIntLE(output, sampleRate);
+    writeIntLE(output, sampleRate * channels * 2);
+    writeShortLE(output, (short) (channels * 2));
+    writeShortLE(output, (short) 16);
+    output.writeBytes("data");
+    writeIntLE(output, (int) dataLength);
   }
 
   private void emitProgress(String sourcePath, int progress) {
@@ -226,12 +246,14 @@ public final class VoiceTransformModule extends ReactContextBaseJavaModule {
   }
 
   private static final class DecodedAudio {
-    private final short[] samples;
+    private final File pcmFile;
+    private final long sampleCount;
     private final int channels;
     private final int sampleRate;
 
-    private DecodedAudio(short[] samples, int channels, int sampleRate) {
-      this.samples = samples;
+    private DecodedAudio(File pcmFile, long sampleCount, int channels, int sampleRate) {
+      this.pcmFile = pcmFile;
+      this.sampleCount = sampleCount;
       this.channels = channels;
       this.sampleRate = sampleRate;
     }
