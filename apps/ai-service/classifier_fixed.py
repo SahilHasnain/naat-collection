@@ -18,10 +18,6 @@ class AudioClassifier:
         self.hop_duration = 1
         self.sample_rate = 16000
         self.merge_gap = 10
-        # A second is only cut as explanation if the model is confident enough.
-        # Low-confidence/quiet audio defaults to naat so quiet naat passages
-        # (fades, soft recitation) are never clipped away.
-        self.explanation_threshold = 0.6
         # The window's decision flips *before* the window is half-filled with the new
         # class (model is biased toward the dominant class). Empirically L/2=2.5s
         # overshoots; 1.5s lands nearest on known ground truth.
@@ -219,9 +215,9 @@ class AudioClassifier:
                 continue
             avg_naat = naat_scores[s] / vote_counts[s]
             avg_expl = expl_scores[s] / vote_counts[s]
-            # CRITICAL: Use >= like original script. Explanation only cut when confident,
-            # otherwise keep as naat (protects quiet naat portions from being clipped).
-            if avg_expl >= avg_naat and avg_expl >= self.explanation_threshold:
+            # The trained binary classifier owns the action decision. Silence and
+            # low-confidence audio are not handled by a separate amplitude rule.
+            if avg_expl >= avg_naat:
                 label = "explanation"
             else:
                 label = "naat"

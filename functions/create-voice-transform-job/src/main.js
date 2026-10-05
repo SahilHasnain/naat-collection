@@ -19,10 +19,35 @@ module.exports = async ({ req, res, log, error }) => {
     const client = new sdk.Client()
       .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT)
       .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-      .setKey(process.env.APPWRITE_API_KEY);
+      .setKey(process.env.APPWRITE_FUNCTION_API_KEY || process.env.APPWRITE_API_KEY);
     const databases = new sdk.Databases(client);
     const databaseId = process.env.APPWRITE_DATABASE_ID;
     const collectionId = process.env.APPWRITE_AI_JOBS_COLLECTION_ID || "ai_jobs";
+    const existingJobs = await databases.listDocuments(databaseId, collectionId, [
+      sdk.Query.equal("type", "voice-transform"),
+      sdk.Query.equal("audioId", audioId),
+      sdk.Query.equal("voicePreset", voicePreset),
+      sdk.Query.orderDesc("$createdAt"),
+      sdk.Query.limit(10),
+    ]);
+    const reusableJob = existingJobs.documents.find((candidate) =>
+      ["pending", "running"].includes(candidate.status) ||
+      (candidate.status === "done" && candidate.outputAudioId),
+    );
+
+    if (reusableJob) {
+      const response = {
+        ok: true,
+        jobId: reusableJob.$id,
+        voicePreset,
+        reused: true,
+      };
+      if (reusableJob.status === "done") {
+        response.outputAudioId = reusableJob.outputAudioId;
+      }
+      log(`Reusing voice transform ${reusableJob.$id} for ${audioId}`);
+      return res.json(response);
+    }
 
     const job = await databases.createDocument(
       databaseId,

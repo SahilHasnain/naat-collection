@@ -2,6 +2,7 @@ import { colors, shadows } from "@/constants/theme";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { useTheme } from "@/contexts/ThemeContext";
+import { transformVoice, type VoicePreset } from "@/services/voiceTransform";
 import { audioDownloadService } from "@/services/audioDownload";
 import { appwriteService } from "@/services/appwrite";
 import { shareService } from "@/services/shareService";
@@ -89,6 +90,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     abRepeatPointA,
     abRepeatPointB,
     isABRepeatActive,
+    loadAndPlay,
     togglePlayPause,
     seek,
     setVolume,
@@ -107,6 +109,8 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   const [isABRepeatMode, setIsABRepeatMode] = useState(false);
   const [isExportingAB, setIsExportingAB] = useState(false);
   const [hasExportedAB, setHasExportedAB] = useState(false);
+  const [voicePreset, setVoicePreset] = useState<VoicePreset | null>(null);
+  const [isTransformingVoice, setIsTransformingVoice] = useState(false);
 
   useEffect(() => {
     const checkDownloadStatus = async () => {
@@ -158,6 +162,29 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
       showErrorToast(errorMessage);
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleVoiceTransform = async (preset: VoicePreset) => {
+    if (!currentAudio?.audioId || currentAudio.isLocalFile || isTransformingVoice) return;
+
+    try {
+      setIsTransformingVoice(true);
+      setVoicePreset(preset);
+      setShowOptionsMenu(false);
+      const transformed = await transformVoice(currentAudio.audioId, preset);
+      await loadAndPlay({
+        ...currentAudio,
+        audioId: transformed.audioId,
+        audioUrl: transformed.audioUrl,
+        isLocalFile: false,
+      });
+      showSuccessToast("Voice tone applied");
+    } catch (error) {
+      console.error("Voice transformation failed:", error);
+      showErrorToast(error instanceof Error ? error.message : "Voice transformation failed");
+    } finally {
+      setIsTransformingVoice(false);
     }
   };
 
@@ -483,6 +510,55 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   </View>
                   <Text style={styles.menuItemText}>Share</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => void handleVoiceTransform("subtle")}
+                  style={styles.menuItem}
+                  disabled={isTransformingVoice}
+                >
+                  <View style={styles.menuItemIcon}>
+                    <Ionicons
+                      name="sparkles-outline"
+                      size={20}
+                      color={colors.accent.tabActive}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.menuItemText}>Voice tone</Text>
+                    <Text style={styles.menuItemSubtext}>
+                      {isTransformingVoice
+                        ? "Processing..."
+                        : voicePreset
+                          ? `${voicePreset} selected`
+                          : "Make the voice subtly younger"}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <View style={styles.voicePresetRow}>
+                  {(["subtle", "younger", "high"] as VoicePreset[]).map((preset) => (
+                    <TouchableOpacity
+                      key={preset}
+                      onPress={() => void handleVoiceTransform(preset)}
+                      style={[
+                        styles.voicePresetButton,
+                        voicePreset === preset && {
+                          backgroundColor: colors.accent.tabActive,
+                        },
+                      ]}
+                      disabled={isTransformingVoice}
+                    >
+                      <Text
+                        style={[
+                          styles.voicePresetText,
+                          voicePreset === preset && { color: colors.text.inverse },
+                        ]}
+                      >
+                        {preset === "subtle" ? "Subtle" : preset === "younger" ? "Younger" : "High"}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
 
                 <TouchableOpacity
                   onPress={() => {
@@ -1028,6 +1104,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 14,
+  },
+  voicePresetRow: {
+    flexDirection: "row",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  voicePresetButton: {
+    flex: 1,
+    alignItems: "center",
+    borderRadius: 8,
+    paddingVertical: 8,
+    backgroundColor: colors.background.tertiary,
+  },
+  voicePresetText: {
+    color: colors.text.secondary,
+    fontSize: 11,
+    fontWeight: "600",
   },
   menuItemIcon: {
     alignItems: "center",
