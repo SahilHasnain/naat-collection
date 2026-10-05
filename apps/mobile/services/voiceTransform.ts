@@ -33,17 +33,13 @@ export function getVoiceUrl(fileId: string): string {
 }
 
 async function waitForJob(jobId: string, onProgress?: (progress: number) => void): Promise<VoiceJob> {
-  const channel = `databases.${appwriteConfig.databaseId}.collections.${JOBS_COLLECTION_ID}.documents.${jobId}`;
-
   return new Promise<VoiceJob>((resolve, reject) => {
     let settled = false;
-    let unsubscribe: (() => void) | undefined;
     let pollTimer: ReturnType<typeof setInterval> | undefined;
 
     const finish = (error?: Error, job?: VoiceJob) => {
       if (settled) return;
       settled = true;
-      unsubscribe?.();
       if (pollTimer) clearInterval(pollTimer);
       if (error) reject(error);
       else if (job) resolve(job);
@@ -66,14 +62,6 @@ async function waitForJob(jobId: string, onProgress?: (progress: number) => void
         console.warn("[VoiceTransform] Job status check failed; retrying", error);
       }
     };
-
-    try {
-      unsubscribe = client.subscribe(channel, (event) => {
-        inspect(event.payload as VoiceJob);
-      });
-    } catch {
-      // The polling fallback below still works when Realtime is unavailable.
-    }
 
     pollTimer = setInterval(() => {
       void fetchCurrentJob();
@@ -111,7 +99,6 @@ export async function getPendingVoiceTransform(audioId: string) {
 export async function clearPendingVoiceTransform(key: string) { await AsyncStorage.removeItem(key); }
 
 export function watchVoiceTransform(jobId: string, onUpdate: (job: VoiceTransformJob) => void): () => void {
-  const channel = `databases.${appwriteConfig.databaseId}.collections.${JOBS_COLLECTION_ID}.documents.${jobId}`;
   let stopped = false;
   const inspect = async () => {
     try {
@@ -119,11 +106,9 @@ export function watchVoiceTransform(jobId: string, onUpdate: (job: VoiceTransfor
       if (!stopped) onUpdate(job);
     } catch (error) { console.warn("[VoiceTransform] Background job check failed; retrying", error); }
   };
-  let unsubscribe: (() => void) | undefined;
-  try { unsubscribe = client.subscribe(channel, (event) => !stopped && onUpdate(event.payload as VoiceTransformJob)); } catch {}
   const timer = setInterval(() => void inspect(), POLL_INTERVAL_MS);
   void inspect();
-  return () => { stopped = true; unsubscribe?.(); clearInterval(timer); };
+  return () => { stopped = true; clearInterval(timer); };
 }
 
 export async function transformVoice(

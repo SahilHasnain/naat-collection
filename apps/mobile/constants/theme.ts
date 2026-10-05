@@ -26,6 +26,7 @@ const darkColors = {
     primary: "#3f3f3f", // Primary borders
     secondary: "#272727", // Secondary borders
     subtle: "#1f1f1f", // Subtle borders
+    menuDivider: "#292929", // Near-invisible divider for dark menus
   },
 
   // Accent colors
@@ -82,6 +83,7 @@ const lightColors = {
     primary: "#d4d4d8",
     secondary: "#e4e4e7",
     subtle: "#f0f0f2",
+    menuDivider: "#e4e4e7",
   },
   accent: { ...darkColors.accent, tabActive: "#B45309" },
   interactive: {

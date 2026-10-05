@@ -133,6 +133,10 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   const [isTransformingVoice, setIsTransformingVoice] = useState(false);
   const [voiceTransformProgress, setVoiceTransformProgress] = useState(0);
   const [voiceTransformRefresh, setVoiceTransformRefresh] = useState(0);
+  const menuItemStyle = [
+    styles.menuItem,
+    { borderBottomColor: colors.border.menuDivider },
+  ];
 
   useEffect(() => {
     const checkDownloadStatus = async () => {
@@ -244,6 +248,20 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
       console.error("Voice transformation failed:", error);
       showErrorToast(error instanceof Error ? error.message : "Voice transformation failed");
     }
+  };
+
+  const handlePlayOriginal = async () => {
+    const audio = currentAudio;
+    const sourceAudioId = audio?.voiceSourceAudioId;
+    if (!audio || !sourceAudioId) return;
+
+    setVoicePreset(null);
+    await loadAndPlay({
+      ...audio,
+      audioId: sourceAudioId,
+      audioUrl: getVoiceUrl(sourceAudioId),
+      voiceSourceAudioId: undefined,
+    });
   };
 
   const handleDeleteDownload = () => {
@@ -509,9 +527,9 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                         handleDownload();
                       }
                     }}
-                    style={styles.menuItem}
+                    style={menuItemStyle}
                   >
-                    <View style={styles.menuItemIcon}>
+                    <View style={[styles.menuItemIcon, { backgroundColor: colors.background.tertiary }]}>
                       <Ionicons
                         name={
                           isDownloaded
@@ -531,7 +549,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.menuItemText}>
+                      <Text style={[styles.menuItemText, { color: colors.text.primary }] }>
                         {isDownloaded
                           ? "Delete Download"
                           : isDownloading
@@ -539,7 +557,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                             : "Download"}
                       </Text>
                       {isDownloading && (
-                        <Text style={styles.menuItemSubtext}>
+                        <Text style={[styles.menuItemSubtext, { color: colors.text.secondary }] }>
                           {Math.round(downloadProgress * 100)}% complete
                         </Text>
                       )}
@@ -557,23 +575,23 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       currentAudio.naatId,
                     );
                   }}
-                  style={styles.menuItem}
+                  style={menuItemStyle}
                 >
-                  <View style={styles.menuItemIcon}>
+                  <View style={[styles.menuItemIcon, { backgroundColor: colors.background.tertiary }]}>
                     <Ionicons
                       name="arrow-redo-outline"
                       size={20}
                       color={colors.text.secondary}
                     />
                   </View>
-                  <Text style={styles.menuItemText}>Share</Text>
+                  <Text style={[styles.menuItemText, { color: colors.text.primary }]}>Share</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={() => void handleVoiceTransform("subtle")}
-                  style={styles.menuItem}
+                  style={[...menuItemStyle, { borderBottomWidth: 0 }]}
                 >
-                  <View style={styles.menuItemIcon}>
+                  <View style={[styles.menuItemIcon, { backgroundColor: colors.background.tertiary }]}>
                     <Ionicons
                       name="sparkles-outline"
                       size={20}
@@ -581,8 +599,8 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.menuItemText}>Voice tone</Text>
-                    <Text style={styles.menuItemSubtext}>
+                    <Text style={[styles.menuItemText, { color: colors.text.primary }]}>Voice tone</Text>
+                    <Text style={[styles.menuItemSubtext, { color: colors.text.secondary }] }>
                       {isTransformingVoice
                         ? "Processing..."
                         : voicePreset
@@ -599,6 +617,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       onPress={() => void handleVoiceTransform(preset)}
                       style={[
                         styles.voicePresetButton,
+                        { backgroundColor: colors.background.tertiary },
                         voicePreset === preset && {
                           backgroundColor: colors.accent.tabActive,
                         },
@@ -607,6 +626,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       <Text
                         style={[
                           styles.voicePresetText,
+                          { color: colors.text.primary },
                           voicePreset === preset && { color: colors.text.inverse },
                         ]}
                       >
@@ -621,11 +641,12 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     toggleRepeat();
                     setShowOptionsMenu(false);
                   }}
-                  style={styles.menuItem}
+                  style={menuItemStyle}
                 >
                   <View
                     style={[
                       styles.menuItemIcon,
+                      { backgroundColor: colors.background.tertiary },
                       isRepeatEnabled && {
                         backgroundColor: colors.accent.primary + "20",
                       },
@@ -643,7 +664,8 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   </View>
                   <Text
                     style={[
-                      styles.menuItemText,
+                       styles.menuItemText,
+                       { color: colors.text.primary },
                       isRepeatEnabled && { color: colors.accent.primary },
                     ]}
                   >
@@ -656,11 +678,12 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     toggleAutoplay();
                     setShowOptionsMenu(false);
                   }}
-                  style={styles.menuItem}
+                  style={menuItemStyle}
                 >
                   <View
                     style={[
                       styles.menuItemIcon,
+                      { backgroundColor: colors.background.tertiary },
                       isAutoplayEnabled && {
                         backgroundColor: colors.accent.secondary + "20",
                       },
@@ -678,7 +701,8 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   </View>
                   <Text
                     style={[
-                      styles.menuItemText,
+                       styles.menuItemText,
+                       { color: colors.text.primary },
                       isAutoplayEnabled && { color: colors.accent.secondary },
                     ]}
                   >
@@ -696,6 +720,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   <View
                     style={[
                       styles.menuItemIcon,
+                      { backgroundColor: colors.background.tertiary },
                       isABRepeatMode && {
                         backgroundColor: colors.accent.primary + "20",
                       },
@@ -714,14 +739,15 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   <View style={{ flex: 1 }}>
                     <Text
                       style={[
-                        styles.menuItemText,
+                         styles.menuItemText,
+                         { color: colors.text.primary },
                         isABRepeatMode && { color: colors.accent.primary },
                       ]}
                     >
                       A/B Repeat
                     </Text>
                     {bothPointsSet && (
-                      <Text style={styles.menuItemSubtext}>Loop active</Text>
+                      <Text style={[styles.menuItemSubtext, { color: colors.text.secondary }]}>Loop active</Text>
                     )}
                   </View>
                 </TouchableOpacity>
@@ -788,9 +814,24 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 </View>
 
                 <View style={styles.infoSection}>
-                  <Text numberOfLines={2} style={styles.title}>
+                  <Text numberOfLines={2} style={[styles.title, { color: colors.text.primary }]}>
                     {currentAudio.title}
                   </Text>
+                  {currentAudio.voiceSourceAudioId && voicePreset && (
+                    <View style={styles.voiceVariantIndicator}>
+                      <Text style={styles.voiceVariantLabel}>
+                        {getVoicePresetLabel(voicePreset)} tone
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => void handlePlayOriginal()}
+                        accessibilityRole="button"
+                        accessibilityLabel="Play original audio"
+                        style={styles.originalButton}
+                      >
+                        <Text style={styles.originalButtonText}>Original</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               </View>
 
@@ -1153,7 +1194,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border.secondary,
+    borderBottomColor: colors.border.menuDivider,
   },
   menuItemLast: {
     flexDirection: "row",
@@ -1291,6 +1332,29 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 26,
     letterSpacing: -0.3,
+  },
+  voiceVariantIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 10,
+  },
+  voiceVariantLabel: {
+    color: colors.accent.tabActive,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  originalButton: {
+    borderColor: colors.accent.tabActive,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  originalButtonText: {
+    color: colors.accent.tabActive,
+    fontSize: 12,
+    fontWeight: "600",
   },
 
   progressSection: {

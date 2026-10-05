@@ -35,7 +35,18 @@ export function AnimatedTabBar({
   const { isDesktopWeb } = useResponsiveLayout();
   const TAB_BAR_HEIGHT = 56; // Reduced height for cleaner look
   const [authModalVisible, setAuthModalVisible] = React.useState(false);
-  const { preference, cycleTheme, libraryOpen, setLibraryOpen } = useTheme();
+  const { libraryOpen, setLibraryOpen } = useTheme();
+  const libraryPopoverStyle = [
+    styles.libraryPopover,
+    {
+      backgroundColor: colors.background.primary,
+      borderColor: colors.border.secondary,
+    },
+  ];
+  const libraryItemTextStyle = [
+    styles.libraryItemText,
+    { color: colors.text.primary },
+  ];
 
   const animatedStyle = useAnimatedStyle(() => {
     if (isDesktopWeb) {
@@ -221,34 +232,12 @@ export function AnimatedTabBar({
       {libraryOpen && (
         <View
           style={[
-            styles.libraryPopover,
+            libraryPopoverStyle,
             isDesktopWeb
               ? { left: 224, top: 112 + libraryIndex * 56 }
-              : { right: 8, bottom: TAB_BAR_HEIGHT + insets.bottom + 8 },
+              : { right: 8, bottom: 64 },
           ]}
         >
-          <Pressable
-            onPress={() => {
-              setLibraryOpen(false);
-              navigation.navigate("favorites");
-            }}
-            style={styles.libraryItem}
-            accessibilityRole="button"
-            accessibilityLabel="Open favorites"
-          >
-            <Text style={styles.libraryItemText}>Favorites</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              setLibraryOpen(false);
-              navigation.navigate("downloads");
-            }}
-            style={styles.libraryItem}
-            accessibilityRole="button"
-            accessibilityLabel="Open downloads"
-          >
-            <Text style={styles.libraryItemText}>Downloads</Text>
-          </Pressable>
           <Pressable
             onPress={() => {
               setLibraryOpen(false);
@@ -259,22 +248,29 @@ export function AnimatedTabBar({
             accessibilityLabel="Open profile"
           >
             <Ionicons name="person-outline" size={18} color={colors.text.primary} />
-            <Text style={styles.libraryItemText}>Profile</Text>
-            </Pressable>
+            <Text style={libraryItemTextStyle}>Profile</Text>
+          </Pressable>
           <Pressable
-            onPress={cycleTheme}
+            onPress={() => {
+              setLibraryOpen(false);
+              navigation.navigate("favorites");
+            }}
             style={styles.libraryItem}
             accessibilityRole="button"
-            accessibilityLabel="Change theme"
+            accessibilityLabel="Open favorites"
           >
-            <Ionicons
-              name={preference === "light" ? "sunny-outline" : preference === "dark" ? "moon-outline" : "contrast-outline"}
-              size={18}
-              color={colors.text.primary}
-            />
-            <Text style={styles.libraryItemText}>
-              Theme: {preference[0].toUpperCase() + preference.slice(1)}
-            </Text>
+            <Text style={libraryItemTextStyle}>Favorites</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              setLibraryOpen(false);
+              navigation.navigate("downloads");
+            }}
+            style={styles.libraryItem}
+            accessibilityRole="button"
+            accessibilityLabel="Open downloads"
+          >
+            <Text style={libraryItemTextStyle}>Downloads</Text>
           </Pressable>
           {!isDesktopWeb && Platform.OS === "web" && (
             <Pressable
@@ -287,7 +283,7 @@ export function AnimatedTabBar({
               accessibilityLabel="Install app"
             >
               <Ionicons name="download-outline" size={18} color={colors.text.primary} />
-              <Text style={styles.libraryItemText}>Install App</Text>
+              <Text style={libraryItemTextStyle}>Install App</Text>
             </Pressable>
           )}
         </View>
@@ -305,8 +301,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     minWidth: 180,
     borderRadius: 14,
-    paddingVertical: 6,
-    backgroundColor: colors.background.elevated,
+    paddingVertical: 4,
+    backgroundColor: colors.background.primary,
     borderWidth: 1,
     borderColor: colors.border.secondary,
     zIndex: 110,
