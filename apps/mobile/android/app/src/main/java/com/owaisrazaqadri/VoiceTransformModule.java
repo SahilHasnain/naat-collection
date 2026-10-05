@@ -158,7 +158,7 @@ public final class VoiceTransformModule extends ReactContextBaseJavaModule {
       written += frames * channels;
       if (written == output.length) break;
     }
-    soundTouch.close();
+    soundTouch.dispose();
     short[] result = new short[written];
     System.arraycopy(output, 0, result, 0, written);
     return result;
