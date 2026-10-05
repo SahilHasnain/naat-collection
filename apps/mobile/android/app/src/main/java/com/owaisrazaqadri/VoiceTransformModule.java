@@ -9,9 +9,12 @@ import android.os.Looper;
 import androidx.annotation.NonNull;
 
 import com.facebook.react.bridge.Promise;
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.tianscar.soundtouch.SoundTouch;
 
 import java.io.ByteArrayOutputStream;
@@ -51,11 +54,13 @@ public final class VoiceTransformModule extends ReactContextBaseJavaModule {
         String safePreset = preset == null ? "younger" : preset.toLowerCase(Locale.US);
         File output = new File(outputDirectory, source.getName() + "-" + safePreset + ".wav");
         if (!output.exists() || output.length() == 0) {
-          DecodedAudio audio = decode(source.getAbsolutePath());
-          short[] transformed = pitchShift(audio.samples, audio.channels, audio.sampleRate, semitones(safePreset));
-          writeWav(output, transformed, audio.channels, audio.sampleRate);
+          ProgressListener progress = value -> emitProgress(source.getAbsolutePath(), value);
+          DecodedAudio audio = decode(source.getAbsolutePath(), progress);
+          short[] transformed = pitchShift(audio.samples, audio.channels, audio.sampleRate, semitones(safePreset), progress);
+          writeWav(output, transformed, audio.channels, audio.sampleRate, progress);
         }
 
+        emitProgress(source.getAbsolutePath(), 100);
         new Handler(Looper.getMainLooper()).post(() -> promise.resolve(output.getAbsolutePath()));
       } catch (Exception exception) {
         new Handler(Looper.getMainLooper()).post(() -> promise.reject("VOICE_TRANSFORM_FAILED", exception));
@@ -69,7 +74,7 @@ public final class VoiceTransformModule extends ReactContextBaseJavaModule {
     return 4f;
   }
 
-  private static DecodedAudio decode(String path) throws IOException {
+  private DecodedAudio decode(String path, ProgressListener progress) throws IOException {
     MediaExtractor extractor = new MediaExtractor();
     extractor.setDataSource(path);
     int trackIndex = -1;
@@ -139,15 +144,22 @@ public final class VoiceTransformModule extends ReactContextBaseJavaModule {
     ByteBuffer bytes = ByteBuffer.wrap(pcm.toByteArray()).order(ByteOrder.LITTLE_ENDIAN);
     short[] samples = new short[bytes.remaining() / 2];
     bytes.asShortBuffer().get(samples);
+    progress.onProgress(35);
     return new DecodedAudio(samples, channels, sampleRate);
   }
 
-  private static short[] pitchShift(short[] samples, int channels, int sampleRate, float semitones) {
+  private static short[] pitchShift(short[] samples, int channels, int sampleRate, float semitones, ProgressListener progress) {
     SoundTouch soundTouch = new SoundTouch();
     soundTouch.setChannels(channels);
     soundTouch.setSampleRate(sampleRate);
     soundTouch.setPitchSemiTones(semitones);
-    soundTouch.putSamples(samples, 0, samples.length / channels);
+    int chunkFrames = 8192;
+    int totalFrames = samples.length / channels;
+    for (int frameOffset = 0; frameOffset < totalFrames; frameOffset += chunkFrames) {
+      int frames = Math.min(chunkFrames, totalFrames - frameOffset);
+      soundTouch.putSamples(samples, frameOffset * channels, frames);
+      progress.onProgress(35 + (int) (45f * (frameOffset + frames) / totalFrames));
+    }
     soundTouch.flush();
 
     short[] output = new short[samples.length + (sampleRate * channels * 2)];
@@ -156,6 +168,7 @@ public final class VoiceTransformModule extends ReactContextBaseJavaModule {
       int frames = soundTouch.receiveSamplesI16(output, written, output.length / channels - written / channels);
       if (frames == 0) break;
       written += frames * channels;
+      progress.onProgress(Math.min(85, 80 + (int) (5f * written / output.length)));
       if (written == output.length) break;
     }
     soundTouch.dispose();
@@ -164,7 +177,7 @@ public final class VoiceTransformModule extends ReactContextBaseJavaModule {
     return result;
   }
 
-  private static void writeWav(File file, short[] samples, int channels, int sampleRate) throws IOException {
+  private static void writeWav(File file, short[] samples, int channels, int sampleRate, ProgressListener progress) throws IOException {
     long dataLength = (long) samples.length * 2;
     try (RandomAccessFile output = new RandomAccessFile(file, "rw")) {
       output.setLength(0);
@@ -183,7 +196,21 @@ public final class VoiceTransformModule extends ReactContextBaseJavaModule {
       ByteBuffer buffer = ByteBuffer.allocate(samples.length * 2).order(ByteOrder.LITTLE_ENDIAN);
       buffer.asShortBuffer().put(samples);
       output.write(buffer.array());
+      progress.onProgress(98);
     }
+  }
+
+  private void emitProgress(String sourcePath, int progress) {
+    WritableMap event = Arguments.createMap();
+    event.putString("sourcePath", sourcePath);
+    event.putInt("progress", progress);
+    getReactApplicationContext()
+      .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+      .emit("nativeVoiceTransformProgress", event);
+  }
+
+  private interface ProgressListener {
+    void onProgress(int progress);
   }
 
   private static void writeIntLE(RandomAccessFile output, int value) throws IOException {

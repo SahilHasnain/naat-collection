@@ -115,6 +115,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   const [hasExportedAB, setHasExportedAB] = useState(false);
   const [voicePreset, setVoicePreset] = useState<VoicePreset | null>(null);
   const [isTransformingVoice, setIsTransformingVoice] = useState(false);
+  const [voiceTransformProgress, setVoiceTransformProgress] = useState(0);
 
   useEffect(() => {
     const checkDownloadStatus = async () => {
@@ -174,6 +175,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
 
     try {
       setIsTransformingVoice(true);
+      setVoiceTransformProgress(0);
       setVoicePreset(preset);
       setShowOptionsMenu(false);
       const transformed = isNativeVoiceTransformAvailable()
@@ -183,6 +185,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
               currentAudio.audioId,
               currentAudio.audioUrl,
               preset,
+              setVoiceTransformProgress,
             ),
             isLocalFile: true,
           }
@@ -202,6 +205,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
       showErrorToast(error instanceof Error ? error.message : "Voice transformation failed");
     } finally {
       setIsTransformingVoice(false);
+      setVoiceTransformProgress(0);
     }
   };
 
@@ -544,7 +548,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                     <Text style={styles.menuItemText}>Voice tone</Text>
                     <Text style={styles.menuItemSubtext}>
                       {isTransformingVoice
-                        ? "Processing..."
+                        ? `Processing... ${voiceTransformProgress}%`
                         : voicePreset
                           ? `${voicePreset} selected`
                           : "Make the voice subtly younger"}
