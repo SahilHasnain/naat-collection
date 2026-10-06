@@ -113,7 +113,7 @@ export function AnimatedTabBar({
                 height: TAB_BAR_HEIGHT + insets.bottom,
                 paddingBottom: insets.bottom + 4,
               }),
-          zIndex: 100,
+          zIndex: 1001,
           ...Platform.select({
             ios: {
               shadowColor: "#000",
@@ -122,7 +122,7 @@ export function AnimatedTabBar({
               shadowRadius: 2,
             },
             android: {
-              elevation: 8,
+              elevation: 12,
             },
           }),
         },
@@ -305,12 +305,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
     borderWidth: 1,
     borderColor: colors.border.secondary,
-    zIndex: 110,
+    zIndex: 1100,
     shadowColor: "#000",
     shadowOpacity: 0.35,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
+    elevation: 16,
   },
   libraryItem: {
     paddingHorizontal: 16,

@@ -147,7 +147,7 @@ def audio_duration_seconds(input_path):
 
 def update_variant(job_id, payload):
     response = requests.patch(
-        f"{APPWRITE_ENDPOINT}/databases/{APPWRITE_DATABASE_ID}/tables/{APPWRITE_VARIANTS_TABLE_ID}/rows/{job_id}",
+        f"{APPWRITE_ENDPOINT}/tablesdb/{APPWRITE_DATABASE_ID}/tables/{APPWRITE_VARIANTS_TABLE_ID}/rows/{job_id}",
         headers={
             "X-Appwrite-Project": APPWRITE_PROJECT_ID,
             "X-Appwrite-Key": APPWRITE_API_KEY,
@@ -235,7 +235,7 @@ def process_job(job):
             source_path = source_file.name
 
         update_job(job_id, {"progress": 35, "leaseUntil": iso_in(LEASE_SECONDS)})
-        with tempfile.NamedTemporaryFile(suffix=".m4a", delete=False) as output_file:
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as output_file:
             output_path = output_file.name
 
         preset = job.get("voicePreset", "younger")

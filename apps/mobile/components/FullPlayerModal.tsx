@@ -800,7 +800,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
             </View>
           ) : (
             <View style={styles.content}>
-              <View style={styles.artworkArea}>
+              <View style={[styles.artworkArea, isDesktopWeb && styles.artworkAreaDesktopWeb]}>
                 <View style={styles.artworkContainer}>
                   <View style={styles.artworkShadow}>
                     <Image
@@ -813,24 +813,40 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   </View>
                 </View>
 
-                <View style={styles.infoSection}>
-                  <Text numberOfLines={2} style={[styles.title, { color: colors.text.primary }]}>
+                <View
+                  style={[
+                    styles.infoSection,
+                    isDesktopWeb && styles.infoSectionDesktopWeb,
+                  ]}
+                >
+                  <Text
+                    numberOfLines={2}
+                    style={[
+                      styles.title,
+                      { color: colors.text.primary },
+                      isDesktopWeb && styles.titleDesktopWeb,
+                    ]}
+                  >
                     {currentAudio.title}
                   </Text>
                   {currentAudio.voiceSourceAudioId && voicePreset && (
-                    <View style={styles.voiceVariantIndicator}>
+                    <TouchableOpacity
+                      onPress={() => void handlePlayOriginal()}
+                      accessibilityRole="button"
+                      accessibilityLabel="Play original audio"
+                      activeOpacity={0.7}
+                      style={[
+                        styles.voiceVariantIndicator,
+                        isDesktopWeb && styles.voiceVariantIndicatorDesktopWeb,
+                      ]}
+                    >
                       <Text style={styles.voiceVariantLabel}>
                         {getVoicePresetLabel(voicePreset)} tone
                       </Text>
-                      <TouchableOpacity
-                        onPress={() => void handlePlayOriginal()}
-                        accessibilityRole="button"
-                        accessibilityLabel="Play original audio"
-                        style={styles.originalButton}
-                      >
+                      <View style={styles.originalButton}>
                         <Text style={styles.originalButtonText}>Original</Text>
-                      </TouchableOpacity>
-                    </View>
+                      </View>
+                    </TouchableOpacity>
                   )}
                 </View>
               </View>
@@ -1303,6 +1319,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  artworkAreaDesktopWeb: {
+    paddingTop: 40,
+  },
   artworkContainer: {
     width: "100%",
     alignItems: "center",
@@ -1325,6 +1344,13 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingHorizontal: 8,
   },
+  infoSectionDesktopWeb: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  titleDesktopWeb: {
+    flex: 1,
+  },
   title: {
     fontSize: 20,
     fontWeight: "700",
@@ -1338,6 +1364,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     marginTop: 10,
+  },
+  voiceVariantIndicatorDesktopWeb: {
+    flexDirection: "row",
+    marginTop: 0,
+    marginLeft: 16,
   },
   voiceVariantLabel: {
     color: colors.accent.tabActive,
