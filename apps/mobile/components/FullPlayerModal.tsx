@@ -17,7 +17,8 @@ import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { Image } from "expo-image";
-import React, { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -58,6 +59,10 @@ const getVoicePresetLabel = (preset: VoicePreset): string => {
   if (preset === "younger") return "Young Adult";
   return "Teenage";
 };
+
+const voicePresetPreferenceKey = (trackId: string) =>
+  `@voice_preset_preference:${trackId}`;
+const VOICE_PRESETS: VoicePreset[] = ["subtle", "younger", "high"];
 
 interface WebVolumeSliderProps {
   value: number;
@@ -240,6 +245,10 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
       setIsTransformingVoice(true);
       setVoicePreset(preset);
       setShowOptionsMenu(false);
+      await AsyncStorage.setItem(
+        voicePresetPreferenceKey(audio.naatId ?? sourceAudioId),
+        preset,
+      );
       await startVoiceTransform(sourceAudioId, preset);
       setVoiceTransformRefresh((value) => value + 1);
       showInfoToast("Voice conversion started in the background.");
@@ -250,18 +259,82 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     }
   };
 
+  const handleVoiceTransformRef = useRef(handleVoiceTransform);
+  handleVoiceTransformRef.current = handleVoiceTransform;
+  const autoAppliedVoiceTrackRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const audio = currentAudio;
+    const audioId = audio?.audioId;
+    const trackKey = audio?.naatId ?? audioId;
+    if (
+      !audio ||
+      !audioId ||
+      !trackKey ||
+      audio.isLocalFile ||
+      audio.voiceSourceAudioId ||
+      autoAppliedVoiceTrackRef.current === trackKey
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const applySavedVoicePreset = async () => {
+      const savedPreset = await AsyncStorage.getItem(
+        voicePresetPreferenceKey(trackKey),
+      );
+      if (cancelled) return;
+
+      if (!VOICE_PRESETS.includes(savedPreset as VoicePreset)) {
+        autoAppliedVoiceTrackRef.current = trackKey;
+        return;
+      }
+
+      autoAppliedVoiceTrackRef.current = trackKey;
+      void handleVoiceTransformRef.current(savedPreset as VoicePreset);
+    };
+
+    void applySavedVoicePreset().catch((error) => {
+      autoAppliedVoiceTrackRef.current = trackKey;
+      console.error("Failed to restore voice tone preference:", error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentAudio]);
+
   const handlePlayOriginal = async () => {
     const audio = currentAudio;
     const sourceAudioId = audio?.voiceSourceAudioId;
     if (!audio || !sourceAudioId) return;
 
     setVoicePreset(null);
+    await AsyncStorage.removeItem(
+      voicePresetPreferenceKey(audio.naatId ?? sourceAudioId),
+    );
     await loadAndPlay({
       ...audio,
       audioId: sourceAudioId,
       audioUrl: getVoiceUrl(sourceAudioId),
       voiceSourceAudioId: undefined,
     });
+  };
+
+  const handleVoicePresetPress = (preset: VoicePreset) => {
+    if (isTransformingVoice) {
+      showInfoToast("Please wait for the current transformation to finish.");
+      return;
+    }
+
+    if (
+      currentAudio?.voiceSourceAudioId &&
+      voicePreset === preset
+    ) {
+      void handlePlayOriginal();
+      return;
+    }
+
+    void handleVoiceTransform(preset);
   };
 
   const handleDeleteDownload = () => {
@@ -614,7 +687,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   {(["subtle", "younger", "high"] as VoicePreset[]).map((preset) => (
                     <TouchableOpacity
                       key={preset}
-                      onPress={() => void handleVoiceTransform(preset)}
+                      onPress={() => handleVoicePresetPress(preset)}
                       style={[
                         styles.voicePresetButton,
                         { backgroundColor: colors.background.tertiary },
