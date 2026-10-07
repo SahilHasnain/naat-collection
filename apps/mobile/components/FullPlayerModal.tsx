@@ -802,7 +802,12 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
             <View style={styles.content}>
               <View style={[styles.artworkArea, isDesktopWeb && styles.artworkAreaDesktopWeb]}>
                 <View style={styles.artworkContainer}>
-                  <View style={styles.artworkShadow}>
+                  <View
+                    style={[
+                      styles.artworkShadow,
+                      isDesktopWeb && styles.artworkShadowDesktopWeb,
+                    ]}
+                  >
                     <Image
                       source={{ uri: currentAudio.thumbnailUrl }}
                       style={styles.artwork}
@@ -829,12 +834,8 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   >
                     {currentAudio.title}
                   </Text>
-                  {currentAudio.voiceSourceAudioId && voicePreset && (
-                    <TouchableOpacity
-                      onPress={() => void handlePlayOriginal()}
-                      accessibilityRole="button"
-                      accessibilityLabel="Play original audio"
-                      activeOpacity={0.7}
+                  {currentAudio.voiceSourceAudioId && voicePreset && !isDesktopWeb && (
+                    <View
                       style={[
                         styles.voiceVariantIndicator,
                         isDesktopWeb && styles.voiceVariantIndicatorDesktopWeb,
@@ -843,16 +844,27 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                       <Text style={styles.voiceVariantLabel}>
                         {getVoicePresetLabel(voicePreset)} tone
                       </Text>
-                      <View style={styles.originalButton}>
+                      <TouchableOpacity
+                        onPress={() => void handlePlayOriginal()}
+                        accessibilityRole="button"
+                        accessibilityLabel="Play original audio"
+                        activeOpacity={0.7}
+                        style={styles.originalButton}
+                      >
                         <Text style={styles.originalButtonText}>Original</Text>
-                      </View>
-                    </TouchableOpacity>
+                      </TouchableOpacity>
+                    </View>
                   )}
                 </View>
               </View>
 
               <View style={styles.controlsArea}>
-                <View style={styles.progressSection}>
+                <View
+                  style={[
+                    styles.progressSection,
+                    isDesktopWeb && styles.progressSectionDesktopWeb,
+                  ]}
+                >
                   <Slider
                     style={styles.slider}
                     minimumValue={0}
@@ -898,6 +910,28 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 </View>
 
                 <View style={styles.transportControls}>
+                  {isDesktopWeb && currentAudio.voiceSourceAudioId && voicePreset && (
+                    <View
+                      style={[
+                        styles.voiceVariantIndicator,
+                        styles.voiceVariantIndicatorDesktopWeb,
+                        styles.voiceVariantIndicatorTransport,
+                      ]}
+                    >
+                      <Text style={styles.voiceVariantLabel}>
+                        {getVoicePresetLabel(voicePreset)} tone
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => void handlePlayOriginal()}
+                        accessibilityRole="button"
+                        accessibilityLabel="Play original audio"
+                        activeOpacity={0.7}
+                        style={styles.originalButton}
+                      >
+                        <Text style={styles.originalButtonText}>Original</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                   <TouchableOpacity
                     onPress={seekBackward}
                     style={styles.transportButton}
@@ -1114,13 +1148,14 @@ const styles = StyleSheet.create({
   },
   headerDesktopWeb: {
     position: "absolute",
-    left: 0,
-    right: 0,
+    left: "18%",
+    right: "10%",
     zIndex: 10,
     justifyContent: "space-between",
+    paddingHorizontal: 0,
   },
   headerDesktopWebPosition: {
-    top: 0,
+    top: 20,
   },
   headerActions: {
     flexDirection: "row",
@@ -1320,7 +1355,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   artworkAreaDesktopWeb: {
-    paddingTop: 40,
+    justifyContent: "flex-start",
+    marginTop: -52,
+    paddingTop: 12,
   },
   artworkContainer: {
     width: "100%",
@@ -1332,6 +1369,9 @@ const styles = StyleSheet.create({
     width: "88%",
     aspectRatio: 16 / 9,
     ...shadows.lg,
+  },
+  artworkShadowDesktopWeb: {
+    width: "60%",
   },
   artwork: {
     width: "100%",
@@ -1370,6 +1410,14 @@ const styles = StyleSheet.create({
     marginTop: 0,
     marginLeft: 16,
   },
+  voiceVariantIndicatorTransport: {
+    position: "absolute",
+    right: "25%",
+    top: 0,
+    bottom: 0,
+    marginLeft: 0,
+    justifyContent: "center",
+  },
   voiceVariantLabel: {
     color: colors.accent.tabActive,
     fontSize: 13,
@@ -1392,6 +1440,10 @@ const styles = StyleSheet.create({
     width: "100%",
     marginBottom: 4,
   },
+  progressSectionDesktopWeb: {
+    width: "60%",
+    alignSelf: "center",
+  },
   controlsArea: {
     paddingBottom: 8,
   },
@@ -1409,8 +1461,8 @@ const styles = StyleSheet.create({
   desktopVolumeControl: {
     position: "absolute",
     top: 0,
-    right: 8,
-    bottom: 0,
+    right: "18%",
+    bottom: 20,
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
@@ -1456,6 +1508,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent.error,
   },
   transportControls: {
+    position: "relative",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
