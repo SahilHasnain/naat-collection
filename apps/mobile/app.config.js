@@ -44,7 +44,7 @@ export default {
     android: {
       versionCode: brand.app.versionCode,
       adaptiveIcon: {
-        foregroundImage: "./assets/images/android-icon-foreground.png",
+        foregroundImage: "./assets/android-launcher-icons/adaptive-foreground.png",
         ...(brand.app.adaptiveIconBackgroundColor
           ? { backgroundColor: brand.app.adaptiveIconBackgroundColor }
           : {}),
@@ -126,6 +126,7 @@ export default {
           ],
         },
       ],
+      "./plugins/withAndroidLauncherIcons.js",
     ],
     experiments: {
       typedRoutes: true,
