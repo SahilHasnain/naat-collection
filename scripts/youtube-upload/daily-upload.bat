@@ -1,6 +1,5 @@
 @echo off
 cd /d D:\Projects\naat-collection
-set FILTER_RADIO_ONLY=true
 echo ================================================ >> scripts\youtube-upload\cron.log
 echo [%date% %time%] Daily upload started >> scripts\youtube-upload\cron.log
 echo --- 1 regular video --- >> scripts\youtube-upload\cron.log
