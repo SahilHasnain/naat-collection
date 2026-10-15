@@ -126,7 +126,9 @@ export default {
           ],
         },
       ],
-      "./plugins/withAndroidLauncherIcons.js",
+      ...(brand.app.preserveAndroidLauncherIcons
+        ? ["./plugins/withAndroidLauncherIcons.js"]
+        : []),
     ],
     experiments: {
       typedRoutes: true,
