@@ -48,6 +48,7 @@
     "ssh:radio": "ssh root@168.144.23.181",
     "bump": "node scripts/bump-version.js",
     "bump:dry": "node scripts/bump-version.js --dry",
+    "family": "bash scripts/sync-family.sh",
     "lint": "expo lint"
   },
   "devDependencies": {
