@@ -83,4 +83,7 @@ apps/ai-service/logs/
 # python
 __pycache__/
 *.pyc
+
+# others
 .opencode
+.playwright-mcp

@@ -4,10 +4,11 @@ const { Client, Storage } = require("node-appwrite");
 const { google } = require("googleapis");
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
+const { execFileSync } = require("child_process");
 const dotenv = require("dotenv");
 
 dotenv.config({ path: path.join(__dirname, "../../.env") });
+const DRY_RUN = process.argv.includes("--dry-run");
 
 const CONFIG = {
   prefix: process.env.TITLE_PREFIX || "[No Explanation] ",
@@ -28,8 +29,9 @@ const CONFIG = {
 function checkEnv() {
   const required = [
     "APPWRITE_ENDPOINT", "APPWRITE_PROJECT_ID", "APPWRITE_API_KEY",
-    "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REFRESH_TOKEN",
+    "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET",
   ];
+  if (!DRY_RUN) required.push("GOOGLE_REFRESH_TOKEN");
   const missing = required.filter((k) => !process.env[k]);
   if (missing.length) {
     console.error("Missing required env vars:", missing.join(", "));
@@ -89,18 +91,35 @@ async function downloadThumbnail(url, dest) {
   });
 }
 
-function createShortVideo(thumbPath, audioPath, outputPath, duration) {
-  const trimSec = Math.min(duration, CONFIG.maxDuration);
+function getAudioDuration(audioPath, fallbackDuration) {
+  try {
+    const output = execFileSync("ffprobe", [
+      "-v", "error", "-show_entries", "format=duration",
+      "-of", "default=noprint_wrappers=1:nokey=1", audioPath,
+    ], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    const duration = Number.parseFloat(output.trim());
+    if (Number.isFinite(duration) && duration > 0) return duration;
+  } catch {}
+  return Number(fallbackDuration) || CONFIG.maxDuration;
+}
 
-  const cmd = [
-    `ffmpeg -y -i "${thumbPath}" -i "${audioPath}"`,
-    `-vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920"`,
-    `-c:v libx264 -preset medium -c:a aac -b:a 192k`,
-    `-t ${trimSec} -pix_fmt yuv420p -movflags +faststart`,
-    `"${outputPath}"`,
-  ].join(" ");
+function getClipWindow(duration, position) {
+  const totalDuration = Math.max(0, Number(duration) || 0);
+  const clipDuration = Math.min(CONFIG.maxDuration, totalDuration / 2);
+  const start = position === "end" ? Math.max(0, totalDuration - clipDuration) : 0;
+  return { start, duration: clipDuration };
+}
 
-  execSync(cmd, { stdio: "pipe" });
+function createShortVideo(thumbPath, audioPath, outputPath, duration, position) {
+  const { start, duration: trimSec } = getClipWindow(duration, position);
+  execFileSync("ffmpeg", [
+    "-y", "-loop", "1", "-i", thumbPath,
+    "-ss", String(start), "-i", audioPath,
+    "-t", String(trimSec),
+    "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
+    "-c:v", "libx264", "-preset", "medium", "-c:a", "aac", "-b:a", "192k",
+    "-pix_fmt", "yuv420p", "-shortest", "-movflags", "+faststart", outputPath,
+  ], { stdio: "pipe" });
 }
 
 function getAuth() {
@@ -113,13 +132,14 @@ function getAuth() {
   return a;
 }
 
-async function uploadShort(auth, videoPath, naat) {
+async function uploadShort(auth, videoPath, naat, position, clipDuration) {
   const youtube = google.youtube({ version: "v3", auth });
 
-  const title = safeTitle(`${CONFIG.prefix}${naat.title} #Shorts`);
-  const durationStr = formatDuration(Math.min(naat.duration, CONFIG.maxDuration));
+  const positionLabel = position === "start" ? "Start" : "End";
+  const title = safeTitle(`${CONFIG.prefix}${naat.title}`, ` (${positionLabel} Short) #Shorts`);
+  const durationStr = formatDuration(clipDuration);
   const desc = [
-    `This naat has NO explanation or commentary — pure naat audio only.`,
+    `This ${position === "start" ? "opening" : "closing"} clip has NO explanation or commentary — pure naat audio only.`,
     ``,
     `🎵 ${naat.title}`,
     `🎤 ${naat.channelName}`,
@@ -168,11 +188,12 @@ async function addComment(auth, videoId) {
   return res.data.id;
 }
 
-function safeTitle(raw) {
+function safeTitle(raw, suffix = "") {
   const max = 100;
-  if (raw.length <= max) return raw;
-  const truncated = raw.slice(0, max - 1).replace(/\s+\S*$/, "");
-  return truncated + "…";
+  if (raw.length + suffix.length <= max) return raw + suffix;
+  const available = Math.max(1, max - suffix.length - 1);
+  const truncated = raw.slice(0, available).replace(/\s+\S*$/, "");
+  return `${truncated}…${suffix}`;
 }
 
 function formatDuration(sec) {
@@ -185,11 +206,16 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function processNaat(naat, auth, progress) {
+function legacyStartAlreadyUploaded(uploadedSet, naat) {
+  return uploadedSet.has(naat.youtubeId) || uploadedSet.has(`${naat.youtubeId}:start`);
+}
+
+async function processNaat(naat, position, auth, progress) {
   const base = naat.youtubeId;
   const audioPath = path.join(CONFIG.tempDir, `${naat.cutAudio}.m4a`);
-  const thumbPath = path.join(CONFIG.tempDir, `${base}.jpg`);
-  const videoPath = path.join(CONFIG.tempDir, `${base}_short.mp4`);
+  const thumbPath = path.join(CONFIG.tempDir, `${base}-${position}.jpg`);
+  const videoPath = path.join(CONFIG.tempDir, `${base}_${position}_short.mp4`);
+  const progressKey = `${base}:${position}`;
 
   try {
     console.log(`  ⬇ Downloading audio...`);
@@ -198,11 +224,13 @@ async function processNaat(naat, auth, progress) {
     console.log(`  🖼 Downloading thumbnail...`);
     await downloadThumbnail(naat.thumbnailUrl, thumbPath);
 
-    console.log(`  🎬 Creating Short (${Math.min(naat.duration, CONFIG.maxDuration)}s)...`);
-    createShortVideo(thumbPath, audioPath, videoPath, naat.duration);
+    const duration = getAudioDuration(audioPath, naat.cutDuration || naat.duration);
+    const clipWindow = getClipWindow(duration, position);
+    console.log(`  🎬 Creating ${position} Short (${Math.round(clipWindow.duration)}s)...`);
+    createShortVideo(thumbPath, audioPath, videoPath, duration, position);
 
     console.log(`  ⬆ Uploading...`);
-    const videoId = await uploadShort(auth, videoPath, naat);
+    const videoId = await uploadShort(auth, videoPath, naat, position, clipWindow.duration);
     console.log(`  ✅ https://youtu.be/${videoId}`);
 
     try {
@@ -210,23 +238,22 @@ async function processNaat(naat, auth, progress) {
       if (cid) console.log(`  💬 Comment added`);
     } catch {}
 
-    progress.failed = (progress.failed || []).filter((f) => f.youtubeId !== naat.youtubeId);
-    progress.uploaded.push(naat.youtubeId);
+    progress.failed = (progress.failed || []).filter((f) => f.progressKey !== progressKey);
+    progress.uploaded.push(progressKey);
     progress.today = (progress.today || 0) + 1;
     progress.lastDate = new Date().toISOString().split("T")[0];
     saveProgress(progress);
 
-    try {
-      fs.unlinkSync(audioPath);
-      fs.unlinkSync(thumbPath);
-      fs.unlinkSync(videoPath);
-    } catch {}
   } catch (err) {
     console.error(`  ❌ ${err.message}`);
-    progress.failed = (progress.failed || []).filter((f) => f.youtubeId !== naat.youtubeId);
-    progress.failed.push({ youtubeId: naat.youtubeId, error: err.message, time: new Date().toISOString() });
+    progress.failed = (progress.failed || []).filter((f) => f.progressKey !== progressKey);
+    progress.failed.push({ youtubeId: naat.youtubeId, progressKey, position, error: err.message, time: new Date().toISOString() });
     saveProgress(progress);
     throw err;
+  } finally {
+    for (const file of [audioPath, thumbPath, videoPath]) {
+      try { fs.unlinkSync(file); } catch {}
+    }
   }
 }
 
@@ -248,16 +275,27 @@ async function main() {
   if (progress.lastDate !== today) {
     progress.today = 0;
     progress.lastDate = today;
-    saveProgress(progress);
+    if (!DRY_RUN) saveProgress(progress);
   }
 
-  const remaining = naats.filter((n) => !uploadedSet.has(n.youtubeId));
+  const remaining = [];
+  for (const naat of naats) {
+    if (!legacyStartAlreadyUploaded(uploadedSet, naat)) remaining.push({ naat, position: "start" });
+    if (!uploadedSet.has(`${naat.youtubeId}:end`)) remaining.push({ naat, position: "end" });
+  }
   const dailyRemaining = Math.max(0, CONFIG.maxPerDay - (progress.today || 0));
 
-  console.log(`Uploaded: ${progress.uploaded.length}`);
+  const legacyStarts = naats.filter((naat) => legacyStartAlreadyUploaded(uploadedSet, naat)).length;
+  console.log(`Uploaded clips tracked: ${progress.uploaded.length}`);
+  console.log(`Existing start Shorts retained: ${legacyStarts}`);
   console.log(`Failed:   ${progress.failed.length}`);
-  console.log(`Remaining: ${remaining.length}`);
+  console.log(`Remaining start/end clips: ${remaining.length}`);
   console.log(`Daily:    ${dailyRemaining}\n`);
+
+  if (DRY_RUN) {
+    console.log("Dry run complete; no Shorts were uploaded.");
+    return;
+  }
 
   if (!remaining.length || dailyRemaining <= 0) {
     if (!remaining.length) console.log("All done!");
@@ -272,10 +310,10 @@ async function main() {
   let ok = 0, fail = 0;
 
   for (let i = 0; i < toProcess.length; i++) {
-    const naat = toProcess[i];
-    console.log(`[${i + 1}/${toProcess.length}] ${naat.title}`);
+    const { naat, position } = toProcess[i];
+    console.log(`[${i + 1}/${toProcess.length}] ${naat.title} — ${position}`);
     try {
-      await processNaat(naat, auth, progress);
+      await processNaat(naat, position, auth, progress);
       ok++;
     } catch {
       fail++;
