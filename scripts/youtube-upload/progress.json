@@ -154,7 +154,11 @@
     "LkV9ejgJ4bM",
     "MPGvJqF6Iiw",
     "PIQoh5IGA_A",
-    "H_2ymTjtXaQ"
+    "H_2ymTjtXaQ",
+    "kGpaS0qrCMY",
+    "5aJ9znHPFQw",
+    "23xKuXjmYfQ",
+    "T1gDtdqgnn8"
   ],
   "failed": [
     {
@@ -166,8 +170,13 @@
       "youtubeId": "8B05n9yB8Vo",
       "error": "The requested file could not be found.",
       "time": "2026-09-25T06:30:08.546Z"
+    },
+    {
+      "youtubeId": "Z0YqPBMB3j0",
+      "error": "fetch failed",
+      "time": "2026-10-20T06:30:06.897Z"
     }
   ],
-  "today": 1,
-  "lastDate": "2026-10-15"
+  "today": 0,
+  "lastDate": "2026-10-20"
 }

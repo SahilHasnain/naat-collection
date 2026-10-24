@@ -21,6 +21,7 @@ module.exports = {
     packageIdPreview: "com.owaisrazaqadri.preview",
     versionCode: 32,
     adaptiveIconBackgroundColor: "#160B3A",
+    adaptiveIconForegroundImage: "./assets/android-launcher-icons/adaptive-foreground.png",
     preserveAndroidLauncherIcons: true,
     // Deep-link host for universal links (used in intent filters + associatedDomains)
     applinksHost: "owaisrazaqadri.appwrite.network",

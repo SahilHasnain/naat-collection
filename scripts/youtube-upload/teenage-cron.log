@@ -1,0 +1,190 @@
+================================================ 
+[Fri 10/16/2026 10:40:42.56] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+Naats with cutAudio in source collection: 792
+Completed +6 variants with matching source cutAudio: 15
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage.json
+Already uploaded: 1
+Eligible remaining: 14
+Uploads allowed today: 1
+
+[1/1] Owais Raza Qadri | Meeran Waliyon Ke Imam | Official Video
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/ca8JGKpnGAk
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 1 uploaded, 0 failed.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+Naats with cutAudio in source collection: 792
+Completed +6 variants with matching source cutAudio: 15
+Remaining start/end Shorts: 28
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage-shorts.json
+Already uploaded: 2
+Eligible remaining: 28
+Uploads allowed today: 2
+
+[1/2] Owais Raza Qadri | Meeran Waliyon Ke Imam | Official Video — start clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/AwGrVL96G5c
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+[2/2] Owais Raza Qadri | Meeran Waliyon Ke Imam | Official Video — end clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/a1QMWomtTtQ
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 2 uploaded, 0 failed.
+[Fri 10/16/2026 10:43:02.57] Teenage-voice upload finished (exit 0) 
+================================================ 
+[Sat 10/17/2026  7:57:58.57] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+Naats with cutAudio in source collection: 800
+Completed +6 variants with matching source cutAudio: 15
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage.json
+Already uploaded: 2
+Eligible remaining: 13
+Uploads allowed today: 1
+
+[1/1] Saare Parho Durood - Sarkar Aa Gaye - Owais Raza Qadri - 2025
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Failed: request to https://youtube.googleapis.com/upload/youtube/v3/videos?part=snippet&part=status&uploadType=multipart failed, reason: write ECONNRESET
+
+Finished: 0 uploaded, 1 failed.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+Teenage uploader failed: fetch failed
+[Sat 10/17/2026  8:00:35.00] Teenage-voice upload finished (exit 1) 
+================================================ 
+[Sat 10/17/2026  8:15:35.54] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+Naats with cutAudio in source collection: 801
+Completed +6 variants with matching source cutAudio: 15
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage.json
+Already uploaded: 2
+Eligible remaining: 13
+Uploads allowed today: 1
+
+[1/1] Saare Parho Durood - Sarkar Aa Gaye - Owais Raza Qadri - 2025
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/jE8CP6v3K9k
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 1 uploaded, 0 failed.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+Naats with cutAudio in source collection: 801
+Completed +6 variants with matching source cutAudio: 15
+Remaining start/end Shorts: 26
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage-shorts.json
+Already uploaded: 4
+Eligible remaining: 26
+Uploads allowed today: 2
+
+[1/2] Saare Parho Durood - Sarkar Aa Gaye - Owais Raza Qadri - 2025 — start clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/Clny-0utApI
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+[2/2] Saare Parho Durood - Sarkar Aa Gaye - Owais Raza Qadri - 2025 — end clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/HGGP-_OCgms
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 2 uploaded, 0 failed.
+[Sat 10/17/2026  8:21:23.36] Teenage-voice upload finished (exit 0) 
+================================================ 
+[Sun 10/18/2026  7:30:03.13] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+Naats with cutAudio in source collection: 832
+Completed +6 variants with matching source cutAudio: 15
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage.json
+Already uploaded: 3
+Eligible remaining: 12
+Uploads allowed today: 1
+
+[1/1] Owais Raza Qadri | Munawwar Meri Ankhon Ko | Official Video
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/6vtH-rlIJDI
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 1 uploaded, 0 failed.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+Naats with cutAudio in source collection: 833
+Completed +6 variants with matching source cutAudio: 15
+Remaining start/end Shorts: 24
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage-shorts.json
+Already uploaded: 6
+Eligible remaining: 24
+Uploads allowed today: 2
+
+[1/2] Owais Raza Qadri | Munawwar Meri Ankhon Ko | Official Video — start clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/A-WsQK7_Mtw
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+[2/2] Owais Raza Qadri | Munawwar Meri Ankhon Ko | Official Video — end clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/fPU1nWB2j8I
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 2 uploaded, 0 failed.
+[Sun 10/18/2026  7:43:48.29] Teenage-voice upload finished (exit 0) 
+================================================ 
+[Wed 10/21/2026 10:07:42.12] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+Teenage uploader failed: fetch failed
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+Teenage uploader failed: fetch failed
+[Wed 10/21/2026 10:07:53.79] Teenage-voice upload finished (exit 1) 
+================================================ 
+[Fri 10/23/2026 10:16:52.06] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+The system cannot find the path specified.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+The system cannot find the path specified.
+[Fri 10/23/2026 10:16:52.33] Teenage-voice upload finished (exit 3) 

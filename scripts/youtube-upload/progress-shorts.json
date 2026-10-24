@@ -316,7 +316,15 @@
     "hH_9_v9MTqA",
     "6FU1YhzuJL0",
     "hPvy2RH1kaI",
-    "eX6r_kyCr0I"
+    "eX6r_kyCr0I",
+    "MPGvJqF6Iiw:end",
+    "PIQoh5IGA_A:end",
+    "H_2ymTjtXaQ:end",
+    "kGpaS0qrCMY:end",
+    "5aJ9znHPFQw:end",
+    "23xKuXjmYfQ:end",
+    "T1gDtdqgnn8:end",
+    "Z0YqPBMB3j0:end"
   ],
   "failed": [
     {
@@ -328,8 +336,22 @@
       "youtubeId": "7p6F8WCGwcI",
       "error": "The requested file could not be found.",
       "time": "2026-09-25T06:30:12.619Z"
+    },
+    {
+      "youtubeId": "kkW8BgM-4uo",
+      "progressKey": "kkW8BgM-4uo:end",
+      "position": "end",
+      "error": "fetch failed",
+      "time": "2026-10-20T06:30:09.796Z"
+    },
+    {
+      "youtubeId": "HpEXLnYRNNM",
+      "progressKey": "HpEXLnYRNNM:start",
+      "position": "start",
+      "error": "fetch failed",
+      "time": "2026-10-20T06:30:14.807Z"
     }
   ],
-  "today": 10,
-  "lastDate": "2026-10-15"
+  "today": 0,
+  "lastDate": "2026-10-20"
 }

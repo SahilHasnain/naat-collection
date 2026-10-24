@@ -44,7 +44,9 @@ export default {
     android: {
       versionCode: brand.app.versionCode,
       adaptiveIcon: {
-        foregroundImage: "./assets/android-launcher-icons/adaptive-foreground.png",
+        foregroundImage:
+          brand.app.adaptiveIconForegroundImage ||
+          "./assets/images/android-icon-foreground.png",
         ...(brand.app.adaptiveIconBackgroundColor
           ? { backgroundColor: brand.app.adaptiveIconBackgroundColor }
           : {}),
