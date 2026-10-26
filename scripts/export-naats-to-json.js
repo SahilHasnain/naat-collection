@@ -5,11 +5,12 @@
  * that can be used as a fallback when database read limits are exceeded.
  * 
  * Usage:
- *   node scripts/export-naats-to-json.js
+ *   APP_PROJECT_ID=naat-collection node scripts/export-naats-to-json.js
+ *   APP_PROJECT_ID=naat-production node scripts/export-naats-to-json.js
  * 
  * Output:
- *   static-exports/naats-export.json
- *   static-exports/channels-export.json
+ *   static-exports/<project-id>/naats-export.json
+ *   static-exports/<project-id>/channels-export.json
  */
 
 const { Client, Databases, Query } = require('node-appwrite');
@@ -17,22 +18,42 @@ const fs = require('fs-extra');
 const path = require('path');
 
 // Load environment variables
-require('dotenv').config();
+const projectId = process.env.APP_PROJECT_ID || 'naat-collection';
+require('dotenv').config({ path: path.join(__dirname, `../.env.${projectId}`) });
+const { getProject } = require('../apps/mobile/brands');
+let brand;
+try {
+  brand = getProject(projectId);
+} catch (error) {
+  console.error(error.message);
+  process.exit(2);
+}
 
 const client = new Client()
-  .setEndpoint(process.env.APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
-  .setProject(process.env.APPWRITE_PROJECT_ID)
+  .setEndpoint(process.env.APPWRITE_ENDPOINT || brand.appwrite.endpoint)
+  .setProject(process.env.APPWRITE_PROJECT_ID || brand.appwrite.projectId)
   .setKey(process.env.APPWRITE_API_KEY);
 
 const databases = new Databases(client);
 
-const DATABASE_ID = process.env.APPWRITE_DATABASE_ID;
-const NAATS_COLLECTION_ID = process.env.APPWRITE_NAATS_COLLECTION_ID;
-const CHANNELS_COLLECTION_ID = process.env.APPWRITE_CHANNELS_COLLECTION_ID;
+const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || brand.appwrite.databaseId;
+const NAATS_COLLECTION_ID = process.env.APPWRITE_NAATS_COLLECTION_ID || brand.appwrite.naatsCollectionId;
+const CHANNELS_COLLECTION_ID = process.env.APPWRITE_CHANNELS_COLLECTION_ID || brand.appwrite.channelsCollectionId;
 
-const OUTPUT_DIR = path.join(__dirname, '../static-exports');
+const OUTPUT_DIR = path.join(__dirname, '../static-exports', projectId);
 const NAATS_OUTPUT = path.join(OUTPUT_DIR, 'naats-export.json');
 const CHANNELS_OUTPUT = path.join(OUTPUT_DIR, 'channels-export.json');
+const ROOT_NAATS_OUTPUT = path.join(__dirname, '../static-exports/naats-export.json');
+const ROOT_CHANNELS_OUTPUT = path.join(__dirname, '../static-exports/channels-export.json');
+
+if (!process.env.APPWRITE_API_KEY) {
+  console.error('APPWRITE_API_KEY is required; provide it through the environment or apps/mobile/.env.local.');
+  process.exit(2);
+}
+if (!DATABASE_ID || !NAATS_COLLECTION_ID || !CHANNELS_COLLECTION_ID) {
+  console.error(`Project "${projectId}" is missing Appwrite database/collection IDs.`);
+  process.exit(2);
+}
 
 /**
  * Fetch all naats from Appwrite in batches
@@ -175,6 +196,13 @@ async function exportData() {
     console.log(`✅ Saved: ${CHANNELS_OUTPUT}`);
     console.log(`   Size: ${(channelsSize / 1024).toFixed(2)} KB`);
 
+    // Legacy YouTube/upload tools consume root exports for the main brand only.
+    if (projectId === 'naat-collection') {
+      await fs.writeJson(ROOT_NAATS_OUTPUT, naatsExport, { spaces: 2 });
+      await fs.writeJson(ROOT_CHANNELS_OUTPUT, channelsExport, { spaces: 2 });
+      console.log('✅ Mirrored naat-collection exports to static-exports/ root for upload tools');
+    }
+
     console.log('\n✅ Export completed successfully!\n');
 
     // Print summary
@@ -186,13 +214,13 @@ async function exportData() {
 
     console.log('📤 Next steps:');
     console.log('   1. Commit files to Git:');
-    console.log('      git add static-exports/');
+    console.log(`      git add static-exports/${projectId}/`);
     console.log('      git commit -m "Add static export for fallback"');
     console.log('      git push');
     console.log('');
     console.log('   2. Access via jsDelivr CDN:');
-    console.log('      https://cdn.jsdelivr.net/gh/sahilhasnain/naat-collection@main/static-exports/naats-export.json');
-    console.log('      https://cdn.jsdelivr.net/gh/sahilhasnain/naat-collection@main/static-exports/channels-export.json');
+    console.log(`      ${brand.static.naatsUrl}`);
+    console.log(`      ${brand.static.channelsUrl}`);
     console.log('');
     console.log('   3. Update app with fallback logic (see implementation files)');
 

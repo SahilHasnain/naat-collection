@@ -99,3 +99,9 @@ https://owaisrazaqadri.appwrite.network/naat/abc123?youtubeId=xyz789
 - ✅ Falls back to YouTube
 - ✅ Shows "Get App" buttons
 - ✅ Works on iOS and Android
+# Archived: web link handoff retired
+
+The `apps/web` Next.js handoff page and its `.well-known` association files
+were removed when the web features were retired. This document describes the
+former setup only; it is not an active deployment recipe. Re-enable universal
+share links only after choosing and deploying a replacement handler.

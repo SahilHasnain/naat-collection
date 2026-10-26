@@ -8,7 +8,7 @@ const path = require("path");
 const fs = require("fs");
 const { execSync } = require("child_process");
 
-const envPath = path.join(__dirname, "../../.env");
+const envPath = path.join(__dirname, "../../.env.naat-collection");
 dotenv.config({ path: envPath });
 
 const PORT = 34568;
@@ -23,7 +23,7 @@ async function main() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    throw new Error("Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET in .env");
+    throw new Error("Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET in .env.naat-collection");
   }
 
   const oauth = new google.auth.OAuth2(clientId, clientSecret, REDIRECT_URI);
@@ -77,7 +77,7 @@ async function main() {
     ? envText.replace(tokenPattern, tokenLine)
     : `${envText}${envText && !envText.endsWith("\n") ? "\n" : ""}${tokenLine}\n`;
   fs.writeFileSync(envPath, envText);
-  console.log(`Saved ${TOKEN_ENV_KEY} to .env. The existing channel refresh token was left unchanged.`);
+  console.log(`Saved ${TOKEN_ENV_KEY} to .env.naat-collection. The existing channel refresh token was left unchanged.`);
 }
 
 main().catch((err) => {

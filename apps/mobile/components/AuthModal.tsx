@@ -1,4 +1,5 @@
 import { colors } from "@/constants/theme";
+import { GOOGLE_ICON } from "@/brands/assets";
 import { useAuth } from "@/contexts/AuthContext";
 import React from "react";
 import { ActivityIndicator, Modal, Text, View } from "react-native";
@@ -56,7 +57,7 @@ export function AuthModal({
               ) : (
                 <>
                   <Image
-                    source={require("@/assets/images/google.png")}
+                    source={GOOGLE_ICON}
                     style={{ width: 24, height: 24, marginRight: 10 }}
                     contentFit="contain"
                   />

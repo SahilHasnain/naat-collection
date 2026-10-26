@@ -1,10 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const brand = require("../brand.config.js");
-
-const MESSAGE_URL = brand.static.appMessageUrl;
+import { APP_MESSAGE_URL as MESSAGE_URL } from "@/config/brand";
 const LAST_SEEN_KEY = "@app_message_last_seen_id";
 
 export interface AppMessage {

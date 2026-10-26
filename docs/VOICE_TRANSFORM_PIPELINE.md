@@ -26,6 +26,7 @@ the result remains suitable for caching and offline playback.
 
 ## Required setup
 
-Run `scripts/setup/setup-ai-jobs-collection.js` once for each Appwrite project
-to add the optional voice-transform attributes. Configure the function with the
-same database, API key, and `ai_jobs` collection used by the worker.
+Run `npm run provision:appwrite -- --project <brand> --apply` to provision the
+`ai_jobs` collection and the `voice_variants` table alongside the rest of the
+Appwrite schema. Configure the function with the same database, API key, and
+resource IDs used by the worker.

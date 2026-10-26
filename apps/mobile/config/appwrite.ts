@@ -11,8 +11,7 @@ import {
     validateAppwriteConfig as validateConfig,
 } from "@naat-collection/shared";
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const brand = require("../brand.config.js");
+import brand from "./brand";
 
 // Brand-provided fallback values
 const BRAND_CONFIG = {

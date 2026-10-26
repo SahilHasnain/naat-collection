@@ -1,4 +1,5 @@
 import { colors } from "@/constants/theme";
+import { HEADPHONE_ICON } from "@/brands/assets";
 import { NaatCardProps } from "@/types";
 import { formatViews } from "@/utils";
 import { formatRelativeTime } from "@/utils/dateGrouping";
@@ -183,7 +184,7 @@ const NaatCard: React.FC<NaatCardProps> = ({
                   style={{ backgroundColor: colors.accent.primary + "20" }}
                 >
                   <Image
-                    source={require("@/assets/images/headphone-v1.png")}
+                    source={HEADPHONE_ICON}
                     style={{ width: 40, height: 40 }}
                     contentFit="contain"
                   />

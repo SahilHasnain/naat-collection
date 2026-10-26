@@ -1,4 +1,5 @@
 import { colors } from "@/constants/theme";
+import { NATIVE_APP_URL } from "@/config/brand";
 import { AuthModal } from "@/components/AuthModal";
 import { Ionicons } from "@expo/vector-icons";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
@@ -12,10 +13,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Pressable from "./ResponsivePressable";
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const brand = require("../brand.config.js");
-const NATIVE_APP_URL = `https://play.google.com/store/apps/details?id=${brand.app.packageId}`;
 
 interface AnimatedTabBarProps extends BottomTabBarProps {
   translateY: SharedValue<number>;

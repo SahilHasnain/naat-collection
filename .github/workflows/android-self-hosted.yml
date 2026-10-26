@@ -1,34 +1,66 @@
-name: Android Self Hosted
+name: Android CI
 
 on:
   workflow_dispatch:
     inputs:
+      project_id:
+        description: Brand/project ID from apps/mobile/brands
+        required: true
+        default: naat-collection
+        type: string
       app_variant:
-        description: App variant to build
-        required: false
-        default: production
+        description: Android artifact variant to build
+        required: true
+        default: debug-apk
         type: choice
         options:
-          - development
-          - preview
+          - debug-apk
           - production
+      deploy_to_play:
+        description: Upload a production AAB to Google Play
+        required: true
+        default: false
+        type: boolean
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
-      - apps/mobile/app.config.js
+      - apps/mobile/**
+      - packages/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/android-self-hosted.yml
+      - apps/mobile/scripts/patch-android-release-signing.mjs
+  pull_request:
+    paths:
+      - apps/mobile/**
+      - packages/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/android-self-hosted.yml
+      - apps/mobile/scripts/patch-android-release-signing.mjs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.event.inputs.project_id || 'naat-collection' }}-${{ github.event.inputs.app_variant || 'debug-apk' }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-android:
+    name: ${{ github.event.inputs.project_id || 'naat-collection' }} / ${{ github.event.inputs.app_variant || 'debug-apk' }}
     runs-on: ubuntu-latest
+    environment: android-${{ github.event.inputs.project_id || 'naat-collection' }}
     defaults:
       run:
         shell: bash
+        working-directory: apps/mobile
     env:
+      PROJECT_ID: ${{ github.event.inputs.project_id || 'naat-collection' }}
+      APP_VARIANT: ${{ github.event.inputs.app_variant || 'debug-apk' }}
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-      JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
+      ANDROID_HOME: /usr/local/lib/android/sdk
       EXPO_USE_METRO_WORKSPACE_ROOT: "1"
-      APP_VARIANT: ${{ inputs.app_variant || 'production' }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
     steps:
       - name: Checkout
@@ -37,122 +69,152 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
-      - name: Setup Gradle cache
-        uses: actions/cache@v4
+      - name: Setup Java
+        uses: actions/setup-java@v5
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          distribution: temurin
+          java-version: "17"
 
-      - name: Setup Ruby
+      - name: Setup Ruby for Fastlane
+        if: ${{ github.event.inputs.deploy_to_play == 'true' }}
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.2"
           bundler-cache: false
 
-      - name: Setup Gradle cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            ~/.android/build-cache
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Cache NDK
-        uses: actions/cache@v4
-        with:
-          path: |
-            apps/mobile/android/app/.cxx
-            apps/mobile/android/.gradle
-          key: ${{ runner.os }}-ndk-${{ hashFiles('apps/mobile/android/**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-ndk-
+      - name: Install Fastlane dependencies
+        if: ${{ github.event.inputs.deploy_to_play == 'true' }}
+        run: bundle install --gemfile Gemfile
 
       - name: Install dependencies
+        working-directory: .
         run: npm ci
 
-      - name: Write Expo env file
-        run: |
-          cat > apps/mobile/.env.local <<EOF
-          EXPO_USE_METRO_WORKSPACE_ROOT=${EXPO_USE_METRO_WORKSPACE_ROOT}
-          APP_VARIANT=${APP_VARIANT}
-          SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
-          EOF
-
-      - name: Configure Android SDK path
-        run: |
-          printf "sdk.dir=%s\n" "$ANDROID_SDK_ROOT" > apps/mobile/android/local.properties
-
-      - name: Decode keystore
-        run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /tmp/release.keystore
-
-      - name: Decode Play Store JSON
-        if: ${{ env.APP_VARIANT == 'production' }}
-        run: |
-          echo "${{ secrets.PLAY_STORE_JSON_BASE64 }}" | base64 -d > /tmp/play-store-key.json
-
-      - name: Configure Sentry
-        run: |
-          cat > apps/mobile/android/sentry.properties <<'EOF'
-          defaults.url=https://sentry.io/
-          defaults.org=sahil-hasnain
-          defaults.project=ubaid-raza-naats
-          EOF
-
-      - name: Build Android artifact
+      - name: Validate project and resolve Android identity
+        id: brand
         env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          ANDROID_KEYSTORE_PATH: /tmp/release.keystore
+          APP_PROJECT_ID: ${{ env.PROJECT_ID }}
+          APP_VARIANT: ${{ env.APP_VARIANT }}
+          DEPLOY_TO_PLAY: ${{ github.event.inputs.deploy_to_play || 'false' }}
+        run: |
+          node <<'NODE'
+          const { getProject, projectIds } = require('./brands');
+          const id = process.env.APP_PROJECT_ID;
+          if (!projectIds.includes(id)) {
+            throw new Error(`Unknown project "${id}". Available: ${projectIds.join(', ')}`);
+          }
+          const brand = getProject(id);
+          const variant = process.env.APP_VARIANT;
+          if (process.env.DEPLOY_TO_PLAY === 'true' && variant !== 'production') {
+            throw new Error('Google Play deployment is only available for production builds.');
+          }
+          const packageId = variant === 'debug-apk'
+            ? brand.app.packageIdDev
+            : variant === 'production'
+              ? brand.app.packageId
+              : null;
+          if (!packageId) throw new Error(`Missing package ID for ${id}/${variant}`);
+          if (variant === 'debug-apk' && !packageId.endsWith('.dev')) {
+            throw new Error(`Debug APK package ID must end in .dev: ${packageId}`);
+          }
+          const values = {
+            project_id: id,
+            package_id: packageId,
+            app_name: brand.app.name,
+            version_code: String(brand.app.versionCode + Number(process.env.GITHUB_RUN_NUMBER || 0)),
+            sentry_enabled: String(Boolean(brand.sentry?.enabled)),
+            sentry_org: brand.sentry?.org || '',
+            sentry_project: brand.sentry?.project || '',
+          };
+          for (const [key, value] of Object.entries(values)) {
+            const safe = String(value).replace(/%/g, '%25').replace(/\n/g, '%0A').replace(/\r/g, '%0D');
+            require('fs').appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${safe}\n`);
+          }
+          for (const key of ['sentry_org', 'sentry_project']) {
+            const value = String(values[key]).replace(/%/g, '%25').replace(/\n/g, '%0A').replace(/\r/g, '%0D');
+            require('fs').appendFileSync(process.env.GITHUB_ENV, `${key === 'sentry_org' ? 'SENTRY_ORG' : 'SENTRY_PROJECT'}=${value}\n`);
+          }
+          NODE
+          EXPO_VARIANT=development
+          if [[ "$APP_VARIANT" == "production" ]]; then EXPO_VARIANT=production; fi
+          APP_PROJECT_ID="$PROJECT_ID" APP_VARIANT="$EXPO_VARIANT" npx expo config --json > "$RUNNER_TEMP/expo-config.json"
+          APP_PROJECT_ID="$PROJECT_ID" EXPO_VARIANT="$EXPO_VARIANT" node -e 'const c=require(process.argv[1]); const b=require("./brands").getProject(process.env.APP_PROJECT_ID); const id=process.env.EXPO_VARIANT==="development"?b.app.packageIdDev:b.app.packageId; if(c.extra.projectId!==process.env.APP_PROJECT_ID || c.android.package!==id) throw new Error("Expo config identity does not match selected brand and variant")' "$RUNNER_TEMP/expo-config.json"
+
+      - name: Generate selected Android project
+        env:
+          APP_PROJECT_ID: ${{ env.PROJECT_ID }}
+          APP_VARIANT: ${{ env.APP_VARIANT == 'debug-apk' && 'development' || 'production' }}
+          CI: "1"
+        run: npx expo prebuild --platform android --no-install --clean
+
+      - name: Prepare production signing
+        if: ${{ env.APP_VARIANT == 'production' }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_VERSION_CODE: ${{ steps.brand.outputs.version_code }}
         run: |
-          cd apps/mobile/android
-          chmod +x ./gradlew
-          if [ "$APP_VARIANT" = "preview" ]; then
-            ./gradlew assembleRelease
-          else
-            ./gradlew bundleRelease
-          fi
+          required=(ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD)
+          for name in "${required[@]}"; do
+            if [ -z "${!name}" ]; then
+              echo "Missing required secret in GitHub environment android-${PROJECT_ID}: $name"
+              exit 1
+            fi
+          done
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/release.keystore"
+          node scripts/patch-android-release-signing.mjs
 
-      - name: Upload artifact
+      - name: Build debug APK
+        if: ${{ env.APP_VARIANT == 'debug-apk' }}
+        run: cd android && chmod +x ./gradlew && ./gradlew assembleDebug
+
+      - name: Build production AAB
+        if: ${{ env.APP_VARIANT == 'production' }}
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: cd android && chmod +x ./gradlew && ./gradlew bundleRelease
+
+      - name: Upload APK artifact
+        if: ${{ env.APP_VARIANT == 'debug-apk' }}
         uses: actions/upload-artifact@v4
         with:
-          name: android-${{ env.APP_VARIANT }}-artifact
-          path: |
-            apps/mobile/android/app/build/outputs/**/*.aab
-            apps/mobile/android/app/build/outputs/**/*.apk
+          name: android-${{ steps.brand.outputs.project_id }}-${{ env.APP_VARIANT }}-${{ github.run_number }}
+          path: apps/mobile/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 14
 
-      - name: Fastlane deploy
+      - name: Upload production AAB artifact
         if: ${{ env.APP_VARIANT == 'production' }}
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SUPPLY_JSON_KEY: /tmp/play-store-key.json
-          ANDROID_APPLICATION_ID: com.owaisrazaqadri
-          PLAY_TRACK: production
-          SKIP_ANDROID_BUILD: "true"
-          ANDROID_KEYSTORE_PATH: /tmp/release.keystore
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          cd apps/mobile/android
-          bundle install
-          fastlane android deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ steps.brand.outputs.project_id }}-production-${{ github.run_number }}
+          path: apps/mobile/android/app/build/outputs/bundle/**/*.aab
+          if-no-files-found: error
+          retention-days: 30
 
-      - name: Cleanup build artifacts
-        if: always()
+      - name: Decode Play Store service account
+        if: ${{ env.APP_VARIANT == 'production' && github.event.inputs.deploy_to_play == 'true' }}
+        env:
+          PLAY_STORE_JSON_BASE64: ${{ secrets.PLAY_STORE_JSON_BASE64 }}
         run: |
-          cd apps/mobile/android
-          ./gradlew clean
-          rm -rf ~/.gradle/caches/build-cache-*
+          : "${PLAY_STORE_JSON_BASE64:?Missing PLAY_STORE_JSON_BASE64 secret in the selected project environment}"
+          printf '%s' "$PLAY_STORE_JSON_BASE64" | base64 --decode > "$RUNNER_TEMP/play-store-key.json"
+
+      - name: Deploy production bundle to Play
+        if: ${{ env.APP_VARIANT == 'production' && github.event.inputs.deploy_to_play == 'true' }}
+        working-directory: apps/mobile
+        env:
+          SUPPLY_JSON_KEY: ${{ runner.temp }}/play-store-key.json
+          ANDROID_APPLICATION_ID: ${{ steps.brand.outputs.package_id }}
+          PLAY_TRACK: ${{ vars.PLAY_TRACK || 'production' }}
+          AAB_PATH: android/app/build/outputs/bundle/release/app-release.aab
+        run: bundle exec fastlane android deploy

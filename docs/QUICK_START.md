@@ -1,5 +1,8 @@
 # Quick Start - Responsive Player
 
+> Archived: this guide describes the retired `apps/web` player. The Next.js
+> web app was removed; the commands below no longer apply.
+
 ## What You Got
 
 ✅ **Desktop (≥768px)**: Draggable floating player with 3 modes

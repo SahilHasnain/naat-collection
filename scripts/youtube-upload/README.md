@@ -37,7 +37,8 @@ This will:
 
 ### 3. Environment Variables
 
-Add to your `.env` file:
+Add these values to the root `.env.naat-collection` file. The YouTube scripts
+load that brand-specific file; they do not use the generic root `.env`.
 
 ```env
 # Appwrite (to download audio files)
@@ -89,7 +90,7 @@ clips, one from the beginning and one from the final 60 seconds of the audio.
 1. Add `http://localhost:34568` to the OAuth client's authorized redirect URIs.
 2. Run `node scripts/youtube-upload/get-teenage-refresh-token.js` and authorize
    the Google account/channel that owns the teenage-voice channel.
-3. This writes `GOOGLE_REFRESH_TOKEN_TEENAGE` into the root `.env`; it does not
+3. This writes `GOOGLE_REFRESH_TOKEN_TEENAGE` into the root `.env.naat-collection`; it does not
    replace the existing channel's `GOOGLE_REFRESH_TOKEN`.
 4. Preview eligible variants without uploading:
 

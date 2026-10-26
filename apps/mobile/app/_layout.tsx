@@ -53,9 +53,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import "../global.css";
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const brand = require("../brand.config.js");
+import brand from "../config/brand";
 
 // Initialize Sentry
 Sentry.init({

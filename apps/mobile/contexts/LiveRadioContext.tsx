@@ -1,4 +1,5 @@
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
+import { GUMBAD_IMAGE } from "@/brands/assets";
 import { updateNotificationCapabilities } from "@/services/trackPlayerService";
 import TrackPlayer, { State } from "@weights-ai/react-native-track-player";
 import React, {
@@ -132,7 +133,7 @@ export const LiveRadioProvider: React.FC<{ children: React.ReactNode }> = ({
         id: "live-radio-icecast",
         url: LIVE_RADIO_STREAM_URL,
         title: "Naat Radio",
-        artwork: require("@/assets/images/gumbad.png"),
+        artwork: GUMBAD_IMAGE,
       };
 
       console.log("🎵 Adding Icecast stream:", track.url);

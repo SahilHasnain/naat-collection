@@ -7,7 +7,7 @@ const dotenv = require("dotenv");
 const path = require("path");
 const fs = require("fs");
 
-dotenv.config({ path: path.join(__dirname, "../../.env") });
+dotenv.config({ path: path.join(__dirname, "../../.env.naat-collection") });
 
 const PORT = 34567;
 const REDIRECT_URI = `http://localhost:${PORT}`;
@@ -22,7 +22,7 @@ async function main() {
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    console.error("Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET in .env");
+    console.error("Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET in .env.naat-collection");
     process.exit(1);
   }
 
@@ -74,11 +74,11 @@ async function main() {
   });
 
   const { tokens } = await oauth2Client.getToken(code);
-  console.log("\n✅ Success! Add this to your .env:\n");
+  console.log("\n✅ Success! Saving token to .env.naat-collection:\n");
   console.log(`GOOGLE_REFRESH_TOKEN=${tokens.refresh_token}\n`);
 
   // Auto-update .env
-  const envPath = path.join(__dirname, "../../.env");
+  const envPath = path.join(__dirname, "../../.env.naat-collection");
   const envContent = fs.readFileSync(envPath, "utf-8");
   if (envContent.includes("GOOGLE_REFRESH_TOKEN=")) {
     const updated = envContent.replace(
@@ -89,7 +89,7 @@ async function main() {
   } else {
     fs.appendFileSync(envPath, `\nGOOGLE_REFRESH_TOKEN=${tokens.refresh_token}\n`);
   }
-  console.log("✓ Automatically written to .env");
+  console.log("✓ Automatically written to .env.naat-collection");
 }
 
 main().catch((err) => {

@@ -1,5 +1,6 @@
 import { colors } from "@/constants/theme";
-import { APP_NAME } from "@/config/brand";
+import { APP_NAME, NATIVE_APP_URL } from "@/config/brand";
+import { BRAND_LOGO } from "@/brands/assets";
 import { useLayoutMode } from "@/contexts/LayoutModeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -14,10 +15,6 @@ import Animated, {
 } from "react-native-reanimated";
 import Pressable from "./ResponsivePressable";
 import { AuthModal } from "./AuthModal";
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const brand = require("../brand.config.js");
-const NATIVE_APP_URL = `https://play.google.com/store/apps/details?id=${brand.app.packageId}`;
 
 interface AnimatedHeaderProps {
   translateY: SharedValue<number>;
@@ -153,7 +150,7 @@ export function AnimatedHeader({
                 style={{ width: 32, height: 32 }}
               >
                 <Image
-                  source={require("@/assets/images/android-icon-foreground.png")}
+                  source={BRAND_LOGO}
                   style={{ width: 32, height: 32 }}
                   contentFit="cover"
                 />

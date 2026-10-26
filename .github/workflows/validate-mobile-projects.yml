@@ -1,0 +1,28 @@
+name: Validate mobile projects
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  expo-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validate every discovered project config
+        working-directory: apps/mobile
+        shell: bash
+        run: |
+          mapfile -t project_ids < <(node -e 'process.stdout.write(require("./brands").projectIds.join("\n"))')
+          test "${#project_ids[@]}" -gt 0
+          for project_id in "${project_ids[@]}"; do
+            echo "Validating ${project_id}"
+            APP_PROJECT_ID="$project_id" npx expo config --json > "/tmp/expo-config-${project_id}.json"
+            node -e 'const c=require(process.argv[1]); if(c.extra.projectId!==process.argv[2]) process.exit(1);' "/tmp/expo-config-${project_id}.json" "$project_id"
+          done

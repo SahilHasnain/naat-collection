@@ -3,8 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { appwriteService } from "../services/appwrite";
 import type { Naat, UseSearchReturn } from "../types";
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const brand = require("../brand.config.js");
+import brand from "../config/brand";
 
 /**
  * Custom hook for searching naats with AI-powered semantic search

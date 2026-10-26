@@ -27,8 +27,10 @@ Replace `USERNAME` and `REPO` with your GitHub details.
 When database limits reset (monthly), refresh the exports:
 
 ```bash
-# Run export script
-node scripts/export-naats-to-json.js
+# Run one brand export (API key may also be loaded from .env.<brand-id>)
+APP_PROJECT_ID=naat-collection node scripts/export-naats-to-json.js
+APP_PROJECT_ID=naat-production node scripts/export-naats-to-json.js
+APP_PROJECT_ID=anas-raza-attari node scripts/export-naats-to-json.js
 
 # Commit and push
 git add static-exports/
@@ -37,6 +39,18 @@ git push
 ```
 
 jsDelivr will automatically pick up the new files within 24 hours. To force immediate update, purge the CDN cache at: https://www.jsdelivr.com/tools/purge
+
+The scheduled GitHub Actions workflow exports brands sequentially, then makes
+one commit for all generated files. Configure these repository Actions secrets
+with API keys for the corresponding Appwrite projects:
+
+- `APPWRITE_API_KEY_NAAT_COLLECTION`
+- `APPWRITE_API_KEY_NAAT_PRODUCTION`
+- `APPWRITE_API_KEY_ANAS_RAZA_ATTARI`
+
+Each brand's project, database, and collection IDs are read from
+`apps/mobile/brands/<brand-id>/brand.config.js`. Only `naat-collection` is also
+mirrored to the legacy root export paths used by YouTube upload tooling.
 
 ## File Format
 

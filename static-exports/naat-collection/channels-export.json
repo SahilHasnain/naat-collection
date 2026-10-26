@@ -1,0 +1,72 @@
+{
+  "metadata": {
+    "exportedAt": "2026-10-25T07:18:18.711Z",
+    "totalItems": 3,
+    "version": "1.0",
+    "source": "Appwrite Database",
+    "expiresAt": null,
+    "note": "This is a static fallback export. Data may be outdated."
+  },
+  "data": [
+    {
+      "channelId": "UC-pKQ46ZSMkveYV7nKijWmQ",
+      "channelName": "Baghdadi Sound & Video",
+      "naatCount": 2367,
+      "lastUpdated": "2026-01-07T16:09:04.011+00:00",
+      "isOfficial": false,
+      "isOther": false,
+      "type": "channel",
+      "playlistId": null,
+      "isOWQ": true,
+      "isSpeech": false,
+      "titleFilter": "owais\\s+(?:raza\\s+)?qadri",
+      "$id": "UC-pKQ46ZSMkveYV7nKijWmQ",
+      "$sequence": 1,
+      "$createdAt": "2026-01-07T16:08:02.467+00:00",
+      "$updatedAt": "2026-08-20T16:00:58.771+00:00",
+      "$permissions": [],
+      "$databaseId": "695bba86001b50478ed4",
+      "$collectionId": "channels"
+    },
+    {
+      "channelId": "UCyvdo5fpPSnidSsM-c7F9wg",
+      "channelName": "Owais Raza Qadri",
+      "naatCount": 0,
+      "lastUpdated": "2026-01-07T16:09:06.053+00:00",
+      "isOfficial": true,
+      "isOther": false,
+      "type": "channel",
+      "playlistId": null,
+      "isOWQ": true,
+      "isSpeech": false,
+      "titleFilter": null,
+      "$id": "UCyvdo5fpPSnidSsM-c7F9wg",
+      "$sequence": 2,
+      "$createdAt": "2026-01-07T16:08:04.927+00:00",
+      "$updatedAt": "2026-08-20T16:00:58.310+00:00",
+      "$permissions": [],
+      "$databaseId": "695bba86001b50478ed4",
+      "$collectionId": "channels"
+    },
+    {
+      "channelId": "pl_PLkW9N8l",
+      "channelName": "Ubaid e Raza",
+      "naatCount": 0,
+      "lastUpdated": "2026-02-09T18:42:19.891+00:00",
+      "isOfficial": true,
+      "isOther": false,
+      "type": "playlist",
+      "playlistId": "PLkW9N8lesk1ON-Z_qbhbA82FetR19g84K",
+      "isOWQ": null,
+      "isSpeech": null,
+      "titleFilter": null,
+      "$id": "pl_PLkW9N8l",
+      "$sequence": 6,
+      "$createdAt": "2026-02-09T18:42:19.653+00:00",
+      "$updatedAt": "2026-02-09T18:42:19.653+00:00",
+      "$permissions": [],
+      "$databaseId": "695bba86001b50478ed4",
+      "$collectionId": "channels"
+    }
+  ]
+}

@@ -18,7 +18,7 @@ const dotenv = require("dotenv");
 const { chromium } = require("playwright");
 const reels = require("./generate-reels");
 
-dotenv.config({ path: path.join(__dirname, "../../.env") });
+dotenv.config({ path: path.join(__dirname, "../../.env.naat-collection") });
 
 const CONFIG = {
   ...reels.CONFIG,

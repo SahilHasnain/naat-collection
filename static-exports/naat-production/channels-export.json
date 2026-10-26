@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "exportedAt": "2026-10-17T06:32:39.693Z",
+    "totalItems": 1,
+    "version": "1.0",
+    "source": "Appwrite Database",
+    "expiresAt": null,
+    "note": "This is a static fallback export. Data may be outdated."
+  },
+  "data": [
+    {
+      "channelId": "UC1ITk7d8gkT25c5-RT4eXPw",
+      "channelName": "Voice of IDS",
+      "type": "channel",
+      "playlistId": null,
+      "naatCount": 0,
+      "lastUpdated": null,
+      "isOther": false,
+      "$id": "69ce12240038c9fa4254",
+      "$sequence": 3,
+      "$createdAt": "2026-04-02T06:52:22.279+00:00",
+      "$updatedAt": "2026-04-02T06:52:22.279+00:00",
+      "$permissions": [],
+      "$databaseId": "69cdf9f4000f8532e829",
+      "$collectionId": "channels"
+    }
+  ]
+}

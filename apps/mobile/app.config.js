@@ -1,4 +1,49 @@
-const brand = require("./brand.config.js");
+const fs = require("node:fs");
+const path = require("node:path");
+const projectId = process.env.APP_PROJECT_ID || "naat-collection";
+const { getProject, projectIds } = require("./brands");
+const brand = getProject(projectId);
+const assetRoot = `./brands/${projectId}/assets`;
+const projectAsset = (path) =>
+  path?.startsWith("./assets/") ? `${assetRoot}/${path.slice("./assets/".length)}` : path;
+const assertAsset = (assetPath, label) => {
+  if (!assetPath || !fs.existsSync(path.join(__dirname, assetPath))) {
+    throw new Error(
+      `Project "${projectId}" is missing ${label} asset: ${assetPath || "<unset>"}`,
+    );
+  }
+  return assetPath;
+};
+const appIcon = assertAsset(
+  `${assetRoot}/images/android-icon-foreground.png`,
+  "app icon",
+);
+const splashIcon = assertAsset(`${assetRoot}/images/splash-icon.png`, "splash");
+const adaptiveIcon = projectAsset(
+  brand.app.adaptiveIconForegroundImage || appIcon,
+);
+assertAsset(adaptiveIcon, "adaptive icon");
+if (!brand.app.packageId || !brand.app.slug || !brand.app.scheme) {
+  throw new Error(`Project "${projectId}" is missing app identity configuration`);
+}
+if (!brand.appwrite?.endpoint || !brand.appwrite?.projectId || !brand.appwrite?.databaseId) {
+  throw new Error(`Project "${projectId}" is missing required Appwrite configuration`);
+}
+if (!brand.static?.naatsUrl || !brand.static?.channelsUrl || !brand.static?.appMessageUrl) {
+  throw new Error(`Project "${projectId}" is missing project-specific static export URLs`);
+}
+if (!Number.isInteger(brand.app.versionCode) || brand.app.versionCode < 1) {
+  throw new Error(`Project "${projectId}" must define a positive Android versionCode`);
+}
+const faviconPath = `${assetRoot}/images/favicon.png`;
+const favicon = fs.existsSync(path.join(__dirname, faviconPath))
+  ? faviconPath
+  : appIcon;
+const notificationIcon = brand.app.notificationIcon
+  ? assertAsset(`${assetRoot}/${brand.app.notificationIcon}`, "notification")
+  : fs.existsSync(path.join(__dirname, `${assetRoot}/images/status_bar_icon.png`))
+    ? `${assetRoot}/images/status_bar_icon.png`
+    : undefined;
 
 const IS_DEV = process.env.APP_VARIANT === "development";
 const IS_PREVIEW = process.env.APP_VARIANT === "preview";
@@ -29,7 +74,7 @@ export default {
     slug: brand.app.slug,
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/android-icon-foreground.png",
+    icon: appIcon,
     scheme: brand.app.scheme,
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -44,9 +89,10 @@ export default {
     android: {
       versionCode: brand.app.versionCode,
       adaptiveIcon: {
-        foregroundImage:
+        foregroundImage: projectAsset(
           brand.app.adaptiveIconForegroundImage ||
-          "./assets/images/android-icon-foreground.png",
+            `${assetRoot}/images/android-icon-foreground.png`,
+        ),
         ...(brand.app.adaptiveIconBackgroundColor
           ? { backgroundColor: brand.app.adaptiveIconBackgroundColor }
           : {}),
@@ -55,7 +101,7 @@ export default {
       predictiveBackGestureEnabled: false,
       package: getUniqueIdentifier(),
       notification: {
-        icon: "./assets/images/status_bar_icon.png",
+        ...(notificationIcon ? { icon: notificationIcon } : {}),
         color: "#000000",
       },
       permissions: [
@@ -92,7 +138,7 @@ export default {
       ],
     },
     web: {
-      favicon: "./assets/images/android-icon-foreground.png",
+      favicon,
     },
     plugins: [
       "expo-router",
@@ -100,7 +146,7 @@ export default {
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/splash-icon.png",
+          image: splashIcon,
           resizeMode: "cover",
           backgroundColor: "#000000",
         }
@@ -138,6 +184,10 @@ export default {
     },
     extra: {
       router: {},
+      projectId,
+      projectIds,
+      brand,
+      privacyPolicyUrl: brand.privacy?.policyUrl,
       eas: {
         projectId: brand.eas.projectId,
       },

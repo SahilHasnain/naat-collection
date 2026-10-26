@@ -5,6 +5,7 @@
  */
 
 import { colors } from "@/constants/theme";
+import { GUMBAD_IMAGE } from "@/brands/assets";
 import { useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
 import { usePlaybackMode } from "@/contexts/PlaybackModeContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
@@ -148,7 +149,7 @@ const NativeLiveRadioMiniPlayer: React.FC<LiveRadioMiniPlayerProps> = ({
             {/* Gumbad Icon */}
             <View className="items-center justify-center mr-3">
               <Image
-                source={require("@/assets/images/gumbad.png")}
+                source={GUMBAD_IMAGE}
                 style={{ width: 64, height: 36, borderRadius: 4 }}
                 resizeMode="cover"
               />

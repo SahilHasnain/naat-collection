@@ -9,7 +9,7 @@ const dotenv = require("dotenv");
 const https = require("https");
 const url = require("url");
 
-dotenv.config({ path: path.join(__dirname, "../../.env") });
+dotenv.config({ path: path.join(__dirname, "../../.env.naat-collection") });
 
 const CONFIG = {
   prefix: process.env.TITLE_PREFIX || "[No Explanation] ",

@@ -7,7 +7,7 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 const dotenv = require("dotenv");
 
-dotenv.config({ path: path.join(__dirname, "../../.env") });
+dotenv.config({ path: path.join(__dirname, "../../.env.naat-collection") });
 const DRY_RUN = process.argv.includes("--dry-run");
 
 const CONFIG = {

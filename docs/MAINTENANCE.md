@@ -19,6 +19,18 @@ Mobile app is Android-only (EAS builds). Expo web was never built or deployed
 
 **[DONE]**
 
+## Removed — `apps/web` (family-app consolidation)
+
+The Next.js admin dashboard and its API routes were retired by request. This
+also retires the repository source for the `/naat/{id}` share-link handoff and
+the web audio-streaming endpoint. Existing hosted deployments are not changed
+by removing source files; mobile share URLs that rely on those routes are no
+longer maintained. Root web scripts and the web workspace lock entries have
+been removed. Ignored local files such as `apps/web/.env.local` and installed
+dependencies were intentionally preserved.
+
+**[DONE]**
+
 ## Removed — vm-audio-worker / wsl-scripts (2026-08-29)
 
 - `vm-audio-worker/` — unused audio worker. Also dropped the dangling refs:

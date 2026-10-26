@@ -5,6 +5,7 @@
  */
 
 import { colors, shadows } from "@/constants/theme";
+import { HEADPHONE_ICON } from "@/brands/assets";
 import { useHeaderVisibility } from "@/contexts/HeaderVisibilityContext.animated";
 import { useLiveRadioPlayer } from "@/contexts/LiveRadioContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
@@ -188,7 +189,7 @@ export default function LiveScreen() {
                 <Animated.View style={[styles.radioWave, styles.radioWave3, ring3Style]} />
                 <View style={styles.artworkCircle}>
                   <Image
-                    source={require("@/assets/images/headphone-v1.png")}
+                    source={HEADPHONE_ICON}
                     style={styles.headphoneImage}
                     contentFit="contain"
                     transition={200}

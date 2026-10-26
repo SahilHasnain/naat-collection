@@ -8,7 +8,7 @@ const { execFileSync } = require("child_process");
 const https = require("https");
 const dotenv = require("dotenv");
 
-dotenv.config({ path: path.join(__dirname, "../../.env") });
+dotenv.config({ path: path.join(__dirname, "../../.env.naat-collection") });
 
 const CONFIG = {
   databaseId: process.env.APPWRITE_DATABASE_ID || "695bba86001b50478ed4",

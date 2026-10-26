@@ -1,0 +1,23 @@
+default_platform(:android)
+
+platform :android do
+  desc "Upload the already-built Android bundle to Google Play"
+  lane :deploy do |options|
+    json_key = ENV["SUPPLY_JSON_KEY"] || ENV["PLAY_STORE_JSON_KEY_PATH"]
+    UI.user_error!("Missing Play Store service-account JSON key") if json_key.to_s.empty?
+
+    aab = options[:aab] || ENV["AAB_PATH"] || "android/app/build/outputs/bundle/release/app-release.aab"
+    UI.user_error!("AAB not found: #{aab}") unless File.exist?(aab)
+
+    upload_to_play_store(
+      track: options[:track] || ENV["PLAY_TRACK"] || "production",
+      aab: aab,
+      package_name: ENV["ANDROID_APPLICATION_ID"],
+      json_key: json_key,
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+end

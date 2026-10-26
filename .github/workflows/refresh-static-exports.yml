@@ -31,15 +31,30 @@ jobs:
       - name: Install deps
         run: npm install --no-save node-appwrite fs-extra dotenv
 
-      - name: Export static data
+      - name: Export all registered brands
         env:
-          APPWRITE_ENDPOINT: "https://sgp.cloud.appwrite.io/v1"
-          APPWRITE_PROJECT_ID: "695bb97700213f4ef5dd"
-          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
-          APPWRITE_DATABASE_ID: "695bba86001b50478ed4"
-          APPWRITE_NAATS_COLLECTION_ID: "695bc8e70038db72df5b"
-          APPWRITE_CHANNELS_COLLECTION_ID: "channels"
-        run: node scripts/export-naats-to-json.js
+          APPWRITE_API_KEY_NAAT_COLLECTION: ${{ secrets.APPWRITE_API_KEY_NAAT_COLLECTION }}
+          APPWRITE_API_KEY_NAAT_PRODUCTION: ${{ secrets.APPWRITE_API_KEY_NAAT_PRODUCTION }}
+          APPWRITE_API_KEY_ANAS_RAZA_ATTARI: ${{ secrets.APPWRITE_API_KEY_ANAS_RAZA_ATTARI }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          export_brand() {
+            local project_id="$1"
+            local api_key="$2"
+            if [[ -z "$api_key" ]]; then
+              echo "Missing required API key secret for brand: $project_id" >&2
+              return 1
+            fi
+
+            echo "Exporting static data for $project_id"
+            APP_PROJECT_ID="$project_id" APPWRITE_API_KEY="$api_key" node scripts/export-naats-to-json.js
+          }
+
+          export_brand naat-collection "$APPWRITE_API_KEY_NAAT_COLLECTION"
+          export_brand naat-production "$APPWRITE_API_KEY_NAAT_PRODUCTION"
+          export_brand anas-raza-attari "$APPWRITE_API_KEY_ANAS_RAZA_ATTARI"
 
       - name: Commit updated exports
         run: |

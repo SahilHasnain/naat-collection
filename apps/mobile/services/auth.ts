@@ -1,9 +1,7 @@
 import { Account, Client, IdTokenProvider, OAuthProvider } from "react-native-appwrite";
 import { Platform } from "react-native";
 import { appwriteConfig } from "../config/appwrite";
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const brand = require("../brand.config.js");
+import { GOOGLE_WEB_CLIENT_ID } from "../config/brand";
 
 const client = new Client()
   .setEndpoint(appwriteConfig.endpoint)
@@ -11,7 +9,7 @@ const client = new Client()
 
 const account = new Account(client);
 
-export const googleWebClientId = brand.auth.googleWebClientId as string;
+export const googleWebClientId = GOOGLE_WEB_CLIENT_ID;
 
 export const authService = {
   getCurrentUser() {

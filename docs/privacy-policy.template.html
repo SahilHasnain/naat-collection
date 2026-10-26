@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — {{APP_NAME}}</title>
+  <meta name="description" content="Privacy Policy for the {{APP_NAME}} mobile app" />
+  <link rel="canonical" href="{{POLICY_URL}}" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #ffffff;
+      color: #111827;
+      line-height: 1.75;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+    h1 { font-size: 36px; font-weight: 700; color: #111827; margin-bottom: 16px; }
+    h2 { font-size: 24px; font-weight: 600; color: #111827; margin-bottom: 12px; }
+    p { font-size: 16px; color: #374151; margin-bottom: 8px; }
+    ul { margin-left: 24px; font-size: 16px; color: #374151; }
+    li { margin-bottom: 4px; }
+    section { margin-bottom: 32px; }
+    .last-updated { font-size: 14px; color: #6B7280; margin-bottom: 32px; }
+    a { color: #10b981; text-decoration: none; }
+    .footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #E5E7EB;
+      text-align: center;
+      font-size: 14px;
+      color: #6B7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Privacy Policy</h1>
+    <p class="last-updated">Last updated: October 26, 2026</p>
+
+    <section>
+      <h2>1. Introduction</h2>
+      <p>Welcome to {{APP_NAME}}. We respect your privacy and are committed to protecting your personal data. This privacy policy explains how we handle your information when you use our mobile application.</p>
+    </section>
+
+    <section>
+      <h2>2. Information We Collect</h2>
+      <p>The information processed depends on the features you use:</p>
+      <ul>
+        <li>Playback history, downloaded content, and app preferences are stored locally on your device.</li>
+        <li>If you choose Google sign-in, Google and Appwrite process account information needed to authenticate you, such as your account identifier and information provided by Google.</li>
+        <li>If you use favorites sync, the app sends your Appwrite user identifier, favorite content IDs, a device identifier, and synchronization timestamps to Appwrite.</li>
+        <li>For app versions with diagnostics enabled and configured, Sentry may receive technical, crash, and performance information.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>3. How We Use Your Information</h2>
+      <p>We use the collected information to:</p>
+      <ul>
+        <li>Provide and maintain our service</li>
+        <li>Remember playback history and preferences on your device</li>
+        <li>Authenticate Google sign-ins and synchronize favorites when you use those features</li>
+        <li>Diagnose errors and improve performance in versions where diagnostics are enabled</li>
+        <li>Provide offline listening and viewing through downloaded content</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>4. Data Storage</h2>
+      <p>Playback history, preferences, and downloaded media are stored locally on your device. If you use Google sign-in or favorites synchronization, the related account and favorites data is processed and stored by Appwrite for the app. In app versions with diagnostics enabled and configured, technical diagnostic information may be sent to Sentry. Uninstalling the app does not necessarily delete information already stored by these services.</p>
+    </section>
+
+    <section>
+      <h2>5. Third-Party Services</h2>
+      <p>Our app may use third-party services that may collect information:</p>
+      <ul>
+        <li>Google sign-in for optional account authentication</li>
+        <li>Appwrite for app backend, authentication, favorites synchronization, and content delivery</li>
+        <li>Sentry for diagnostics in app versions where it is enabled and configured</li>
+        <li>YouTube and audio-streaming services for media playback</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>6. Data Security</h2>
+      <p>We implement appropriate security measures to protect your information. However, no method of transmission over the internet or electronic storage is 100% secure.</p>
+    </section>
+
+    <section>
+      <h2>7. Children's Privacy</h2>
+      <p>Our app is suitable for all ages. We do not knowingly collect personal information from children. The app does not require account creation or personal information submission.</p>
+    </section>
+
+    <section>
+      <h2>8. Your Rights</h2>
+      <p>You have the right to:</p>
+      <ul>
+        <li>Access or clear local app data through your device settings</li>
+        <li>Stop using Google sign-in or favorites synchronization</li>
+        <li>Request access to or deletion of account and favorites data stored by the app by contacting us</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>9. Changes to This Policy</h2>
+      <p>We may update this privacy policy from time to time. We will notify you of any changes by posting the new privacy policy and updating the "Last updated" date.</p>
+    </section>
+
+    <section>
+      <h2>10. Contact Us</h2>
+      <p>If you have any questions about this privacy policy, please contact us at:</p>
+      <p>Email: <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a></p>
+    </section>
+
+    <div class="footer">
+      <p>© 2026 {{APP_NAME}}. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>

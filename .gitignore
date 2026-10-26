@@ -6,10 +6,14 @@
 # dependencies
 node_modules/
 apps/mobile/node_modules/
+apps/web/node_modules/
+apps/web/.next/
+apps/web/next-env.d.ts
 
 # Expo
 .expo/
 dist/
+/privacy-site/
 web-build/
 expo-env.d.ts
 
@@ -56,6 +60,7 @@ app-example
 # generated native folders
 /ios
 /android
+apps/mobile/android/
 
 temp-audio
 training-data/naat
