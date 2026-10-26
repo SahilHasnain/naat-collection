@@ -12,7 +12,11 @@ import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { storageService } from "@/services/storage";
-import { userProfileService } from "@/services/userProfile";
+import {
+  durationBucket,
+  userProfileService,
+  type UserProfile,
+} from "@/services/userProfile";
 import { appwriteService } from "@/services/appwrite";
 import type { MenuAnchor, Naat } from "@/types";
 import { getPreferredDuration } from "@naat-collection/shared";
@@ -32,13 +36,73 @@ import {
 const POPULAR_FETCH_LIMIT = 200;
 const BEST_COUNT = 50;
 
-function shuffleAndPick(naats: Naat[], count: number): Naat[] {
-  const shuffled = [...naats];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+function rankBestNaats(
+  naats: Naat[],
+  count: number,
+  profile: UserProfile,
+  favoriteIds: string[],
+): Naat[] {
+  if (naats.length === 0) return [];
+
+  const maxViews = Math.max(...naats.map((naat) => naat.views || 0), 1);
+  const preferredDuration = userProfileService.getPreferredDuration(profile);
+  const favoriteSet = new Set(favoriteIds);
+  const now = Date.now();
+  const scored = naats.map((naat) => {
+    const ageDays = Math.max(
+      0,
+      (now - new Date(naat.uploadDate).getTime()) / (1000 * 60 * 60 * 24),
+    );
+    const titleTerms = naat.title.toLowerCase().match(/[a-z0-9]{3,}/g) ?? [];
+    const topicScore = titleTerms.reduce(
+      (score, term) => score + Math.max(0, profile.topicTerms[term] || 0),
+      0,
+    );
+    const channelAffinity = Math.max(
+      -2,
+      Math.min(2, profile.channelAffinity[naat.channelId] || 0),
+    );
+    const durationMatch =
+      preferredDuration && durationBucket(getPreferredDuration(naat)) === preferredDuration
+        ? 0.45
+        : 0;
+
+    return {
+      naat,
+      score:
+        (Math.log1p(naat.views || 0) / Math.log1p(maxViews)) * 2 +
+        Math.exp(-ageDays / 365) +
+        channelAffinity * 0.35 +
+        Math.min(topicScore, 1.25) * 0.25 +
+        (favoriteSet.has(naat.$id) ? 0.8 : 0) +
+        durationMatch -
+        Math.min(profile.dislikedChannels[naat.channelId] || 0, 3) * 0.4,
+    };
+  });
+
+  const selected: Naat[] = [];
+  const channelCounts = new Map<string, number>();
+  while (selected.length < count && scored.length > 0) {
+    const lastChannelId = selected[selected.length - 1]?.channelId;
+    scored.sort((a, b) => {
+      const scoreA =
+        a.score -
+        (channelCounts.get(a.naat.channelId) || 0) * 0.55 -
+        (a.naat.channelId === lastChannelId ? 0.8 : 0);
+      const scoreB =
+        b.score -
+        (channelCounts.get(b.naat.channelId) || 0) * 0.55 -
+        (b.naat.channelId === lastChannelId ? 0.8 : 0);
+      return scoreB - scoreA || a.naat.$id.localeCompare(b.naat.$id);
+    });
+    const [next] = scored.splice(0, 1);
+    selected.push(next.naat);
+    channelCounts.set(
+      next.naat.channelId,
+      (channelCounts.get(next.naat.channelId) || 0) + 1,
+    );
   }
-  return shuffled.slice(0, count);
+  return selected;
 }
 
 export default function BestScreen() {
@@ -61,50 +125,46 @@ export default function BestScreen() {
   const { setShowFilterModal } = useFilterModal();
 
   const { downloadStates, handleDownload } = useDownloadManager(naats);
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
   const { handleNaatPress, playAsAudio, playAsVideo } = useNaatPlayback(naats);
+
+  const loadRankedBest = useCallback(async () => {
+    const [curated, profile] = await Promise.all([
+      appwriteService.getBestNaats(POPULAR_FETCH_LIMIT),
+      userProfileService.getProfile(),
+    ]);
+    const candidates = curated.length
+      ? curated
+      : await appwriteService.getNaats(POPULAR_FETCH_LIMIT, 0, "popular");
+    const eligible = candidates.filter(
+      (naat) => (profile.dislikedNaats[naat.$id] || 0) === 0,
+    );
+    return rankBestNaats(eligible, BEST_COUNT, profile, favoriteIds);
+  }, [favoriteIds]);
 
   const loadBest = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const popular = await appwriteService.getNaats(
-        POPULAR_FETCH_LIMIT,
-        0,
-        "popular",
-      );
-      const profile = await userProfileService.getProfile();
-      const filtered = popular.filter(
-        (n) => (profile.dislikedNaats[n.$id] || 0) === 0,
-      );
-      setNaats(shuffleAndPick(filtered, BEST_COUNT));
+      setNaats(await loadRankedBest());
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to load naats"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadRankedBest]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
     setError(null);
     try {
-      const popular = await appwriteService.getNaats(
-        POPULAR_FETCH_LIMIT,
-        0,
-        "popular",
-      );
-      const profile = await userProfileService.getProfile();
-      const filtered = popular.filter(
-        (n) => (profile.dislikedNaats[n.$id] || 0) === 0,
-      );
-      setNaats(shuffleAndPick(filtered, BEST_COUNT));
+      setNaats(await loadRankedBest());
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to refresh naats"));
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [loadRankedBest]);
 
   useFocusEffect(
     useCallback(() => {

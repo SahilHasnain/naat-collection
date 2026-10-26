@@ -163,6 +163,10 @@ export class AppwriteService implements IAppwriteService {
     }
   }
 
+  async getBestNaats(limit: number = 200): Promise<Naat[]> {
+    return this.baseService.getBestNaats(limit);
+  }
+
   /**
    * Searches for naats matching the provided query string
    */

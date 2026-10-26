@@ -275,6 +275,40 @@ export class AppwriteService implements IAppwriteService {
     }
   }
 
+  /** Fetch admin-curated best naats so admin changes appear without waiting for an export. */
+  async getBestNaats(limit: number = 200): Promise<Naat[]> {
+    this.initialize();
+    try {
+      const response = await this.database.listDocuments(
+        this.config.databaseId,
+        this.config.naatsCollectionId,
+        [
+          Query.equal("best", true),
+          Query.or([Query.equal("exclude", false), Query.isNull("exclude")]),
+          Query.orderDesc("views"),
+          Query.limit(limit),
+        ],
+      );
+      this.dataSource = "appwrite";
+      return response.documents as unknown as Naat[];
+    } catch (appwriteError) {
+      console.warn(
+        "[Appwrite] Best-naat query failed, falling back to static export:",
+        appwriteError,
+      );
+    }
+
+    const allNaats = await this.loadStaticNaats();
+    return allNaats
+      .filter((naat) => naat.best === true && !naat.exclude)
+      .sort(
+        (a, b) =>
+          (b.views || 0) - (a.views || 0) ||
+          new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime(),
+      )
+      .slice(0, limit);
+  }
+
   /**
    * Fetches a single naat by its ID
    */
