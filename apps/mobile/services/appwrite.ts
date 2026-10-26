@@ -7,20 +7,24 @@
 
 import { AppwriteService as BaseAppwriteService } from "@naat-collection/api-client";
 import type {
-    AudioUrlResponse,
-    Channel,
-    IAppwriteService,
-    Naat,
+  AudioUrlResponse,
+  Channel,
+  IAppwriteService,
+  Naat,
 } from "@naat-collection/shared";
 import { AppError, ErrorCode } from "@naat-collection/shared";
 import * as Sentry from "@sentry/react-native";
 import { Client, Databases } from "react-native-appwrite";
-import { appwriteConfig, validateAppwriteConfig, STATIC_FALLBACK_URLS } from "../config/appwrite";
 import {
-    logError,
-    STATIC_DATA_TIMEOUT,
-    withCacheFallback,
-    wrapError,
+  appwriteConfig,
+  validateAppwriteConfig,
+  STATIC_FALLBACK_URLS,
+} from "../config/appwrite";
+import {
+  logError,
+  STATIC_DATA_TIMEOUT,
+  withCacheFallback,
+  wrapError,
 } from "../utils/errorHandling";
 
 const adminClient = new Client()
@@ -83,7 +87,8 @@ export class AppwriteService implements IAppwriteService {
 
     try {
       return await withCacheFallback(
-        () => this.baseService.getNaats(limit, offset, sortBy, channelId, pureOnly),
+        () =>
+          this.baseService.getNaats(limit, offset, sortBy, channelId, pureOnly),
         cacheKey,
         {
           timeoutMs: STATIC_DATA_TIMEOUT,
@@ -91,7 +96,16 @@ export class AppwriteService implements IAppwriteService {
         },
       );
     } catch (error: any) {
-      console.error("[DEBUG getNaats] name:", error?.name, "code:", error?.code, "type:", error?.type, "message:", error?.message);
+      console.error(
+        "[DEBUG getNaats] name:",
+        error?.name,
+        "code:",
+        error?.code,
+        "type:",
+        error?.type,
+        "message:",
+        error?.message,
+      );
       const wrappedError = wrapError(error, ErrorCode.NETWORK_ERROR);
       logError(wrappedError, {
         context: "getNaats",
@@ -129,7 +143,16 @@ export class AppwriteService implements IAppwriteService {
         },
       );
     } catch (error: any) {
-      console.error("[DEBUG getNaatById] name:", error?.name, "code:", error?.code, "type:", error?.type, "message:", error?.message);
+      console.error(
+        "[DEBUG getNaatById] name:",
+        error?.name,
+        "code:",
+        error?.code,
+        "type:",
+        error?.type,
+        "message:",
+        error?.message,
+      );
       const wrappedError = wrapError(error, ErrorCode.API_ERROR);
       logError(wrappedError, {
         context: "getNaatById",
@@ -143,7 +166,11 @@ export class AppwriteService implements IAppwriteService {
   /**
    * Searches for naats matching the provided query string
    */
-  async searchNaats(query: string, channelId?: string | null, pureOnly?: boolean): Promise<Naat[]> {
+  async searchNaats(
+    query: string,
+    channelId?: string | null,
+    pureOnly?: boolean,
+  ): Promise<Naat[]> {
     if (!query || query.trim() === "") {
       return [];
     }
@@ -162,7 +189,16 @@ export class AppwriteService implements IAppwriteService {
         },
       );
     } catch (error: any) {
-      console.error("[DEBUG searchNaats] name:", error?.name, "code:", error?.code, "type:", error?.type, "message:", error?.message);
+      console.error(
+        "[DEBUG searchNaats] name:",
+        error?.name,
+        "code:",
+        error?.code,
+        "type:",
+        error?.type,
+        "message:",
+        error?.message,
+      );
       const wrappedError = wrapError(error, ErrorCode.NETWORK_ERROR);
       logError(wrappedError, {
         context: "searchNaats",
@@ -190,7 +226,16 @@ export class AppwriteService implements IAppwriteService {
         },
       );
     } catch (error: any) {
-      console.error("[DEBUG getChannels] name:", error?.name, "code:", error?.code, "type:", error?.type, "message:", error?.message);
+      console.error(
+        "[DEBUG getChannels] name:",
+        error?.name,
+        "code:",
+        error?.code,
+        "type:",
+        error?.type,
+        "message:",
+        error?.message,
+      );
       const wrappedError = wrapError(error, ErrorCode.NETWORK_ERROR);
       logError(wrappedError, {
         context: "getChannels",
@@ -224,7 +269,9 @@ export class AppwriteService implements IAppwriteService {
     });
 
     if (!functionUrl) {
-      console.warn("Semantic search function URL not configured, falling back to regular search");
+      console.warn(
+        "Semantic search function URL not configured, falling back to regular search",
+      );
       return this.searchNaats(query);
     }
 
@@ -239,7 +286,9 @@ export class AppwriteService implements IAppwriteService {
         body: JSON.stringify({ query }),
       });
 
-      console.log(`[DEBUG] Semantic search response status: ${response.status}`);
+      console.log(
+        `[DEBUG] Semantic search response status: ${response.status}`,
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -257,18 +306,18 @@ export class AppwriteService implements IAppwriteService {
       // Map results back to Naat objects
       // The function returns partial naat data, we need to fetch full details
       const naatIds = data.results.map((r: any) => r.naatId);
-      
+
       console.log(`[DEBUG] Fetching ${naatIds.length} naat details`);
 
       // Fetch full naat details for each result
       const naats = await Promise.all(
-        naatIds.map((id: string) => this.getNaatById(id).catch(() => null))
+        naatIds.map((id: string) => this.getNaatById(id).catch(() => null)),
       );
 
       // Filter out any failed fetches and return
       const validNaats = naats.filter((naat): naat is Naat => naat !== null);
       console.log(`[DEBUG] Returning ${validNaats.length} valid naats`);
-      
+
       return validNaats;
     } catch (error) {
       console.error("[DEBUG] Semantic search error:", error);
@@ -316,10 +365,19 @@ export class AppwriteService implements IAppwriteService {
     );
   }
 
+  async setNaatBest(naatId: string, best: boolean): Promise<void> {
+    await adminDatabases.updateDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.naatsCollectionId,
+      naatId,
+      { best },
+    );
+  }
+
   /**
    * Get the current data source (useful for dev mode debugging)
    */
-  getDataSource(): 'static' | 'appwrite' {
+  getDataSource(): "static" | "appwrite" {
     return (this.baseService as any).dataSource;
   }
 }

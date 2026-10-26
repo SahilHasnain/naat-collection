@@ -20,6 +20,7 @@ export interface UseHistoryReturn {
   refresh: () => Promise<void>;
   clearHistory: () => Promise<void>;
   removeFromHistory: (naatId: string) => Promise<void>;
+  updateNaat: (naatId: string, updates: Partial<Naat>) => void;
 }
 
 const PAGE_SIZE = 20; // Load 20 items at a time
@@ -268,6 +269,12 @@ export function useHistory(): UseHistoryReturn {
     [allHistoryIds.length, history.length]
   );
 
+  const updateNaat = useCallback((naatId: string, updates: Partial<Naat>) => {
+    setHistory((current) =>
+      current.map((naat) => (naat.$id === naatId ? { ...naat, ...updates } : naat)),
+    );
+  }, []);
+
   // Initialize history on mount
   useEffect(() => {
     initializeHistory();
@@ -282,5 +289,6 @@ export function useHistory(): UseHistoryReturn {
     refresh,
     clearHistory,
     removeFromHistory,
+    updateNaat,
   };
 }

@@ -9,6 +9,7 @@ import React, { useState } from "react";
 import {
   Dimensions,
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -17,7 +18,7 @@ import {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const MENU_WIDTH = 220;
-const MENU_MAX_HEIGHT = 320;
+const MENU_MAX_HEIGHT = 420;
 const EDGE_MARGIN = 8;
 
 interface MenuItem {
@@ -42,6 +43,7 @@ interface NaatCardMenuProps {
   isDownloaded?: boolean;
   showDownload?: boolean;
   onExcluded?: (naatId: string, excluded: boolean) => void;
+  onBestChanged?: (naatId: string, best: boolean) => void;
 }
 
 /**
@@ -64,11 +66,18 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
   isDownloaded = false,
   showDownload = true,
   onExcluded,
+  onBestChanged,
 }) => {
   const [menuHeight, setMenuHeight] = useState(0);
   const [isUpdatingExclude, setIsUpdatingExclude] = useState(false);
+  const [isUpdatingBest, setIsUpdatingBest] = useState(false);
+  const [bestValue, setBestValue] = useState(selectedNaat?.best ?? false);
   const { user } = useAuth();
   const isAdmin = user?.labels?.includes("admin") ?? false;
+
+  React.useEffect(() => {
+    setBestValue(selectedNaat?.best ?? false);
+  }, [selectedNaat?.$id, selectedNaat?.best]);
 
   const handleShare = async () => {
     if (selectedNaat) {
@@ -85,11 +94,34 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
       await appwriteService.setNaatExcluded(selectedNaat.$id, exclude);
       onClose();
       onExcluded?.(selectedNaat.$id, exclude);
-      showSuccessToast(exclude ? "Naat excluded from the app" : "Naat restored to the app");
+      showSuccessToast(
+        exclude ? "Naat excluded from the app" : "Naat restored to the app",
+      );
     } catch (error) {
-      showErrorToast(error instanceof Error ? error.message : "Unable to update naat");
+      showErrorToast(
+        error instanceof Error ? error.message : "Unable to update naat",
+      );
     } finally {
       setIsUpdatingExclude(false);
+    }
+  };
+
+  const handleToggleBest = async () => {
+    if (!selectedNaat || isUpdatingBest) return;
+    const best = !bestValue;
+    setIsUpdatingBest(true);
+    try {
+      await appwriteService.setNaatBest(selectedNaat.$id, best);
+      setBestValue(best);
+      onClose();
+      onBestChanged?.(selectedNaat.$id, best);
+      showSuccessToast(best ? "Naat added as best" : "Naat removed from best");
+    } catch (error) {
+      showErrorToast(
+        error instanceof Error ? error.message : "Unable to update naat",
+      );
+    } finally {
+      setIsUpdatingBest(false);
     }
   };
 
@@ -114,10 +146,11 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
   }
   items.push({
     key: "alternate-play",
-    label:
-      savedPlaybackMode === "audio" ? "Play as video" : "Play as audio",
+    label: savedPlaybackMode === "audio" ? "Play as video" : "Play as audio",
     icon:
-      savedPlaybackMode === "audio" ? "videocam-outline" : "musical-notes-outline",
+      savedPlaybackMode === "audio"
+        ? "videocam-outline"
+        : "musical-notes-outline",
     color: colors.text.primary,
     onPress: onAlternatePlay,
   });
@@ -139,13 +172,26 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
   }
   if (isAdmin && selectedNaat) {
     items.push({
+      key: "best",
+      label: isUpdatingBest
+        ? "Updating..."
+        : bestValue
+          ? "Remove from best"
+          : "Add as best",
+      icon: bestValue ? "star" : "star-outline",
+      color: colors.accent.warning,
+      onPress: () => void handleToggleBest(),
+    });
+    items.push({
       key: "exclude",
       label: isUpdatingExclude
         ? "Updating..."
         : selectedNaat.exclude
           ? "Restore to app"
           : "Exclude from app",
-      icon: selectedNaat.exclude ? "checkmark-circle-outline" : "eye-off-outline",
+      icon: selectedNaat.exclude
+        ? "checkmark-circle-outline"
+        : "eye-off-outline",
       color: colors.accent.warning,
       onPress: () => void handleToggleExclude(),
     });
@@ -153,10 +199,9 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
 
   // Position menu near the anchor, clamped to screen edges.
   // If it would overflow the bottom, flip it above the anchor.
-  const flipAbove =
-    (anchor?.y ?? 0) + menuHeight + EDGE_MARGIN > SCREEN_HEIGHT;
+  const flipAbove = (anchor?.y ?? 0) + menuHeight + EDGE_MARGIN > SCREEN_HEIGHT;
   const left = Math.min(
-    Math.max((anchor?.x ?? 0), EDGE_MARGIN),
+    Math.max(anchor?.x ?? 0, EDGE_MARGIN),
     SCREEN_WIDTH - MENU_WIDTH - EDGE_MARGIN,
   );
   const top = flipAbove
@@ -192,23 +237,25 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
             },
           ]}
         >
-          {items.map((item) => (
-            <TouchableOpacity
-              key={item.key}
-              onPress={item.onPress}
-              style={styles.item}
-              activeOpacity={0.7}
-            >
-              <Ionicons name={item.icon} size={19} color={item.color} />
-              <Text
-                className="ml-3 text-sm font-medium"
-                style={{ color: item.color }}
-                numberOfLines={1}
+          <ScrollView bounces={false}>
+            {items.map((item) => (
+              <TouchableOpacity
+                key={item.key}
+                onPress={item.onPress}
+                style={styles.item}
+                activeOpacity={0.7}
               >
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Ionicons name={item.icon} size={19} color={item.color} />
+                <Text
+                  className="ml-3 text-sm font-medium"
+                  style={{ color: item.color }}
+                  numberOfLines={1}
+                >
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
       </View>
     </Modal>

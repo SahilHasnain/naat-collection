@@ -185,6 +185,7 @@ export default function HistoryScreen() {
     refresh,
     clearHistory,
     removeFromHistory,
+    updateNaat,
   } = useHistory();
 
   // Download manager (must be after history is declared)
@@ -807,6 +808,7 @@ export default function HistoryScreen() {
           isFavorite={selectedNaat ? isFavorite(selectedNaat.$id) : false}
           onToggleFavorite={handleToggleFavorite}
           onAlternatePlay={handleAlternatePlay}
+          onBestChanged={(naatId, best) => updateNaat(naatId, { best })}
           isDownloaded={
             selectedNaat
               ? downloadStates[selectedNaat.$id]?.isDownloaded

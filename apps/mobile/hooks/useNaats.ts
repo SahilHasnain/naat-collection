@@ -493,6 +493,26 @@ export function useNaats(
     });
   }, []);
 
+  const updateNaat = useCallback((naatId: string, updates: Partial<Naat>) => {
+    setNaats((current) =>
+      current.map((naat) => (naat.$id === naatId ? { ...naat, ...updates } : naat)),
+    );
+    fullOrderedListRef.current.forEach((orderedList, key) => {
+      fullOrderedListRef.current.set(
+        key,
+        orderedList.map((naat) => (naat.$id === naatId ? { ...naat, ...updates } : naat)),
+      );
+    });
+    cacheRef.current.forEach((filterCache) => {
+      filterCache.forEach((pageNaats, offset) => {
+        filterCache.set(
+          offset,
+          pageNaats.map((naat) => (naat.$id === naatId ? { ...naat, ...updates } : naat)),
+        );
+      });
+    });
+  }, []);
+
   return {
     naats,
     loading,
@@ -501,5 +521,6 @@ export function useNaats(
     loadMore,
     refresh,
     removeNaat,
+    updateNaat,
   };
 }

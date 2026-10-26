@@ -333,6 +333,9 @@ export default function BestScreen() {
         onToggleFavorite={handleToggleFavorite}
         onAlternatePlay={handleAlternatePlay}
         onNotForYou={handleNotForYou}
+        onBestChanged={(naatId, best) => {
+          setNaats((current) => current.map((naat) => naat.$id === naatId ? { ...naat, best } : naat));
+        }}
         onExcluded={(naatId, excluded) => {
           if (excluded) setNaats((current) => current.filter((naat) => naat.$id !== naatId));
         }}

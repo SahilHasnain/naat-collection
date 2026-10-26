@@ -27,6 +27,10 @@ export interface UseNaatsReturn {
   loadMore: () => void;
   refresh: () => Promise<void>;
   removeNaat: (naatId: string) => void;
+  updateNaat: (
+    naatId: string,
+    updates: Partial<import("@naat-collection/shared").Naat>,
+  ) => void;
 }
 
 export interface UseChannelsReturn {

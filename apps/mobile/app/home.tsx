@@ -73,7 +73,7 @@ export default function HomeScreen() {
 
   // Custom hooks
   const filters = useHomeFilters();
-  const { setQuery, resetSearchFilters, loadMore, isShowingSearchResults, removeNaat } =
+  const { setQuery, resetSearchFilters, loadMore, isShowingSearchResults, removeNaat, updateNaat } =
     filters;
   const { downloadStates, handleDownload } = useDownloadManager(
     filters.displayData,
@@ -547,6 +547,7 @@ export default function HomeScreen() {
         onExcluded={(naatId, excluded) => {
           if (excluded) removeNaat(naatId);
         }}
+        onBestChanged={(naatId, best) => updateNaat(naatId, { best })}
         isDownloaded={selectedNaat ? downloadStates[selectedNaat.$id]?.isDownloaded : false}
         showDownload={true}
       />
