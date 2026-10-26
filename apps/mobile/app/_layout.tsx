@@ -45,7 +45,7 @@ import * as Sentry from "@sentry/react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { StatusBar, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import {
@@ -67,7 +67,7 @@ Sentry.init({
 });
 
 function RootLayoutContent() {
-  useTheme();
+  const { resolvedTheme } = useTheme();
   const router = useRouter();
   const segments = useSegments();
 
@@ -165,6 +165,25 @@ function RootLayoutContent() {
 
   return (
     <>
+      <StatusBar
+        barStyle={resolvedTheme === "dark" ? "light-content" : "dark-content"}
+        backgroundColor={colors.background.primary}
+      />
+      {/* Paint the edge-to-edge status-bar inset with the active theme. */}
+      {!isOnVideoScreen && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: insets.top,
+            backgroundColor: colors.background.primary,
+            zIndex: 49,
+          }}
+        />
+      )}
       {/* Animated Header - Global across all screens except video */}
       {!isOnVideoScreen && (
         <AnimatedHeader

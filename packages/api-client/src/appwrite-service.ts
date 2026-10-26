@@ -142,6 +142,7 @@ export class AppwriteService implements IAppwriteService {
     pureOnly?: boolean,
   ): Naat[] {
     let filtered = naats.filter(naat => {
+      if (naat.exclude) return false;
       if (channelId && naat.channelId !== channelId) return false;
       if (pureOnly && !naat.cutAudio) return false;
       return true;
@@ -356,6 +357,7 @@ export class AppwriteService implements IAppwriteService {
       const allNaats = await this.loadStaticNaats();
       const searchLower = query.toLowerCase();
       let results = allNaats.filter(naat => {
+        if (naat.exclude) return false;
         if (!naat.title.toLowerCase().includes(searchLower)) return false;
         if (channelId && naat.channelId !== channelId) return false;
         if (pureOnly && !naat.cutAudio) return false;
@@ -412,6 +414,7 @@ export class AppwriteService implements IAppwriteService {
           // Simple case-insensitive search
           const searchLower = query.toLowerCase();
           let results = allNaats.filter(naat => {
+            if (naat.exclude) return false;
             if (!naat.title.toLowerCase().includes(searchLower)) return false;
             if (channelId && naat.channelId !== channelId) return false;
             if (pureOnly && !naat.cutAudio) return false;

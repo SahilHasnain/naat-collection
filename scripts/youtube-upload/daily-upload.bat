@@ -4,6 +4,7 @@ echo ================================================ >> scripts\youtube-upload\
 echo [%date% %time%] Daily upload started >> scripts\youtube-upload\cron.log
 echo --- 1 regular video --- >> scripts\youtube-upload\cron.log
 set MAX_UPLOADS_PER_DAY=1
+set FILTER_RADIO_ONLY=true
 "C:\Program Files\nodejs\node.exe" scripts\youtube-upload\upload-to-youtube.js >> scripts\youtube-upload\cron.log 2>&1
 echo --- 2 shorts --- >> scripts\youtube-upload\cron.log
 set MAX_UPLOADS_PER_DAY=2

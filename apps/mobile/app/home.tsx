@@ -542,8 +542,11 @@ export default function HomeScreen() {
           onDownload={handleDownloadFromSheet}
           isFavorite={selectedNaat ? isFavorite(selectedNaat.$id) : false}
           onToggleFavorite={handleToggleFavorite}
-          onAlternatePlay={handleAlternatePlay}
+        onAlternatePlay={handleAlternatePlay}
         onNotForYou={handleNotForYou}
+        onExcluded={(naatId, excluded) => {
+          if (excluded) removeNaat(naatId);
+        }}
         isDownloaded={selectedNaat ? downloadStates[selectedNaat.$id]?.isDownloaded : false}
         showDownload={true}
       />

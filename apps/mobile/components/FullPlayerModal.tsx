@@ -55,14 +55,12 @@ const getVoiceTransformStage = (progress: number): string => {
 };
 
 const getVoicePresetLabel = (preset: VoicePreset): string => {
-  if (preset === "subtle") return "Adult";
-  if (preset === "younger") return "Young Adult";
-  return "Teenage";
+  return preset === "high" ? "Teenage" : "Voice";
 };
 
 const voicePresetPreferenceKey = (trackId: string) =>
   `@voice_preset_preference:${trackId}`;
-const VOICE_PRESETS: VoicePreset[] = ["subtle", "younger", "high"];
+const VOICE_PRESETS: VoicePreset[] = ["high"];
 
 interface WebVolumeSliderProps {
   value: number;
@@ -661,7 +659,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={() => void handleVoiceTransform("subtle")}
+                  onPress={() => void handleVoiceTransform("high")}
                   style={[...menuItemStyle, { borderBottomWidth: 0 }]}
                 >
                   <View style={[styles.menuItemIcon, { backgroundColor: colors.background.tertiary }]}>
@@ -684,7 +682,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 </TouchableOpacity>
 
                 <View style={styles.voicePresetRow}>
-                  {(["subtle", "younger", "high"] as VoicePreset[]).map((preset) => (
+                  {VOICE_PRESETS.map((preset) => (
                     <TouchableOpacity
                       key={preset}
                       onPress={() => handleVoicePresetPress(preset)}

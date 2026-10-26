@@ -60,9 +60,9 @@ export default function ReviewPromptModal({
         >
           <LinearGradient
             colors={[
-              "rgba(36, 36, 36, 0.98)",
-              "rgba(24, 24, 24, 0.98)",
-              "rgba(18, 18, 18, 0.98)",
+              colors.background.tertiary,
+              colors.background.secondary,
+              colors.background.secondary,
             ]}
             locations={[0, 0.45, 1]}
             start={{ x: 0.5, y: 0 }}

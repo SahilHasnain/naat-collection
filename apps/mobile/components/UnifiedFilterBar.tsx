@@ -136,8 +136,8 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
               style={{ backgroundColor: selectedSort !== "forYou" ? colors.accent.secondary : colors.background.tertiary, minHeight: 44 }}
             >
-              <Ionicons name={currentSort?.iconName || "sparkles"} size={16} color={selectedSort !== "forYou" ? colors.text.primary : "#d4d4d8"} />
-              <Text className="font-semibold text-sm ml-2" style={{ color: selectedSort !== "forYou" ? colors.text.primary : "#d4d4d8" }}>{currentSort?.label}</Text>
+              <Ionicons name={currentSort?.iconName || "sparkles"} size={16} color={selectedSort !== "forYou" ? colors.text.primary : colors.text.secondary} />
+              <Text className="font-semibold text-sm ml-2" style={{ color: selectedSort !== "forYou" ? colors.text.primary : colors.text.secondary }}>{currentSort?.label}</Text>
             </Pressable>
 
             {/* Channel Chip */}
@@ -146,8 +146,8 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
               style={{ backgroundColor: selectedChannelId ? colors.accent.secondary : colors.background.tertiary, minHeight: 44 }}
             >
-              <Ionicons name={currentChannel?.iconName || "globe"} size={16} color={selectedChannelId ? colors.text.primary : "#d4d4d8"} />
-              <Text className="font-semibold text-sm ml-2" style={{ color: selectedChannelId ? colors.text.primary : "#d4d4d8" }}>{currentChannel?.name}</Text>
+              <Ionicons name={currentChannel?.iconName || "globe"} size={16} color={selectedChannelId ? colors.text.primary : colors.text.secondary} />
+              <Text className="font-semibold text-sm ml-2" style={{ color: selectedChannelId ? colors.text.primary : colors.text.secondary }}>{currentChannel?.name}</Text>
             </Pressable>
 
             {/* Duration Chip */}
@@ -156,8 +156,8 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
               style={{ backgroundColor: selectedDuration !== "all" ? colors.accent.secondary : colors.background.tertiary, minHeight: 44 }}
             >
-              <Ionicons name={currentDuration?.iconName || "infinite"} size={16} color={selectedDuration !== "all" ? colors.text.primary : "#d4d4d8"} />
-              <Text className="font-semibold text-sm ml-2" style={{ color: selectedDuration !== "all" ? colors.text.primary : "#d4d4d8" }}>{currentDuration?.label}</Text>
+              <Ionicons name={currentDuration?.iconName || "infinite"} size={16} color={selectedDuration !== "all" ? colors.text.primary : colors.text.secondary} />
+              <Text className="font-semibold text-sm ml-2" style={{ color: selectedDuration !== "all" ? colors.text.primary : colors.text.secondary }}>{currentDuration?.label}</Text>
             </Pressable>
 
             {/* Pure Chip */}
@@ -166,8 +166,8 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
               style={{ backgroundColor: pureOnly ? colors.accent.primary : colors.background.tertiary, minHeight: 44 }}
             >
-              <Ionicons name="cut-outline" size={16} color={pureOnly ? "#fff" : "#d4d4d8"} />
-              <Text className="font-semibold text-sm ml-2" style={{ color: pureOnly ? "#fff" : "#d4d4d8" }}>Pure</Text>
+              <Ionicons name="cut-outline" size={16} color={pureOnly ? colors.text.inverse : colors.text.secondary} />
+              <Text className="font-semibold text-sm ml-2" style={{ color: pureOnly ? colors.text.inverse : colors.text.secondary }}>Pure</Text>
             </Pressable>
 
             {/* Clear */}
@@ -177,8 +177,8 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                 className="px-4 py-2.5 rounded-full flex-row items-center"
                 style={{ backgroundColor: colors.background.secondary, minHeight: 44 }}
               >
-                <Ionicons name="close-circle" size={16} color="#d4d4d8" />
-                <Text className="font-semibold text-sm text-neutral-300 ml-2">Clear</Text>
+                <Ionicons name="close-circle" size={16} color={colors.text.secondary} />
+                <Text className="font-semibold text-sm ml-2" style={{ color: colors.text.secondary }}>Clear</Text>
               </Pressable>
             )}
           </ScrollView>
@@ -232,7 +232,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                 className={`flex-1 py-4 ${activeTab === tab ? "border-b-2 border-blue-500" : ""}`}
                 style={{ minHeight: 44 }}
               >
-                <Text className={`text-center font-semibold text-base ${activeTab === tab ? "text-blue-500" : "text-neutral-400"}`}>
+                <Text className="text-center font-semibold text-base" style={{ color: activeTab === tab ? colors.accent.secondary : colors.text.secondary }}>
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </Text>
               </Pressable>
@@ -253,7 +253,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                       style={{ backgroundColor: isSelected ? colors.accent.secondary : colors.background.tertiary, minHeight: 56 }}
                     >
                       <Ionicons name={filter.iconName} size={22} color={colors.text.primary} />
-                      <Text className="flex-1 font-semibold text-base ml-3" style={{ color: isSelected ? colors.text.primary : "#d4d4d4" }}>{filter.label}</Text>
+                      <Text className="flex-1 font-semibold text-base ml-3" style={{ color: isSelected ? colors.text.primary : colors.text.secondary }}>{filter.label}</Text>
                       {isSelected && <Ionicons name="checkmark-circle" size={22} color={colors.text.primary} />}
                     </Pressable>
                   );
@@ -298,7 +298,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                         style={{
                           color: isSelected
                             ? colors.text.primary
-                            : "#d4d4d4",
+                            : colors.text.secondary,
                         }}
                       >
                         {option.name}
@@ -345,7 +345,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                         style={{
                           color: isSelected
                             ? colors.text.primary
-                            : "#d4d4d4",
+                            : colors.text.secondary,
                         }}
                       >
                         {filter.label}

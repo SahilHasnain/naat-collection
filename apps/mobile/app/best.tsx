@@ -333,6 +333,9 @@ export default function BestScreen() {
         onToggleFavorite={handleToggleFavorite}
         onAlternatePlay={handleAlternatePlay}
         onNotForYou={handleNotForYou}
+        onExcluded={(naatId, excluded) => {
+          if (excluded) setNaats((current) => current.filter((naat) => naat.$id !== naatId));
+        }}
         isDownloaded={selectedNaat ? downloadStates[selectedNaat.$id]?.isDownloaded : false}
         showDownload={true}
       />

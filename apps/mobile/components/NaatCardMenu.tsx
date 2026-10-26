@@ -1,5 +1,8 @@
 import { colors } from "@/constants/theme";
+import { useAuth } from "@/contexts/AuthContext";
 import { shareService } from "@/services/shareService";
+import { appwriteService } from "@/services/appwrite";
+import { showErrorToast, showSuccessToast } from "@/utils";
 import type { MenuAnchor, Naat } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
@@ -38,6 +41,7 @@ interface NaatCardMenuProps {
   onToggleFavorite?: () => void;
   isDownloaded?: boolean;
   showDownload?: boolean;
+  onExcluded?: (naatId: string, excluded: boolean) => void;
 }
 
 /**
@@ -59,13 +63,33 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
   onToggleFavorite,
   isDownloaded = false,
   showDownload = true,
+  onExcluded,
 }) => {
   const [menuHeight, setMenuHeight] = useState(0);
+  const [isUpdatingExclude, setIsUpdatingExclude] = useState(false);
+  const { user } = useAuth();
+  const isAdmin = user?.labels?.includes("admin") ?? false;
 
   const handleShare = async () => {
     if (selectedNaat) {
       onClose();
       await shareService.shareNaat(selectedNaat);
+    }
+  };
+
+  const handleToggleExclude = async () => {
+    if (!selectedNaat || isUpdatingExclude) return;
+    const exclude = !selectedNaat.exclude;
+    setIsUpdatingExclude(true);
+    try {
+      await appwriteService.setNaatExcluded(selectedNaat.$id, exclude);
+      onClose();
+      onExcluded?.(selectedNaat.$id, exclude);
+      showSuccessToast(exclude ? "Naat excluded from the app" : "Naat restored to the app");
+    } catch (error) {
+      showErrorToast(error instanceof Error ? error.message : "Unable to update naat");
+    } finally {
+      setIsUpdatingExclude(false);
     }
   };
 
@@ -111,6 +135,19 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
       icon: "close-circle-outline",
       color: colors.text.tertiary,
       onPress: onNotForYou,
+    });
+  }
+  if (isAdmin && selectedNaat) {
+    items.push({
+      key: "exclude",
+      label: isUpdatingExclude
+        ? "Updating..."
+        : selectedNaat.exclude
+          ? "Restore to app"
+          : "Exclude from app",
+      icon: selectedNaat.exclude ? "checkmark-circle-outline" : "eye-off-outline",
+      color: colors.accent.warning,
+      onPress: () => void handleToggleExclude(),
     });
   }
 

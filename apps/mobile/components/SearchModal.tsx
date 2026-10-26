@@ -217,7 +217,7 @@ export function SearchModal({
                     color={
                       selectedChannelId === null
                         ? colors.text.primary
-                        : "#d4d4d8"
+                        : colors.text.secondary
                     }
                   />
                   <Text
@@ -226,7 +226,7 @@ export function SearchModal({
                       color:
                         selectedChannelId === null
                           ? colors.text.primary
-                          : "#d4d4d8",
+                          : colors.text.secondary,
                     }}
                   >
                     All
@@ -254,7 +254,7 @@ export function SearchModal({
                           color:
                             selectedChannelId === channel.id
                               ? colors.text.primary
-                              : "#d4d4d8",
+                              : colors.text.secondary,
                         }}
                       >
                         {channel.name}
@@ -290,7 +290,7 @@ export function SearchModal({
                       color={
                         selectedDuration === filter.value
                           ? colors.text.primary
-                          : "#d4d4d8"
+                          : colors.text.secondary
                       }
                     />
                     <Text
@@ -299,7 +299,7 @@ export function SearchModal({
                         color:
                           selectedDuration === filter.value
                             ? colors.text.primary
-                            : "#d4d4d8",
+                            : colors.text.secondary,
                       }}
                     >
                       {filter.label}

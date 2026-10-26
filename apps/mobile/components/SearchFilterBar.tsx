@@ -58,11 +58,11 @@ export function SearchFilterBar({
           <Ionicons
             name="cut-outline"
             size={14}
-            color={pureOnly ? "#fff" : "#d4d4d8"}
+            color={pureOnly ? colors.text.inverse : colors.text.secondary}
           />
           <Text
             className="font-medium text-xs ml-1.5"
-            style={{ color: pureOnly ? "#fff" : "#d4d4d8" }}
+            style={{ color: pureOnly ? colors.text.inverse : colors.text.secondary }}
           >
             Pure
           </Text>
@@ -91,13 +91,13 @@ export function SearchFilterBar({
           <Ionicons
             name="globe"
             size={14}
-            color={selectedChannelId === null ? colors.text.primary : "#d4d4d8"}
+            color={selectedChannelId === null ? colors.text.primary : colors.text.secondary}
           />
           <Text
             className={`font-medium text-xs ml-1.5`}
             style={{
               color:
-                selectedChannelId === null ? colors.text.primary : "#d4d4d8",
+                selectedChannelId === null ? colors.text.primary : colors.text.secondary,
             }}
           >
             All
@@ -125,7 +125,7 @@ export function SearchFilterBar({
                   color:
                     selectedChannelId === channel.id
                       ? colors.text.primary
-                      : "#d4d4d8",
+                      : colors.text.secondary,
                 }}
               >
                 {channel.name}
@@ -161,7 +161,7 @@ export function SearchFilterBar({
               color={
                 selectedDuration === filter.value
                   ? colors.text.primary
-                  : "#d4d4d8"
+                  : colors.text.secondary
               }
             />
             <Text
@@ -170,7 +170,7 @@ export function SearchFilterBar({
                 color:
                   selectedDuration === filter.value
                     ? colors.text.primary
-                    : "#d4d4d8",
+                    : colors.text.secondary,
               }}
             >
               {filter.label}

@@ -14,6 +14,7 @@ import type {
 } from "@naat-collection/shared";
 import { AppError, ErrorCode } from "@naat-collection/shared";
 import * as Sentry from "@sentry/react-native";
+import { Client, Databases } from "react-native-appwrite";
 import { appwriteConfig, validateAppwriteConfig, STATIC_FALLBACK_URLS } from "../config/appwrite";
 import {
     logError,
@@ -21,6 +22,11 @@ import {
     withCacheFallback,
     wrapError,
 } from "../utils/errorHandling";
+
+const adminClient = new Client()
+  .setEndpoint(appwriteConfig.endpoint)
+  .setProject(appwriteConfig.projectId);
+const adminDatabases = new Databases(adminClient);
 
 /**
  * AppwriteService class with Sentry integration
@@ -299,6 +305,15 @@ export class AppwriteService implements IAppwriteService {
 
   async exportABAudio(audioId: string, startMs: number, endMs: number) {
     return this.baseService.exportABAudio(audioId, startMs, endMs);
+  }
+
+  async setNaatExcluded(naatId: string, exclude: boolean): Promise<void> {
+    await adminDatabases.updateDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.naatsCollectionId,
+      naatId,
+      { exclude },
+    );
   }
 
   /**

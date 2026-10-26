@@ -197,6 +197,9 @@ export default function FavoritesScreen() {
         savedPlaybackMode="audio"
         onClose={closeMenu}
         onAlternatePlay={() => closeMenu()}
+        onExcluded={(naatId, excluded) => {
+          if (excluded) setNaats((current) => current.filter((naat) => naat.$id !== naatId));
+        }}
         isFavorite={selectedNaat ? isFavorite(selectedNaat.$id) : false}
         onToggleFavorite={handleToggleFavorite}
         showDownload={false}
