@@ -77,6 +77,11 @@ without uploading with:
 node scripts/youtube-upload/upload-shorts.js --dry-run
 ```
 
+Transient network failures while reading naat/voice-variant data or downloading
+audio and thumbnails are retried up to five attempts with exponential backoff.
+YouTube video-upload requests are not automatically retried because a dropped
+connection can happen after YouTube has accepted a video, risking duplicates.
+
 ## Teenage-voice YouTube channel
 
 The separate teenage-voice uploader reads completed `high` (+6 semitone)

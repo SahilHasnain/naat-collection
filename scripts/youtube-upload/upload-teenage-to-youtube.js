@@ -7,6 +7,7 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 const https = require("https");
 const dotenv = require("dotenv");
+const { retryNetwork } = require("./retry");
 
 dotenv.config({ path: path.join(__dirname, "../../.env.naat-collection") });
 
@@ -68,11 +69,11 @@ async function listAllNaats(databases) {
   const all = [];
   let offset = 0;
   while (true) {
-    const response = await databases.listDocuments(
+    const response = await retryNetwork(() => databases.listDocuments(
       CONFIG.databaseId,
       CONFIG.naatsCollectionId,
       [sdk.Query.limit(500), sdk.Query.offset(offset), sdk.Query.orderDesc("uploadDate")],
-    );
+    ), "Appwrite naat list request");
     all.push(...response.documents);
     offset += response.documents.length;
     if (response.documents.length < 500) break;
@@ -84,11 +85,11 @@ async function listAllVoiceVariants(tablesDB) {
   const all = [];
   let offset = 0;
   while (true) {
-    const response = await tablesDB.listRows({
+    const response = await retryNetwork(() => tablesDB.listRows({
       databaseId: CONFIG.databaseId,
       tableId: CONFIG.voiceVariantsTableId,
       queries: [sdk.Query.limit(500), sdk.Query.offset(offset)],
-    });
+    }), "Appwrite voice-variant list request");
     all.push(...response.rows);
     offset += response.rows.length;
     if (response.rows.length < 500) break;
@@ -147,7 +148,9 @@ function downloadThumbnail(thumbnailUrl, destPath) {
       }
       if (response.statusCode !== 200) {
         response.resume();
-        reject(new Error(`Thumbnail download failed: HTTP ${response.statusCode}`));
+        const error = new Error(`Thumbnail download failed: HTTP ${response.statusCode}`);
+        error.statusCode = response.statusCode;
+        reject(error);
         return;
       }
       const file = fs.createWriteStream(destPath);
@@ -162,7 +165,7 @@ function downloadThumbnail(thumbnailUrl, destPath) {
 }
 
 async function downloadAudio(storage, fileId, destPath) {
-  const bytes = await storage.getFileDownload(CONFIG.audioBucketId, fileId);
+    const bytes = await retryNetwork(() => storage.getFileDownload(CONFIG.audioBucketId, fileId), "Appwrite teenage-audio download");
   fs.writeFileSync(destPath, Buffer.from(bytes));
 }
 
@@ -284,7 +287,7 @@ async function processVariant(variant, naat, clip, auth, storage, progress) {
     console.log("  Downloading teenage-voice audio...");
     await downloadAudio(storage, variant.outputAudioId, audioPath);
     console.log("  Downloading source naat thumbnail...");
-    await downloadThumbnail(naat.thumbnailUrl, thumbnailPath);
+    await retryNetwork(() => downloadThumbnail(naat.thumbnailUrl, thumbnailPath), "thumbnail download");
     const audioDuration = getAudioDuration(audioPath, naat.cutDuration || naat.duration);
     const clipWindow = CONFIG.isShorts ? getClipWindow(audioDuration, clip) : null;
     console.log("  Creating video...");

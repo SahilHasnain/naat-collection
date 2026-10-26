@@ -195,3 +195,139 @@ The system cannot find the path specified.
 --- 2 teenage-voice Shorts (start/end clips) --- 
 The system cannot find the path specified.
 [Sun 10/25/2026  7:38:56.48] Teenage-voice upload finished (exit 3) 
+================================================ 
+[Mon 10/26/2026 18:40:01.44] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+The system cannot find the path specified.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+The system cannot find the path specified.
+[Mon 10/26/2026 18:40:01.54] Teenage-voice upload finished (exit 3) 
+================================================ 
+[Mon 10/26/2026 19:02:41.98] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+The system cannot find the path specified.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+The system cannot find the path specified.
+[Mon 10/26/2026 19:02:42.15] Teenage-voice upload finished (exit 3) 
+================================================ 
+[Mon 10/26/2026 19:03:47.08] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+The system cannot find the path specified.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+The system cannot find the path specified.
+[Mon 10/26/2026 19:03:47.23] Teenage-voice upload finished (exit 3) 
+================================================ 
+[Mon 10/26/2026 19:04:05.71] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+The system cannot find the path specified.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+The system cannot find the path specified.
+[Mon 10/26/2026 19:04:06.02] Teenage-voice upload finished (exit 3) 
+================================================ 
+[Mon 10/26/2026 19:23:53.62] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+Teenage uploader failed: fetch failed
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+Teenage uploader failed: fetch failed
+[Mon 10/26/2026 19:24:53.54] Teenage-voice upload finished (exit 1) 
+================================================ 
+[Mon 10/26/2026 19:36:33.58] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+Naats with cutAudio in source collection: 889
+Completed +6 variants with matching source cutAudio: 15
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage.json
+Already uploaded: 4
+Eligible remaining: 11
+Uploads allowed today: 1
+
+[1/1] Mustafa Jaan e Rehmat Pe Lakhon Salam - Owais Raza Qadri - 2026
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Failed: request to https://youtube.googleapis.com/upload/youtube/v3/videos?part=snippet&part=status&uploadType=multipart failed, reason: write ECONNRESET
+
+Finished: 0 uploaded, 1 failed.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+Naats with cutAudio in source collection: 889
+Completed +6 variants with matching source cutAudio: 15
+Remaining start/end Shorts: 22
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage-shorts.json
+Already uploaded: 8
+Eligible remaining: 22
+Uploads allowed today: 2
+
+[1/2] Mustafa Jaan e Rehmat Pe Lakhon Salam - Owais Raza Qadri - 2026 — start clip
+  Downloading teenage-voice audio...
+  Network error during Appwrite teenage-audio download (attempt 1/5); retrying in 1s: terminated
+  Network error during Appwrite teenage-audio download (attempt 2/5); retrying in 2s: fetch failed
+  Network error during Appwrite teenage-audio download (attempt 3/5); retrying in 4s: fetch failed
+  Network error during Appwrite teenage-audio download (attempt 4/5); retrying in 8s: fetch failed
+  Failed: fetch failed
+[2/2] Mustafa Jaan e Rehmat Pe Lakhon Salam - Owais Raza Qadri - 2026 — end clip
+  Downloading teenage-voice audio...
+  Network error during Appwrite teenage-audio download (attempt 1/5); retrying in 1s: fetch failed
+  Network error during Appwrite teenage-audio download (attempt 2/5); retrying in 2s: fetch failed
+  Network error during Appwrite teenage-audio download (attempt 3/5); retrying in 4s: fetch failed
+  Network error during Appwrite teenage-audio download (attempt 4/5); retrying in 8s: fetch failed
+  Failed: fetch failed
+
+Finished: 0 uploaded, 2 failed.
+[Mon 10/26/2026 19:42:23.41] Teenage-voice upload finished (exit 0) 
+================================================ 
+[Mon 10/26/2026 19:53:37.53] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+Naats with cutAudio in source collection: 889
+Completed +6 variants with matching source cutAudio: 15
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage.json
+Already uploaded: 4
+Eligible remaining: 11
+Uploads allowed today: 1
+
+[1/1] Mustafa Jaan e Rehmat Pe Lakhon Salam - Owais Raza Qadri - 2026
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/T2DQlqJSSbs
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 1 uploaded, 0 failed.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+Naats with cutAudio in source collection: 889
+Completed +6 variants with matching source cutAudio: 15
+Remaining start/end Shorts: 22
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage-shorts.json
+Already uploaded: 8
+Eligible remaining: 22
+Uploads allowed today: 2
+
+[1/2] Mustafa Jaan e Rehmat Pe Lakhon Salam - Owais Raza Qadri - 2026 — start clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/CmIbfioBURI
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+[2/2] Mustafa Jaan e Rehmat Pe Lakhon Salam - Owais Raza Qadri - 2026 — end clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/V5JnYa4uitA
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 2 uploaded, 0 failed.
+[Mon 10/26/2026 20:00:47.90] Teenage-voice upload finished (exit 0) 

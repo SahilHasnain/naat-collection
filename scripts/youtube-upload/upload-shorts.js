@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const dotenv = require("dotenv");
+const { retryNetwork } = require("./retry");
 
 dotenv.config({ path: path.join(__dirname, "../../.env.naat-collection") });
 const DRY_RUN = process.argv.includes("--dry-run");
@@ -84,7 +85,13 @@ async function downloadThumbnail(url, dest) {
     const parsed = u.parse(url);
     const file = fs.createWriteStream(dest);
     https.get({ ...parsed, rejectUnauthorized: false }, (r) => {
-      if (r.statusCode !== 200) { reject(new Error("HTTP " + r.statusCode)); return; }
+      if (r.statusCode !== 200) {
+        r.resume();
+        const error = new Error("HTTP " + r.statusCode);
+        error.statusCode = r.statusCode;
+        reject(error);
+        return;
+      }
       r.pipe(file);
       file.on("finish", () => file.close(resolve));
     }).on("error", reject);
@@ -219,10 +226,10 @@ async function processNaat(naat, position, auth, progress) {
 
   try {
     console.log(`  ⬇ Downloading audio...`);
-    await downloadFromAppwrite(naat.cutAudio);
+    await retryNetwork(() => downloadFromAppwrite(naat.cutAudio), "Appwrite audio download");
 
     console.log(`  🖼 Downloading thumbnail...`);
-    await downloadThumbnail(naat.thumbnailUrl, thumbPath);
+    await retryNetwork(() => downloadThumbnail(naat.thumbnailUrl, thumbPath), "thumbnail download");
 
     const duration = getAudioDuration(audioPath, naat.cutDuration || naat.duration);
     const clipWindow = getClipWindow(duration, position);

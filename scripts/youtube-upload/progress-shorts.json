@@ -324,7 +324,9 @@
     "5aJ9znHPFQw:end",
     "23xKuXjmYfQ:end",
     "T1gDtdqgnn8:end",
-    "Z0YqPBMB3j0:end"
+    "Z0YqPBMB3j0:end",
+    "x4unSC_q1x4:end",
+    "wWMLDmM8TpU:end"
   ],
   "failed": [
     {
@@ -352,6 +354,6 @@
       "time": "2026-10-20T06:30:14.807Z"
     }
   ],
-  "today": 0,
-  "lastDate": "2026-10-20"
+  "today": 2,
+  "lastDate": "2026-10-26"
 }

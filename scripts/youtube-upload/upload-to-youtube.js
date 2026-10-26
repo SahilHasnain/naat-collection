@@ -8,6 +8,7 @@ const { execSync } = require("child_process");
 const dotenv = require("dotenv");
 const https = require("https");
 const url = require("url");
+const { retryNetwork } = require("./retry");
 
 dotenv.config({ path: path.join(__dirname, "../../.env.naat-collection") });
 
@@ -92,7 +93,10 @@ async function downloadThumbnail(thumbnailUrl, destPath) {
     https
       .get({ ...parsed, rejectUnauthorized: false }, (response) => {
         if (response.statusCode !== 200) {
-          reject(new Error(`Thumbnail download failed: HTTP ${response.statusCode}`));
+          response.resume();
+          const error = new Error(`Thumbnail download failed: HTTP ${response.statusCode}`);
+          error.statusCode = response.statusCode;
+          reject(error);
           return;
         }
         response.pipe(file);
@@ -201,11 +205,11 @@ async function processNaat(naat, auth, progress) {
   try {
     // Step 1: Download audio from Appwrite
     console.log(`  ⬇ Downloading audio...`);
-    await downloadFromAppwrite(naat.cutAudio);
+    await retryNetwork(() => downloadFromAppwrite(naat.cutAudio), "Appwrite audio download");
 
     // Step 2: Download thumbnail
     console.log(`  🖼 Downloading thumbnail...`);
-    await downloadThumbnail(naat.thumbnailUrl, thumbPath);
+    await retryNetwork(() => downloadThumbnail(naat.thumbnailUrl, thumbPath), "thumbnail download");
 
     // Step 3: Create video with ffmpeg
     console.log(`  🎬 Creating video...`);
