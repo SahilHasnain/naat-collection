@@ -31,6 +31,7 @@ When database limits reset (monthly), refresh the exports:
 APP_PROJECT_ID=naat-collection node scripts/export-naats-to-json.js
 APP_PROJECT_ID=naat-production node scripts/export-naats-to-json.js
 APP_PROJECT_ID=anas-raza-attari node scripts/export-naats-to-json.js
+APP_PROJECT_ID=hafiz-tahir-qadri node scripts/export-naats-to-json.js
 
 # Commit and push
 git add static-exports/
@@ -47,6 +48,7 @@ with API keys for the corresponding Appwrite projects:
 - `APPWRITE_API_KEY_NAAT_COLLECTION`
 - `APPWRITE_API_KEY_NAAT_PRODUCTION`
 - `APPWRITE_API_KEY_ANAS_RAZA_ATTARI`
+- `APPWRITE_API_KEY_HAFIZ_TAHIR_QADRI`
 
 Each brand's project, database, and collection IDs are read from
 `apps/mobile/brands/<brand-id>/brand.config.js`. Only `naat-collection` is also

@@ -487,7 +487,6 @@ export class AppwriteService implements IAppwriteService {
       return staticChannels.map((doc: any) => ({
         id: doc.channelId,
         name: doc.channelName,
-        isOfficial: doc.isOfficial ?? true,
         isOther: doc.isOther ?? false,
         type: doc.type ?? "channel",
         playlistId: doc.playlistId,
@@ -511,7 +510,6 @@ export class AppwriteService implements IAppwriteService {
         return {
           id: channelDoc.channelId,
           name: channelDoc.channelName,
-          isOfficial: channelDoc.isOfficial ?? true,
           isOther: channelDoc.isOther ?? false,
           type: channelDoc.type ?? "channel",
           playlistId: channelDoc.playlistId,
@@ -532,7 +530,6 @@ export class AppwriteService implements IAppwriteService {
           return staticChannels.map((doc: any) => ({
             id: doc.channelId,
             name: doc.channelName,
-            isOfficial: doc.isOfficial ?? true,
             isOther: doc.isOther ?? false,
             type: doc.type ?? "channel",
             playlistId: doc.playlistId,

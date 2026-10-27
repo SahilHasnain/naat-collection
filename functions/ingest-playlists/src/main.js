@@ -9,7 +9,7 @@
  *
  * Environment Variables Required:
  * - APPWRITE_FUNCTION_PROJECT_ID: Appwrite project ID (auto-provided)
- * - APPWRITE_API_KEY: API key with database read/write permissions
+ * - APPWRITE_API_KEY (or legacy APPWRITE_SECRET_KEY): API key with database read/write permissions
  * - APPWRITE_DATABASE_ID: Database ID
  * - APPWRITE_NAATS_COLLECTION_ID: Naats collection ID
  * - APPWRITE_CHANNELS_COLLECTION_ID: Channels collection ID
@@ -471,14 +471,14 @@ async function processSource(
   logError,
 ) {
   const sourceType = source.type || "channel";
-  const isOfficial = source.isOfficial ?? true;
-  const isOther = source.isOther ?? false;
+  const configuredMaxDuration = Number.isInteger(source.maxDuration) && source.maxDuration > 0
+    ? source.maxDuration
+    : null;
+  const maxDuration = configuredMaxDuration;
   const sourceName = source.channelName || "(unnamed)";
   const sourceId = source.channelId || source.playlistId || source.$id;
 
-  log(
-    `Processing ${sourceType}: ${sourceName} (${isOfficial ? "Official" : "Non-official"}${isOther ? ", Other" : ""})`,
-  );
+  log(`Processing ${sourceType}: ${sourceName}`);
 
   try {
     let fetchedData;
@@ -507,8 +507,6 @@ async function processSource(
       sourceId,
       sourceName: displayName,
       sourceType,
-      isOfficial,
-      isOther,
       processed: videos.length,
       added: 0,
       updated: 0,
@@ -531,9 +529,9 @@ async function processSource(
           continue;
         }
 
-        if (isOther && video.duration > 1200) {
+        if (maxDuration !== null && video.duration > maxDuration) {
           log(
-            `Filtered: ${video.title} (duration ${video.duration}s > 1200s for isOther channel)`,
+            `Filtered: ${video.title} (duration ${video.duration}s > ${maxDuration}s maxDuration)`,
           );
           results.filtered++;
           continue;
@@ -585,8 +583,6 @@ async function processSource(
       sourceId,
       sourceName,
       sourceType,
-      isOfficial,
-      isOther,
       processed: 0,
       added: 0,
       updated: 0,
@@ -628,16 +624,8 @@ async function getSources(databases, databaseId, channelsCollectionId, log) {
       offset += limit;
     }
 
-    const sources = allSources.filter((source) => {
-      // Only explicitly approved channels are ingested. Other channels such as
-      // Tayyiba remain available for historical data and UI display, but are
-      // not part of the scheduled ingestion set.
-      return (source.type || "channel") !== "channel" || source.isOther !== true;
-    });
-
     log(`Fetched ${allSources.length} source(s) from database`);
-    log(`Selected ${sources.length} source(s) for ingestion`);
-    return sources;
+    return allSources;
   } catch (error) {
     throw new Error(`Failed to fetch sources: ${error.message}`);
   }
@@ -654,7 +642,6 @@ export default async ({ req, res, log, error: logError }) => {
 
     const requiredEnvVars = [
       "APPWRITE_FUNCTION_PROJECT_ID",
-      "APPWRITE_API_KEY",
       "APPWRITE_DATABASE_ID",
       "APPWRITE_NAATS_COLLECTION_ID",
       "APPWRITE_CHANNELS_COLLECTION_ID",
@@ -662,6 +649,11 @@ export default async ({ req, res, log, error: logError }) => {
     ];
 
     const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
+    const apiKey =
+      process.env.APPWRITE_API_KEY ||
+      process.env.APPWRITE_SECRET_KEY ||
+      process.env.APPWRITE_FUNCTION_API_KEY;
+    if (!apiKey) missingVars.push("APPWRITE_API_KEY (or APPWRITE_SECRET_KEY)");
 
     if (missingVars.length > 0) {
       const errorMsg = `Missing required environment variables: ${missingVars.join(", ")}`;
@@ -680,7 +672,7 @@ export default async ({ req, res, log, error: logError }) => {
     const client = new Client()
       .setEndpoint(process.env.APPWRITE_ENDPOINT || "https://sgp.cloud.appwrite.io/v1")
       .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-      .setKey(process.env.APPWRITE_API_KEY);
+      .setKey(apiKey);
 
     const databases = new Databases(client);
 

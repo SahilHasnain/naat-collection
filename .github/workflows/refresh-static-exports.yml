@@ -36,6 +36,7 @@ jobs:
           APPWRITE_API_KEY_NAAT_COLLECTION: ${{ secrets.APPWRITE_API_KEY_NAAT_COLLECTION }}
           APPWRITE_API_KEY_NAAT_PRODUCTION: ${{ secrets.APPWRITE_API_KEY_NAAT_PRODUCTION }}
           APPWRITE_API_KEY_ANAS_RAZA_ATTARI: ${{ secrets.APPWRITE_API_KEY_ANAS_RAZA_ATTARI }}
+          APPWRITE_API_KEY_HAFIZ_TAHIR_QADRI: ${{ secrets.APPWRITE_API_KEY_HAFIZ_TAHIR_QADRI }}
         shell: bash
         run: |
           set -euo pipefail
@@ -55,6 +56,7 @@ jobs:
           export_brand naat-collection "$APPWRITE_API_KEY_NAAT_COLLECTION"
           export_brand naat-production "$APPWRITE_API_KEY_NAAT_PRODUCTION"
           export_brand anas-raza-attari "$APPWRITE_API_KEY_ANAS_RAZA_ATTARI"
+          export_brand hafiz-tahir-qadri "$APPWRITE_API_KEY_HAFIZ_TAHIR_QADRI"
 
       - name: Commit updated exports
         run: |

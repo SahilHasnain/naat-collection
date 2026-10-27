@@ -12,6 +12,7 @@ Select a project by ID for local work:
 npm run project:config -- naat-collection
 npm run project:config -- naat-production
 npm run project:config -- anas-raza-attari
+npm run project:config -- hafiz-tahir-qadri
 npm run project:build -- naat-production --profile production --platform android
 ```
 

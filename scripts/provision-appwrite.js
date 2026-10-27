@@ -152,10 +152,10 @@ const collectionSpecs = [
       attribute("string", "channelName", { size: 255, required: true }),
       attribute("integer", "naatCount", { min: 0, xdefault: 0 }),
       attribute("datetime", "lastUpdated"),
-      attribute("boolean", "isOfficial", { xdefault: true }),
       attribute("boolean", "isOther", { xdefault: false }),
       attribute("string", "type", { size: 20, xdefault: "channel" }),
       attribute("string", "playlistId", { size: 255 }),
+      attribute("integer", "maxDuration", { min: 1 }),
     ],
     indexes: [
       { key: "channelId_unique", type: "Unique", attributes: ["channelId"] },
@@ -243,7 +243,7 @@ const bucketSpecs = [
 
 const tableSpecs = [
   {
-    id: config.voiceVariantsTable,
+    id: config.collections.voiceVariantsTable,
     name: "Voice Variants",
     columns: [
       { key: "sourceAudioId", size: 64, required: true },
@@ -343,9 +343,12 @@ async function ensureAttribute(collectionId, attr) {
   const collection = await databases.getCollection(config.databaseId, collectionId);
   const existing = collection.attributes.find((item) => item.key === attr.key);
   if (existing) {
-    if (existing.type !== attr.type) {
+    // Appwrite represents SDK-created Float attributes as `double` in the
+    // collection schema response.
+    const expectedType = attr.type === "float" ? "double" : attr.type;
+    if (existing.type !== expectedType) {
       throw new Error(
-        `Schema mismatch: ${collectionId}.${attr.key} is ${existing.type}, expected ${attr.type}`,
+        `Schema mismatch: ${collectionId}.${attr.key} is ${existing.type}, expected ${expectedType}`,
       );
     }
     return;
@@ -516,7 +519,7 @@ async function main() {
   console.log(`APPWRITE_AI_JOBS_COLLECTION_ID=${config.collections.aiJobs}`);
   console.log(`APPWRITE_LIVE_RADIO_COLLECTION_ID=${config.collections.liveRadio}`);
   console.log(`APPWRITE_LIVE_RADIO_LISTENERS_COLLECTION_ID=${config.collections.liveRadioListeners}`);
-  console.log(`APPWRITE_VOICE_VARIANTS_TABLE_ID=${config.voiceVariantsTable}`);
+  console.log(`APPWRITE_VOICE_VARIANTS_TABLE_ID=${config.collections.voiceVariantsTable}`);
   console.log(`APPWRITE_AUDIO_BUCKET_ID=${config.buckets.audio}`);
   console.log(`APPWRITE_CUT_AUDIO_BUCKET_ID=${config.buckets.cutAudio}`);
   console.log("Deploy Appwrite Functions separately and configure their environment variables/secrets.");

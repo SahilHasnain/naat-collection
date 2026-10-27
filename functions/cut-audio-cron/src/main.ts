@@ -358,7 +358,12 @@ export default async ({ res, log, error: logError }: AppwriteContext) => {
     const client = new Client()
       .setEndpoint(process.env.APPWRITE_ENDPOINT || process.env.APPWRITE_FUNCTION_API_ENDPOINT || "")
       .setProject(process.env.APPWRITE_PROJECT_ID || process.env.APPWRITE_FUNCTION_PROJECT_ID || "")
-      .setKey(process.env.APPWRITE_API_KEY || "");
+      .setKey(
+        process.env.APPWRITE_API_KEY ||
+          process.env.APPWRITE_SECRET_KEY ||
+          process.env.APPWRITE_FUNCTION_API_KEY ||
+          "",
+      );
 
     const databases = new Databases(client);
     const storage = new Storage(client);

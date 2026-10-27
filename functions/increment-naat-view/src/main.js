@@ -40,13 +40,17 @@ export default async ({ req, res, log, error: logError }) => {
       process.env.APPWRITE_ENDPOINT || process.env.APPWRITE_FUNCTION_API_ENDPOINT || "";
     const projectId =
       process.env.APPWRITE_PROJECT_ID || process.env.APPWRITE_FUNCTION_PROJECT_ID || "";
-    const apiKey = process.env.APPWRITE_API_KEY || "";
+    const apiKey =
+      process.env.APPWRITE_API_KEY ||
+      process.env.APPWRITE_SECRET_KEY ||
+      process.env.APPWRITE_FUNCTION_API_KEY ||
+      "";
     const databaseId = process.env.APPWRITE_DATABASE_ID || "";
     const collectionId = process.env.APPWRITE_NAATS_COLLECTION_ID || "";
 
     if (!endpoint || !projectId || !apiKey || !databaseId || !collectionId) {
       const errorMsg =
-        "Missing required environment variables: APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY, APPWRITE_DATABASE_ID, or APPWRITE_NAATS_COLLECTION_ID";
+        "Missing required environment variables: APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY (or APPWRITE_SECRET_KEY), APPWRITE_DATABASE_ID, or APPWRITE_NAATS_COLLECTION_ID";
       logError(errorMsg);
       return res.json(
         {
