@@ -11,14 +11,16 @@ if (!projectIds.includes(projectId)) {
 
 const executable = process.platform === "win32" ? "npx.cmd" : "npx";
 const runner =
-  command === "config"
+  command === "start"
+    ? ["expo", "start", ...args]
+    : command === "config"
     ? ["expo", "config", "--json", ...args]
     : command === "build"
       ? ["eas", "build", ...args]
       : null;
 
 if (!runner) {
-  console.error("Command must be 'config' or 'build'.");
+  console.error("Command must be 'start', 'config', or 'build'.");
   process.exit(2);
 }
 

@@ -9,6 +9,9 @@
   "scripts": {
     "postinstall": "patch-package",
     "mobile": "npm run start --workspace=mobile",
+    "ow": "npm run project:start --workspace=mobile -- naat-collection",
+    "vo": "npm run project:start --workspace=mobile -- naat-production",
+    "an": "npm run project:start --workspace=mobile -- anas-raza-attari",
     "mobile:android": "npm run android --workspace=mobile",
     "mobile:ios": "npm run ios --workspace=mobile",
     "mobile:lint": "npm run lint --workspace=mobile",
