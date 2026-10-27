@@ -2,7 +2,7 @@
 cd /d D:\Projects\naat-collection
 set "NODE_EXE="
 for /f "delims=" %%N in ('where.exe node 2^>nul') do if not defined NODE_EXE set "NODE_EXE=%%N"
-if not defined NODE_EXE set "NODE_EXE=%LOCALAPPDATA%\Programs\node-v24.20.0-win-x64\node.exe"
+if not defined NODE_EXE set "NODE_EXE=C:\Users\MD SAHIL HASNAIN\AppData\Local\Author Software\nvm\.nodejs\node.exe"
 if not exist "%NODE_EXE%" (
   echo Node.js executable not found: %NODE_EXE% >> scripts\youtube-upload\cron.log
   exit /b 1

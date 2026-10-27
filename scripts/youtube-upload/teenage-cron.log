@@ -331,3 +331,10 @@ Uploads allowed today: 2
 
 Finished: 2 uploaded, 0 failed.
 [Mon 10/26/2026 20:00:47.90] Teenage-voice upload finished (exit 0) 
+================================================ 
+[Tue 10/27/2026  7:57:57.22] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+No active Node.js version is configured. Run `nvm install <version>` then `nvm use <version>`.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+No active Node.js version is configured. Run `nvm install <version>` then `nvm use <version>`.
+[Tue 10/27/2026  7:57:57.51] Teenage-voice upload finished (exit 1) 
