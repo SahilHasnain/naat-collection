@@ -21,6 +21,7 @@
     "mobile:build:prev": "cd apps/mobile && eas build --platform android --profile preview",
     "mobile:build:prod": "cd apps/mobile && eas build --platform android --profile production",
     "provision:appwrite": "node scripts/provision-appwrite.js",
+    "provision:github-brand": "node scripts/provision-github-brand.js",
     "channel:add": "node scripts/add-channel.js",
     "download:audio": "node scripts/download-audio-with-cookies.js",
     "build:privacy": "node scripts/build-privacy-site.js",
