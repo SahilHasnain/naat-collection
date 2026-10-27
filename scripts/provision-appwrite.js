@@ -120,6 +120,7 @@ const collectionSpecs = [
       attribute("integer", "views", { required: true, min: 0 }),
       attribute("string", "audioId", { size: 100 }),
       attribute("string", "cutAudio", { size: 100 }),
+      attribute("boolean", "best", { xdefault: false }),
       attribute("boolean", "exclude", { xdefault: false }),
       attribute("boolean", "isRadio", { xdefault: false }),
       attribute("boolean", "excludeFromAI", { xdefault: false }),
@@ -141,6 +142,7 @@ const collectionSpecs = [
       { key: "uploadDate_asc", type: "Key", attributes: ["uploadDate"], orders: ["ASC"] },
       { key: "views_desc", type: "Key", attributes: ["views"], orders: ["DESC"] },
       { key: "channelId_idx", type: "Key", attributes: ["channelId"] },
+      { key: "best_idx", type: "Key", attributes: ["best"] },
     ],
   },
   {
