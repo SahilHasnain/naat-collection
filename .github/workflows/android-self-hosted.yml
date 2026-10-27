@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       project_id:
-        description: Brand/project ID from apps/mobile/brands
+        description: Brand/project ID from apps/mobile/brands, or all for parallel production builds
         required: true
         default: naat-collection
         type: string
@@ -18,6 +18,11 @@ on:
           - production
       deploy_to_play:
         description: Upload a production AAB to Google Play
+        required: true
+        default: false
+        type: boolean
+      increment_version_code:
+        description: Increment this brand's versionCode and commit it before building
         required: true
         default: false
         type: boolean
@@ -40,23 +45,89 @@ on:
       - apps/mobile/scripts/patch-android-release-signing.mjs
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: android-${{ github.event.inputs.project_id || 'naat-collection' }}-${{ github.event.inputs.app_variant || 'debug-apk' }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-android:
-    name: ${{ github.event.inputs.project_id || 'naat-collection' }} / ${{ github.event.inputs.app_variant || 'debug-apk' }}
+  increment-versions:
+    name: Increment Android versionCode
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.increment_version_code == 'true' }}
     runs-on: ubuntu-latest
-    environment: android-${{ github.event.inputs.project_id || 'naat-collection' }}
+    outputs:
+      commit_sha: ${{ steps.commit.outputs.sha }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: apps/mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Increment selected brand versionCode values and commit
+        id: commit
+        env:
+          PROJECT_SELECTION: ${{ github.event.inputs.project_id }}
+        run: |
+          if [[ "$GITHUB_REF" != refs/heads/* ]]; then
+            echo "VersionCode increments can only be committed from a branch, not $GITHUB_REF"
+            exit 1
+          fi
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const selection = process.env.PROJECT_SELECTION;
+          const allProjects = ['naat-collection', 'naat-production', 'anas-raza-attari', 'hafiz-tahir-qadri'];
+          const projectIds = selection === 'all' ? allProjects : [selection];
+          for (const id of projectIds) {
+            const file = path.join('brands', id, 'brand.config.js');
+            if (!fs.existsSync(file)) throw new Error(`Unknown project "${id}"`);
+            const source = fs.readFileSync(file, 'utf8');
+            const pattern = /(versionCode\s*:\s*)(\d+)/g;
+            const matches = [...source.matchAll(pattern)];
+            if (matches.length !== 1) {
+              throw new Error(`Expected exactly one versionCode in ${file}; found ${matches.length}`);
+            }
+            const current = Number(matches[0][2]);
+            const next = current + 1;
+            fs.writeFileSync(file, source.replace(pattern, (_match, prefix) => `${prefix}${next}`));
+            console.log(`Incremented ${id} versionCode: ${current} -> ${next}`);
+          }
+          NODE
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for file in brands/*/brand.config.js; do
+            if git diff --quiet -- "$file"; then continue; fi
+            git add "$file"
+          done
+          git commit -m "chore: increment Android versionCode [skip ci]"
+          git push origin "HEAD:$GITHUB_REF"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  build-android:
+    name: ${{ matrix.project_id }} / ${{ github.event.inputs.app_variant || 'debug-apk' }}
+    runs-on: ubuntu-latest
+    needs: increment-versions
+    if: ${{ always() && (needs.increment-versions.result == 'success' || needs.increment-versions.result == 'skipped') && ((github.event_name == 'workflow_dispatch' && (github.event.inputs.project_id == 'all' || matrix.project_id == github.event.inputs.project_id)) || (github.event_name != 'workflow_dispatch' && matrix.project_id == 'naat-collection')) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        project_id:
+          - naat-collection
+          - naat-production
+          - anas-raza-attari
+          - hafiz-tahir-qadri
+    environment: android-${{ matrix.project_id }}
     defaults:
       run:
         shell: bash
         working-directory: apps/mobile
     env:
-      PROJECT_ID: ${{ github.event.inputs.project_id || 'naat-collection' }}
+      PROJECT_ID: ${{ matrix.project_id }}
       APP_VARIANT: ${{ github.event.inputs.app_variant || 'debug-apk' }}
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       ANDROID_HOME: /usr/local/lib/android/sdk
@@ -65,6 +136,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.increment-versions.outputs.commit_sha || github.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -92,6 +165,16 @@ jobs:
       - name: Install dependencies
         working-directory: .
         run: npm ci
+
+      - name: Validate all-brand production options
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.project_id == 'all' }}
+        env:
+          APP_VARIANT_INPUT: ${{ github.event.inputs.app_variant }}
+        run: |
+          if [[ "$APP_VARIANT_INPUT" != "production" ]]; then
+            echo "Select production when project_id is all."
+            exit 1
+          fi
 
       - name: Validate project and resolve Android identity
         id: brand
