@@ -52,8 +52,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  prepare-build:
+    name: Select brands to build
+    runs-on: ubuntu-latest
+    outputs:
+      projects: ${{ steps.matrix.outputs.projects }}
+    steps:
+      - name: Create build matrix
+        id: matrix
+        env:
+          PROJECT_SELECTION: ${{ github.event.inputs.project_id }}
+        shell: bash
+        run: |
+          node <<'NODE' >> "$GITHUB_OUTPUT"
+          const selection = process.env.PROJECT_SELECTION;
+          const projects = process.env.GITHUB_EVENT_NAME !== 'workflow_dispatch'
+            ? ['naat-collection']
+            : selection === 'all'
+              ? ['naat-collection', 'naat-production', 'anas-raza-attari', 'hafiz-tahir-qadri']
+              : [selection || 'naat-collection'];
+          console.log(`projects=${JSON.stringify(projects)}`);
+          NODE
+
   increment-versions:
     name: Increment Android versionCode
+    needs: prepare-build
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.increment_version_code == 'true' }}
     runs-on: ubuntu-latest
     outputs:
@@ -69,7 +92,7 @@ jobs:
       - name: Increment selected brand versionCode values and commit
         id: commit
         env:
-          PROJECT_SELECTION: ${{ github.event.inputs.project_id }}
+          PROJECTS_JSON: ${{ needs.prepare-build.outputs.projects }}
         run: |
           if [[ "$GITHUB_REF" != refs/heads/* ]]; then
             echo "VersionCode increments can only be committed from a branch, not $GITHUB_REF"
@@ -79,9 +102,7 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs');
           const path = require('node:path');
-          const selection = process.env.PROJECT_SELECTION;
-          const allProjects = ['naat-collection', 'naat-production', 'anas-raza-attari', 'hafiz-tahir-qadri'];
-          const projectIds = selection === 'all' ? allProjects : [selection];
+          const projectIds = JSON.parse(process.env.PROJECTS_JSON);
           for (const id of projectIds) {
             const file = path.join('brands', id, 'brand.config.js');
             if (!fs.existsSync(file)) throw new Error(`Unknown project "${id}"`);
@@ -111,16 +132,12 @@ jobs:
   build-android:
     name: ${{ matrix.project_id }} / ${{ github.event.inputs.app_variant || 'debug-apk' }}
     runs-on: ubuntu-latest
-    needs: increment-versions
-    if: ${{ always() && (needs.increment-versions.result == 'success' || needs.increment-versions.result == 'skipped') && ((github.event_name == 'workflow_dispatch' && (github.event.inputs.project_id == 'all' || matrix.project_id == github.event.inputs.project_id)) || (github.event_name != 'workflow_dispatch' && matrix.project_id == 'naat-collection')) }}
+    needs: [prepare-build, increment-versions]
+    if: ${{ always() && needs.prepare-build.result == 'success' && (needs.increment-versions.result == 'success' || needs.increment-versions.result == 'skipped') }}
     strategy:
       fail-fast: false
       matrix:
-        project_id:
-          - naat-collection
-          - naat-production
-          - anas-raza-attari
-          - hafiz-tahir-qadri
+        project_id: ${{ fromJSON(needs.prepare-build.outputs.projects) }}
     environment: android-${{ matrix.project_id }}
     defaults:
       run:
