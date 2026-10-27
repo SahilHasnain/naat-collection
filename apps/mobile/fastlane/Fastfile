@@ -6,7 +6,9 @@ platform :android do
     json_key = ENV["SUPPLY_JSON_KEY"] || ENV["PLAY_STORE_JSON_KEY_PATH"]
     UI.user_error!("Missing Play Store service-account JSON key") if json_key.to_s.empty?
 
+    app_root = File.expand_path("..", __dir__)
     aab = options[:aab] || ENV["AAB_PATH"] || "android/app/build/outputs/bundle/release/app-release.aab"
+    aab = File.expand_path(aab, app_root)
     UI.user_error!("AAB not found: #{aab}") unless File.exist?(aab)
 
     upload_to_play_store(

@@ -627,7 +627,9 @@ async function getSources(databases, databaseId, channelsCollectionId, log) {
     log(`Fetched ${allSources.length} source(s) from database`);
     return allSources;
   } catch (error) {
-    throw new Error(`Failed to fetch sources: ${error.message}`);
+    const wrappedError = new Error(`Failed to fetch sources: ${error.message}`);
+    wrappedError.cause = error;
+    throw wrappedError;
   }
 }
 
@@ -669,8 +671,12 @@ export default async ({ req, res, log, error: logError }) => {
 
     log("Ingesting all sources (no type restriction)");
 
+    const endpoint =
+      process.env.APPWRITE_ENDPOINT ||
+      process.env.APPWRITE_FUNCTION_API_ENDPOINT ||
+      "https://sgp.cloud.appwrite.io/v1";
     const client = new Client()
-      .setEndpoint(process.env.APPWRITE_ENDPOINT || "https://sgp.cloud.appwrite.io/v1")
+      .setEndpoint(endpoint)
       .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
       .setKey(apiKey);
 
@@ -742,6 +748,12 @@ export default async ({ req, res, log, error: logError }) => {
   } catch (err) {
     const errorMsg = `Fatal error during ingestion: ${err.message}`;
     logError(errorMsg);
+    if (err.cause) {
+      const cause = err.cause;
+      logError(
+        `Underlying cause: ${cause.name || "Error"}: ${cause.message || String(cause)}${cause.code ? ` (code: ${cause.code})` : ""}`,
+      );
+    }
 
     return res.json(
       {
