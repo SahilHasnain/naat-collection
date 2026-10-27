@@ -279,7 +279,10 @@ async function processNaat(
     if (keepSegments.length === 0) {
       log(`  ${naatId}: no audio would remain after cuts`);
       await databases.updateDocument(databaseId, collectionId, naatId, {
-        ...(staged ? { pendingCutStatus: "failed" } : { cutStatus: "failed" }),
+        // This is a deterministic/model-review failure, not a transient
+        // processing failure.  Keep staged work isolated and prevent the
+        // auto-queue function from retrying the same poison job forever.
+        ...(staged ? { pendingCutStatus: "needs-review" } : { cutStatus: "needs-review" }),
       });
       return false;
     }
