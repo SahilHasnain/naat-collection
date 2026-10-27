@@ -2,7 +2,7 @@
   "name": "cut-audio-cron",
   "version": "1.0.0",
   "description": "Cron function to cut audio from timestamps and upload to Appwrite storage",
-  "main": "src/main.ts",
+  "main": "index.ts",
   "type": "module",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

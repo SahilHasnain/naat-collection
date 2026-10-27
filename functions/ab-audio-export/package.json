@@ -2,7 +2,7 @@
   "name": "ab-audio-export",
   "version": "1.0.0",
   "description": "Create an exported audio clip from A/B repeat points",
-  "main": "src/main.ts",
+  "main": "index.ts",
   "type": "module",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

@@ -1,0 +1,11 @@
+{
+  "name": "ingest-playlists",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Appwrite function to ingest YouTube channel and playlist videos",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "node-appwrite": "^21.1.0"
+  }
+}
