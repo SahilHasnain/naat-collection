@@ -91,15 +91,25 @@ async function fetchEligibleCandidates(
     if (page.length === 0) break;
 
     const naatIds = page.map((naat) => naat.$id);
-    const existingJobs = await databases.listDocuments(databaseId, jobsCollectionId, [
-      Query.equal("type", ["manual-cut-detect"]),
-      Query.equal("naatId", naatIds),
-      Query.equal("status", ["pending", "running", "stop_requested"]),
-      Query.limit(Math.min(naatIds.length * 5, 500)),
-    ]);
+    // Keep the naatId query well below Appwrite's 4096-character query
+    // string limit. A page can contain up to 200 IDs because normal and
+    // staged candidates are combined above.
+    const existingJobs = (
+      await Promise.all(
+        Array.from({ length: Math.ceil(naatIds.length / 25) }, (_, index) => {
+          const ids = naatIds.slice(index * 25, index * 25 + 25);
+          return databases.listDocuments(databaseId, jobsCollectionId, [
+            Query.equal("type", ["manual-cut-detect"]),
+            Query.equal("naatId", ids),
+            Query.equal("status", ["pending", "running", "stop_requested"]),
+            Query.limit(Math.min(ids.length * 5, 500)),
+          ]);
+        }),
+      )
+    ).flatMap((response) => response.documents);
 
     const naatIdsWithJobs = new Set(
-      existingJobs.documents.map((job) => String(job.naatId || "")),
+      existingJobs.map((job) => String(job.naatId || "")),
     );
 
     for (const naat of page) {
