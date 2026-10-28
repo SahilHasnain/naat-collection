@@ -448,6 +448,40 @@ async function updateVideoViews(databases, databaseId, collectionId, documentId,
   }
 }
 
+export function subtractCalendarMonths(date, months) {
+  const result = new Date(date);
+  const originalDay = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() - months);
+  const lastDayOfTargetMonth = new Date(
+    Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  result.setUTCDate(Math.min(originalDay, lastDayOfTargetMonth));
+  return result;
+}
+
+export function passesSourceAgePopularityFilter(video, source, referenceDate = new Date()) {
+  const minLatestMonths = Number.isInteger(source.minLatest) && source.minLatest > 0
+    ? source.minLatest
+    : null;
+  // Popularity is only an exception to an active recency cutoff.
+  if (minLatestMonths === null) return { include: true };
+
+  const publishedAt = Date.parse(video.uploadDate);
+  const cutoff = subtractCalendarMonths(referenceDate, minLatestMonths).getTime();
+  if (Number.isFinite(publishedAt) && publishedAt >= cutoff) return { include: true, recent: true };
+
+  const minPopularK = Number.isInteger(source.minPopular) && source.minPopular > 0
+    ? source.minPopular
+    : null;
+  const minViews = minPopularK === null ? null : minPopularK * 1000;
+  if (minViews !== null && video.views >= minViews) {
+    return { include: true, popularOverride: true, minViews };
+  }
+
+  return { include: false, minViews };
+}
+
 /**
  * Processes a single source document (channel or playlist)
  * @param {Databases} databases - Appwrite Databases instance
@@ -475,10 +509,21 @@ async function processSource(
     ? source.maxDuration
     : null;
   const maxDuration = configuredMaxDuration;
+  const minLatestMonths = Number.isInteger(source.minLatest) && source.minLatest > 0
+    ? source.minLatest
+    : null;
+  const minPopularK = Number.isInteger(source.minPopular) && source.minPopular > 0
+    ? source.minPopular
+    : null;
   const sourceName = source.channelName || "(unnamed)";
   const sourceId = source.channelId || source.playlistId || source.$id;
 
   log(`Processing ${sourceType}: ${sourceName}`);
+  if (minLatestMonths !== null) {
+    log(
+      `  Age policy: latest ${minLatestMonths} month(s)${minPopularK !== null ? `; older videos need at least ${minPopularK}k views` : "; older videos are excluded"}`,
+    );
+  }
 
   try {
     let fetchedData;
@@ -538,6 +583,22 @@ async function processSource(
         }
 
         const existingVideo = existingVideosMap.get(video.youtubeId);
+
+        // Existing records remain eligible for view-count refreshes. The age /
+        // popularity policy controls whether a new document is added.
+        if (!existingVideo) {
+          const agePopularity = passesSourceAgePopularityFilter(video, source);
+          if (!agePopularity.include) {
+            log(
+              `Filtered: ${video.title} (outside minLatest${agePopularity.minViews === null ? "; no minPopular override" : `; ${video.views} views < ${agePopularity.minViews} minPopular views`})`,
+            );
+            results.filtered++;
+            continue;
+          }
+          if (agePopularity.popularOverride) {
+            log(`Popular override: ${video.title} (${video.views} views >= ${agePopularity.minViews})`);
+          }
+        }
 
         if (existingVideo) {
           if (existingVideo.views !== video.views) {

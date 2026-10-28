@@ -154,6 +154,8 @@ const collectionSpecs = [
       attribute("string", "channelName", { size: 255, required: true }),
       attribute("integer", "naatCount", { min: 0, xdefault: 0 }),
       attribute("datetime", "lastUpdated"),
+      attribute("integer", "minLatest", { min: 1 }), // recency window in calendar months
+      attribute("integer", "minPopular", { min: 1 }), // minimum views in thousands for older videos
       attribute("boolean", "isOther", { xdefault: false }),
       attribute("string", "type", { size: 20, xdefault: "channel" }),
       attribute("string", "playlistId", { size: 255 }),

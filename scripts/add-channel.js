@@ -21,7 +21,7 @@ function usage() {
   console.log(`Usage:
   npm run channel:add                         # interactive prompts
   npm run channel:add -- --interactive        # interactive prompts
-  npm run channel:add -- --projects <brand,...> --channel-id <youtube-id> --channel-name <name> --other <true|false> [--max-duration-seconds <n>] [--apply]
+  npm run channel:add -- --projects <brand,...> --channel-id <youtube-id> --channel-name <name> --other <true|false> [--max-duration-seconds <n>] [--min-latest-months <n>] [--min-popular-k <n>] [--apply]
 
 Interactive mode previews targets and asks before writing. CLI mode previews
 unless --apply is provided. API keys are read from
@@ -48,12 +48,14 @@ async function collectInput() {
     channelName: getArg("channel-name"),
     other: getArg("other"),
     maxDurationSeconds: getArg("max-duration-seconds"),
+    minLatestMonths: getArg("min-latest-months"),
+    minPopularK: getArg("min-popular-k"),
     apply: args.includes("--apply"),
     interactive: args.includes("--interactive"),
   };
   input.interactive ||= Object.entries(input).some(
     ([key, value]) =>
-      !["apply", "interactive", "maxDurationSeconds"].includes(key) && value === undefined,
+      !["apply", "interactive", "maxDurationSeconds", "minLatestMonths", "minPopularK"].includes(key) && value === undefined,
   );
 
   if (!input.interactive) return input;
@@ -74,6 +76,14 @@ async function collectInput() {
     input.maxDurationSeconds = await ask(
       "Maximum duration in seconds (blank for no per-source limit)",
       input.maxDurationSeconds,
+    );
+    input.minLatestMonths = await ask(
+      "Include videos newer than this many months (blank for no age limit)",
+      input.minLatestMonths,
+    );
+    input.minPopularK = await ask(
+      "Minimum views in thousands for older videos (blank for no popular override)",
+      input.minPopularK,
     );
     return input;
   } finally {
@@ -102,12 +112,28 @@ function validateInput(input) {
       throw new Error("Maximum duration must be a positive whole number of seconds.");
     }
   }
+  let minLatestMonths;
+  if (input.minLatestMonths?.trim()) {
+    minLatestMonths = Number(input.minLatestMonths);
+    if (!Number.isInteger(minLatestMonths) || minLatestMonths < 1) {
+      throw new Error("minLatest must be a positive whole number of months.");
+    }
+  }
+  let minPopularK;
+  if (input.minPopularK?.trim()) {
+    minPopularK = Number(input.minPopularK);
+    if (!Number.isInteger(minPopularK) || minPopularK < 1) {
+      throw new Error("minPopular must be a positive whole number of thousands of views.");
+    }
+  }
   return {
     projectList,
     channelId: input.channelId,
     channelName: input.channelName.trim(),
     isOther: parseBoolean(input.other, "Other"),
     maxDurationSeconds,
+    minLatestMonths,
+    minPopularK,
   };
 }
 
@@ -166,7 +192,7 @@ async function upsertChannel(databases, brand, channelData) {
 
 async function main() {
   const input = await collectInput();
-  const { projectList, channelId, channelName, isOther, maxDurationSeconds } = validateInput(input);
+  const { projectList, channelId, channelName, isOther, maxDurationSeconds, minLatestMonths, minPopularK } = validateInput(input);
   const channelData = {
     channelId,
     channelName,
@@ -176,10 +202,14 @@ async function main() {
     type: "channel",
   };
   if (maxDurationSeconds !== undefined) channelData.maxDuration = maxDurationSeconds;
+  if (minLatestMonths !== undefined) channelData.minLatest = minLatestMonths;
+  if (minPopularK !== undefined) channelData.minPopular = minPopularK;
   let apply = input.apply;
 
   console.log(`\n${apply ? "APPLY" : "DRY RUN"} — add channel ${channelId} (${channelName})`);
   if (maxDurationSeconds !== undefined) console.log(`Maximum duration: ${maxDurationSeconds}s`);
+  if (minLatestMonths !== undefined) console.log(`minLatest: ${minLatestMonths} month(s)`);
+  if (minPopularK !== undefined) console.log(`minPopular: ${minPopularK}k views`);
   for (const id of projectList) {
     const brand = getProject(id);
     console.log(`- ${id}: project ${brand.appwrite.projectId}, database ${brand.appwrite.databaseId}, channels ${brand.appwrite.channelsCollectionId}`);
