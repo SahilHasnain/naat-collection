@@ -272,11 +272,16 @@ jobs:
 
       - name: Build debug APK
         if: ${{ env.APP_VARIANT == 'debug-apk' }}
+        env:
+          APP_PROJECT_ID: ${{ env.PROJECT_ID }}
+          APP_VARIANT: development
         run: cd android && chmod +x ./gradlew && ./gradlew assembleDebug
 
       - name: Build production AAB
         if: ${{ env.APP_VARIANT == 'production' }}
         env:
+          APP_PROJECT_ID: ${{ env.PROJECT_ID }}
+          APP_VARIANT: production
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
