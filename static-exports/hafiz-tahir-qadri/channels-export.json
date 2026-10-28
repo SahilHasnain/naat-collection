@@ -1,0 +1,52 @@
+{
+  "metadata": {
+    "exportedAt": "2026-10-28T10:58:35.858Z",
+    "totalItems": 2,
+    "version": "1.0",
+    "source": "Appwrite Database",
+    "expiresAt": null,
+    "note": "This is a static fallback export. Data may be outdated."
+  },
+  "data": [
+    {
+      "channelId": "UCbbgJ-EH05HwinbdVawQj6g",
+      "channelName": "Hafiz Tahir Qadri",
+      "naatCount": 0,
+      "lastUpdated": "2026-10-27T05:40:26.967+00:00",
+      "isOfficial": true,
+      "isOther": false,
+      "type": "channel",
+      "playlistId": null,
+      "maxDuration": 1200,
+      "minLatest": null,
+      "minPopular": null,
+      "$id": "6ae03962000fad8c7099",
+      "$sequence": 1,
+      "$createdAt": "2026-10-27T05:40:52.959+00:00",
+      "$updatedAt": "2026-10-27T05:40:52.959+00:00",
+      "$permissions": [],
+      "$databaseId": "main-db",
+      "$collectionId": "channels"
+    },
+    {
+      "channelId": "UC4M6ckq0b4PJlwE_dHOj5Cg",
+      "channelName": "Hafiz Tahir Qadri Lyrical Videos",
+      "naatCount": 0,
+      "lastUpdated": "2026-10-27T05:58:20.695+00:00",
+      "isOfficial": true,
+      "isOther": false,
+      "type": "channel",
+      "playlistId": null,
+      "maxDuration": null,
+      "minLatest": null,
+      "minPopular": null,
+      "$id": "6ae03d7f001a25a09000",
+      "$sequence": 2,
+      "$createdAt": "2026-10-27T05:58:25.942+00:00",
+      "$updatedAt": "2026-10-27T05:58:25.942+00:00",
+      "$permissions": [],
+      "$databaseId": "main-db",
+      "$collectionId": "channels"
+    }
+  ]
+}

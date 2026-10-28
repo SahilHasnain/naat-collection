@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "exportedAt": "2026-10-25T07:18:18.711Z",
+    "exportedAt": "2026-10-28T10:58:29.490Z",
     "totalItems": 3,
     "version": "1.0",
     "source": "Appwrite Database",
@@ -13,6 +13,7 @@
       "channelName": "Baghdadi Sound & Video",
       "naatCount": 2367,
       "lastUpdated": "2026-01-07T16:09:04.011+00:00",
+      "isOfficial": false,
       "isOther": false,
       "type": "channel",
       "playlistId": null,
@@ -32,6 +33,7 @@
       "channelName": "Owais Raza Qadri",
       "naatCount": 0,
       "lastUpdated": "2026-01-07T16:09:06.053+00:00",
+      "isOfficial": true,
       "isOther": false,
       "type": "channel",
       "playlistId": null,
@@ -51,6 +53,7 @@
       "channelName": "Ubaid e Raza",
       "naatCount": 0,
       "lastUpdated": "2026-02-09T18:42:19.891+00:00",
+      "isOfficial": true,
       "isOther": false,
       "type": "playlist",
       "playlistId": "PLkW9N8lesk1ON-Z_qbhbA82FetR19g84K",
