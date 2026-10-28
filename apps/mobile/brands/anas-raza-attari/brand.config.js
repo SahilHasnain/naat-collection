@@ -19,7 +19,7 @@ module.exports = {
     packageId: "com.anasrazaattari", // production package
     packageIdDev: "com.anasrazaattari.dev",
     packageIdPreview: "com.anasrazaattari.preview",
-    versionCode: 8,
+    versionCode: 9,
     // Deep-link host for universal links (used in intent filters + associatedDomains)
     applinksHost: "anasrazaattari.expo.app",
   },

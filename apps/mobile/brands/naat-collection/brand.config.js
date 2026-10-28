@@ -19,7 +19,7 @@ module.exports = {
     packageId: "com.owaisrazaqadri", // production package
     packageIdDev: "com.owaisrazaqadri.dev",
     packageIdPreview: "com.owaisrazaqadri.preview",
-    versionCode: 32,
+    versionCode: 33,
     adaptiveIconBackgroundColor: "#160B3A",
     adaptiveIconForegroundImage: "./assets/android-launcher-icons/adaptive-foreground.png",
     preserveAndroidLauncherIcons: true,
