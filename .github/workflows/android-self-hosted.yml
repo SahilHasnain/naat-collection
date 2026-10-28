@@ -186,16 +186,20 @@ jobs:
 
       - name: Remove Expo Dev Client from preview build
         if: ${{ env.APP_VARIANT == 'preview' }}
-        working-directory: apps/mobile
+        working-directory: .
         run: |
-          if [ -d "node_modules/expo-dev-client" ] || npm ls expo-dev-client --all --parseable >/dev/null 2>&1; then
-            echo "expo-dev-client is present; ensuring it's not bundled for preview."
-            npm uninstall expo-dev-client --no-save || true
-          fi
-          if npm ls expo-dev-client --all --parseable >/dev/null 2>&1; then
+          echo "Removing expo-dev-client for preview build..."
+          npm uninstall expo-dev-client --no-save || true
+          npm uninstall --workspace=mobile expo-dev-client --no-save || true
+          rm -rf node_modules/expo-dev-client
+          rm -rf apps/mobile/node_modules/expo-dev-client
+          find . -type d -name "expo-dev-client" -path "*/node_modules/expo-dev-client" -not -path "*/.git/*" -exec rm -rf {} + 2>/dev/null || true
+          if find . -type d -name "expo-dev-client" -path "*/node_modules/expo-dev-client" -not -path "*/.git/*" | grep -q .; then
             echo "expo-dev-client is still installed; refusing to build a non-standalone preview APK."
+            find . -type d -name "expo-dev-client" -path "*/node_modules/expo-dev-client" -not -path "*/.git/*"
             exit 1
           fi
+          echo "expo-dev-client successfully removed for preview build"
 
       - name: Validate all-brand production options
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.project_id == 'all' }}
