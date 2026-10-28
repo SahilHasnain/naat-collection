@@ -186,10 +186,13 @@ jobs:
 
       - name: Remove Expo Dev Client from preview build
         if: ${{ env.APP_VARIANT == 'preview' }}
-        working-directory: .
+        working-directory: apps/mobile
         run: |
-          npm uninstall --workspace=mobile --no-save expo-dev-client
-          if npm ls --workspace=mobile expo-dev-client --all --parseable >/dev/null 2>&1; then
+          if [ -d "node_modules/expo-dev-client" ] || npm ls expo-dev-client --all --parseable >/dev/null 2>&1; then
+            echo "expo-dev-client is present; ensuring it's not bundled for preview."
+            npm uninstall expo-dev-client --no-save || true
+          fi
+          if npm ls expo-dev-client --all --parseable >/dev/null 2>&1; then
             echo "expo-dev-client is still installed; refusing to build a non-standalone preview APK."
             exit 1
           fi
