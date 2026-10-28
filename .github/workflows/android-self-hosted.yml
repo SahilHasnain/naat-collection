@@ -15,6 +15,7 @@ on:
         type: choice
         options:
           - debug-apk
+          - preview
           - production
       deploy_to_play:
         description: Upload a production AAB to Google Play
@@ -183,6 +184,16 @@ jobs:
         working-directory: .
         run: npm ci
 
+      - name: Remove Expo Dev Client from preview build
+        if: ${{ env.APP_VARIANT == 'preview' }}
+        working-directory: .
+        run: |
+          npm uninstall --workspace=mobile --no-save expo-dev-client
+          if npm ls --workspace=mobile expo-dev-client --all --parseable >/dev/null 2>&1; then
+            echo "expo-dev-client is still installed; refusing to build a non-standalone preview APK."
+            exit 1
+          fi
+
       - name: Validate all-brand production options
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.project_id == 'all' }}
         env:
@@ -213,12 +224,17 @@ jobs:
           }
           const packageId = variant === 'debug-apk'
             ? brand.app.packageIdDev
-            : variant === 'production'
-              ? brand.app.packageId
-              : null;
+            : variant === 'preview'
+              ? brand.app.packageIdPreview
+              : variant === 'production'
+                ? brand.app.packageId
+                : null;
           if (!packageId) throw new Error(`Missing package ID for ${id}/${variant}`);
           if (variant === 'debug-apk' && !packageId.endsWith('.dev')) {
             throw new Error(`Debug APK package ID must end in .dev: ${packageId}`);
+          }
+          if (variant === 'preview' && !packageId.endsWith('.preview')) {
+            throw new Error(`Preview APK package ID must end in .preview: ${packageId}`);
           }
           const values = {
             project_id: id,
@@ -239,14 +255,15 @@ jobs:
           }
           NODE
           EXPO_VARIANT=development
+          if [[ "$APP_VARIANT" == "preview" ]]; then EXPO_VARIANT=preview; fi
           if [[ "$APP_VARIANT" == "production" ]]; then EXPO_VARIANT=production; fi
           APP_PROJECT_ID="$PROJECT_ID" APP_VARIANT="$EXPO_VARIANT" npx expo config --json > "$RUNNER_TEMP/expo-config.json"
-          APP_PROJECT_ID="$PROJECT_ID" EXPO_VARIANT="$EXPO_VARIANT" node -e 'const c=require(process.argv[1]); const b=require("./brands").getProject(process.env.APP_PROJECT_ID); const id=process.env.EXPO_VARIANT==="development"?b.app.packageIdDev:b.app.packageId; if(c.extra.projectId!==process.env.APP_PROJECT_ID || c.android.package!==id) throw new Error("Expo config identity does not match selected brand and variant")' "$RUNNER_TEMP/expo-config.json"
+          APP_PROJECT_ID="$PROJECT_ID" EXPO_VARIANT="$EXPO_VARIANT" node -e 'const c=require(process.argv[1]); const b=require("./brands").getProject(process.env.APP_PROJECT_ID); const id=process.env.EXPO_VARIANT==="development"?b.app.packageIdDev:process.env.EXPO_VARIANT==="preview"?b.app.packageIdPreview:b.app.packageId; if(c.extra.projectId!==process.env.APP_PROJECT_ID || c.android.package!==id) throw new Error("Expo config identity does not match selected brand and variant")' "$RUNNER_TEMP/expo-config.json"
 
       - name: Generate selected Android project
         env:
           APP_PROJECT_ID: ${{ env.PROJECT_ID }}
-          APP_VARIANT: ${{ env.APP_VARIANT == 'debug-apk' && 'development' || 'production' }}
+          APP_VARIANT: ${{ env.APP_VARIANT == 'debug-apk' && 'development' || env.APP_VARIANT }}
           CI: "1"
         run: npx expo prebuild --platform android --no-install --clean
 
@@ -271,10 +288,10 @@ jobs:
           node scripts/patch-android-release-signing.mjs
 
       - name: Build debug APK
-        if: ${{ env.APP_VARIANT == 'debug-apk' }}
+        if: ${{ env.APP_VARIANT == 'debug-apk' || env.APP_VARIANT == 'preview' }}
         env:
           APP_PROJECT_ID: ${{ env.PROJECT_ID }}
-          APP_VARIANT: development
+          APP_VARIANT: ${{ env.APP_VARIANT == 'debug-apk' && 'development' || 'preview' }}
         run: cd android && chmod +x ./gradlew && ./gradlew assembleDebug
 
       - name: Build production AAB
@@ -289,7 +306,7 @@ jobs:
         run: cd android && chmod +x ./gradlew && ./gradlew bundleRelease
 
       - name: Upload APK artifact
-        if: ${{ env.APP_VARIANT == 'debug-apk' }}
+        if: ${{ env.APP_VARIANT == 'debug-apk' || env.APP_VARIANT == 'preview' }}
         uses: actions/upload-artifact@v4
         with:
           name: android-${{ steps.brand.outputs.project_id }}-${{ env.APP_VARIANT }}-${{ github.run_number }}
