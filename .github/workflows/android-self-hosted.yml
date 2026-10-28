@@ -201,13 +201,13 @@ jobs:
           fi
           echo "expo-dev-client successfully removed for preview build"
 
-      - name: Validate all-brand production options
+      - name: Validate all-brand parallel options
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.project_id == 'all' }}
         env:
           APP_VARIANT_INPUT: ${{ github.event.inputs.app_variant }}
         run: |
-          if [[ "$APP_VARIANT_INPUT" != "production" ]]; then
-            echo "Select production when project_id is all."
+          if [[ "$APP_VARIANT_INPUT" != "production" && "$APP_VARIANT_INPUT" != "preview" ]]; then
+            echo "Select production or preview when project_id is all."
             exit 1
           fi
 
