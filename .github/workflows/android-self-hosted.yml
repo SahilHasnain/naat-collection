@@ -294,14 +294,19 @@ jobs:
           export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/release.keystore"
           node scripts/patch-android-release-signing.mjs
 
-      - name: Build debug APK
+      - name: Build APK (debug/preview)
         if: ${{ env.APP_VARIANT == 'debug-apk' || env.APP_VARIANT == 'preview' }}
         env:
           APP_PROJECT_ID: ${{ env.PROJECT_ID }}
           APP_VARIANT: ${{ env.APP_VARIANT == 'debug-apk' && 'development' || 'preview' }}
-        run: cd android && chmod +x ./gradlew && ./gradlew assembleDebug
+        run: |
+          if [ "$APP_VARIANT" = "production" ]; then
+            echo "Skipping APK build for production variant"
+            exit 0
+          fi
+          cd android && chmod +x ./gradlew && ./gradlew assembleDebug
 
-      - name: Build production AAB
+      - name: Build AAB (production only)
         if: ${{ env.APP_VARIANT == 'production' }}
         env:
           APP_PROJECT_ID: ${{ env.PROJECT_ID }}
@@ -310,7 +315,12 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: cd android && chmod +x ./gradlew && ./gradlew bundleRelease
+        run: |
+          if [ "$APP_VARIANT" != "production" ]; then
+            echo "Refusing to build AAB for non-production variant"
+            exit 1
+          fi
+          cd android && chmod +x ./gradlew && ./gradlew bundleRelease
 
       - name: Upload APK artifact
         if: ${{ env.APP_VARIANT == 'debug-apk' || env.APP_VARIANT == 'preview' }}
