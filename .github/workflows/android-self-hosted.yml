@@ -295,19 +295,15 @@ jobs:
           node scripts/patch-android-release-signing.mjs
 
       - name: Build APK (debug/preview)
-        if: ${{ env.APP_VARIANT == 'debug-apk' || env.APP_VARIANT == 'preview' }}
+        if: ${{ github.event.inputs.app_variant == 'debug-apk' || github.event.inputs.app_variant == 'preview' || (github.event_name != 'workflow_dispatch' && (env.APP_VARIANT == 'debug-apk' || env.APP_VARIANT == 'preview')) }}
         env:
           APP_PROJECT_ID: ${{ env.PROJECT_ID }}
-          APP_VARIANT: ${{ env.APP_VARIANT == 'debug-apk' && 'development' || 'preview' }}
+          APP_VARIANT: ${{ env.APP_VARIANT == 'debug-apk' && 'development' || env.APP_VARIANT }}
         run: |
-          if [ "$APP_VARIANT" = "production" ]; then
-            echo "Skipping APK build for production variant"
-            exit 0
-          fi
-          cd android && chmod +x ./gradlew && if [ "${{ env.APP_VARIANT }}" = "preview" ]; then ./gradlew assembleRelease; else ./gradlew assembleDebug; fi
+          cd android && chmod +x ./gradlew && if [ "$APP_VARIANT" = "preview" ]; then ./gradlew assembleRelease; else ./gradlew assembleDebug; fi
 
       - name: Build AAB (production only)
-        if: ${{ env.APP_VARIANT == 'production' }}
+        if: ${{ github.event.inputs.app_variant == 'production' || (github.event_name != 'workflow_dispatch' && env.APP_VARIANT == 'production') }}
         env:
           APP_PROJECT_ID: ${{ env.PROJECT_ID }}
           APP_VARIANT: production
@@ -316,10 +312,6 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ "$APP_VARIANT" != "production" ]; then
-            echo "Refusing to build AAB for non-production variant"
-            exit 1
-          fi
           cd android && chmod +x ./gradlew && ./gradlew bundleRelease
 
       - name: Upload APK artifact
