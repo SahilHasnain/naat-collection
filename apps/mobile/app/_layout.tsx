@@ -44,6 +44,7 @@ import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import * as Sentry from "@sentry/react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Tabs, useRouter, useSegments } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef, useState } from "react";
 import { StatusBar, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -54,6 +55,8 @@ import {
 } from "react-native-safe-area-context";
 import "../global.css";
 import brand from "../config/brand";
+
+SplashScreen.preventAutoHideAsync();
 
 // Initialize Sentry
 Sentry.init({
@@ -68,6 +71,10 @@ function RootLayoutContent() {
   const { resolvedTheme } = useTheme();
   const router = useRouter();
   const segments = useSegments();
+
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
 
   // Initialize deep linking
   useDeepLinking();
