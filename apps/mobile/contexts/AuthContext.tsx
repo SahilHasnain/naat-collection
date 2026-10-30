@@ -2,7 +2,7 @@ import type { Models } from "react-native-appwrite";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import { authService } from "@/services/auth";
-import { favoriteSyncService } from "@/services/favoriteSync";
+import { cloudSyncService } from "@/services/cloudSync";
 
 type AuthUser = Models.User<Models.Preferences>;
 
@@ -29,8 +29,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then((currentUser) => {
         if (isMounted) {
           setUser(currentUser);
-          void favoriteSyncService.sync(currentUser.$id).catch((error) => {
-            console.warn("[Auth] Favorite sync failed:", error);
+          cloudSyncService.setCloudSyncUser(currentUser.$id);
+          void cloudSyncService.flushCloudSync(currentUser.$id).catch((error) => {
+            console.warn("[Auth] Cloud sync failed:", error);
           });
         }
       })
@@ -53,8 +54,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (Platform.OS !== "web") {
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
-        void favoriteSyncService.sync(currentUser.$id).catch((error) => {
-          console.warn("[Auth] Favorite sync failed:", error);
+        cloudSyncService.setCloudSyncUser(currentUser.$id);
+        void cloudSyncService.flushCloudSync(currentUser.$id).catch((error) => {
+          console.warn("[Auth] Cloud sync failed:", error);
         });
       }
     } finally {
@@ -63,8 +65,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await authService.signOut();
-    setUser(null);
+    try {
+      if (user?.$id) {
+        cloudSyncService.setCloudSyncUser(user.$id);
+        try {
+          await cloudSyncService.flushCloudSync(user.$id);
+        } catch (error) {
+          console.warn("[Auth] Cloud sync before sign-out failed:", error);
+        }
+      }
+      await authService.signOut();
+    } finally {
+      cloudSyncService.setCloudSyncUser(null);
+      setUser(null);
+    }
   };
 
   return (

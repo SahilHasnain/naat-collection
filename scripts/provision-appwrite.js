@@ -238,6 +238,25 @@ const collectionSpecs = [
       { key: "sessionId_unique", type: "Unique", attributes: ["sessionId"] },
     ],
   },
+  {
+    id: "user_history",
+    name: "User History",
+    permissions: [sdk.Permission.create("users")],
+    documentSecurity: true,
+    attributes: [
+      attribute("string", "userId", { required: true, size: 64 }),
+      attribute("string", "naatId", { required: true, size: 64 }),
+      attribute("integer", "watchedAt", { required: true, min: 0 }),
+      attribute("boolean", "isRemoved", { required: true }),
+      attribute("datetime", "clientUpdatedAt", { required: true }),
+      attribute("string", "deviceId", { required: true, size: 64 }),
+      attribute("datetime", "updatedAt", { required: false }),
+    ],
+    indexes: [
+      { key: "user_naat_idx", type: "Key", columns: ["userId", "naatId"] },
+      { key: "user_updated_idx", type: "Key", columns: ["userId", "clientUpdatedAt"] },
+    ],
+  },
 ];
 
 const bucketSpecs = [
@@ -270,7 +289,7 @@ function printPlan() {
   console.log(`Endpoint: ${config.endpoint}`);
   console.log(`Project:  ${config.projectId}`);
   console.log(`Database: ${config.databaseId}`);
-  console.log("Resources: database, 6 collections (schema + indexes), 1 table, 2 storage buckets");
+  console.log("Resources: database, 7 collections (schema + indexes), 1 table, 2 storage buckets");
   if (!apply) console.log("No changes made. Add --apply to provision missing resources.");
   console.log("");
 }

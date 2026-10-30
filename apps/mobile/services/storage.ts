@@ -14,6 +14,8 @@ const STORAGE_KEYS = {
   WATCH_HISTORY_TIMESTAMPS: "@naat_watch_history_timestamps",
   FAVORITE_NAAT_IDS: "@naat_favorite_ids",
   FAVORITE_SYNC_QUEUE: "@naat_favorite_sync_queue",
+  HISTORY_SYNC_QUEUE: "@naat_history_sync_queue",
+  HISTORY_CLEARED_AT: "@naat_history_cleared_at",
   DEVICE_ID: "@naat_device_id",
   FOR_YOU_SESSION: "@naat_for_you_session",
 } as const;
@@ -26,11 +28,21 @@ const MAX_RECENT_POSITIONS = 10;
 /**
  * Maximum number of watch history items to maintain
  */
-const MAX_WATCH_HISTORY = 100;
+export const MAX_WATCH_HISTORY = 100;
 
 export interface FavoriteSyncEvent {
   naatId: string;
   isFavorite: boolean;
+  clientUpdatedAt: string;
+  deviceId: string;
+}
+
+export interface HistorySyncEvent {
+  /** Naat document ID, or "*" for a clear-all marker. */
+  naatId: string;
+  isRemoved: boolean;
+  /** Epoch ms of the watch (or of the clear-all for "*" events). */
+  watchedAt: number;
   clientUpdatedAt: string;
   deviceId: string;
 }
@@ -187,6 +199,57 @@ export class StorageService implements IStorageService {
     );
   }
 
+  async getHistorySyncQueue(): Promise<HistorySyncEvent[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.HISTORY_SYNC_QUEUE);
+      if (!data) return [];
+      const parsed = JSON.parse(data);
+      return Array.isArray(parsed) ? (parsed as HistorySyncEvent[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async clearHistorySyncQueue(): Promise<void> {
+    await AsyncStorage.removeItem(STORAGE_KEYS.HISTORY_SYNC_QUEUE);
+  }
+
+  private async enqueueHistorySync(event: HistorySyncEvent): Promise<void> {
+    const queue = await this.getHistorySyncQueue();
+    // Merge by key: use "*" as-is (last write wins), else by naatId
+    const nextQueue = [
+      ...queue.filter((queuedEvent) => {
+        if (event.naatId === "*") {
+          return queuedEvent.naatId !== "*";
+        }
+        if (queuedEvent.naatId === "*") {
+          return false;
+        }
+        return queuedEvent.naatId !== event.naatId;
+      }),
+      event,
+    ];
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.HISTORY_SYNC_QUEUE,
+      JSON.stringify(nextQueue),
+    );
+  }
+
+  async getHistoryClearedAt(): Promise<number | null> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.HISTORY_CLEARED_AT);
+      if (!data) return null;
+      const value = Number(data);
+      return Number.isFinite(value) ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async setHistoryClearedAt(clearedAt: number): Promise<void> {
+    await AsyncStorage.setItem(STORAGE_KEYS.HISTORY_CLEARED_AT, String(clearedAt));
+  }
+
   private async getDeviceId(): Promise<string> {
     const existingDeviceId = await AsyncStorage.getItem(STORAGE_KEYS.DEVICE_ID);
     if (existingDeviceId) return existingDeviceId;
@@ -194,6 +257,18 @@ export class StorageService implements IStorageService {
     const deviceId = `device-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     await AsyncStorage.setItem(STORAGE_KEYS.DEVICE_ID, deviceId);
     return deviceId;
+  }
+
+  private async queueCloudSync(): Promise<void> {
+    try {
+      const module = await import("@/services/cloudSync");
+      const cloudSync = (module as any).cloudSyncService || (module as any).default;
+      if (cloudSync?.scheduleCloudSync) {
+        cloudSync.scheduleCloudSync();
+      }
+    } catch {
+      // Ignore - cloud sync not available
+    }
   }
 
   /**
@@ -225,6 +300,44 @@ export class StorageService implements IStorageService {
    * @returns Array of PlaybackPosition objects, limited to 10 most recent
    * @throws AppError if storage operation fails
    */
+  /**
+   * Set watch history from cloud sync without re-enqueuing or scheduling sync
+   */
+  async setWatchHistoryFromSync(
+    history: string[],
+    timestamps: Record<string, number>,
+  ): Promise<void> {
+    try {
+      const limitedHistory = history.slice(0, MAX_WATCH_HISTORY);
+      const limitedTimestamps: Record<string, number> = {};
+      for (const id of limitedHistory) {
+        if (typeof timestamps[id] === "number") {
+          limitedTimestamps[id] = timestamps[id];
+        } else {
+          limitedTimestamps[id] = Date.now();
+        }
+      }
+
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.WATCH_HISTORY,
+        JSON.stringify(limitedHistory),
+      );
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.WATCH_HISTORY_TIMESTAMPS,
+        JSON.stringify(limitedTimestamps),
+      );
+    } catch (error) {
+      logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
+        context: "setWatchHistoryFromSync",
+      });
+      throw new AppError(
+        "Failed to apply synced watch history.",
+        ErrorCode.STORAGE_ERROR,
+        true,
+      );
+    }
+  }
+
   async getRecentPositions(): Promise<PlaybackPosition[]> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.RECENT_POSITIONS);
@@ -421,6 +534,16 @@ export class StorageService implements IStorageService {
         STORAGE_KEYS.WATCH_HISTORY_TIMESTAMPS,
         JSON.stringify(timestamps)
       );
+
+      const deviceId = await this.getDeviceId();
+      await this.enqueueHistorySync({
+        naatId,
+        isRemoved: false,
+        watchedAt: timestamps[naatId],
+        clientUpdatedAt: new Date().toISOString(),
+        deviceId,
+      });
+      void this.queueCloudSync();
     } catch (error) {
       logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
         context: "addToWatchHistory",
@@ -495,6 +618,16 @@ export class StorageService implements IStorageService {
         STORAGE_KEYS.WATCH_HISTORY_TIMESTAMPS,
         JSON.stringify(timestamps)
       );
+
+      const deviceId = await this.getDeviceId();
+      await this.enqueueHistorySync({
+        naatId,
+        isRemoved: true,
+        watchedAt: Date.now(),
+        clientUpdatedAt: new Date().toISOString(),
+        deviceId,
+      });
+      void this.queueCloudSync();
     } catch (error) {
       logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
         context: "removeFromWatchHistory",
@@ -515,6 +648,18 @@ export class StorageService implements IStorageService {
     try {
       await AsyncStorage.removeItem(STORAGE_KEYS.WATCH_HISTORY);
       await AsyncStorage.removeItem(STORAGE_KEYS.WATCH_HISTORY_TIMESTAMPS);
+      const clearedAt = Date.now();
+      await this.setHistoryClearedAt(clearedAt);
+
+      const deviceId = await this.getDeviceId();
+      await this.enqueueHistorySync({
+        naatId: "*",
+        isRemoved: true,
+        watchedAt: clearedAt,
+        clientUpdatedAt: new Date().toISOString(),
+        deviceId,
+      });
+      void this.queueCloudSync();
     } catch (error) {
       logError(wrapError(error, ErrorCode.STORAGE_ERROR), {
         context: "clearWatchHistory",

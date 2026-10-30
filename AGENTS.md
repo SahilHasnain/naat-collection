@@ -1,1 +1,2 @@
 1) If a task is complex and did not fit in the current system. Inform before implementing that it needs adaptation for an easy solution.
+2) when updating the provision script, make sure that this error does not come: cannot set default value for required attribute (appwrite restriction).
