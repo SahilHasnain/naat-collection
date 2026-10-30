@@ -338,3 +338,100 @@ No active Node.js version is configured. Run `nvm install <version>` then `nvm u
 --- 2 teenage-voice Shorts (start/end clips) --- 
 No active Node.js version is configured. Run `nvm install <version>` then `nvm use <version>`.
 [Tue 10/27/2026  7:57:57.51] Teenage-voice upload finished (exit 1) 
+================================================ 
+[Thu 10/29/2026 15:02:48.17] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+Naats with cutAudio in source collection: 946
+Completed +6 variants with matching source cutAudio: 16
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage.json
+Already uploaded: 5
+Eligible remaining: 11
+Uploads allowed today: 1
+
+[1/1] Balaghal Ula Bi Kamaalihi - Owais Raza Qadri - 2026
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/LZ0tgqkdZyI
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 1 uploaded, 0 failed.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+Naats with cutAudio in source collection: 946
+Completed +6 variants with matching source cutAudio: 16
+Remaining start/end Shorts: 22
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage-shorts.json
+Already uploaded: 10
+Eligible remaining: 22
+Uploads allowed today: 2
+
+[1/2] Balaghal Ula Bi Kamaalihi - Owais Raza Qadri - 2026 — start clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Failed: request to https://youtube.googleapis.com/upload/youtube/v3/videos?part=snippet&part=status&uploadType=multipart failed, reason: getaddrinfo ENOTFOUND youtube.googleapis.com
+[2/2] Balaghal Ula Bi Kamaalihi - Owais Raza Qadri - 2026 — end clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/fWpVSfq6iNw
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 1 uploaded, 1 failed.
+[Thu 10/29/2026 15:12:14.46] Teenage-voice upload finished (exit 0) 
+================================================ 
+[Fri 10/30/2026  8:52:26.23] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+Naats with cutAudio in source collection: 959
+Completed +6 variants with matching source cutAudio: 16
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage.json
+Already uploaded: 6
+Eligible remaining: 10
+Uploads allowed today: 1
+
+[1/1] Owais Raza Qadri | Jashne Amad e Rasool | Rabi Ul Awwal Kalam
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/_DvD4Lev2tY
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 1 uploaded, 0 failed.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+Naats with cutAudio in source collection: 959
+Completed +6 variants with matching source cutAudio: 16
+Remaining start/end Shorts: 21
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage-shorts.json
+Already uploaded: 11
+Eligible remaining: 21
+Uploads allowed today: 2
+
+[1/2] Balaghal Ula Bi Kamaalihi - Owais Raza Qadri - 2026 — start clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/wbFOQulU6ww
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+[2/2] Owais Raza Qadri | Jashne Amad e Rasool | Rabi Ul Awwal Kalam — start clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/8iOpdG0ikZo
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 2 uploaded, 0 failed.
+[Fri 10/30/2026  9:05:31.84] Teenage-voice upload finished (exit 0) 

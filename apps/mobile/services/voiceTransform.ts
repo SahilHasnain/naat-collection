@@ -3,6 +3,7 @@ import {
   Databases,
   ExecutionMethod,
   Functions,
+  Query,
   type Models,
 } from "react-native-appwrite";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -15,12 +16,26 @@ interface VoiceJob extends Models.Document {
   progress?: number;
   outputAudioId?: string;
   error?: string;
+  audioId?: string;
+  voicePreset?: VoicePreset;
 }
 
 const FUNCTION_ID = "create-voice-transform-job";
 const JOBS_COLLECTION_ID = "ai_jobs";
 const POLL_INTERVAL_MS = 2000;
 const PENDING_JOB_PREFIX = "voice-transform-job:";
+const READY_LOOKUP_PAGE_SIZE = 500;
+const READY_CACHE_TTL_MS = 5 * 60 * 1000;
+
+let readyAudioIdsCache: {
+  voicePreset: VoicePreset;
+  ids: Set<string>;
+  fetchedAt: number;
+} | null = null;
+let readyAudioIdsInFlight: {
+  voicePreset: VoicePreset;
+  promise: Promise<Set<string>>;
+} | null = null;
 
 const client = new Client()
   .setEndpoint(appwriteConfig.endpoint)
@@ -111,11 +126,48 @@ export function watchVoiceTransform(jobId: string, onUpdate: (job: VoiceTransfor
   return () => { stopped = true; clearInterval(timer); };
 }
 
+export async function getExistingVoiceTransform(
+  audioId: string,
+  voicePreset: VoicePreset,
+): Promise<{ audioId: string; audioUrl: string } | null> {
+  try {
+    const result = await databases.listDocuments<VoiceJob>(
+      appwriteConfig.databaseId,
+      JOBS_COLLECTION_ID,
+      [
+        Query.equal("status", "done"),
+        Query.equal("audioId", audioId),
+        Query.equal("voicePreset", voicePreset),
+        Query.orderDesc("$createdAt"),
+        Query.limit(1),
+      ],
+    );
+
+    const job = result.documents[0];
+    if (job?.outputAudioId) {
+      return {
+        audioId: job.outputAudioId,
+        audioUrl: getVoiceUrl(job.outputAudioId),
+      };
+    }
+  } catch (error) {
+    console.warn("[VoiceTransform] Failed to lookup existing voice transform", error);
+  }
+
+  return null;
+}
+
 export async function transformVoice(
   audioId: string,
   voicePreset: VoicePreset,
   onProgress?: (progress: number) => void,
 ): Promise<{ audioId: string; audioUrl: string }> {
+  const existing = await getExistingVoiceTransform(audioId, voicePreset);
+  if (existing) {
+    onProgress?.(100);
+    return existing;
+  }
+
   const execution = await functions.createExecution({
     functionId: FUNCTION_ID,
     body: JSON.stringify({ audioId, voicePreset }),

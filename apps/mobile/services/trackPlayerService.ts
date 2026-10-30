@@ -9,6 +9,8 @@ import TrackPlayer, {
   Event,
 } from "@weights-ai/react-native-track-player";
 
+import { STATUS_BAR_ICON } from "@/brands/assets";
+
 const SEEK_INTERVAL = 10; // seconds
 
 export async function PlaybackService() {
@@ -76,6 +78,8 @@ export async function setupPlayer() {
       android: {
         appKilledPlaybackBehavior: AppKilledPlaybackBehavior.PausePlayback,
       },
+      // Use app's custom notification/status bar icon
+      icon: STATUS_BAR_ICON,
     });
 
     console.log("[TrackPlayer] Setup complete");
@@ -97,6 +101,7 @@ export async function updateNotificationCapabilities(isLiveMode: boolean) {
         capabilities: [Capability.Play, Capability.Pause],
         notificationCapabilities: [Capability.Play, Capability.Pause],
         compactCapabilities: [Capability.Play, Capability.Pause],
+        icon: STATUS_BAR_ICON,
       });
       console.log("[TrackPlayer] Updated to live mode capabilities");
     } else {
@@ -117,6 +122,7 @@ export async function updateNotificationCapabilities(isLiveMode: boolean) {
         compactCapabilities: [Capability.Play, Capability.Pause],
         forwardJumpInterval: SEEK_INTERVAL,
         backwardJumpInterval: SEEK_INTERVAL,
+        icon: STATUS_BAR_ICON,
       });
       console.log(
         "[TrackPlayer] Updated to normal mode capabilities with seek",

@@ -159,7 +159,9 @@
     "5aJ9znHPFQw",
     "23xKuXjmYfQ",
     "T1gDtdqgnn8",
-    "VtmVzhxmlo4"
+    "VtmVzhxmlo4",
+    "rlNXdMCUTEU",
+    "dhNRqwnJcDQ"
   ],
   "failed": [
     {
@@ -178,6 +180,6 @@
       "time": "2026-10-20T06:30:06.897Z"
     }
   ],
-  "today": 0,
-  "lastDate": "2026-10-29"
+  "today": 1,
+  "lastDate": "2026-10-30"
 }

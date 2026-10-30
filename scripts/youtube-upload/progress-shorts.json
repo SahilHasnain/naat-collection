@@ -326,7 +326,9 @@
     "T1gDtdqgnn8:end",
     "Z0YqPBMB3j0:end",
     "x4unSC_q1x4:end",
-    "wWMLDmM8TpU:end"
+    "wWMLDmM8TpU:end",
+    "IovcF0BnkqE:end",
+    "dvSRpbzRgk4:end"
   ],
   "failed": [
     {
@@ -352,8 +354,22 @@
       "position": "start",
       "error": "fetch failed",
       "time": "2026-10-20T06:30:14.807Z"
+    },
+    {
+      "youtubeId": "vbdlV9JvLXQ",
+      "progressKey": "vbdlV9JvLXQ:end",
+      "position": "end",
+      "error": "request to https://youtube.googleapis.com/upload/youtube/v3/videos?part=snippet&part=status&uploadType=multipart failed, reason: write ECONNRESET",
+      "time": "2026-10-30T06:41:08.605Z"
+    },
+    {
+      "youtubeId": "DdTpyE5I6wc",
+      "progressKey": "DdTpyE5I6wc:end",
+      "position": "end",
+      "error": "terminated",
+      "time": "2026-10-30T06:46:33.741Z"
     }
   ],
-  "today": 2,
-  "lastDate": "2026-10-26"
+  "today": 0,
+  "lastDate": "2026-10-30"
 }

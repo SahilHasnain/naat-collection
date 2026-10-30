@@ -240,13 +240,29 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     }
 
     try {
-      setIsTransformingVoice(true);
-      setVoicePreset(preset);
       setShowOptionsMenu(false);
       await AsyncStorage.setItem(
         voicePresetPreferenceKey(audio.naatId ?? sourceAudioId),
         preset,
       );
+
+      const { getExistingVoiceTransform } = await import("@/services/voiceTransform");
+      const existing = await getExistingVoiceTransform(sourceAudioId, preset);
+      if (existing) {
+        setVoicePreset(preset);
+        await loadAndPlay({
+          ...audio,
+          audioId: existing.audioId,
+          voiceSourceAudioId: sourceAudioId,
+          audioUrl: existing.audioUrl,
+          isLocalFile: false,
+        });
+        showSuccessToast(`${getVoicePresetLabel(preset)} tone is ready`);
+        return;
+      }
+
+      setIsTransformingVoice(true);
+      setVoicePreset(preset);
       await startVoiceTransform(sourceAudioId, preset);
       setVoiceTransformRefresh((value) => value + 1);
       showInfoToast("Voice conversion started in the background.");
@@ -289,6 +305,22 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
       }
 
       autoAppliedVoiceTrackRef.current = trackKey;
+      const { getExistingVoiceTransform } = await import("@/services/voiceTransform");
+      const existing = await getExistingVoiceTransform(audioId, savedPreset as VoicePreset);
+      if (cancelled) return;
+
+      if (existing) {
+        setVoicePreset(savedPreset as VoicePreset);
+        await loadAndPlay({
+          ...audio,
+          audioId: existing.audioId,
+          voiceSourceAudioId: audioId,
+          audioUrl: existing.audioUrl,
+          isLocalFile: false,
+        });
+        return;
+      }
+
       void handleVoiceTransformRef.current(savedPreset as VoicePreset);
     };
 

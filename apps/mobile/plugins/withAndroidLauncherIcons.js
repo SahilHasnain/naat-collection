@@ -8,8 +8,14 @@ const GENERATED_FILES_TO_REPLACE = ["ic_launcher.webp", "ic_launcher_round.webp"
 
 module.exports = function withAndroidLauncherIcons(config) {
   return withDangerousMod(config, ["android", async (modConfig) => {
+    const projectId =
+      modConfig.extra?.projectId ||
+      process.env.APP_PROJECT_ID ||
+      "naat-collection";
     const sourceRoot = path.join(
       modConfig.modRequest.projectRoot,
+      "brands",
+      projectId,
       "assets/android-launcher-icons/android",
     );
     const resourceRoot = path.join(

@@ -10,6 +10,7 @@ const assetAliases = {
   "@brand-assets/google": "google.png",
   "@brand-assets/headphone": "headphone-v1.png",
   "@brand-assets/gumbad": "gumbad.png",
+  "@brand-assets/status-bar": "status_bar_icon.png",
 };
 
 if (!fs.existsSync(path.join(__dirname, "brands", projectId, "brand.config.js"))) {

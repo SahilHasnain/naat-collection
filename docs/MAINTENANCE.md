@@ -48,6 +48,21 @@ dependencies were intentionally preserved.
 
 **[DONE]**
 
+## Removed — root `apps/mobile/assets` (2026-10-30)
+
+Brand assets now live only under `apps/mobile/brands/<project>/assets`, resolved
+through the `@brand-assets/*` Metro aliases (see `metro.config.js`) or the
+`./assets/` → brand remap in `app.config.js`. Removed:
+
+- `apps/mobile/assets/images/` (all files)
+- `apps/mobile/assets/android-launcher-icons/` — migrated to
+  `brands/<project>/assets/android-launcher-icons/`; `withAndroidLauncherIcons`
+  now reads the active brand's copy
+- Added `status_bar_icon.png` to every brand plus the
+  `@brand-assets/status-bar` alias, used by the Track Player notification icon.
+  Regenerate them from each brand's foreground with
+  `python apps/mobile/scripts/generate-status-bar-icons.py`.
+
 ## Flagged — safe to remove
 
 | Path | Reason |
