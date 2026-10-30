@@ -39,7 +39,7 @@ export interface Channel {
   id: string; // YouTube channel ID or generated ID for playlists
   name: string; // Channel display name
   minLatest?: number; // Include new videos within this many calendar months
-  minPopular?: number; // Minimum views in thousands for videos older than minLatest
+  minPopular?: number; // Minimum views in thousands (applies to all videos when minLatest is unset; otherwise only to videos older than minLatest)
   isOther?: boolean; // Whether channel should appear in "Other" tab
   type?: "channel" | "playlist"; // Type of source
   playlistId?: string; // YouTube playlist ID (only for type="playlist")
@@ -52,7 +52,7 @@ export interface ChannelDocument {
   naatCount?: number; // Optional: number of naats from this channel
   lastUpdated?: string; // ISO 8601 format
   minLatest?: number; // Include new videos within this many calendar months
-  minPopular?: number; // Minimum views in thousands for videos older than minLatest
+  minPopular?: number; // Minimum views in thousands (applies to all videos when minLatest is unset; otherwise only to videos older than minLatest)
   isOther?: boolean; // Whether channel should appear in "Other" tab
   type?: "channel" | "playlist"; // Type of source (default: "channel")
   playlistId?: string; // YouTube playlist ID (only for type="playlist")

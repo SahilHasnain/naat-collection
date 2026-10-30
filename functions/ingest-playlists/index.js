@@ -464,17 +464,25 @@ export function passesSourceAgePopularityFilter(video, source, referenceDate = n
   const minLatestMonths = Number.isInteger(source.minLatest) && source.minLatest > 0
     ? source.minLatest
     : null;
-  // Popularity is only an exception to an active recency cutoff.
-  if (minLatestMonths === null) return { include: true };
+  const minPopularK = Number.isInteger(source.minPopular) && source.minPopular > 0
+    ? source.minPopular
+    : null;
+  const minViews = minPopularK === null ? null : minPopularK * 1000;
+
+  // Without a recency window, minPopular (when set) is the only gate: every
+  // video must clear the popularity floor regardless of age.
+  if (minLatestMonths === null) {
+    if (minViews !== null && video.views < minViews) {
+      return { include: false, minViews };
+    }
+    return { include: true, minViews };
+  }
 
   const publishedAt = Date.parse(video.uploadDate);
   const cutoff = subtractCalendarMonths(referenceDate, minLatestMonths).getTime();
   if (Number.isFinite(publishedAt) && publishedAt >= cutoff) return { include: true, recent: true };
 
-  const minPopularK = Number.isInteger(source.minPopular) && source.minPopular > 0
-    ? source.minPopular
-    : null;
-  const minViews = minPopularK === null ? null : minPopularK * 1000;
+  // With a recency window, minPopular is an exception for older videos.
   if (minViews !== null && video.views >= minViews) {
     return { include: true, popularOverride: true, minViews };
   }
@@ -523,6 +531,8 @@ async function processSource(
     log(
       `  Age policy: latest ${minLatestMonths} month(s)${minPopularK !== null ? `; older videos need at least ${minPopularK}k views` : "; older videos are excluded"}`,
     );
+  } else if (minPopularK !== null) {
+    log(`  Popularity policy: only videos with at least ${minPopularK}k views`);
   }
 
   try {
@@ -590,7 +600,7 @@ async function processSource(
           const agePopularity = passesSourceAgePopularityFilter(video, source);
           if (!agePopularity.include) {
             log(
-              `Filtered: ${video.title} (outside minLatest${agePopularity.minViews === null ? "; no minPopular override" : `; ${video.views} views < ${agePopularity.minViews} minPopular views`})`,
+              `Filtered: ${video.title} (${minLatestMonths === null ? `${video.views} views < ${agePopularity.minViews} minPopular views` : `outside minLatest${agePopularity.minViews === null ? "; no minPopular override" : `; ${video.views} views < ${agePopularity.minViews} minPopular views`}`})`,
             );
             results.filtered++;
             continue;
