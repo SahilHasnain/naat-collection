@@ -74,6 +74,7 @@ export function useDownloadManager(displayData: Naat[]) {
         getPreferredDuration(naat),
         naat.channelName || "Unknown Channel",
         naat.views || 0,
+        naat.$id,
         (progress) => {
           setDownloadStates((prev) => ({
             ...prev,

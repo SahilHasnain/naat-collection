@@ -266,6 +266,7 @@ export default function HistoryScreen() {
                   router.push({
                     pathname: "/video",
                     params: {
+                      naatId: naat.$id,
                       videoUrl:
                         naat.videoUrl ||
                         (naat.youtubeId
@@ -332,6 +333,7 @@ export default function HistoryScreen() {
                       router.push({
                         pathname: "/video",
                         params: {
+                          naatId: naat.$id,
                           videoUrl: naat.videoUrl,
                           title: naat.title,
                           channelName: naat.channelName,
@@ -360,6 +362,7 @@ export default function HistoryScreen() {
           isLocalFile,
           audioId: audioId,
           youtubeId: naat.youtubeId,
+          naatId: naat.$id,
         };
 
         await loadAndPlay(audioMetadata);
@@ -391,6 +394,7 @@ export default function HistoryScreen() {
                   router.push({
                     pathname: "/video",
                     params: {
+                      naatId: naat.$id,
                       videoUrl:
                         naat.videoUrl ||
                         (naat.youtubeId
@@ -435,6 +439,7 @@ export default function HistoryScreen() {
           router.push({
             pathname: "/video",
             params: {
+              naatId: naat.$id,
               videoUrl:
                 naat.videoUrl ||
                 (naat.youtubeId
@@ -514,6 +519,7 @@ export default function HistoryScreen() {
       router.push({
         pathname: "/video",
         params: {
+          naatId: selectedNaat.$id,
           videoUrl:
             selectedNaat.videoUrl ||
             (selectedNaat.youtubeId

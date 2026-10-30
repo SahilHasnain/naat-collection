@@ -98,6 +98,7 @@ class AudioDownloadService {
     _duration: number,
     _channelName: string,
     _views: number,
+    _naatId?: string,
     onProgress?: (progress: DownloadProgress) => void,
   ): Promise<string> {
     const filename = `${sanitizeFilename(title, audioId)}.m4a`;
@@ -115,6 +116,7 @@ class AudioDownloadService {
     _sourceAudioId?: string,
     _startMs?: number,
     _endMs?: number,
+    _naatId?: string,
   ): Promise<string> {
     const filename = `${sanitizeFilename(title, audioId)}-ab-export.m4a`;
     return downloadInBrowser(downloadUrl, filename);

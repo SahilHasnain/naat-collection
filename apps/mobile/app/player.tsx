@@ -67,6 +67,7 @@ export default function PlayerScreen() {
       thumbnailUrl: currentAudio.thumbnailUrl,
       youtubeId: currentAudio.youtubeId,
       audioId: currentAudio.audioId,
+      naatId: currentAudio.naatId,
     };
 
     await storageService.savePlaybackMode("video").catch(() => {});
@@ -82,6 +83,7 @@ export default function PlayerScreen() {
         thumbnailUrl: videoData.thumbnailUrl,
         youtubeId: videoData.youtubeId,
         audioId: videoData.audioId,
+        naatId: videoData.naatId,
         isFallback: "false",
       },
     });

@@ -202,6 +202,7 @@ export default function DownloadsScreen() {
         isLocalFile: true,
         audioId: randomDownload.audioId,
         youtubeId: randomDownload.youtubeId,
+        naatId: randomDownload.naatId,
       };
 
       await loadAndPlay(audioMetadata);

@@ -25,6 +25,7 @@ const DownloadedAudioModal: React.FC<DownloadedAudioModalProps> = ({
           isLocalFile: true,
           audioId: audio.audioId,
           youtubeId: audio.youtubeId,
+          naatId: audio.naatId,
         };
 
         await loadAndPlay(audioMetadata);

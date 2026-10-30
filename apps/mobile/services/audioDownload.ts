@@ -17,6 +17,7 @@ export interface DownloadMetadata {
   localUri: string;
   thumbnailLocalUri?: string;
   sourceAudioId?: string;
+  naatId?: string;
   isABExport?: boolean;
   segmentStartMs?: number;
   segmentEndMs?: number;
@@ -181,6 +182,7 @@ class AudioDownloadService {
     duration: number,
     channelName: string,
     views: number,
+    naatId?: string,
     onProgress?: (progress: DownloadProgress) => void,
   ): Promise<string> {
     await this.initialize();
@@ -232,6 +234,7 @@ class AudioDownloadService {
       title,
       localUri: result.uri,
       thumbnailLocalUri: thumbnailLocalUri ?? undefined,
+      naatId,
       downloadedAt: Date.now(),
       fileSize: fileInfo.exists && "size" in fileInfo ? fileInfo.size : 0,
       duration,
@@ -255,6 +258,7 @@ class AudioDownloadService {
     sourceAudioId?: string,
     startMs?: number,
     endMs?: number,
+    naatId?: string,
   ): Promise<string> {
     await this.initialize();
     const localPath = this.getLocalPath(audioId);
@@ -275,6 +279,7 @@ class AudioDownloadService {
       localUri: result.uri,
       thumbnailLocalUri: thumbnailLocalUri ?? undefined,
       sourceAudioId,
+      naatId,
       isABExport: true,
       segmentStartMs: startMs,
       segmentEndMs: endMs,

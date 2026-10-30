@@ -58,6 +58,7 @@ export default function VideoScreen() {
     duration?: string;
     youtubeId?: string;
     audioId?: string;
+    naatId?: string;
     isFallback?: string;
   }>();
 
@@ -111,6 +112,7 @@ export default function VideoScreen() {
   const dbDuration = Number(params.duration || 0);
   const propYoutubeId = params.youtubeId;
   const propAudioId = params.audioId;
+  const propNaatId = params.naatId;
   const isFallback = params.isFallback === "true";
 
   // Extract YouTube video ID from URL
@@ -234,6 +236,7 @@ export default function VideoScreen() {
         isLocalFile,
         audioId: propAudioId,
         youtubeId: propYoutubeId,
+        naatId: propNaatId,
       };
 
       await loadAndPlay(audioMetadata);

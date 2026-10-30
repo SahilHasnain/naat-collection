@@ -215,6 +215,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         Math.floor(duration / 1000),
         currentAudio.channelName || "Unknown Channel",
         currentAudio.views || 0,
+        currentAudio.naatId,
         (progress) => {
           setDownloadProgress(progress.progress);
         },
@@ -461,6 +462,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         currentAudio.audioId,
         abRepeatPointA,
         abRepeatPointB,
+        currentAudio.naatId,
       );
       setHasExportedAB(true);
       showSuccessToast("A/B audio saved to Downloads");
@@ -475,6 +477,24 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   };
 
   const bothPointsSet = abRepeatPointA !== null && abRepeatPointB !== null;
+
+  const favoriteButton =
+    naatId && onFavoritePress ? (
+      <TouchableOpacity
+        onPress={onFavoritePress}
+        style={styles.headerButton}
+        accessibilityRole="button"
+        accessibilityLabel={
+          isFavorite ? "Remove from favorites" : "Add to favorites"
+        }
+      >
+        <Ionicons
+          name={isFavorite ? "heart" : "heart-outline"}
+          size={22}
+          color={isFavorite ? colors.accent.error : colors.text.secondary}
+        />
+      </TouchableOpacity>
+    ) : null;
 
   if (!currentAudio) return null;
 
@@ -519,26 +539,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
               </TouchableOpacity>
 
               <View style={styles.headerActions}>
-                {naatId && onFavoritePress && (
-                  <TouchableOpacity
-                    onPress={onFavoritePress}
-                    style={styles.headerButton}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      isFavorite ? "Remove from favorites" : "Add to favorites"
-                    }
-                  >
-                    <Ionicons
-                      name={isFavorite ? "heart" : "heart-outline"}
-                      size={22}
-                      color={
-                        isFavorite
-                          ? colors.accent.error
-                          : colors.text.secondary
-                      }
-                    />
-                  </TouchableOpacity>
-                )}
+                {favoriteButton}
                 {currentAudio.youtubeId && onSwitchToVideo && (
                   <TouchableOpacity
                     onPress={onSwitchToVideo}
@@ -587,18 +588,21 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                 <View style={styles.headerButton} />
               )}
 
-              <TouchableOpacity
-                onPress={() => setShowOptionsMenu(!showOptionsMenu)}
-                style={styles.headerButton}
-                accessibilityRole="button"
-                accessibilityLabel="Options menu"
-              >
-                <Ionicons
-                  name="ellipsis-horizontal"
-                  size={22}
-                  color={colors.text.secondary}
-                />
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                {favoriteButton}
+                <TouchableOpacity
+                  onPress={() => setShowOptionsMenu(!showOptionsMenu)}
+                  style={styles.headerButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Options menu"
+                >
+                  <Ionicons
+                    name="ellipsis-horizontal"
+                    size={22}
+                    color={colors.text.secondary}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
