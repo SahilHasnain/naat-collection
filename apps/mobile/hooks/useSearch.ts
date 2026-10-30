@@ -1,4 +1,4 @@
-import { searchItems } from "@naat-collection/shared";
+import { getPreferredAudioId, searchItems } from "@naat-collection/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { appwriteService } from "../services/appwrite";
 import type { Naat, UseSearchReturn } from "../types";
@@ -17,9 +17,17 @@ import brand from "../config/brand";
  * - Understands synonyms and related terms
  *
  * @param channelId - Optional channel ID to filter search results (null = all channels)
+ * @param pureOnly - Only include naats with cut audio
+ * @param teenageOnly - Only include naats whose teenage voice is already generated
+ * @param readyAudioIds - Source audio IDs with a ready teenage voice transform
  * @returns UseSearchReturn object with search state and control functions
  */
-export function useSearch(channelId: string | null = null, pureOnly: boolean = false): UseSearchReturn {
+export function useSearch(
+  channelId: string | null = null,
+  pureOnly: boolean = false,
+  teenageOnly: boolean = false,
+  readyAudioIds: Set<string> | null = null,
+): UseSearchReturn {
   const [query, setQueryState] = useState<string>("");
   const [results, setResults] = useState<Naat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -35,6 +43,18 @@ export function useSearch(channelId: string | null = null, pureOnly: boolean = f
 
   // Ref to track if component is mounted
   const isMountedRef = useRef<boolean>(true);
+
+  const filterByTeenage = useCallback(
+    (naats: Naat[]): Naat[] => {
+      if (!teenageOnly) return naats;
+      if (!readyAudioIds) return [];
+      return naats.filter((naat) => {
+        const audioId = getPreferredAudioId(naat);
+        return !!audioId && readyAudioIds.has(audioId);
+      });
+    },
+    [teenageOnly, readyAudioIds],
+  );
 
   /**
    * Load all naats for client-side fallback search
@@ -86,6 +106,8 @@ export function useSearch(channelId: string | null = null, pureOnly: boolean = f
           filteredResults = filteredResults.filter((naat) => !!naat.cutAudio);
         }
 
+        filteredResults = filterByTeenage(filteredResults);
+
         if (isMountedRef.current) {
           setResults(filteredResults);
         }
@@ -98,7 +120,7 @@ export function useSearch(channelId: string | null = null, pureOnly: boolean = f
         });
 
         if (isMountedRef.current) {
-          setResults(searchResults);
+          setResults(filterByTeenage(searchResults));
         }
       }
     } catch (error) {
@@ -112,7 +134,7 @@ export function useSearch(channelId: string | null = null, pureOnly: boolean = f
         });
 
         if (isMountedRef.current) {
-          setResults(searchResults);
+          setResults(filterByTeenage(searchResults));
         }
       } catch (fallbackError) {
         console.error("Fallback search also failed:", fallbackError);
@@ -125,7 +147,7 @@ export function useSearch(channelId: string | null = null, pureOnly: boolean = f
         setLoading(false);
       }
     }
-  }, [channelId, useSemanticSearch, pureOnly]);
+  }, [channelId, useSemanticSearch, pureOnly, filterByTeenage]);
 
   /**
    * Set search query with debouncing
@@ -179,7 +201,7 @@ export function useSearch(channelId: string | null = null, pureOnly: boolean = f
     loadNaats();
   }, [loadNaats]);
 
-  // Re-run search when channelId changes and there's an active query
+  // Re-run search when the channel or voice-readiness filters change
   useEffect(() => {
     if (query.trim()) {
       // Reload naats and re-search
@@ -187,7 +209,7 @@ export function useSearch(channelId: string | null = null, pureOnly: boolean = f
         performSemanticSearch(query);
       });
     }
-  }, [channelId, pureOnly]); // Only depend on channelId/pureOnly to avoid infinite loops
+  }, [channelId, pureOnly, teenageOnly, readyAudioIds]); // Avoid query/performSemanticSearch to prevent loops
 
   // Cleanup on unmount
   useEffect(() => {

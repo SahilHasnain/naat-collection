@@ -24,6 +24,8 @@ interface SearchFilterBarProps {
   onDurationChange: (duration: DurationOption) => void;
   pureOnly?: boolean;
   onPureOnlyChange?: (value: boolean) => void;
+  teenageOnly?: boolean;
+  onTeenageOnlyChange?: (value: boolean) => void;
 }
 
 export function SearchFilterBar({
@@ -34,6 +36,8 @@ export function SearchFilterBar({
   onDurationChange,
   pureOnly = false,
   onPureOnlyChange,
+  teenageOnly = false,
+  onTeenageOnlyChange,
 }: SearchFilterBarProps) {
   return (
     <View style={{ backgroundColor: colors.background.primary }}>
@@ -65,6 +69,29 @@ export function SearchFilterBar({
             style={{ color: pureOnly ? colors.text.inverse : colors.text.secondary }}
           >
             Pure
+          </Text>
+        </Pressable>
+
+        {/* Teenage voice ready Toggle */}
+        <Pressable
+          onPress={() => onTeenageOnlyChange?.(!teenageOnly)}
+          className="mr-2 px-3 py-1.5 rounded-full flex-row items-center"
+          style={{
+            backgroundColor: teenageOnly
+              ? colors.accent.primary
+              : colors.background.tertiary,
+          }}
+        >
+          <Ionicons
+            name="mic-outline"
+            size={14}
+            color={teenageOnly ? colors.text.inverse : colors.text.secondary}
+          />
+          <Text
+            className="font-medium text-xs ml-1.5"
+            style={{ color: teenageOnly ? colors.text.inverse : colors.text.secondary }}
+          >
+            Teenage
           </Text>
         </Pressable>
 

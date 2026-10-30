@@ -26,6 +26,8 @@ interface UnifiedFilterBarProps {
   onDurationChange: (duration: DurationOption) => void;
   pureOnly?: boolean;
   onPureOnlyChange?: (value: boolean) => void;
+  teenageOnly?: boolean;
+  onTeenageOnlyChange?: (value: boolean) => void;
   externalOpen?: boolean;
   onExternalClose?: () => void;
   hideChips?: boolean;
@@ -42,6 +44,8 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
   onDurationChange,
   pureOnly = false,
   onPureOnlyChange,
+  teenageOnly = false,
+  onTeenageOnlyChange,
   externalOpen = false,
   onExternalClose,
   hideChips = false,
@@ -118,7 +122,7 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
     currentChannel = channelOptions.find((c) => c.id === selectedChannelId) || channelOptions[0];
   }
   const currentDuration = durationFilters.find((f) => f.value === selectedDuration);
-  const hasActiveFilters = selectedSort !== "forYou" || selectedChannelId !== null || selectedDuration !== "all" || pureOnly;
+  const hasActiveFilters = selectedSort !== "forYou" || selectedChannelId !== null || selectedDuration !== "all" || pureOnly || teenageOnly;
 
   return (
     <>
@@ -170,10 +174,20 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               <Text className="font-semibold text-sm ml-2" style={{ color: pureOnly ? colors.text.inverse : colors.text.secondary }}>Pure</Text>
             </Pressable>
 
+            {/* Teenage voice ready Chip */}
+            <Pressable
+              onPress={() => onTeenageOnlyChange?.(!teenageOnly)}
+              className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
+              style={{ backgroundColor: teenageOnly ? colors.accent.primary : colors.background.tertiary, minHeight: 44 }}
+            >
+              <Ionicons name="mic-outline" size={16} color={teenageOnly ? colors.text.inverse : colors.text.secondary} />
+              <Text className="font-semibold text-sm ml-2" style={{ color: teenageOnly ? colors.text.inverse : colors.text.secondary }}>Teenage</Text>
+            </Pressable>
+
             {/* Clear */}
             {hasActiveFilters && (
               <Pressable
-                onPress={() => { onSortChange("forYou"); onChannelChange(null); onDurationChange("all"); onPureOnlyChange?.(false); }}
+                onPress={() => { onSortChange("forYou"); onChannelChange(null); onDurationChange("all"); onPureOnlyChange?.(false); onTeenageOnlyChange?.(false); }}
                 className="px-4 py-2.5 rounded-full flex-row items-center"
                 style={{ backgroundColor: colors.background.secondary, minHeight: 44 }}
               >
@@ -198,14 +212,19 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
         <SafeAreaView edges={["bottom"]} className="flex-1">
           {/* Sheet Header */}
           <View
-            className="flex-row items-center justify-between px-6 py-3 border-b"
+            className="px-6 py-3 border-b"
             style={{ borderBottomColor: colors.border.secondary }}
           >
-            <Text className="text-xl font-bold" style={{ color: colors.text.primary }}>Filters</Text>
+            <View className="flex-row items-center justify-between">
+              <Text className="text-xl font-bold" style={{ color: colors.text.primary }}>Filters</Text>
+              <Pressable onPress={handleClose} style={{ minHeight: 44, minWidth: 44, justifyContent: "center", alignItems: "center" }}>
+                <Ionicons name="close" size={24} color={colors.text.secondary} />
+              </Pressable>
+            </View>
             <View className="flex-row items-center">
               <Pressable
                 onPress={() => onPureOnlyChange?.(!pureOnly)}
-                className="flex-row items-center mr-4"
+                className="flex-row items-center mr-6"
                 style={{ minHeight: 44 }}
                 accessibilityRole="switch"
                 accessibilityState={{ checked: pureOnly }}
@@ -217,8 +236,19 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
                   <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: "#fff", alignSelf: pureOnly ? "flex-end" : "flex-start" }} />
                 </View>
               </Pressable>
-              <Pressable onPress={handleClose} style={{ minHeight: 44, minWidth: 44, justifyContent: "center", alignItems: "center" }}>
-                <Ionicons name="close" size={24} color={colors.text.secondary} />
+              <Pressable
+                onPress={() => onTeenageOnlyChange?.(!teenageOnly)}
+                className="flex-row items-center"
+                style={{ minHeight: 44 }}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: teenageOnly }}
+                accessibilityLabel="Teenage voice ready filter"
+              >
+                <Ionicons name="mic-outline" size={16} color={teenageOnly ? colors.accent.primary : colors.text.tertiary} style={{ marginRight: 6 }} />
+                <Text className="text-sm font-semibold" style={{ color: teenageOnly ? colors.accent.primary : colors.text.tertiary, marginRight: 8 }}>Teenage</Text>
+                <View style={{ width: 40, height: 22, borderRadius: 11, backgroundColor: teenageOnly ? colors.accent.primary : colors.background.elevated, justifyContent: "center", paddingHorizontal: 2 }}>
+                  <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: "#fff", alignSelf: teenageOnly ? "flex-end" : "flex-start" }} />
+                </View>
               </Pressable>
             </View>
           </View>

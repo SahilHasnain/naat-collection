@@ -170,9 +170,19 @@ export default function HomeScreen() {
   );
 
   useEffect(() => {
+    if (filters.teenageOnly && !filters.teenageReadyLoaded) return;
     loadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.selectedFilter, filters.selectedChannelId, filters.pureOnly]);
+  }, [
+    filters.selectedFilter,
+    filters.selectedChannelId,
+    filters.pureOnly,
+    filters.teenageOnly,
+    filters.teenageReadyLoaded,
+    // When the ready set is refreshed, `useNaats` resets its offset and list,
+    // so the reload has to be kicked off again with the new set.
+    filters.teenageReadyAudioIds,
+  ]);
 
   useEffect(() => {
     const autoPlayNaatId =
@@ -207,7 +217,16 @@ export default function HomeScreen() {
   // --- Handlers ---
 
   const handleRefresh = async () => {
-    await Promise.all([filters.refresh(), filters.refreshChannels()]);
+    const readyRefresh =
+      filters.teenageOnly || filters.searchTeenageOnly
+        ? filters.refreshTeenageReady()
+        : Promise.resolve();
+
+    await Promise.all([
+      filters.refresh(),
+      filters.refreshChannels(),
+      readyRefresh,
+    ]);
   };
 
   const handleScroll = (event: any) => {
@@ -368,6 +387,14 @@ export default function HomeScreen() {
       );
     }
     if (filters.isShowingSearchResults && filters.displayData.length === 0) {
+      if (filters.searchTeenageOnly) {
+        return (
+          <EmptyState
+            message="No matching naats have a teenage voice ready yet. Turn off the Teenage filter to search everything."
+            iconName="mic-off-outline"
+          />
+        );
+      }
       return (
         <EmptyState
           message="No naats found matching your search."
@@ -376,6 +403,15 @@ export default function HomeScreen() {
       );
     }
     if (filters.displayData.length === 0) {
+      if (filters.teenageOnly) {
+        return (
+          <EmptyState
+            message="No naats have a teenage voice ready yet. Turn off the Teenage filter to see everything."
+            iconName="mic-off-outline"
+          />
+        );
+      }
+
       return (
         <EmptyState
           message="No naats available yet. Check back soon!"
@@ -433,6 +469,8 @@ export default function HomeScreen() {
                     onDurationChange={filters.setSearchDuration}
                     pureOnly={filters.searchPureOnly}
                     onPureOnlyChange={filters.setSearchPureOnly}
+                    teenageOnly={filters.searchTeenageOnly}
+                    onTeenageOnlyChange={filters.setSearchTeenageOnly}
                   />
                   <View style={{ height: 12 }} />
                 </>
@@ -449,6 +487,8 @@ export default function HomeScreen() {
                     onDurationChange={filters.setSelectedDuration}
                     pureOnly={filters.pureOnly}
                     onPureOnlyChange={filters.setPureOnly}
+                    teenageOnly={filters.teenageOnly}
+                    onTeenageOnlyChange={filters.setTeenageOnly}
                     externalOpen={filters.showFilterModal}
                     onExternalClose={() => filters.setShowFilterModal(false)}
                     hideChips={!filters.hasActiveHomeFilters}

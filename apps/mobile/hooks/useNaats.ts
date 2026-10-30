@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getPreferredAudioId } from "@naat-collection/shared";
 import { appwriteService } from "../services/appwrite";
 import { getForYouFeed } from "../services/forYouAlgorithm";
 import { storageService } from "../services/storage";
@@ -8,6 +9,12 @@ import type { Naat, UseNaatsReturn } from "../types";
  * Number of naats to fetch per page
  */
 const PAGE_SIZE = 20;
+
+/**
+ * When the "teenage ready" filter is active most raw naats do not match, so
+ * scan larger batches to fill a page without too many round trips.
+ */
+const TEENAGE_SCAN_BATCH_SIZE = 200;
 
 export type SortOption = "forYou" | "latest" | "popular" | "oldest";
 
@@ -27,12 +34,17 @@ export type SortOption = "forYou" | "latest" | "popular" | "oldest";
  *
  * @param channelId - YouTube channel ID to filter by (null = all channels)
  * @param filter - Sort order for naats (default: "forYou")
+ * @param pureOnly - Only include naats with cut audio
+ * @param teenageOnly - Only include naats whose teenage voice is already generated
+ * @param readyAudioIds - Source audio IDs with a ready teenage voice transform
  * @returns UseNaatsReturn object with naats data and control functions
  */
 export function useNaats(
   channelId: string | null = null,
   filter: SortOption = "forYou",
   pureOnly: boolean = false,
+  teenageOnly: boolean = false,
+  readyAudioIds: Set<string> | null = null,
 ): UseNaatsReturn {
   const [naats, setNaats] = useState<Naat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -55,34 +67,55 @@ export function useNaats(
   const currentFilterRef = useRef<SortOption>(filter);
   const currentChannelRef = useRef<string | null>(channelId);
   const currentPureOnlyRef = useRef<boolean>(pureOnly);
+  const currentTeenageOnlyRef = useRef<boolean>(teenageOnly);
+  const currentReadyAudioIdsRef = useRef<Set<string> | null>(readyAudioIds);
 
   // Generate cache key from channelId and filter
   const getCacheKey = useCallback(
     (channel: string | null, sortFilter: SortOption): string => {
-      return `${channel || "all"}_${sortFilter}${pureOnly ? "_pure" : ""}`;
+      return `${channel || "all"}_${sortFilter}${pureOnly ? "_pure" : ""}${
+        teenageOnly ? "_teenage" : ""
+      }`;
     },
-    [pureOnly],
+    [pureOnly, teenageOnly],
   );
 
   const cacheKey = getCacheKey(channelId, filter);
 
   // Reset state when filter or channelId or pureOnly changes
   useEffect(() => {
+    const readyIdsChanged =
+      teenageOnly && currentReadyAudioIdsRef.current !== readyAudioIds;
+
     if (
       currentFilterRef.current !== filter ||
       currentChannelRef.current !== channelId ||
-      currentPureOnlyRef.current !== pureOnly
+      currentPureOnlyRef.current !== pureOnly ||
+      currentTeenageOnlyRef.current !== teenageOnly ||
+      readyIdsChanged
     ) {
       currentFilterRef.current = filter;
       currentChannelRef.current = channelId;
       currentPureOnlyRef.current = pureOnly;
+      currentTeenageOnlyRef.current = teenageOnly;
+      currentReadyAudioIdsRef.current = readyAudioIds;
       offsetRef.current = 0;
       setNaats([]);
       setHasMore(true);
       setError(null);
       isLoadingRef.current = false;
     }
-  }, [filter, channelId, pureOnly]);
+  }, [filter, channelId, pureOnly, teenageOnly, readyAudioIds]);
+
+  const matchesTeenageFilter = useCallback(
+    (naat: Naat): boolean => {
+      if (!teenageOnly) return true;
+      if (!readyAudioIds) return false;
+      const audioId = getPreferredAudioId(naat);
+      return !!audioId && readyAudioIds.has(audioId);
+    },
+    [teenageOnly, readyAudioIds],
+  );
 
   /**
    * Load more naats for infinite scroll
@@ -105,8 +138,11 @@ export function useNaats(
     }
     const filterCache = cacheRef.current.get(cacheKey)!;
 
-    // Check cache first
-    const cachedData = filterCache.get(offsetRef.current);
+    // Check cache first (the teenage filter scans raw pages, so its page
+    // boundaries are not stable enough to reuse this cache)
+    const cachedData = teenageOnly
+      ? undefined
+      : filterCache.get(offsetRef.current);
 
     if (cachedData) {
       // Use cached data
@@ -118,8 +154,11 @@ export function useNaats(
       return;
     }
 
-    // For "forYou" filter, use progressive loading strategy
-    if (filter === "forYou") {
+    // For "forYou" filter, use progressive loading strategy. When the teenage
+    // filter is active we use the standard paged fetch instead, because the
+    // ready set is a separate collection and the algorithm would run on a
+    // sparse subset.
+    if (filter === "forYou" && !teenageOnly) {
       // Check if we already have the full ordered list cached
       const cachedOrderedList = fullOrderedListRef.current.get(cacheKey);
 
@@ -270,24 +309,51 @@ export function useNaats(
           isLoadingRef.current = false;
         });
     } else {
-      // Standard fetch for other filters
-      appwriteService
-        .getNaats(PAGE_SIZE, offsetRef.current, filter, channelId, pureOnly)
-        .then((newNaats) => {
-          // Cache the results for this channel + filter combination
-          filterCache.set(offsetRef.current, newNaats);
+      // Standard fetch for other filters. With the teenage filter active,
+      // scan raw pages until a page worth of matches is collected so the
+      // list does not look empty when matches are further down.
+      const sortFilter = filter === "forYou" ? "latest" : filter;
+      const batchSize = teenageOnly ? TEENAGE_SCAN_BATCH_SIZE : PAGE_SIZE;
+      const pageStart = offsetRef.current;
+      let pageHasMore = true;
 
-          // Update state - filter out duplicates
-          setNaats((prev) => {
-            const existingIds = new Set(prev.map((n) => n.$id));
-            const uniqueNewNaats = newNaats.filter(
-              (n) => !existingIds.has(n.$id),
-            );
-            return [...prev, ...uniqueNewNaats];
-          });
-          offsetRef.current += PAGE_SIZE;
-          setHasMore(newNaats.length === PAGE_SIZE);
-        })
+      const fetchBatch = async (): Promise<Naat[]> => {
+        const batch = await appwriteService.getNaats(
+          batchSize,
+          offsetRef.current,
+          sortFilter,
+          channelId,
+          pureOnly,
+        );
+        offsetRef.current += batch.length;
+        if (batch.length < batchSize) {
+          pageHasMore = false;
+        }
+        return teenageOnly ? batch.filter(matchesTeenageFilter) : batch;
+      };
+
+      (async () => {
+        const collected: Naat[] = [];
+        do {
+          const matches = await fetchBatch();
+          collected.push(...matches);
+        } while (teenageOnly && pageHasMore && collected.length < PAGE_SIZE);
+
+        if (!teenageOnly) {
+          // Cache the results for this channel + filter combination
+          filterCache.set(pageStart, collected);
+        }
+
+        // Update state - filter out duplicates
+        setNaats((prev) => {
+          const existingIds = new Set(prev.map((n) => n.$id));
+          const uniqueNewNaats = collected.filter(
+            (n) => !existingIds.has(n.$id),
+          );
+          return [...prev, ...uniqueNewNaats];
+        });
+        setHasMore(teenageOnly ? pageHasMore : collected.length === PAGE_SIZE);
+      })()
         .catch((err) => {
           setError(
             err instanceof Error ? err : new Error("Failed to load naats"),
@@ -304,7 +370,15 @@ export function useNaats(
           isLoadingRef.current = false;
         });
     }
-  }, [hasMore, filter, channelId, cacheKey, pureOnly]);
+  }, [
+    hasMore,
+    filter,
+    channelId,
+    cacheKey,
+    pureOnly,
+    teenageOnly,
+    matchesTeenageFilter,
+  ]);
 
   /**
    * Refresh the naats list (pull-to-refresh)
@@ -313,12 +387,20 @@ export function useNaats(
    * For "forYou", also clears the session cache
    */
   const refresh = useCallback(async (): Promise<void> => {
-    // Reset state
-    offsetRef.current = 0;
-
     // Clear ALL caches (all channel + sort combinations)
     cacheRef.current.clear();
     fullOrderedListRef.current.clear();
+
+    // With the teenage filter, the caller refreshes the ready voice set at the
+    // same time. That new set resets this hook and triggers a fresh scan, so
+    // fetching here would only duplicate the (expensive) paginated scan and can
+    // overwrite the newer results.
+    if (teenageOnly) {
+      return;
+    }
+
+    // Reset state
+    offsetRef.current = 0;
 
     // Clear For You session if using that filter
     if (filter === "forYou") {
@@ -464,7 +546,7 @@ export function useNaats(
       setLoading(false);
       isLoadingRef.current = false;
     }
-  }, [filter, channelId, cacheKey]);
+  }, [filter, channelId, cacheKey, pureOnly, teenageOnly]);
 
   /**
    * Remove a single naat from the current list and all caches without

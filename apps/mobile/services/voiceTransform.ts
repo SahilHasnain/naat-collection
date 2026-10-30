@@ -157,6 +157,82 @@ export async function getExistingVoiceTransform(
   return null;
 }
 
+/**
+ * Drop the cached "already generated" audio IDs so the next lookup re-reads
+ * `ai_jobs`. Call this after a voice transform finishes.
+ */
+export function invalidateReadyVoiceAudioIds(): void {
+  readyAudioIdsCache = null;
+}
+
+/**
+ * Return the source audio IDs that already have a completed voice transform
+ * for the given preset. This mirrors the lookup used before playback, so any
+ * naat in this set can use the generated voice immediately.
+ */
+export async function getReadyVoiceAudioIds(
+  voicePreset: VoicePreset = "high",
+  options: { forceRefresh?: boolean } = {},
+): Promise<Set<string>> {
+  const { forceRefresh = false } = options;
+  const now = Date.now();
+
+  if (
+    !forceRefresh &&
+    readyAudioIdsCache?.voicePreset === voicePreset &&
+    now - readyAudioIdsCache.fetchedAt < READY_CACHE_TTL_MS
+  ) {
+    return readyAudioIdsCache.ids;
+  }
+
+  if (!forceRefresh && readyAudioIdsInFlight?.voicePreset === voicePreset) {
+    return readyAudioIdsInFlight.promise;
+  }
+
+  const promise = (async () => {
+    const ids = new Set<string>();
+    let offset = 0;
+
+    while (true) {
+      const result = await databases.listDocuments<VoiceJob>(
+        appwriteConfig.databaseId,
+        JOBS_COLLECTION_ID,
+        [
+          Query.equal("type", "voice-transform"),
+          Query.equal("status", "done"),
+          Query.equal("voicePreset", voicePreset),
+          Query.isNotNull("outputAudioId"),
+          Query.select(["audioId"]),
+          Query.orderAsc("$createdAt"),
+          Query.limit(READY_LOOKUP_PAGE_SIZE),
+          Query.offset(offset),
+        ],
+      );
+
+      for (const job of result.documents) {
+        if (job.audioId) ids.add(job.audioId);
+      }
+
+      offset += result.documents.length;
+      if (result.documents.length < READY_LOOKUP_PAGE_SIZE) break;
+    }
+
+    return ids;
+  })();
+
+  readyAudioIdsInFlight = { voicePreset, promise };
+
+  try {
+    const ids = await promise;
+    readyAudioIdsCache = { voicePreset, ids, fetchedAt: Date.now() };
+    return ids;
+  } finally {
+    if (readyAudioIdsInFlight?.promise === promise) {
+      readyAudioIdsInFlight = null;
+    }
+  }
+}
+
 export async function transformVoice(
   audioId: string,
   voicePreset: VoicePreset,

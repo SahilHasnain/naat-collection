@@ -6,6 +6,7 @@ import {
   clearPendingVoiceTransform,
   getPendingVoiceTransform,
   getVoiceUrl,
+  invalidateReadyVoiceAudioIds,
   startVoiceTransform,
   watchVoiceTransform,
   type VoicePreset,
@@ -181,6 +182,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
       stopWatching = watchVoiceTransform(pending.jobId, async (job) => {
         if (job.status === "done" && job.outputAudioId) {
           await clearPendingVoiceTransform(pending.key);
+          invalidateReadyVoiceAudioIds();
           setIsTransformingVoice(false);
           if (cancelled) return;
           await loadAndPlay({ ...audio, audioId: job.outputAudioId, voiceSourceAudioId: audioId, audioUrl: getVoiceUrl(job.outputAudioId), isLocalFile: false });
