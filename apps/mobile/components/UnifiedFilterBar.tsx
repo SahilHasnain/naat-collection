@@ -124,6 +124,11 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
   const currentDuration = durationFilters.find((f) => f.value === selectedDuration);
   const hasActiveFilters = selectedSort !== "forYou" || selectedChannelId !== null || selectedDuration !== "all" || pureOnly || teenageOnly;
 
+  // `background.elevated` is pure white in light mode, so a white thumb on it
+  // is invisible against the sheet. Use a mid-gray track that stays readable
+  // in both themes.
+  const switchTrackOffColor = colors.text.disabled;
+
   return (
     <>
       {/* Compact Filter Chips */}
@@ -232,8 +237,8 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               >
                 <Ionicons name="cut-outline" size={16} color={pureOnly ? colors.accent.primary : colors.text.tertiary} style={{ marginRight: 6 }} />
                 <Text className="text-sm font-semibold" style={{ color: pureOnly ? colors.accent.primary : colors.text.tertiary, marginRight: 8 }}>Pure</Text>
-                <View style={{ width: 40, height: 22, borderRadius: 11, backgroundColor: pureOnly ? colors.accent.primary : colors.background.elevated, justifyContent: "center", paddingHorizontal: 2 }}>
-                  <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: "#fff", alignSelf: pureOnly ? "flex-end" : "flex-start" }} />
+                <View style={{ width: 40, height: 22, borderRadius: 11, backgroundColor: pureOnly ? colors.accent.primary : switchTrackOffColor, justifyContent: "center", paddingHorizontal: 2 }}>
+                  <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: colors.text.inverse, alignSelf: pureOnly ? "flex-end" : "flex-start" }} />
                 </View>
               </Pressable>
               <Pressable
@@ -246,8 +251,8 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               >
                 <Ionicons name="mic-outline" size={16} color={teenageOnly ? colors.accent.primary : colors.text.tertiary} style={{ marginRight: 6 }} />
                 <Text className="text-sm font-semibold" style={{ color: teenageOnly ? colors.accent.primary : colors.text.tertiary, marginRight: 8 }}>Teenage</Text>
-                <View style={{ width: 40, height: 22, borderRadius: 11, backgroundColor: teenageOnly ? colors.accent.primary : colors.background.elevated, justifyContent: "center", paddingHorizontal: 2 }}>
-                  <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: "#fff", alignSelf: teenageOnly ? "flex-end" : "flex-start" }} />
+                <View style={{ width: 40, height: 22, borderRadius: 11, backgroundColor: teenageOnly ? colors.accent.primary : switchTrackOffColor, justifyContent: "center", paddingHorizontal: 2 }}>
+                  <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: colors.text.inverse, alignSelf: teenageOnly ? "flex-end" : "flex-start" }} />
                 </View>
               </Pressable>
             </View>
