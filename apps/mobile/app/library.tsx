@@ -1,26 +1,39 @@
 import { colors } from "@/constants/theme";
+import { features } from "@/config/features";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-const libraryItems = [
+const allLibraryItems = [
   {
     label: "Favorites",
     description: "Naats you want to come back to",
     icon: "heart-outline" as const,
     route: "/favorites",
+    key: "favorites",
   },
   {
     label: "Downloads",
     description: "Audio saved for offline listening",
     icon: "cloud-download-outline" as const,
     route: "/downloads",
+    key: "downloads",
+  },
+  {
+    label: "Profile",
+    description: "Your preferences and history",
+    icon: "person-outline" as const,
+    route: "/profile",
+    key: "profile",
   },
 ] as const;
 
 export default function LibraryScreen() {
   const router = useRouter();
+  const libraryItems = allLibraryItems.filter(
+    (item) => item.key !== "profile" || features.showProfileTab
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>

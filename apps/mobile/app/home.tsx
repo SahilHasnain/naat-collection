@@ -489,6 +489,8 @@ export default function HomeScreen() {
                     onPureOnlyChange={filters.setPureOnly}
                     teenageOnly={filters.teenageOnly}
                     onTeenageOnlyChange={filters.setTeenageOnly}
+                    audioOnly={filters.audioOnly}
+                    onAudioOnlyChange={filters.setAudioOnly}
                     externalOpen={filters.showFilterModal}
                     onExternalClose={() => filters.setShowFilterModal(false)}
                     hideChips={!filters.hasActiveHomeFilters}

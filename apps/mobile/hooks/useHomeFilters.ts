@@ -5,7 +5,7 @@ import { useNaats } from "@/hooks/useNaats";
 import { useSearch } from "@/hooks/useSearch";
 import { useTeenageReady } from "@/hooks/useTeenageReady";
 import type { DurationOption, SortOption } from "@/types";
-import { filterNaatsByDuration } from "@naat-collection/shared";
+import { filterNaatsByDuration, hasAudio } from "@naat-collection/shared";
 import React, { useCallback, useState } from "react";
 
 export function useHomeFilters() {
@@ -15,6 +15,7 @@ export function useHomeFilters() {
   const [selectedDuration, setSelectedDuration] = useState<DurationOption>("all");
   const [pureOnly, setPureOnly] = useState(false);
   const [teenageOnly, setTeenageOnly] = useState(false);
+  const [audioOnly, setAudioOnly] = useState(false);
 
   // Search-specific filters
   const [searchChannelId, setSearchChannelId] = useState<string | null>(null);
@@ -53,12 +54,20 @@ export function useHomeFilters() {
 
   // Compute display data
   const homeDisplayData = React.useMemo(() => {
-    return filterNaatsByDuration(naats, selectedDuration);
-  }, [naats, selectedDuration]);
+    let data = filterNaatsByDuration(naats, selectedDuration);
+    if (audioOnly) {
+      data = data.filter((naat) => hasAudio(naat));
+    }
+    return data;
+  }, [naats, selectedDuration, audioOnly]);
 
   const searchDisplayData = React.useMemo(() => {
-    return filterNaatsByDuration(searchResults, searchDuration);
-  }, [searchResults, searchDuration]);
+    let data = filterNaatsByDuration(searchResults, searchDuration);
+    if (audioOnly) {
+      data = data.filter((naat) => hasAudio(naat));
+    }
+    return data;
+  }, [searchResults, searchDuration, audioOnly]);
 
   const displayData = isShowingSearchResults ? searchDisplayData : homeDisplayData;
 
@@ -76,7 +85,8 @@ export function useHomeFilters() {
     selectedChannelId !== null ||
     selectedDuration !== "all" ||
     pureOnly ||
-    teenageOnly;
+    teenageOnly ||
+    audioOnly;
 
   const resetSearchFilters = useCallback(() => {
     setSearchChannelId(null);
@@ -92,6 +102,7 @@ export function useHomeFilters() {
     selectedDuration, setSelectedDuration,
     pureOnly, setPureOnly,
     teenageOnly, setTeenageOnly,
+    audioOnly, setAudioOnly,
     // Search filters
     searchChannelId, setSearchChannelId,
     searchDuration, setSearchDuration,

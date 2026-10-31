@@ -14,7 +14,15 @@ type BrandConfig = {
   auth: { googleWebClientId: string };
   static: { naatsUrl: string; channelsUrl: string; appMessageUrl: string };
   sentry: { dsn?: string };
-  features: { useSemanticSearch: boolean; disableSearchSuggestions: boolean };
+  features: {
+    useSemanticSearch: boolean;
+    disableSearchSuggestions: boolean;
+    showPureFilter?: boolean;
+    showTeenageFilter?: boolean;
+    showVoiceTransform?: boolean;
+    showAudioFilter?: boolean;
+    showProfileTab?: boolean;
+  };
 };
 
 export const PROJECT_ID = Constants.expoConfig?.extra?.projectId as string | undefined;

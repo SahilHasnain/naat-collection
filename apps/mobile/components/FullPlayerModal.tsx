@@ -1,4 +1,5 @@
 import { colors, shadows } from "@/constants/theme";
+import { features } from "@/config/features";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -696,54 +697,58 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                   <Text style={[styles.menuItemText, { color: colors.text.primary }]}>Share</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  onPress={() => void handleVoiceTransform("high")}
-                  style={[...menuItemStyle, { borderBottomWidth: 0 }]}
-                >
-                  <View style={[styles.menuItemIcon, { backgroundColor: colors.background.tertiary }]}>
-                    <Ionicons
-                      name="sparkles-outline"
-                      size={20}
-                      color={colors.accent.tabActive}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.menuItemText, { color: colors.text.primary }]}>Voice tone</Text>
-                    <Text style={[styles.menuItemSubtext, { color: colors.text.secondary }] }>
-                      {isTransformingVoice
-                        ? "Processing..."
-                        : voicePreset
-                          ? `${getVoicePresetLabel(voicePreset)} selected`
-                          : "Choose a voice tone"}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+                {features.showVoiceTransform && (
+                  <TouchableOpacity
+                    onPress={() => void handleVoiceTransform("high")}
+                    style={[...menuItemStyle, { borderBottomWidth: 0 }]}
+                  >
+                    <View style={[styles.menuItemIcon, { backgroundColor: colors.background.tertiary }]}>
+                      <Ionicons
+                        name="sparkles-outline"
+                        size={20}
+                        color={colors.accent.tabActive}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.menuItemText, { color: colors.text.primary }]}>Voice tone</Text>
+                      <Text style={[styles.menuItemSubtext, { color: colors.text.secondary }] }>
+                        {isTransformingVoice
+                          ? "Processing..."
+                          : voicePreset
+                            ? `${getVoicePresetLabel(voicePreset)} selected`
+                            : "Choose a voice tone"}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
 
-                <View style={styles.voicePresetRow}>
-                  {VOICE_PRESETS.map((preset) => (
-                    <TouchableOpacity
-                      key={preset}
-                      onPress={() => handleVoicePresetPress(preset)}
-                      style={[
-                        styles.voicePresetButton,
-                        { backgroundColor: colors.background.tertiary },
-                        voicePreset === preset && {
-                          backgroundColor: colors.accent.tabActive,
-                        },
-                      ]}
-                    >
-                      <Text
+                {features.showVoiceTransform && (
+                  <View style={styles.voicePresetRow}>
+                    {VOICE_PRESETS.map((preset) => (
+                      <TouchableOpacity
+                        key={preset}
+                        onPress={() => handleVoicePresetPress(preset)}
                         style={[
-                          styles.voicePresetText,
-                          { color: colors.text.primary },
-                          voicePreset === preset && { color: colors.text.inverse },
+                          styles.voicePresetButton,
+                          { backgroundColor: colors.background.tertiary },
+                          voicePreset === preset && {
+                            backgroundColor: colors.accent.tabActive,
+                          },
                         ]}
                       >
-                        {getVoicePresetLabel(preset)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                        <Text
+                          style={[
+                            styles.voicePresetText,
+                            { color: colors.text.primary },
+                            voicePreset === preset && { color: colors.text.inverse },
+                          ]}
+                        >
+                          {getVoicePresetLabel(preset)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
 
                 <TouchableOpacity
                   onPress={() => {

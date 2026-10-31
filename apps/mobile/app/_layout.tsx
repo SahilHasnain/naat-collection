@@ -14,6 +14,7 @@ import {
 } from "@/contexts/HeaderVisibilityContext.animated";
 import { LayoutModeProvider } from "@/contexts/LayoutModeContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { features } from "@/config/features";
 import {
   LiveRadioProvider,
   useLiveRadioPlayer,
