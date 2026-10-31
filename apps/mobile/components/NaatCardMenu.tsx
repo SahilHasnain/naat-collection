@@ -44,6 +44,10 @@ interface NaatCardMenuProps {
   showDownload?: boolean;
   onExcluded?: (naatId: string, excluded: boolean) => void;
   onBestChanged?: (naatId: string, best: boolean) => void;
+  /** Insert this naat right after the current track. */
+  onPlayNext?: (naat: Naat) => void;
+  /** Append this naat to the end of the queue. */
+  onAddToQueue?: (naat: Naat) => void;
 }
 
 /**
@@ -67,6 +71,8 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
   showDownload = true,
   onExcluded,
   onBestChanged,
+  onPlayNext,
+  onAddToQueue,
 }) => {
   const [menuHeight, setMenuHeight] = useState(0);
   const [isUpdatingExclude, setIsUpdatingExclude] = useState(false);
@@ -144,6 +150,26 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
       onPress: onToggleFavorite,
     });
   }
+  items.push({
+    key: "play-next",
+    label: "Play next",
+    icon: "play-skip-forward-outline",
+    color: colors.text.primary,
+    onPress: () => {
+      onClose();
+      if (selectedNaat) onPlayNext?.(selectedNaat);
+    },
+  });
+  items.push({
+    key: "add-to-queue",
+    label: "Add to queue",
+    icon: "list-outline",
+    color: colors.text.primary,
+    onPress: () => {
+      onClose();
+      if (selectedNaat) onAddToQueue?.(selectedNaat);
+    },
+  });
   items.push({
     key: "alternate-play",
     label: savedPlaybackMode === "audio" ? "Play as video" : "Play as audio",

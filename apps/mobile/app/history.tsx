@@ -9,6 +9,7 @@ import { useDownloadManager } from "@/hooks/useDownloadManager";
 import { useFavorites } from "@/hooks/useFavorites";
 import { HistoryItem, useHistory } from "@/hooks/useHistory";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
+import { useNaatPlayback } from "@/hooks/useNaatPlayback";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
@@ -187,6 +188,7 @@ export default function HistoryScreen() {
     removeFromHistory,
     updateNaat,
   } = useHistory();
+  const { playNext, addToQueue } = useNaatPlayback(history);
 
   // Download manager (must be after history is declared)
   const { downloadStates, handleDownload } = useDownloadManager(history);
@@ -813,6 +815,8 @@ export default function HistoryScreen() {
           onDownload={handleDownloadFromSheet}
           isFavorite={selectedNaat ? isFavorite(selectedNaat.$id) : false}
           onToggleFavorite={handleToggleFavorite}
+          onPlayNext={(naat) => void playNext(naat.$id)}
+          onAddToQueue={(naat) => void addToQueue(naat.$id)}
           onAlternatePlay={handleAlternatePlay}
           onBestChanged={(naatId, best) => updateNaat(naatId, { best })}
           isDownloaded={

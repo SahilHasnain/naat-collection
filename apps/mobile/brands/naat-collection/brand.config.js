@@ -74,9 +74,9 @@ module.exports = {
   features: {
     useSemanticSearch: false,
     disableSearchSuggestions: true,
-    showPureFilter: false,
-    showTeenageFilter: false,
-    showVoiceTransform: false,
+    showPureFilter: true,
+    showTeenageFilter: true,
+    showVoiceTransform: true,
     showAudioFilter: false,
     showProfileTab: true,
     showBrandLinks: true,

@@ -33,6 +33,38 @@ export interface AudioMetadata {
   views?: number;
 }
 
+/**
+ * Result of a queue mutation. Callers turn this into user feedback so the
+ * behaviour is identical from every entry point (card menu, history, sheet).
+ */
+export type QueueAction =
+  | "started" // nothing was playing, so the track started immediately
+  | "queued" // appended / inserted into the upcoming list
+  | "moved" // was already queued and got promoted to play next
+  | "already-current" // the track is the one playing right now
+  | "already-queued" // the track is already in the upcoming list
+  | "full" // the upcoming list hit MAX_QUEUE
+  | "failed"; // RNTP rejected the mutation
+
+/** Stable identity for a track across the app and the RNTP queue. */
+export function getAudioKey(audio: AudioMetadata): string {
+  return audio.naatId || audio.audioId || audio.audioUrl;
+}
+
+const MAX_QUEUE = 50;
+
+function toTrack(audio: AudioMetadata) {
+  return {
+    id: getAudioKey(audio),
+    url: audio.audioUrl,
+    title: audio.title,
+    artist: audio.channelName,
+    artwork: audio.thumbnailUrl,
+    naatId: audio.naatId,
+    audioId: audio.audioId,
+  };
+}
+
 interface AudioContextType {
   // State
   currentAudio: AudioMetadata | null;
@@ -47,9 +79,21 @@ interface AudioContextType {
   abRepeatPointA: number | null;
   abRepeatPointB: number | null;
   isABRepeatActive: boolean;
+  /** Upcoming tracks, in play order. Excludes the currently playing track. */
+  queue: AudioMetadata[];
 
   // Actions
   loadAndPlay: (audio: AudioMetadata) => Promise<void>;
+  /** Insert at the front of the queue (right after the current track). */
+  playNext: (audio: AudioMetadata) => Promise<QueueAction>;
+  /** Append to the end of the queue. */
+  addToQueue: (audio: AudioMetadata) => Promise<QueueAction>;
+  removeFromQueue: (key: string) => Promise<void>;
+  clearQueue: () => Promise<void>;
+  /** Jump straight to an upcoming track. */
+  playFromQueue: (key: string) => Promise<void>;
+  skipToNext: () => Promise<void>;
+  skipToPrevious: () => Promise<void>;
   play: () => Promise<void>;
   pause: () => Promise<void>;
   seek: (positionMillis: number) => Promise<void>;
@@ -90,6 +134,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   const [abRepeatPointA, setAbRepeatPointA] = useState<number | null>(null);
   const [abRepeatPointB, setAbRepeatPointB] = useState<number | null>(null);
   const [isABRepeatActive, setIsABRepeatActive] = useState(false);
+  const [queue, setQueue] = useState<AudioMetadata[]>([]);
 
   // Debug: Log when currentAudio changes
   useEffect(() => {
@@ -109,8 +154,29 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   const abRepeatPointARef = useRef<number | null>(null);
   const abRepeatPointBRef = useRef<number | null>(null);
   const isABRepeatActiveRef = useRef(false);
+  const currentAudioRef = useRef<AudioMetadata | null>(null);
+  // Metadata lives in a ref because RNTP owns the real queue: the native queue
+  // only stores track fields, so this map rehydrates AudioMetadata on advance.
+  const metadataRef = useRef<Map<string, AudioMetadata>>(new Map());
+  const queueRef = useRef<AudioMetadata[]>([]);
+  const completedTrackRef = useRef<string | null>(null);
+
+  const notifyTrackComplete = useCallback((audio: AudioMetadata | null) => {
+    if (!audio) return;
+    const key = getAudioKey(audio);
+    if (completedTrackRef.current === key) return;
+    completedTrackRef.current = key;
+    trackCompleteCallbackRef.current?.(audio.naatId);
+  }, []);
 
   // Sync refs with state
+  useEffect(() => {
+    currentAudioRef.current = currentAudio;
+  }, [currentAudio]);
+
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
   useEffect(() => {
     isRepeatEnabledRef.current = isRepeatEnabled;
   }, [isRepeatEnabled]);
@@ -202,6 +268,50 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [trackPosition, trackDuration]);
 
+  // Queue helpers. RNTP owns the real queue; we mirror the upcoming portion
+  // into React state so the UI can render it.
+  const syncQueue = useCallback(async (): Promise<AudioMetadata[]> => {
+    try {
+      const [tracks, activeIndex] = await Promise.all([
+        TrackPlayer.getQueue(),
+        TrackPlayer.getActiveTrackIndex(),
+      ]);
+      const start = (activeIndex ?? -1) + 1;
+      const upcoming = tracks
+        .slice(start)
+        .map((track) => metadataRef.current.get(String(track.id)))
+        .filter((audio): audio is AudioMetadata => Boolean(audio));
+      setQueue(upcoming);
+      queueRef.current = upcoming;
+      return upcoming;
+    } catch (err) {
+      console.error("[AudioContext] Error syncing queue:", err);
+      return [];
+    }
+  }, []);
+
+  // Track repeat loops one track; once a queue exists we switch to queue repeat
+  // so the upcoming tracks can actually advance. Restored when it empties.
+  const applyRepeatMode = useCallback(async (hasUpcoming: boolean) => {
+    try {
+      await TrackPlayer.setRepeatMode(
+        isRepeatEnabledRef.current
+          ? hasUpcoming
+            ? RepeatMode.Queue
+            : RepeatMode.Track
+          : RepeatMode.Off,
+      );
+    } catch (err) {
+      console.error("[AudioContext] Error applying repeat mode:", err);
+    }
+  }, []);
+
+  const refreshQueue = useCallback(async () => {
+    const upcoming = await syncQueue();
+    await applyRepeatMode(upcoming.length > 0);
+    return upcoming;
+  }, [syncQueue, applyRepeatMode]);
+
   // Listen to playback state changes - only when normal audio is active
   useTrackPlayerEvents([Event.PlaybackState], async (event) => {
     if (!isNormalAudioActive) return;
@@ -217,9 +327,41 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   });
 
+  // RNTP auto-advances through the queue natively. Mirror the new active track
+  // into React state so the mini player, full player and analytics stay in sync.
+  useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], (event) => {
+    if (!isNormalAudioActive) return;
+
+    const trackId = event.track?.id != null ? String(event.track.id) : null;
+    if (!trackId) return;
+
+    const audio = metadataRef.current.get(trackId);
+    if (audio) {
+      const previousKey = currentAudioRef.current
+        ? getAudioKey(currentAudioRef.current)
+        : null;
+      if (previousKey !== trackId) {
+        // New track: stale A/B markers would be meaningless.
+        setAbRepeatPointA(null);
+        setAbRepeatPointB(null);
+        setIsABRepeatActive(false);
+        currentAudioRef.current = audio;
+        setCurrentAudio(audio);
+      }
+    }
+
+    const previousTrackId =
+      event.lastTrack?.id != null ? String(event.lastTrack.id) : null;
+    if (previousTrackId) {
+      notifyTrackComplete(metadataRef.current.get(previousTrackId) ?? null);
+    }
+
+    void refreshQueue();
+  });
+
   // Listen to track end events - only when normal audio is active
-  // Note: When repeat is ON, RepeatMode.Track handles looping natively
-  // so PlaybackQueueEnded only fires when repeat is OFF
+  // Note: When repeat is ON, RepeatMode.Queue/Track handles looping natively
+  // so PlaybackQueueEnded only fires when repeat is OFF.
   useTrackPlayerEvents([Event.PlaybackQueueEnded], async () => {
     if (!isNormalAudioActive) {
       console.log(
@@ -230,9 +372,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 
     console.log("[AudioContext] Track finished");
     setIsPlaying(false);
+    setQueue([]);
+    queueRef.current = [];
 
-    // Notify completion listeners (used for personalization signals)
-    trackCompleteCallbackRef.current?.(currentAudio?.naatId);
+    // Notify completion listeners when the final track has no active-track
+    // transition event to report.
+    notifyTrackComplete(currentAudioRef.current);
 
     const autoplayEnabled = isAutoplayEnabledRef.current;
 
@@ -274,15 +419,19 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
         // Reset queue and add new track. No fixed sleep needed: LiveRadio
         // stops itself via its own effect when normal mode becomes active,
         // and reset() below takes over the shared TrackPlayer instance.
+        // An explicit play is a fresh start: the old queue is discarded.
         await TrackPlayer.reset();
         if (version !== loadVersionRef.current) return; // superseded
 
+        metadataRef.current.clear();
+        completedTrackRef.current = null;
+        setQueue([]);
+        queueRef.current = [];
+
         console.log("[AudioContext] Playback source URL:", audio.audioUrl);
-        await TrackPlayer.add({
-          url: audio.audioUrl,
-          title: audio.title,
-          artwork: audio.thumbnailUrl,
-        });
+        const track = toTrack(audio);
+        metadataRef.current.set(String(track.id), audio);
+        await TrackPlayer.add(track);
         if (version !== loadVersionRef.current) return; // superseded
 
         // Update notification capabilities for normal mode (with seek) AFTER adding track
@@ -290,11 +439,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Set volume and repeat mode
         await TrackPlayer.setVolume(volume);
-        await TrackPlayer.setRepeatMode(
-          isRepeatEnabledRef.current ? RepeatMode.Track : RepeatMode.Off,
-        );
+        await applyRepeatMode(false);
 
         // Set currentAudio before playing so miniplayer appears immediately
+        currentAudioRef.current = audio;
         setCurrentAudio(audio);
 
         // Play
@@ -310,11 +458,181 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
         console.error("[AudioContext] Error loading audio:", err);
         setError(err as Error);
         setIsLoading(false);
+        currentAudioRef.current = null;
         setCurrentAudio(null);
+        metadataRef.current.clear();
+        setQueue([]);
+        queueRef.current = [];
       }
     },
-    [volume, setMode],
+    [volume, setMode, applyRepeatMode],
   );
+
+  const hasActiveTrack = useCallback(async (): Promise<boolean> => {
+    if (!currentAudioRef.current || isLiveRadioActive) return false;
+    try {
+      const [tracks, activeIndex] = await Promise.all([
+        TrackPlayer.getQueue(),
+        TrackPlayer.getActiveTrackIndex(),
+      ]);
+      return tracks.length > 0 && activeIndex !== undefined;
+    } catch {
+      return false;
+    }
+  }, [isLiveRadioActive]);
+
+  /**
+   * Insert right after the current track. If nothing is playing this becomes a
+   * normal play so the action always has a visible result.
+   */
+  const playNext = useCallback(
+    async (audio: AudioMetadata): Promise<QueueAction> => {
+      if (!(await hasActiveTrack())) {
+        await loadAndPlay(audio);
+        return "started";
+      }
+
+      const key = getAudioKey(audio);
+      try {
+        const [tracks, activeIndex] = await Promise.all([
+          TrackPlayer.getQueue(),
+          TrackPlayer.getActiveTrackIndex(),
+        ]);
+        const active = activeIndex ?? 0;
+        const existing = tracks.findIndex(
+          (track) => String(track.id) === key,
+        );
+
+        if (existing === active) return "already-current";
+        if (existing < 0 && tracks.length - active - 1 >= MAX_QUEUE) {
+          return "full";
+        }
+
+        metadataRef.current.set(key, audio);
+
+        // Remove any previous copy first so a naat only ever appears once.
+        let insertAt = active + 1;
+        if (existing >= 0) {
+          await TrackPlayer.remove(existing);
+          if (existing < active) insertAt = active;
+        }
+
+        await TrackPlayer.add(toTrack(audio), insertAt);
+        await refreshQueue();
+        return existing > active ? "moved" : "queued";
+      } catch (err) {
+        console.error("[AudioContext] Error playing next:", err);
+        return "failed";
+      }
+    },
+    [hasActiveTrack, loadAndPlay, refreshQueue],
+  );
+
+  /** Append to the end of the upcoming list. */
+  const addToQueue = useCallback(
+    async (audio: AudioMetadata): Promise<QueueAction> => {
+      if (!(await hasActiveTrack())) {
+        await loadAndPlay(audio);
+        return "started";
+      }
+
+      const key = getAudioKey(audio);
+      try {
+        const [tracks, activeIndex] = await Promise.all([
+          TrackPlayer.getQueue(),
+          TrackPlayer.getActiveTrackIndex(),
+        ]);
+        const active = activeIndex ?? 0;
+        const existing = tracks.findIndex(
+          (track) => String(track.id) === key,
+        );
+
+        if (existing === active) return "already-current";
+        if (existing >= 0) return "already-queued";
+        if (tracks.length - active - 1 >= MAX_QUEUE) return "full";
+
+        metadataRef.current.set(key, audio);
+        await TrackPlayer.add(toTrack(audio));
+        await refreshQueue();
+        return "queued";
+      } catch (err) {
+        console.error("[AudioContext] Error adding to queue:", err);
+        return "failed";
+      }
+    },
+    [hasActiveTrack, loadAndPlay, refreshQueue],
+  );
+
+  const removeFromQueue = useCallback(
+    async (key: string) => {
+      try {
+        const [tracks, activeIndex] = await Promise.all([
+          TrackPlayer.getQueue(),
+          TrackPlayer.getActiveTrackIndex(),
+        ]);
+        const index = tracks.findIndex((track) => String(track.id) === key);
+        if (index >= 0 && index > (activeIndex ?? -1)) {
+          await TrackPlayer.remove(index);
+        }
+        await refreshQueue();
+      } catch (err) {
+        console.error("[AudioContext] Error removing from queue:", err);
+      }
+    },
+    [refreshQueue],
+  );
+
+  const clearQueue = useCallback(async () => {
+    try {
+      await TrackPlayer.removeUpcomingTracks();
+    } catch (err) {
+      console.error("[AudioContext] Error clearing queue:", err);
+    }
+    setQueue([]);
+    queueRef.current = [];
+    await applyRepeatMode(false);
+  }, [applyRepeatMode]);
+
+  const playFromQueue = useCallback(
+    async (key: string) => {
+      try {
+        const [tracks, activeIndex] = await Promise.all([
+          TrackPlayer.getQueue(),
+          TrackPlayer.getActiveTrackIndex(),
+        ]);
+        const index = tracks.findIndex((track) => String(track.id) === key);
+        if (index < 0) return;
+        if (index !== activeIndex) {
+          await TrackPlayer.skip(index);
+        }
+        await TrackPlayer.play();
+        await refreshQueue();
+      } catch (err) {
+        console.error("[AudioContext] Error playing queued track:", err);
+      }
+    },
+    [refreshQueue],
+  );
+
+  const skipToNext = useCallback(async () => {
+    try {
+      await TrackPlayer.skipToNext();
+      await TrackPlayer.play();
+      await refreshQueue();
+    } catch (err) {
+      console.error("[AudioContext] Error skipping to next track:", err);
+    }
+  }, [refreshQueue]);
+
+  const skipToPrevious = useCallback(async () => {
+    try {
+      await TrackPlayer.skipToPrevious();
+      await TrackPlayer.play();
+      await refreshQueue();
+    } catch (err) {
+      console.error("[AudioContext] Error skipping to previous track:", err);
+    }
+  }, [refreshQueue]);
 
   // Play
   const play = useCallback(async () => {
@@ -377,6 +695,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error("[AudioContext] Error stopping:", err);
     }
 
+    metadataRef.current.clear();
+    setQueue([]);
+    queueRef.current = [];
+    currentAudioRef.current = null;
     setCurrentAudio(null);
     setIsPlaying(false);
     setPosition(0);
@@ -390,16 +712,16 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   const toggleRepeat = useCallback(async () => {
     const newValue = !isRepeatEnabled;
     setIsRepeatEnabled(newValue);
+    // Update the ref immediately: applyRepeatMode reads it synchronously.
+    isRepeatEnabledRef.current = newValue;
     try {
-      await TrackPlayer.setRepeatMode(
-        newValue ? RepeatMode.Track : RepeatMode.Off,
-      );
+      await applyRepeatMode(queueRef.current.length > 0);
       await AsyncStorage.setItem(REPEAT_KEY, String(newValue));
       console.log("[AudioContext] Repeat toggled:", newValue);
     } catch (err) {
       console.error("[AudioContext] Error saving repeat preference:", err);
     }
-  }, [isRepeatEnabled]);
+  }, [applyRepeatMode, isRepeatEnabled]);
 
   // Toggle autoplay
   const toggleAutoplay = useCallback(async () => {
@@ -487,7 +809,15 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     abRepeatPointA,
     abRepeatPointB,
     isABRepeatActive,
+    queue,
     loadAndPlay,
+    playNext,
+    addToQueue,
+    removeFromQueue,
+    clearQueue,
+    playFromQueue,
+    skipToNext,
+    skipToPrevious,
     play,
     pause,
     seek,

@@ -79,7 +79,7 @@ export default function HomeScreen() {
     filters.displayData,
   );
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { handleNaatPress, playAsAudio, playAsVideo, playSharedNaatById } = useNaatPlayback(
+  const { handleNaatPress, playAsAudio, playAsVideo, playSharedNaatById, playNext, addToQueue } = useNaatPlayback(
     filters.displayData,
   );
 
@@ -584,6 +584,8 @@ export default function HomeScreen() {
           onDownload={handleDownloadFromSheet}
           isFavorite={selectedNaat ? isFavorite(selectedNaat.$id) : false}
           onToggleFavorite={handleToggleFavorite}
+          onPlayNext={(naat) => void playNext(naat.$id)}
+          onAddToQueue={(naat) => void addToQueue(naat.$id)}
         onAlternatePlay={handleAlternatePlay}
         onNotForYou={handleNotForYou}
         onExcluded={(naatId, excluded) => {

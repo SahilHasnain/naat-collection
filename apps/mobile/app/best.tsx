@@ -126,7 +126,7 @@ export default function BestScreen() {
 
   const { downloadStates, handleDownload } = useDownloadManager(naats);
   const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
-  const { handleNaatPress, playAsAudio, playAsVideo } = useNaatPlayback(naats);
+  const { handleNaatPress, playAsAudio, playAsVideo, playNext, addToQueue } = useNaatPlayback(naats);
 
   const loadRankedBest = useCallback(async () => {
     const [curated, profile] = await Promise.all([
@@ -391,6 +391,8 @@ export default function BestScreen() {
         onDownload={handleDownloadFromSheet}
         isFavorite={selectedNaat ? isFavorite(selectedNaat.$id) : false}
         onToggleFavorite={handleToggleFavorite}
+        onPlayNext={(naat) => void playNext(naat.$id)}
+        onAddToQueue={(naat) => void addToQueue(naat.$id)}
         onAlternatePlay={handleAlternatePlay}
         onNotForYou={handleNotForYou}
         onBestChanged={(naatId, best) => {

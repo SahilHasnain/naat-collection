@@ -40,7 +40,7 @@ export default function FavoritesScreen() {
   const [isMarkingAllBest, setIsMarkingAllBest] = useState(false);
   const [selectedNaat, setSelectedNaat] = useState<Naat | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
-  const { handleNaatPress } = useNaatPlayback(naats);
+  const { handleNaatPress, playNext, addToQueue } = useNaatPlayback(naats);
 
   const loadFavorites = useCallback(async () => {
     if (favoriteIds.length === 0) {
@@ -308,6 +308,8 @@ export default function FavoritesScreen() {
         }}
         isFavorite={selectedNaat ? isFavorite(selectedNaat.$id) : false}
         onToggleFavorite={handleToggleFavorite}
+        onPlayNext={(naat) => void playNext(naat.$id)}
+        onAddToQueue={(naat) => void addToQueue(naat.$id)}
         showDownload={false}
       />
     </View>

@@ -23,6 +23,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
+  Modal,
   Platform,
   StatusBar,
   StyleSheet,
@@ -124,6 +126,10 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     setABRepeatPointA,
     setABRepeatPointB,
     clearABRepeat,
+    queue,
+    removeFromQueue,
+    clearQueue,
+    playFromQueue,
   } = useAudioPlayer();
 
   const [isDownloaded, setIsDownloaded] = useState(false);
@@ -138,6 +144,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   const [isTransformingVoice, setIsTransformingVoice] = useState(false);
   const [voiceTransformProgress, setVoiceTransformProgress] = useState(0);
   const [voiceTransformRefresh, setVoiceTransformRefresh] = useState(0);
+  const [showQueue, setShowQueue] = useState(false);
   const menuItemStyle = [
     styles.menuItem,
     { borderBottomColor: colors.border.menuDivider },
@@ -508,6 +515,89 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
         barStyle={resolvedTheme === "dark" ? "light-content" : "dark-content"}
         backgroundColor={colors.background.primary}
       />
+
+      <Modal
+        visible={showQueue}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowQueue(false)}
+      >
+        <View style={styles.queueOverlay}>
+          <View
+            style={[
+              styles.queueSheet,
+              { backgroundColor: colors.background.secondary },
+            ]}
+          >
+            <View style={styles.queueHeader}>
+              <Text style={[styles.queueTitle, { color: colors.text.primary }]}>
+                Up next ({queue.length})
+              </Text>
+              <View style={styles.queueHeaderActions}>
+                {queue.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => void clearQueue()}
+                    accessibilityRole="button"
+                    accessibilityLabel="Clear queue"
+                  >
+                    <Text style={[styles.clearQueueText, { color: colors.accent.error }]}>
+                      Clear
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  onPress={() => setShowQueue(false)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close queue"
+                >
+                  <Ionicons name="close" size={24} color={colors.text.secondary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <FlatList
+              data={queue}
+              keyExtractor={(item) => item.naatId ?? item.audioId ?? item.audioUrl}
+              ListEmptyComponent={
+                <Text style={[styles.emptyQueueText, { color: colors.text.tertiary }]}>
+                  Nothing queued yet
+                </Text>
+              }
+              renderItem={({ item }) => (
+                <View style={styles.queueItem}>
+                  <TouchableOpacity
+                    style={styles.queueItemMain}
+                    onPress={() => {
+                      void playFromQueue(item.naatId ?? item.audioId ?? item.audioUrl);
+                      setShowQueue(false);
+                    }}
+                  >
+                    <Image
+                      source={{ uri: item.thumbnailUrl }}
+                      style={styles.queueArtwork}
+                      contentFit="cover"
+                    />
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.queueItemTitle, { color: colors.text.primary }]}
+                    >
+                      {item.title}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() =>
+                      void removeFromQueue(item.naatId ?? item.audioId ?? item.audioUrl)
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove ${item.title} from queue`}
+                  >
+                    <Ionicons name="close-circle-outline" size={22} color={colors.text.tertiary} />
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
 
       <View style={[styles.container, { backgroundColor: colors.background.primary }]}>
         <SafeAreaView
@@ -973,6 +1063,17 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
               </View>
 
               <View style={styles.controlsArea}>
+                <TouchableOpacity
+                  onPress={() => setShowQueue(true)}
+                  style={styles.queueButton}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Show queue, ${queue.length} tracks`}
+                >
+                  <Ionicons name="list-outline" size={18} color={colors.text.secondary} />
+                  <Text style={[styles.queueButtonText, { color: colors.text.secondary }]}>
+                    {queue.length > 0 ? `Up next · ${queue.length}` : "Up next"}
+                  </Text>
+                </TouchableOpacity>
                 <View
                   style={[
                     styles.progressSection,
@@ -1678,6 +1779,74 @@ const styles = StyleSheet.create({
     color: colors.background.primary,
     fontSize: 14,
     fontWeight: "700",
+  },
+  queueOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
+  },
+  queueSheet: {
+    maxHeight: "75%",
+    minHeight: 220,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+  },
+  queueHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  queueHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 18,
+  },
+  queueTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  clearQueueText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  emptyQueueText: {
+    paddingVertical: 36,
+    textAlign: "center",
+  },
+  queueItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  queueItemMain: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  queueArtwork: {
+    width: 48,
+    height: 32,
+    borderRadius: 5,
+    backgroundColor: colors.background.tertiary,
+  },
+  queueItemTitle: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  queueButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 8,
+  },
+  queueButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
 });
 

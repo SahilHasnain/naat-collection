@@ -65,10 +65,12 @@ module.exports = {
   features: {
     useSemanticSearch: false,
     disableSearchSuggestions: true,
-    showPureFilter: true,
-    showTeenageFilter: true,
-    showVoiceTransform: true,
-    showAudioFilter: false,
+    showPureFilter: false,
+    showTeenageFilter: false,
+    showVoiceTransform: false,
+    showAudioFilter: true,
+    showProfileTab: false,
+    showBrandLinks: false,
   },
 
   // ── EAS ───────────────────────────────────────────────────────────────────

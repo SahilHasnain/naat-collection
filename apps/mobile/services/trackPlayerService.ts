@@ -36,11 +36,11 @@ export async function PlaybackService() {
   });
 
   TrackPlayer.addEventListener(Event.RemoteNext, () => {
-    // Handle next track if needed
+    void TrackPlayer.skipToNext().then(() => TrackPlayer.play());
   });
 
   TrackPlayer.addEventListener(Event.RemotePrevious, () => {
-    // Handle previous track if needed
+    void TrackPlayer.skipToPrevious().then(() => TrackPlayer.play());
   });
 
   // Jump forward handler
@@ -72,9 +72,19 @@ export async function setupPlayer() {
 
     await TrackPlayer.updateOptions({
       // Only include capabilities you actually want
-      capabilities: [Capability.Play, Capability.Pause],
-      notificationCapabilities: [Capability.Play, Capability.Pause],
-      compactCapabilities: [Capability.Play, Capability.Pause],
+      capabilities: [
+        Capability.Play,
+        Capability.Pause,
+        Capability.SkipToNext,
+        Capability.SkipToPrevious,
+      ],
+      notificationCapabilities: [
+        Capability.Play,
+        Capability.Pause,
+        Capability.SkipToNext,
+        Capability.SkipToPrevious,
+      ],
+      compactCapabilities: [Capability.Play, Capability.Pause, Capability.SkipToNext],
       android: {
         appKilledPlaybackBehavior: AppKilledPlaybackBehavior.PausePlayback,
       },
@@ -112,12 +122,16 @@ export async function updateNotificationCapabilities(isLiveMode: boolean) {
           Capability.Pause,
           Capability.JumpForward,
           Capability.JumpBackward,
+          Capability.SkipToNext,
+          Capability.SkipToPrevious,
         ],
         notificationCapabilities: [
           Capability.Play,
           Capability.Pause,
           Capability.JumpForward,
           Capability.JumpBackward,
+          Capability.SkipToNext,
+          Capability.SkipToPrevious,
         ],
         compactCapabilities: [Capability.Play, Capability.Pause],
         forwardJumpInterval: SEEK_INTERVAL,

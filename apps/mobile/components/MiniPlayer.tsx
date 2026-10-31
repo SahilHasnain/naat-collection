@@ -33,6 +33,7 @@ const NativeMiniPlayer: React.FC<MiniPlayerProps> = ({
     duration,
     abRepeatPointA,
     abRepeatPointB,
+    queue,
   } = useAudioPlayer();
   const { translateY: tabBarTranslateY } = useTabBarVisibility();
   const insets = useSafeAreaInsets();
@@ -210,6 +211,16 @@ const NativeMiniPlayer: React.FC<MiniPlayerProps> = ({
               >
                 {currentAudio.title}
               </Text>
+              {queue.length > 0 && (
+                <Text
+                  className="text-xs"
+                  numberOfLines={1}
+                  style={{ color: colors.text.tertiary }}
+                >
+                  Up next: {queue[0].title}
+                  {queue.length > 1 ? ` · +${queue.length - 1}` : ""}
+                </Text>
+              )}
             </View>
 
             {/* Play/Pause Button */}

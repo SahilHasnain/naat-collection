@@ -1,9 +1,10 @@
-import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
+import { useAudioPlayer } from "@/contexts/AudioContext";
 import { appwriteService } from "@/services/appwrite";
-import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
 import { userProfileService } from "@/services/userProfile";
 import type { Naat } from "@/types";
+import { resolveAudioMetadata } from "@/utils/audioMetadata";
+import { showQueueFeedback } from "@/utils/queueFeedback";
 import { showErrorToast } from "@/utils/toast";
 import { hasAudio } from "@naat-collection/shared";
 import { useRouter } from "expo-router";
@@ -12,8 +13,14 @@ import { Alert } from "react-native";
 
 export function useNaatPlayback(displayData: Naat[]) {
   const router = useRouter();
-  const { loadAndPlay, setAutoplayCallback, setTrackCompleteCallback } =
-    useAudioPlayer();
+  const {
+    currentAudio,
+    loadAndPlay,
+    setAutoplayCallback,
+    setTrackCompleteCallback,
+    playNext: enqueuePlayNext,
+    addToQueue: enqueueToQueue,
+  } = useAudioPlayer();
 
   // Track the currently loaded naat to record completion signals
   const currentNaatRef = React.useRef<Naat | null>(null);
@@ -24,6 +31,15 @@ export function useNaatPlayback(displayData: Naat[]) {
     naatsMapRef.current.clear();
     displayData.forEach((naat) => naatsMapRef.current.set(naat.$id, naat));
   }, [displayData]);
+
+  // The queue can advance without loadAudioDirectly running, so keep the
+  // completion signal pointed at whatever is actually playing.
+  React.useEffect(() => {
+    const naatId = currentAudio?.naatId;
+    if (!naatId) return;
+    const naat = naatsMapRef.current.get(naatId);
+    if (naat) currentNaatRef.current = naat;
+  }, [currentAudio?.naatId]);
 
   const getNaatById = React.useCallback(
     async (naatId: string): Promise<Naat | null> => {
@@ -124,49 +140,24 @@ export function useNaatPlayback(displayData: Naat[]) {
       });
 
       try {
-        let audioUrl: string;
-        let isLocalFile = false;
-        const downloaded = await audioDownloadService.isDownloaded(audioId);
-
-        if (downloaded) {
-          audioUrl = audioDownloadService.getLocalPath(audioId);
-          isLocalFile = true;
-          console.log(`[useNaatPlayback] Using downloaded audio: ${audioUrl}`);
-        } else {
-          const response = await appwriteService.getAudioUrl(audioId);
-          if (response.success && response.audioUrl) {
-            audioUrl = response.audioUrl;
-            console.log(`[useNaatPlayback] Fetched audio URL from server`);
+        const audioMetadata = await resolveAudioMetadata(naat);
+        if (!audioMetadata) {
+          if (fallbackMode === "auto-video") {
+            navigateToVideo(naat, audioId, true);
           } else {
-            if (fallbackMode === "auto-video") {
-              navigateToVideo(naat, audioId, true);
-            } else {
-              showVideoFallbackAlert(
-                naat,
-                audioId,
-                "Audio is not available for this content. Would you like to play the video instead?",
-              );
-            }
-            return false;
+            showVideoFallbackAlert(
+              naat,
+              audioId,
+              "Audio is not available for this content. Would you like to play the video instead?",
+            );
           }
+          return false;
         }
 
-        const audioMetadata: AudioMetadata = {
-          audioUrl,
-          title: naat.title,
-          channelName: naat.channelName,
-          thumbnailUrl: naat.thumbnailUrl,
-          isLocalFile,
-          audioId,
-          youtubeId: naat.youtubeId,
-          naatId: naat.$id,
-          views: naat.views || 0,
-        };
-        console.log("[useNaatPlayback] Web audio URL:", {
+        console.log("[useNaatPlayback] Resolved audio:", {
           title: naat.title,
           audioId,
-          isLocalFile,
-          url: audioUrl,
+          isLocalFile: audioMetadata.isLocalFile,
         });
         await loadAndPlay(audioMetadata);
         void appwriteService.incrementAppView(naat.$id).catch(() => {});
@@ -186,6 +177,44 @@ export function useNaatPlayback(displayData: Naat[]) {
       }
     },
     [loadAndPlay, navigateToVideo, showVideoFallbackAlert],
+  );
+
+  const resolveQueueAudio = React.useCallback(
+    async (naatId: string) => {
+      const naat = await getNaatById(naatId);
+      if (!naat) {
+        showErrorToast("Unable to find that naat");
+        return null;
+      }
+
+      const audio = await resolveAudioMetadata(naat);
+      if (!audio) {
+        showErrorToast("Audio is not available for this naat");
+        return null;
+      }
+      return audio;
+    },
+    [getNaatById],
+  );
+
+  /** Insert after the current track. */
+  const playNext = React.useCallback(
+    async (naatId: string) => {
+      const audio = await resolveQueueAudio(naatId);
+      if (!audio) return;
+      showQueueFeedback(await enqueuePlayNext(audio), "next");
+    },
+    [enqueuePlayNext, resolveQueueAudio],
+  );
+
+  /** Append to the end of the queue. */
+  const addToQueue = React.useCallback(
+    async (naatId: string) => {
+      const audio = await resolveQueueAudio(naatId);
+      if (!audio) return;
+      showQueueFeedback(await enqueueToQueue(audio), "queue");
+    },
+    [enqueueToQueue, resolveQueueAudio],
   );
 
   // Autoplay: pick random naat when current finishes
@@ -284,5 +313,7 @@ export function useNaatPlayback(displayData: Naat[]) {
     playAsAudio,
     playAsVideo,
     playSharedNaatById,
+    playNext,
+    addToQueue,
   };
 }

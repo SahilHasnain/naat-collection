@@ -38,3 +38,10 @@ export {
     sortDownloads
 } from "./formatters";
 
+export { resolveAudioMetadata } from "./audioMetadata";
+
+export {
+    showQueueFeedback,
+    type QueueIntent
+} from "./queueFeedback";
+
