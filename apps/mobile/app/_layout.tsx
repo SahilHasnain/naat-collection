@@ -324,6 +324,12 @@ function RootLayoutContent() {
           }}
         />
         <Tabs.Screen
+          name="profile"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
           name="video"
           options={{
             href: null,

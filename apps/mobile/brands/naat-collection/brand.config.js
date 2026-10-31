@@ -48,6 +48,12 @@ module.exports = {
     googleWebClientId: "54913434337-226cbfet04pjn52fbgqulf6s83c2pggt.apps.googleusercontent.com",
   },
 
+  // ── Public brand links (shown on the profile screen) ──────────────────────
+  links: {
+    youtube: "https://www.youtube.com/channel/UCEYWeegBYjUXxL1wL5CNc5w",
+    website: "https://owaisrazaqadri.durood.live",
+  },
+
   // ── Static export fallback (raw GitHub / jsDelivr) ────────────────────────
   static: {
     // Used when Appwrite reads are rate-limited or unavailable.
@@ -72,7 +78,8 @@ module.exports = {
     showTeenageFilter: false,
     showVoiceTransform: false,
     showAudioFilter: false,
-    showProfileTab: false,
+    showProfileTab: true,
+    showBrandLinks: true,
   },
 
   // ── EAS ───────────────────────────────────────────────────────────────────

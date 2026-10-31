@@ -1,11 +1,10 @@
 import { colors } from "@/constants/theme";
 import { NATIVE_APP_URL } from "@/config/brand";
-import { AuthModal } from "@/components/AuthModal";
+import { features } from "@/config/features";
 import { Ionicons } from "@expo/vector-icons";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { useTheme } from "@/contexts/ThemeContext";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import React from "react";
 import { Linking, Platform, StyleSheet, Text, View } from "react-native";
 import Animated, {
   SharedValue,
@@ -31,7 +30,6 @@ export function AnimatedTabBar({
   const insets = useSafeAreaInsets();
   const { isDesktopWeb } = useResponsiveLayout();
   const TAB_BAR_HEIGHT = 56; // Reduced height for cleaner look
-  const [authModalVisible, setAuthModalVisible] = React.useState(false);
   const { libraryOpen, setLibraryOpen } = useTheme();
   const libraryPopoverStyle = [
     styles.libraryPopover,
@@ -65,6 +63,7 @@ export function AnimatedTabBar({
       route.name !== "downloads" &&
       route.name !== "video" &&
       route.name !== "player" &&
+      route.name !== "profile" &&
       route.name !== "naat" &&
       !route.name.startsWith("naat/") &&
       route.name !== "+not-found" &&
@@ -235,18 +234,20 @@ export function AnimatedTabBar({
               : { right: 8, bottom: 64 },
           ]}
         >
-          <Pressable
-            onPress={() => {
-              setLibraryOpen(false);
-              setAuthModalVisible(true);
-            }}
-            style={styles.libraryItem}
-            accessibilityRole="button"
-            accessibilityLabel="Open profile"
-          >
-            <Ionicons name="person-outline" size={18} color={colors.text.primary} />
-            <Text style={libraryItemTextStyle}>Profile</Text>
-          </Pressable>
+          {features.showProfileTab && (
+            <Pressable
+              onPress={() => {
+                setLibraryOpen(false);
+                navigation.navigate("profile");
+              }}
+              style={styles.libraryItem}
+              accessibilityRole="button"
+              accessibilityLabel="Open profile"
+            >
+              <Ionicons name="person-outline" size={18} color={colors.text.primary} />
+              <Text style={libraryItemTextStyle}>Profile</Text>
+            </Pressable>
+          )}
           <Pressable
             onPress={() => {
               setLibraryOpen(false);
@@ -285,10 +286,6 @@ export function AnimatedTabBar({
           )}
         </View>
       )}
-      <AuthModal
-        visible={authModalVisible}
-        onClose={() => setAuthModalVisible(false)}
-      />
     </>
   );
 }

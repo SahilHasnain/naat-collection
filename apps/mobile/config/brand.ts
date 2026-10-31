@@ -12,6 +12,7 @@ type BrandConfig = {
     semanticSearchFunctionUrl: string;
   };
   auth: { googleWebClientId: string };
+  links?: { youtube?: string; website?: string };
   static: { naatsUrl: string; channelsUrl: string; appMessageUrl: string };
   sentry: { dsn?: string };
   features: {
@@ -22,6 +23,7 @@ type BrandConfig = {
     showVoiceTransform?: boolean;
     showAudioFilter?: boolean;
     showProfileTab?: boolean;
+    showBrandLinks?: boolean;
   };
 };
 
@@ -37,6 +39,7 @@ if (!configuredBrand) {
 const brand: BrandConfig = configuredBrand;
 export default brand;
 export const APP_NAME: string = brand.app.name;
+export const BRAND_LINKS = brand.links;
 export const GOOGLE_WEB_CLIENT_ID: string = brand.auth.googleWebClientId;
 export const NATIVE_APP_URL = `https://play.google.com/store/apps/details?id=${brand.app.packageId}`;
 export const APP_MESSAGE_URL: string = brand.static.appMessageUrl;

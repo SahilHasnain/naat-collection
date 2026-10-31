@@ -6,6 +6,7 @@ export const features = {
   showVoiceTransform: brand.features?.showVoiceTransform !== false,
   showAudioFilter: brand.features?.showAudioFilter !== false,
   showProfileTab: brand.features?.showProfileTab !== false,
+  showBrandLinks: brand.features?.showBrandLinks === true,
 } as const;
 
 export default features;
