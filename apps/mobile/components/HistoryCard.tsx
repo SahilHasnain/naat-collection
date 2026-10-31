@@ -76,11 +76,11 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
           {/* Duration badge */}
           <View
             className="absolute bottom-1 right-1 rounded px-1.5 py-0.5"
-              style={{ backgroundColor: colors.overlay.dark }}
+            style={{ backgroundColor: colors.overlay.dark }}
           >
             <Text
               className="text-[10px] font-semibold"
-              style={{ color: colors.text.primary }}
+              style={{ color: "#ffffff" }}
             >
               {formatDuration(duration)}
             </Text>
@@ -103,7 +103,7 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
           <View className="flex-row justify-end">
             <Text
               className="text-[11px]"
-              style={{ color: colors.text.tertiary }}
+              style={{ color: colors.text.secondary }}
             >
               {formatViews(views)} views
             </Text>
@@ -113,7 +113,7 @@ const HistoryCard: React.FC<HistoryCardProps> = React.memo(
         {/* Kebab menu */}
         {onMenuPress && (
           <View className="justify-center pr-2">
-            <KebabMenuButton onPress={onMenuPress} size={16} />
+            <KebabMenuButton onPress={onMenuPress} size={16} color={colors.text.primary} backgroundColor={colors.background.tertiary} />
           </View>
         )}
       </Pressable>

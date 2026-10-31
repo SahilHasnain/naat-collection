@@ -435,3 +435,79 @@ Uploads allowed today: 2
 
 Finished: 2 uploaded, 0 failed.
 [Fri 10/30/2026  9:05:31.84] Teenage-voice upload finished (exit 0) 
+================================================ 
+[Sat 10/31/2026  8:48:18.61] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+  Network error during Appwrite naat list request (attempt 1/5); retrying in 1s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 1/5); retrying in 1s: fetch failed
+  Network error during Appwrite naat list request (attempt 2/5); retrying in 2s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 2/5); retrying in 2s: fetch failed
+  Network error during Appwrite naat list request (attempt 3/5); retrying in 4s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 3/5); retrying in 4s: fetch failed
+  Network error during Appwrite naat list request (attempt 4/5); retrying in 8s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 4/5); retrying in 8s: fetch failed
+Teenage uploader failed: fetch failed
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+  Network error during Appwrite naat list request (attempt 1/5); retrying in 1s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 1/5); retrying in 1s: fetch failed
+  Network error during Appwrite naat list request (attempt 2/5); retrying in 2s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 2/5); retrying in 2s: fetch failed
+  Network error during Appwrite naat list request (attempt 3/5); retrying in 4s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 3/5); retrying in 4s: fetch failed
+  Network error during Appwrite naat list request (attempt 4/5); retrying in 8s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 4/5); retrying in 8s: fetch failed
+Teenage uploader failed: fetch failed
+[Sat 10/31/2026  8:49:18.95] Teenage-voice upload finished (exit 1) 
+================================================ 
+[Sat 10/31/2026  9:31:02.85] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+Naats with cutAudio in source collection: 971
+Completed +6 variants with matching source cutAudio: 17
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage.json
+Already uploaded: 7
+Eligible remaining: 10
+Uploads allowed today: 1
+
+[1/1] Khuda Ke Fazl Se Ham Par Hai Saya - Owais Raza Qadri - 2023
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/_AL0jzT_oog
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 1 uploaded, 0 failed.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+Naats with cutAudio in source collection: 971
+Completed +6 variants with matching source cutAudio: 17
+Remaining start/end Shorts: 21
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage-shorts.json
+Already uploaded: 13
+Eligible remaining: 21
+Uploads allowed today: 2
+
+[1/2] Owais Raza Qadri | Jashne Amad e Rasool | Rabi Ul Awwal Kalam — end clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/tlc77TnMQeY
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+[2/2] Khuda Ke Fazl Se Ham Par Hai Saya - Owais Raza Qadri - 2023 — start clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/NamOo6a94P0
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 2 uploaded, 0 failed.
+[Sat 10/31/2026  9:41:20.55] Teenage-voice upload finished (exit 0) 
