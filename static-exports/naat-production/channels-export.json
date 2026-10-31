@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "exportedAt": "2026-10-30T08:05:38.343Z",
+    "exportedAt": "2026-10-31T08:01:11.216Z",
     "totalItems": 1,
     "version": "1.0",
     "source": "Appwrite Database",
@@ -16,6 +16,9 @@
       "naatCount": 0,
       "lastUpdated": null,
       "isOther": false,
+      "minLatest": null,
+      "minPopular": null,
+      "maxDuration": null,
       "$id": "69ce12240038c9fa4254",
       "$sequence": 3,
       "$createdAt": "2026-04-02T06:52:22.279+00:00",

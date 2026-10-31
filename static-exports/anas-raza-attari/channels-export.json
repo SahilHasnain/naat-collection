@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "exportedAt": "2026-10-30T08:05:42.675Z",
+    "exportedAt": "2026-10-31T08:01:13.107Z",
     "totalItems": 2,
     "version": "1.0",
     "source": "Appwrite Database",
@@ -17,6 +17,9 @@
       "isOther": true,
       "type": "playlist",
       "playlistId": "PLHuAMgO4JK9g",
+      "minLatest": null,
+      "minPopular": null,
+      "maxDuration": null,
       "$id": "pl_PLHuAMgO",
       "$sequence": 2,
       "$createdAt": "2026-07-13T13:06:44.789+00:00",
@@ -34,6 +37,9 @@
       "isOther": false,
       "type": "channel",
       "playlistId": "",
+      "minLatest": null,
+      "minPopular": null,
+      "maxDuration": null,
       "$id": "channel_hafiz-anas",
       "$sequence": 1,
       "$createdAt": "2026-07-13T13:06:44.011+00:00",
