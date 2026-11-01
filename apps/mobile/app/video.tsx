@@ -691,9 +691,9 @@ export default function VideoScreen() {
             maximumValue={videoDuration}
             value={videoPosition}
             onSlidingComplete={seekToPosition}
-            minimumTrackTintColor={colors.accent.primary}
+            minimumTrackTintColor={colors.accent.secondaryAccent}
             maximumTrackTintColor={colors.border.primary}
-            thumbTintColor={colors.accent.primary}
+            thumbTintColor={colors.accent.secondaryAccent}
           />
 
           {/* Time Labels */}

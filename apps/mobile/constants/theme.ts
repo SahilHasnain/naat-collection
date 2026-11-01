@@ -34,6 +34,7 @@ const darkColors = {
     primary: "#1DB954", // Spotify green for audio/music
     secondary: "#2563eb", // Blue for primary actions
     tabActive: "#F59E0B", // Warm amber for active navigation icons
+    secondaryAccent: "#F59E0B", // Secondary warm amber accent
     success: "#10b981", // Green for success states
     error: "#ef4444", // Red for errors
     warning: "#f59e0b", // Orange for warnings
@@ -85,7 +86,11 @@ const lightColors = {
     subtle: "#f0f0f2",
     menuDivider: "#e4e4e7",
   },
-  accent: { ...darkColors.accent, tabActive: "#B45309" },
+  accent: {
+    ...darkColors.accent,
+    tabActive: "#B45309",
+    secondaryAccent: "#B45309",
+  },
   interactive: {
     hover: "#e4e4e7",
     active: "#d4d4d8",
