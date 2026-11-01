@@ -1,2 +1,3 @@
 1) If a task is complex and did not fit in the current system. Inform before implementing that it needs adaptation for an easy solution.
 2) when updating the provision script, make sure that this error does not come: cannot set default value for required attribute (appwrite restriction).
+3) Each new feature must be implemented in a new branch if the feature is quite big. If the current branch has already working changes, always commit them with a good message.
