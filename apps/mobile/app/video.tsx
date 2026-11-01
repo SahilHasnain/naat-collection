@@ -23,6 +23,7 @@ import Slider from "@react-native-community/slider";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as NavigationBar from "expo-navigation-bar";
 import * as ScreenOrientation from "expo-screen-orientation";
 import React from "react";
 import {
@@ -30,6 +31,7 @@ import {
   Alert,
   FlatList,
   Modal,
+  Platform,
   StatusBar,
   StyleSheet,
   Text,
@@ -58,6 +60,9 @@ export default function VideoScreen() {
   const [isZoomed, setIsZoomed] = React.useState(false);
   const [fullscreenStartTime, setFullscreenStartTime] = React.useState(0);
   const [audioLoading, setAudioLoading] = React.useState(false);
+  const systemBarsTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   // Get contexts
   const { loadAndPlay } = useAudioPlayer();
@@ -276,10 +281,27 @@ export default function VideoScreen() {
     }
   };
 
+  const setSystemBarsVisible = async (visible: boolean) => {
+    if (Platform.OS !== "android") return;
+
+    try {
+      await NavigationBar.setBehaviorAsync(
+        visible ? "inset-touch" : "overlay-swipe",
+      );
+      await NavigationBar.setVisibilityAsync(visible ? "visible" : "hidden");
+    } catch (error) {
+      console.error(
+        "[VideoScreen] Failed to update system navigation bar:",
+        error,
+      );
+    }
+  };
+
   const openFullscreen = async () => {
     setFullscreenStartTime(Math.floor(videoPosition));
     setIsZoomed(false);
     setIsFullscreen(true);
+    await setSystemBarsVisible(false);
     if (!isWeb) {
       await ScreenOrientation.lockAsync(
         ScreenOrientation.OrientationLock.LANDSCAPE,
@@ -297,6 +319,7 @@ export default function VideoScreen() {
     } finally {
       setIsFullscreen(false);
       setIsZoomed(false);
+      await setSystemBarsVisible(true);
       if (!isWeb) {
         await ScreenOrientation.unlockAsync();
       }
@@ -305,7 +328,41 @@ export default function VideoScreen() {
 
   // Cleanup: unlock orientation when screen unmounts
   React.useEffect(() => {
+    void setSystemBarsVisible(isFullscreen);
+
+    if (Platform.OS !== "android" || !isFullscreen) {
+      return () => {
+        if (systemBarsTimerRef.current) {
+          clearTimeout(systemBarsTimerRef.current);
+          systemBarsTimerRef.current = null;
+        }
+        void setSystemBarsVisible(true);
+      };
+    }
+
+    const subscription = NavigationBar.addVisibilityListener(
+      ({ visibility }) => {
+        if (systemBarsTimerRef.current) {
+          clearTimeout(systemBarsTimerRef.current);
+          systemBarsTimerRef.current = null;
+        }
+
+        if (visibility === "visible") {
+          systemBarsTimerRef.current = setTimeout(() => {
+            void setSystemBarsVisible(false);
+            systemBarsTimerRef.current = null;
+          }, 5000);
+        }
+      },
+    );
+
     return () => {
+      subscription.remove();
+      if (systemBarsTimerRef.current) {
+        clearTimeout(systemBarsTimerRef.current);
+        systemBarsTimerRef.current = null;
+      }
+      void setSystemBarsVisible(true);
       if (isFullscreen && !isWeb) {
         ScreenOrientation.unlockAsync();
       }
@@ -674,6 +731,7 @@ export default function VideoScreen() {
   return (
     <>
       <StatusBar
+        hidden={isFullscreen}
         barStyle={resolvedTheme === "dark" ? "light-content" : "dark-content"}
         backgroundColor={colors.background.primary}
       />
