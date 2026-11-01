@@ -1,4 +1,5 @@
 import Pressable from "@/components/ResponsivePressable";
+import NaatCardMenu from "@/components/NaatCardMenu";
 import { RelatedVideoRow } from "@/components/RelatedVideoRow";
 import { features } from "@/config/features";
 import { colors, shadows } from "@/constants/theme";
@@ -6,13 +7,14 @@ import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useVideoPlayer } from "@/contexts/VideoContext";
+import { useFavorites } from "@/hooks/useFavorites";
 import { WEB_MAX_CONTENT_WIDTH } from "@/hooks/useResponsiveColumns";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
 import { userProfileService } from "@/services/userProfile";
-import type { Naat } from "@/types";
+import type { MenuAnchor, Naat } from "@/types";
 import {
   dedupeRelatedNaats,
   rankRelatedNaats,
@@ -62,6 +64,9 @@ export default function VideoScreen() {
   const systemBarsTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const videoLoadingTimeoutRef = React.useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
 
   // Get contexts
   const { loadAndPlay } = useAudioPlayer();
@@ -80,6 +85,7 @@ export default function VideoScreen() {
   } = useVideoPlayer();
   const { showTabBar, hideTabBar } = useTabBarVisibility();
   const { resolvedTheme } = useTheme();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   // Video mode is immersive: hide the tab bar while this screen is focused and
   // restore it on the way out.
@@ -94,6 +100,10 @@ export default function VideoScreen() {
 
   // Local video playback state (for UI)
   const [videoPlaying, setVideoPlaying] = React.useState(false);
+  const [relatedMenu, setRelatedMenu] = React.useState<{
+    naat: Naat;
+    anchor: MenuAnchor;
+  } | null>(null);
   const [videoDuration, setVideoDuration] = React.useState(0);
   const [videoPosition, setVideoPosition] = React.useState(0);
   const playerRef = React.useRef<any>(null);
@@ -137,6 +147,7 @@ export default function VideoScreen() {
   };
 
   const videoId = getYouTubeId(videoUrl);
+  const currentNaatIsFavorite = propNaatId ? isFavorite(propNaatId) : false;
 
   // Load video on mount, save video preference, and autoplay
   React.useEffect(() => {
@@ -190,18 +201,24 @@ export default function VideoScreen() {
   ]);
 
   React.useEffect(() => {
-    if (!videoId) {
+    if (!videoId || !videoPlaying) {
       return;
     }
 
-    const loadingTimeout = setTimeout(() => {
+    videoLoadingTimeoutRef.current = setTimeout(() => {
+      videoLoadingTimeoutRef.current = null;
       console.log("[VideoScreen] Video loading timed out");
       setIsLoading(false);
       setVideoLoadTimedOut(true);
     }, 10000);
 
-    return () => clearTimeout(loadingTimeout);
-  }, [videoId, playerInstanceKey]);
+    return () => {
+      if (videoLoadingTimeoutRef.current) {
+        clearTimeout(videoLoadingTimeoutRef.current);
+        videoLoadingTimeoutRef.current = null;
+      }
+    };
+  }, [videoId, playerInstanceKey, videoPlaying]);
 
   const retryVideoLoading = React.useCallback(() => {
     setVideoLoadTimedOut(false);
@@ -401,6 +418,10 @@ export default function VideoScreen() {
     (state: string) => {
       // Clear loading state when video starts playing
       if (state === "playing") {
+        if (videoLoadingTimeoutRef.current) {
+          clearTimeout(videoLoadingTimeoutRef.current);
+          videoLoadingTimeoutRef.current = null;
+        }
         setIsLoading(false);
         setVideoLoadTimedOut(false);
         setVideoPlaying(true);
@@ -428,9 +449,17 @@ export default function VideoScreen() {
           }, 1000);
         }
       } else if (state === "paused") {
+        if (videoLoadingTimeoutRef.current) {
+          clearTimeout(videoLoadingTimeoutRef.current);
+          videoLoadingTimeoutRef.current = null;
+        }
         setVideoPlaying(false);
         setPlaying(false);
       } else if (state === "ended") {
+        if (videoLoadingTimeoutRef.current) {
+          clearTimeout(videoLoadingTimeoutRef.current);
+          videoLoadingTimeoutRef.current = null;
+        }
         setVideoPlaying(false);
         setPlaying(false);
 
@@ -630,6 +659,10 @@ export default function VideoScreen() {
     [router],
   );
 
+  const closeRelatedMenu = React.useCallback(() => {
+    setRelatedMenu(null);
+  }, []);
+
   // Autoplay continues with the top related naat when the video ends.
   React.useEffect(() => {
     const handleAutoplay = async () => {
@@ -676,45 +709,70 @@ export default function VideoScreen() {
       )}
 
       {/* Switch to audio mode button */}
-      <Pressable
-        onPress={switchToAudio}
-        disabled={audioLoading}
-        className="flex-row items-center justify-center self-center rounded-full px-5 py-2.5 active:opacity-80"
-        style={[
-          {
-            backgroundColor: colors.accent.tabActive,
-            ...shadows.accent,
-          },
-        ]}
-        accessibilityLabel="Switch to audio mode"
-        accessibilityRole="button"
-      >
-        {audioLoading ? (
-          <>
-            <ActivityIndicator size="small" color={colors.text.primary} />
-            <Text
-              className="ml-2 text-sm font-bold"
-              style={{ color: colors.text.primary }}
-            >
-              Loading Audio...
-            </Text>
-          </>
-        ) : (
-          <>
+      <View className="flex-row items-center justify-center gap-3">
+        {propNaatId && (
+          <Pressable
+            onPress={() => void toggleFavorite(propNaatId)}
+            className="items-center justify-center rounded-full p-2.5"
+            style={{ backgroundColor: colors.background.tertiary }}
+            accessibilityLabel={
+              currentNaatIsFavorite
+                ? "Remove video from favorites"
+                : "Add video to favorites"
+            }
+            accessibilityRole="button"
+          >
             <Ionicons
-              name="musical-notes"
-              size={18}
-              color={colors.text.primary}
+              name={currentNaatIsFavorite ? "heart" : "heart-outline"}
+              size={19}
+              color={
+                currentNaatIsFavorite
+                  ? colors.accent.error
+                  : colors.text.primary
+              }
             />
-            <Text
-              className="ml-2 text-sm font-bold"
-              style={{ color: colors.text.primary }}
-            >
-              Switch to Audio Mode
-            </Text>
-          </>
+          </Pressable>
         )}
-      </Pressable>
+        <Pressable
+          onPress={switchToAudio}
+          disabled={audioLoading}
+          className="flex-row items-center justify-center rounded-full px-5 py-2.5 active:opacity-80"
+          style={[
+            {
+              backgroundColor: colors.accent.tabActive,
+              ...shadows.accent,
+            },
+          ]}
+          accessibilityLabel="Switch to audio mode"
+          accessibilityRole="button"
+        >
+          {audioLoading ? (
+            <>
+              <ActivityIndicator size="small" color={colors.text.primary} />
+              <Text
+                className="ml-2 text-sm font-bold"
+                style={{ color: colors.text.primary }}
+              >
+                Loading Audio...
+              </Text>
+            </>
+          ) : (
+            <>
+              <Ionicons
+                name="musical-notes"
+                size={18}
+                color={colors.text.primary}
+              />
+              <Text
+                className="ml-2 text-sm font-bold"
+                style={{ color: colors.text.primary }}
+              >
+                Switch to Audio Mode
+              </Text>
+            </>
+          )}
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -766,6 +824,10 @@ export default function VideoScreen() {
                   play={videoPlaying}
                   onReady={() => {
                     console.log("[VideoScreen] Video ready");
+                    if (videoLoadingTimeoutRef.current) {
+                      clearTimeout(videoLoadingTimeoutRef.current);
+                      videoLoadingTimeoutRef.current = null;
+                    }
                     setIsLoading(false);
                     setVideoLoadTimedOut(false);
                     if (dbDuration === 0 && playerRef.current) {
@@ -812,7 +874,9 @@ export default function VideoScreen() {
                   onFullScreenChange={handleFullscreenChange}
                   onError={() => {
                     setIsLoading(false);
-                    setVideoLoadTimedOut(true);
+                    if (videoPlaying) {
+                      setVideoLoadTimedOut(true);
+                    }
                   }}
                   webViewStyle={{ opacity: isLoading ? 0 : 1 }}
                   initialPlayerParams={{
@@ -864,7 +928,11 @@ export default function VideoScreen() {
             data={features.showRelatedVideos ? related : []}
             keyExtractor={(naat) => naat.$id}
             renderItem={({ item }) => (
-              <RelatedVideoRow naat={item} onPress={() => openRelated(item)} />
+              <RelatedVideoRow
+                naat={item}
+                onPress={() => openRelated(item)}
+                onMenuPress={(anchor) => setRelatedMenu({ naat: item, anchor })}
+              />
             )}
             style={
               isDesktopWeb
@@ -993,6 +1061,23 @@ export default function VideoScreen() {
           />
         </View>
       </SafeAreaView>
+
+      <NaatCardMenu
+        visible={relatedMenu !== null}
+        anchor={relatedMenu?.anchor ?? null}
+        selectedNaat={relatedMenu?.naat ?? null}
+        savedPlaybackMode="video"
+        compact
+        onClose={closeRelatedMenu}
+        isFavorite={relatedMenu ? isFavorite(relatedMenu.naat.$id) : false}
+        onToggleFavorite={() => {
+          if (relatedMenu) {
+            void toggleFavorite(relatedMenu.naat.$id);
+          }
+          closeRelatedMenu();
+        }}
+        onAlternatePlay={() => undefined}
+      />
     </>
   );
 }

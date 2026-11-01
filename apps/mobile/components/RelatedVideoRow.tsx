@@ -1,11 +1,12 @@
 import { colors } from "@/constants/theme";
-import type { Naat } from "@/types";
+import type { MenuAnchor, Naat } from "@/types";
 import { formatViews } from "@/utils";
 import { formatRelativeTime } from "@/utils/dateGrouping";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
 import { Text, View } from "react-native";
+import KebabMenuButton from "./KebabMenuButton";
 import Pressable from "./ResponsivePressable";
 
 const THUMBNAIL_WIDTH = 148;
@@ -25,12 +26,17 @@ function formatDuration(seconds: number): string {
 interface RelatedVideoRowProps {
   naat: Naat;
   onPress: () => void;
+  onMenuPress?: (anchor: MenuAnchor) => void;
 }
 
 /**
  * Compact YouTube-style row used by the "Related" list in video mode.
  */
-export function RelatedVideoRow({ naat, onPress }: RelatedVideoRowProps) {
+export function RelatedVideoRow({
+  naat,
+  onPress,
+  onMenuPress,
+}: RelatedVideoRowProps) {
   const [imageError, setImageError] = React.useState(false);
   const [imageLoading, setImageLoading] = React.useState(true);
   const duration = naat.duration;
@@ -118,6 +124,16 @@ export function RelatedVideoRow({ naat, onPress }: RelatedVideoRowProps) {
           {formatRelativeTime(naat.uploadDate)}
         </Text>
       </View>
+      {onMenuPress && (
+        <View className="justify-center pl-1">
+          <KebabMenuButton
+            onPress={onMenuPress}
+            size={16}
+            color={colors.text.secondary}
+            backgroundColor={colors.background.tertiary}
+          />
+        </View>
+      )}
     </Pressable>
   );
 }

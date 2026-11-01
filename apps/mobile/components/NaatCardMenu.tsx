@@ -40,6 +40,7 @@ interface NaatCardMenuProps {
   onNotForYou?: () => void;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
+  compact?: boolean;
   isDownloaded?: boolean;
   showDownload?: boolean;
   onExcluded?: (naatId: string, excluded: boolean) => void;
@@ -67,6 +68,7 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
   onNotForYou,
   isFavorite = false,
   onToggleFavorite,
+  compact = false,
   isDownloaded = false,
   showDownload = true,
   onExcluded,
@@ -150,36 +152,38 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
       onPress: onToggleFavorite,
     });
   }
-  items.push({
-    key: "play-next",
-    label: "Play next",
-    icon: "play-skip-forward-outline",
-    color: colors.text.primary,
-    onPress: () => {
-      onClose();
-      if (selectedNaat) onPlayNext?.(selectedNaat);
-    },
-  });
-  items.push({
-    key: "add-to-queue",
-    label: "Add to queue",
-    icon: "list-outline",
-    color: colors.text.primary,
-    onPress: () => {
-      onClose();
-      if (selectedNaat) onAddToQueue?.(selectedNaat);
-    },
-  });
-  items.push({
-    key: "alternate-play",
-    label: savedPlaybackMode === "audio" ? "Play as video" : "Play as audio",
-    icon:
-      savedPlaybackMode === "audio"
-        ? "videocam-outline"
-        : "musical-notes-outline",
-    color: colors.text.primary,
-    onPress: onAlternatePlay,
-  });
+  if (!compact) {
+    items.push({
+      key: "play-next",
+      label: "Play next",
+      icon: "play-skip-forward-outline",
+      color: colors.text.primary,
+      onPress: () => {
+        onClose();
+        if (selectedNaat) onPlayNext?.(selectedNaat);
+      },
+    });
+    items.push({
+      key: "add-to-queue",
+      label: "Add to queue",
+      icon: "list-outline",
+      color: colors.text.primary,
+      onPress: () => {
+        onClose();
+        if (selectedNaat) onAddToQueue?.(selectedNaat);
+      },
+    });
+    items.push({
+      key: "alternate-play",
+      label: savedPlaybackMode === "audio" ? "Play as video" : "Play as audio",
+      icon:
+        savedPlaybackMode === "audio"
+          ? "videocam-outline"
+          : "musical-notes-outline",
+      color: colors.text.primary,
+      onPress: onAlternatePlay,
+    });
+  }
   items.push({
     key: "share",
     label: "Share",
