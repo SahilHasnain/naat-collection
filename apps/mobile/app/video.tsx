@@ -18,7 +18,7 @@ import {
   rankRelatedNaats,
   tokenizeTitle,
 } from "@/utils/relatedScoring";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -289,6 +289,7 @@ export default function VideoScreen() {
         visible ? "inset-touch" : "overlay-swipe",
       );
       await NavigationBar.setVisibilityAsync(visible ? "visible" : "hidden");
+      StatusBar.setHidden(!visible, "none");
     } catch (error) {
       console.error(
         "[VideoScreen] Failed to update system navigation bar:",
@@ -326,7 +327,8 @@ export default function VideoScreen() {
     }
   };
 
-  // Cleanup: unlock orientation when screen unmounts
+  // Keep the OS controls explicit in both modes. Android can otherwise retain
+  // immersive navigation behavior after the fullscreen modal is dismissed.
   React.useEffect(() => {
     void setSystemBarsVisible(isFullscreen);
 
@@ -368,6 +370,12 @@ export default function VideoScreen() {
       }
     };
   }, [isFullscreen, isWeb]);
+
+  React.useEffect(() => {
+    if (!isFullscreen) {
+      void setSystemBarsVisible(true);
+    }
+  }, [isFullscreen]);
 
   // Update video position periodically and check duration
   React.useEffect(() => {
@@ -842,7 +850,11 @@ export default function VideoScreen() {
                     accessibilityRole="button"
                     accessibilityLabel="Open fullscreen video"
                   >
-                    <Ionicons name="scan-outline" size={18} color="#fff" />
+                    <MaterialCommunityIcons
+                      name="fullscreen"
+                      size={18}
+                      color="#fff"
+                    />
                   </Pressable>
                 )}
 
@@ -1003,6 +1015,14 @@ export default function VideoScreen() {
         visible={isFullscreen}
         animationType="fade"
         supportedOrientations={["landscape", "portrait"]}
+        onShow={() => {
+          // Android can restore the navigation bar when the Modal window is
+          // attached, so apply immersive mode after the fullscreen window exists.
+          void setSystemBarsVisible(false);
+        }}
+        onDismiss={() => {
+          void setSystemBarsVisible(true);
+        }}
         onRequestClose={() => void closeFullscreen()}
       >
         <View style={styles.fullscreenOverlay}>
@@ -1066,7 +1086,11 @@ export default function VideoScreen() {
             accessibilityRole="button"
             accessibilityLabel="Close fullscreen"
           >
-            <Ionicons name="contract-outline" size={24} color="#fff" />
+            <MaterialCommunityIcons
+              name="fullscreen-exit"
+              size={18}
+              color="#fff"
+            />
           </Pressable>
         </View>
       </Modal>
@@ -1197,13 +1221,13 @@ const styles = StyleSheet.create({
   },
   fullscreenCloseButton: {
     position: "absolute",
-    right: 16,
-    bottom: 16,
-    width: 40,
-    height: 40,
+    right: 12,
+    bottom: 12,
+    width: 36,
+    height: 36,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
+    borderRadius: 18,
     backgroundColor: "rgba(0,0,0,0.72)",
   },
 });
