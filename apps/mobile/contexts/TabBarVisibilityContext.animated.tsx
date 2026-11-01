@@ -6,6 +6,7 @@ interface TabBarVisibilityContextType {
   translateY: SharedValue<number>;
   tabBarHeight: number;
   showTabBar: () => void; // Force show tab bar and reset state
+  hideTabBar: () => void; // Force hide tab bar (immersive screens)
 }
 
 const TabBarVisibilityContext = createContext<
@@ -37,6 +38,17 @@ export function TabBarVisibilityProvider({
     lastDirection.current = "up";
     needsSync.current = true;
   }, [translateY]);
+
+  const hideTabBar = useCallback(() => {
+    // Push the bar fully off-screen; keep the state marked as hidden so a
+    // stray scroll event from another screen cannot pop it back up.
+    lastDirection.current = "down";
+    needsSync.current = true;
+    translateY.value = withTiming(tabBarHeight, {
+      duration: 300,
+      easing: Easing.in(Easing.ease),
+    });
+  }, [tabBarHeight, translateY]);
 
   const handleScroll = useCallback(
     (event: any) => {
@@ -90,7 +102,7 @@ export function TabBarVisibilityProvider({
 
   return (
     <TabBarVisibilityContext.Provider
-      value={{ handleScroll, translateY, tabBarHeight, showTabBar }}
+      value={{ handleScroll, translateY, tabBarHeight, showTabBar, hideTabBar }}
     >
       {children}
     </TabBarVisibilityContext.Provider>

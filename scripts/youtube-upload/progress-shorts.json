@@ -330,7 +330,8 @@
     "IovcF0BnkqE:end",
     "dvSRpbzRgk4:end",
     "vbdlV9JvLXQ:end",
-    "DdTpyE5I6wc:end"
+    "DdTpyE5I6wc:end",
+    "1loxdkcgFUo:end"
   ],
   "failed": [
     {
@@ -356,8 +357,15 @@
       "position": "start",
       "error": "fetch failed",
       "time": "2026-10-20T06:30:14.807Z"
+    },
+    {
+      "youtubeId": "Q4Rt53oYpYo",
+      "progressKey": "Q4Rt53oYpYo:end",
+      "position": "end",
+      "error": "terminated",
+      "time": "2026-11-01T06:38:55.393Z"
     }
   ],
-  "today": 2,
-  "lastDate": "2026-10-31"
+  "today": 1,
+  "lastDate": "2026-11-01"
 }

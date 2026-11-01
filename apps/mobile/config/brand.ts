@@ -24,6 +24,7 @@ type BrandConfig = {
     showAudioFilter?: boolean;
     showProfileTab?: boolean;
     showBrandLinks?: boolean;
+    showRelatedVideos?: boolean;
   };
 };
 

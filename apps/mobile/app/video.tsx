@@ -1,13 +1,23 @@
 import Pressable from "@/components/ResponsivePressable";
+import { RelatedVideoRow } from "@/components/RelatedVideoRow";
+import { features } from "@/config/features";
 import { colors, shadows } from "@/constants/theme";
 import { AudioMetadata, useAudioPlayer } from "@/contexts/AudioContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext.animated";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useVideoPlayer } from "@/contexts/VideoContext";
 import { WEB_MAX_CONTENT_WIDTH } from "@/hooks/useResponsiveColumns";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { appwriteService } from "@/services/appwrite";
 import { audioDownloadService } from "@/services/audioDownload";
 import { storageService } from "@/services/storage";
+import { userProfileService } from "@/services/userProfile";
+import type { Naat } from "@/types";
+import {
+  dedupeRelatedNaats,
+  rankRelatedNaats,
+  tokenizeTitle,
+} from "@/utils/relatedScoring";
 import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useFocusEffect } from "@react-navigation/native";
@@ -18,7 +28,7 @@ import React from "react";
 import {
   ActivityIndicator,
   Alert,
-  ScrollView,
+  FlatList,
   StatusBar,
   StyleSheet,
   Text,
@@ -27,26 +37,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import YoutubePlayer from "react-native-youtube-iframe";
-
-// On desktop web the content area scrolls so the tall 16:9 player fits on
-// short viewports; on mobile (native or phone browser) the screen is fixed
-// and the tab bar sits at the bottom.
-const VideoContentContainer: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const { isDesktopWeb } = useResponsiveLayout();
-  return isDesktopWeb ? (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{ flexGrow: 1 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {children}
-    </ScrollView>
-  ) : (
-    <View style={{ flex: 1 }}>{children}</View>
-  );
-};
 
 export default function VideoScreen() {
   const router = useRouter();
@@ -77,15 +67,22 @@ export default function VideoScreen() {
     handleVideoEnd,
     isRepeatEnabled,
     toggleRepeat,
+    isAutoplayEnabled,
+    toggleAutoplay,
+    setAutoplayCallback,
   } = useVideoPlayer();
-  const { showTabBar } = useTabBarVisibility();
+  const { showTabBar, hideTabBar } = useTabBarVisibility();
+  const { resolvedTheme } = useTheme();
 
-  // Force tab bar to show when this screen is focused
+  // Video mode is immersive: hide the tab bar while this screen is focused and
+  // restore it on the way out.
   useFocusEffect(
     React.useCallback(() => {
-      // Show tab bar and reset scroll tracking state
-      showTabBar();
-    }, [showTabBar]),
+      hideTabBar();
+      return () => {
+        showTabBar();
+      };
+    }, [hideTabBar, showTabBar]),
   );
 
   // Local video playback state (for UI)
@@ -97,12 +94,14 @@ export default function VideoScreen() {
   // Desktop-web layout: constrain content width and keep the player at 16:9.
   const { isWeb, isDesktopWeb } = useResponsiveLayout();
   const windowWidth = useWindowDimensions().width;
-  // Initial width accounts for the 224px sidebar; corrected on layout.
-  const [playerWidth, setPlayerWidth] = React.useState(
-    isDesktopWeb ? windowWidth - 224 : 0,
+  // Measured on layout; the fallback avoids a zero-height player on first paint.
+  const [playerWidth, setPlayerWidth] = React.useState(0);
+  const fallbackPlayerWidth = isDesktopWeb
+    ? Math.max(windowWidth - 224 - 48 - 404, 320)
+    : windowWidth;
+  const playerHeight = Math.round(
+    ((playerWidth > 0 ? playerWidth : fallbackPlayerWidth) * 9) / 16,
   );
-  const playerHeight =
-    isDesktopWeb && playerWidth > 0 ? Math.round((playerWidth * 9) / 16) : 300;
 
   // Parse params
   const videoUrl = params.videoUrl || "";
@@ -295,7 +294,10 @@ export default function VideoScreen() {
             try {
               const duration = await playerRef.current.getDuration();
               if (duration > 0) {
-                console.log("[VideoScreen] Video duration from interval:", duration);
+                console.log(
+                  "[VideoScreen] Video duration from interval:",
+                  duration,
+                );
                 setVideoDuration(duration);
                 setContextDuration(duration);
               }
@@ -326,13 +328,19 @@ export default function VideoScreen() {
           setTimeout(async () => {
             try {
               const duration = await playerRef.current.getDuration();
-              console.log("[VideoScreen] Video duration from playing state:", duration);
+              console.log(
+                "[VideoScreen] Video duration from playing state:",
+                duration,
+              );
               if (duration > 0) {
                 setVideoDuration(duration);
                 setContextDuration(duration);
               }
             } catch (error) {
-              console.error("[VideoScreen] Error getting duration from playing state:", error);
+              console.error(
+                "[VideoScreen] Error getting duration from playing state:",
+                error,
+              );
             }
           }, 1000);
         }
@@ -362,7 +370,14 @@ export default function VideoScreen() {
         }
       }
     },
-    [dbDuration, setPlaying, handleVideoEnd, isRepeatEnabled, videoDuration, setContextDuration],
+    [
+      dbDuration,
+      setPlaying,
+      handleVideoEnd,
+      isRepeatEnabled,
+      videoDuration,
+      setContextDuration,
+    ],
   );
 
   // Seek to position in video
@@ -377,48 +392,293 @@ export default function VideoScreen() {
     }
   };
 
+  // ── Related content ──────────────────────────────────────────────────────
+  const [related, setRelated] = React.useState<Naat[]>([]);
+  const [relatedLoading, setRelatedLoading] = React.useState(
+    features.showRelatedVideos,
+  );
+  const [relatedLoadingMore, setRelatedLoadingMore] = React.useState(false);
+  const [relatedError, setRelatedError] = React.useState<string | null>(null);
+  const [relatedHasMore, setRelatedHasMore] = React.useState(true);
+  const [relatedRequestKey, setRelatedRequestKey] = React.useState(0);
+  const relatedScrollRef = React.useRef<FlatList<Naat>>(null);
+  const relatedOffsets = React.useRef({ popular: 0, latest: 0 });
+  const relatedLoadingRef = React.useRef(false);
+
+  // Tapping a related video replaces the route params; reset scroll so the
+  // new video starts from the top.
+  React.useEffect(() => {
+    relatedScrollRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [propNaatId, videoUrl]);
+
+  React.useEffect(() => {
+    if (!features.showRelatedVideos) return;
+
+    let cancelled = false;
+    relatedOffsets.current = { popular: 0, latest: 0 };
+    relatedLoadingRef.current = false;
+    setRelated([]);
+    setRelatedLoading(true);
+    setRelatedLoadingMore(false);
+    setRelatedError(null);
+    setRelatedHasMore(true);
+
+    const loadRelated = async () => {
+      try {
+        // Tier 1: title/topic matches plus a small popular fallback. Later
+        // pages deliberately broaden into popular/latest long-tail content.
+        const searchTokens = tokenizeTitle(title ?? "")
+          .sort((a, b) => b.length - a.length)
+          .slice(0, 2);
+        const [popular, ...searchResults] = await Promise.all([
+          appwriteService.getNaats(12, 0, "popular"),
+          ...searchTokens.map((token) => appwriteService.searchNaats(token)),
+        ]);
+        relatedOffsets.current.popular = popular.length;
+
+        const [profile, watchTimestamps] = await Promise.all([
+          userProfileService.getProfile(),
+          storageService.getWatchHistoryTimestamps(),
+        ]);
+
+        if (cancelled) return;
+
+        const ranked = rankRelatedNaats({
+          currentId: propNaatId,
+          currentTitle: title ?? "",
+          candidates: [...searchResults.flat(), ...popular],
+          profile,
+          watchTimestamps,
+          limit: 12,
+        });
+        setRelated(ranked);
+        setRelatedHasMore(popular.length > 0);
+      } catch (error) {
+        console.warn("[VideoScreen] Failed to load related naats:", error);
+        if (!cancelled) {
+          setRelated([]);
+          setRelatedError("Unable to load related naats.");
+          setRelatedHasMore(false);
+        }
+      } finally {
+        if (!cancelled) setRelatedLoading(false);
+      }
+    };
+
+    void loadRelated();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [propNaatId, relatedRequestKey, title]);
+
+  const loadMoreRelated = React.useCallback(async () => {
+    if (
+      !features.showRelatedVideos ||
+      relatedLoading ||
+      relatedLoadingMore ||
+      !relatedHasMore ||
+      relatedLoadingRef.current
+    ) {
+      return;
+    }
+
+    relatedLoadingRef.current = true;
+    setRelatedLoadingMore(true);
+    setRelatedError(null);
+    try {
+      const { popular: popularOffset, latest: latestOffset } =
+        relatedOffsets.current;
+      const [popular, latest] = await Promise.all([
+        appwriteService.getNaats(12, popularOffset, "popular"),
+        appwriteService.getNaats(12, latestOffset, "latest"),
+      ]);
+      relatedOffsets.current.popular += popular.length;
+      relatedOffsets.current.latest += latest.length;
+
+      const [profile, watchTimestamps] = await Promise.all([
+        userProfileService.getProfile(),
+        storageService.getWatchHistoryTimestamps(),
+      ]);
+      const next = rankRelatedNaats({
+        currentId: propNaatId,
+        currentTitle: title ?? "",
+        candidates: [...popular, ...latest],
+        profile,
+        watchTimestamps,
+        limit: 12,
+      });
+      setRelated((current) => dedupeRelatedNaats([...current, ...next]));
+      setRelatedHasMore(popular.length > 0 || latest.length > 0);
+    } catch (error) {
+      console.warn("[VideoScreen] Failed to load more related naats:", error);
+      setRelatedError("Unable to load more naats. Tap retry to try again.");
+    } finally {
+      relatedLoadingRef.current = false;
+      setRelatedLoadingMore(false);
+    }
+  }, [propNaatId, relatedHasMore, relatedLoading, relatedLoadingMore, title]);
+
+  const openRelated = React.useCallback(
+    (naat: Naat) => {
+      void appwriteService.incrementAppView(naat.$id).catch(() => {});
+      void storageService.addToWatchHistory(naat.$id).catch(() => {});
+      void userProfileService.recordPlay(naat).catch(() => {});
+
+      router.replace({
+        pathname: "/video",
+        params: {
+          naatId: naat.$id,
+          videoUrl:
+            naat.videoUrl ||
+            (naat.youtubeId
+              ? `https://www.youtube.com/watch?v=${naat.youtubeId}`
+              : ""),
+          title: naat.title,
+          channelName: naat.channelName,
+          thumbnailUrl: naat.thumbnailUrl,
+          duration: String(naat.duration),
+          youtubeId: naat.youtubeId,
+          audioId: naat.cutAudio || naat.audioId,
+          isFallback: "false",
+        },
+      });
+    },
+    [router],
+  );
+
+  // Autoplay continues with the top related naat when the video ends.
+  React.useEffect(() => {
+    const handleAutoplay = async () => {
+      const next = related[0];
+      if (!next) return;
+      openRelated(next);
+    };
+
+    setAutoplayCallback(handleAutoplay);
+    return () => setAutoplayCallback(null);
+  }, [openRelated, related, setAutoplayCallback]);
+
+  // Player chrome (seek slider + audio switch). Pinned under the iframe on
+  // desktop; on mobile it lives inside the scroll area so only the video stays.
+  const videoControls = (
+    <View
+      className={isDesktopWeb ? "px-6 pb-8" : "pt-3 pb-4"}
+      style={{ backgroundColor: colors.background.primary }}
+    >
+      {/* Progress Bar (hidden on web: YouTube iframe provides its own controls) */}
+      {!isWeb && (
+        <View className="mb-4">
+          <Slider
+            style={{ width: "100%", height: 40 }}
+            minimumValue={0}
+            maximumValue={videoDuration}
+            value={videoPosition}
+            onSlidingComplete={seekToPosition}
+            minimumTrackTintColor={colors.accent.primary}
+            maximumTrackTintColor={colors.border.primary}
+            thumbTintColor={colors.accent.primary}
+          />
+
+          {/* Time Labels */}
+          <View className="flex-row justify-between">
+            <Text className="text-sm" style={{ color: colors.text.secondary }}>
+              {formatTime(videoPosition)}
+            </Text>
+            <Text className="text-sm" style={{ color: colors.text.secondary }}>
+              {videoDuration > 0 ? formatTime(videoDuration) : "--:--"}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Play as Audio Button */}
+      <Pressable
+        onPress={switchToAudio}
+        disabled={audioLoading}
+        className={
+          isDesktopWeb
+            ? "flex-row items-center justify-center self-center rounded-full px-8 py-3 active:opacity-80"
+            : "flex-row items-center justify-center rounded-2xl px-6 py-4 active:opacity-80"
+        }
+        style={[
+          {
+            backgroundColor: colors.accent.primary,
+            ...shadows.accent,
+          },
+          isDesktopWeb ? { maxWidth: 360 } : undefined,
+        ]}
+        accessibilityLabel="Switch to audio mode"
+        accessibilityRole="button"
+      >
+        {audioLoading ? (
+          <>
+            <ActivityIndicator size="small" color={colors.text.primary} />
+            <Text
+              className="ml-3 text-base font-bold"
+              style={{ color: colors.text.primary }}
+            >
+              Loading Audio...
+            </Text>
+          </>
+        ) : (
+          <>
+            <Ionicons
+              name="musical-notes"
+              size={24}
+              color={colors.text.primary}
+            />
+            <Text
+              className="ml-3 text-base font-bold"
+              style={{ color: colors.text.primary }}
+            >
+              Play as Audio Only
+            </Text>
+          </>
+        )}
+      </Pressable>
+    </View>
+  );
+
   return (
     <>
       <StatusBar
-        barStyle="light-content"
+        barStyle={resolvedTheme === "dark" ? "light-content" : "dark-content"}
         backgroundColor={colors.background.primary}
       />
 
-      <SafeAreaView edges={["bottom", "top"]} className="flex-1 bg-black">
+      <SafeAreaView
+        edges={["bottom", "top"]}
+        className="flex-1"
+        style={{ backgroundColor: colors.background.primary }}
+      >
         <LinearGradient
           pointerEvents="none"
-           colors={colors.overlay.screenGradient}
+          colors={colors.overlay.screenGradient}
           locations={[0, 0.18, 0.58, 1]}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
 
-        <VideoContentContainer>
+        {/* The player itself never scrolls; only the content below/beside it. */}
+        <View style={isDesktopWeb ? styles.desktopLayout : styles.mobileLayout}>
           <View
-            className={isDesktopWeb ? "bg-neutral-900 overflow-hidden" : "flex-1 bg-neutral-900 overflow-hidden"}
+            className="overflow-hidden"
             style={[
               shadows.lg,
+              { backgroundColor: colors.background.secondary },
               isDesktopWeb
-                ? {
-                    width: "100%",
-                    maxWidth: WEB_MAX_CONTENT_WIDTH,
-                    alignSelf: "center",
-                  }
-                : undefined,
+                ? styles.desktopPlayerColumn
+                : styles.mobilePlayerColumn,
             ]}
             onLayout={(e) => {
-              if (isDesktopWeb) {
-                setPlayerWidth(e.nativeEvent.layout.width);
-              }
+              setPlayerWidth(e.nativeEvent.layout.width);
             }}
           >
             {/* Video Player */}
-            <View className={isDesktopWeb ? "bg-black" : "flex-1 bg-black"}>
-              <View
-                className="relative"
-                style={isDesktopWeb ? { height: playerHeight } : undefined}
-              >
+            <View className="bg-black">
+              <View className="relative" style={{ height: playerHeight }}>
                 <YoutubePlayer
                   ref={playerRef}
                   height={playerHeight}
@@ -431,22 +691,36 @@ export default function VideoScreen() {
                       // Add a small delay to ensure video is fully loaded
                       setTimeout(async () => {
                         try {
-                          const duration = await playerRef.current.getDuration();
-                          console.log("[VideoScreen] Video duration:", duration);
+                          const duration =
+                            await playerRef.current.getDuration();
+                          console.log(
+                            "[VideoScreen] Video duration:",
+                            duration,
+                          );
                           setVideoDuration(duration);
                           // Update context duration
                           setContextDuration(duration);
                         } catch (error) {
-                          console.error("[VideoScreen] Error getting duration:", error);
+                          console.error(
+                            "[VideoScreen] Error getting duration:",
+                            error,
+                          );
                           // Fallback: try again after another delay
                           setTimeout(async () => {
                             try {
-                              const duration = await playerRef.current.getDuration();
-                              console.log("[VideoScreen] Video duration (retry):", duration);
+                              const duration =
+                                await playerRef.current.getDuration();
+                              console.log(
+                                "[VideoScreen] Video duration (retry):",
+                                duration,
+                              );
                               setVideoDuration(duration);
                               setContextDuration(duration);
                             } catch (retryError) {
-                              console.error("[VideoScreen] Error getting duration (retry):", retryError);
+                              console.error(
+                                "[VideoScreen] Error getting duration (retry):",
+                                retryError,
+                              );
                             }
                           }, 1000);
                         }
@@ -484,121 +758,225 @@ export default function VideoScreen() {
                 )}
               </View>
 
-              {/* Custom Video Controls */}
-              <View className={isDesktopWeb ? "px-6 pb-8 bg-black" : "px-6 pb-24 bg-black"}>
-                {/* Progress Bar (hidden on web: YouTube iframe provides its own controls) */}
-                {!isWeb && (
-                  <View className="mb-4">
-                    <Slider
-                      style={{ width: "100%", height: 40 }}
-                      minimumValue={0}
-                      maximumValue={videoDuration}
-                      value={videoPosition}
-                      onSlidingComplete={seekToPosition}
-                      minimumTrackTintColor={colors.accent.primary}
-                      maximumTrackTintColor={colors.background.elevated}
-                      thumbTintColor={colors.accent.primary}
-                    />
-
-                    {/* Time Labels */}
-                    <View className="flex-row justify-between">
-                      <Text className="text-sm text-neutral-400">
-                        {formatTime(videoPosition)}
-                      </Text>
-                      <Text className="text-sm text-neutral-400">
-                        {videoDuration > 0 ? formatTime(videoDuration) : "--:--"}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
-                {/* Repeat button intentionally hidden. Keep repeat logic wired for future use. */}
-                {/*
-                <View className="mb-4 flex-row items-center justify-center">
-                  <Pressable
-                    onPress={toggleRepeat}
-                    className="flex-row items-center gap-2 px-4 py-2 rounded-full bg-neutral-800"
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      isRepeatEnabled ? "Repeat enabled" : "Repeat disabled"
-                    }
-                  >
-                    <Ionicons
-                      name="repeat"
-                      size={20}
-                      color={
-                        isRepeatEnabled
-                          ? colors.accent.primary
-                          : colors.text.primary
-                      }
-                    />
-                    <Text
-                      className="text-sm font-medium"
-                      style={{
-                        color: isRepeatEnabled
-                          ? colors.accent.primary
-                          : colors.text.primary,
-                      }}
-                    >
-                      Repeat
-                    </Text>
-                  </Pressable>
-                </View>
-                */}
-
-                {/* Play as Audio Button */}
-                <Pressable
-                  onPress={switchToAudio}
-                  disabled={audioLoading}
-                  className={
-                    isDesktopWeb
-                      ? "flex-row items-center justify-center self-center rounded-full px-8 py-3 active:opacity-80"
-                      : "flex-row items-center justify-center rounded-2xl px-6 py-4 active:opacity-80"
-                  }
-                  style={[
-                    {
-                      backgroundColor: colors.accent.primary,
-                      ...shadows.accent,
-                    },
-                    isDesktopWeb ? { maxWidth: 360 } : undefined,
-                  ]}
-                  accessibilityLabel="Switch to audio mode"
-                  accessibilityRole="button"
-                >
-                  {audioLoading ? (
-                    <>
-                      <ActivityIndicator
-                        size="small"
-                        color={colors.text.primary}
-                      />
-                      <Text
-                        className="ml-3 text-base font-bold"
-                        style={{ color: colors.text.primary }}
-                      >
-                        Loading Audio...
-                      </Text>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons
-                        name="musical-notes"
-                        size={24}
-                        color={colors.text.primary}
-                      />
-                      <Text
-                        className="ml-3 text-base font-bold"
-                        style={{ color: colors.text.primary }}
-                      >
-                        Play as Audio Only
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
-              </View>
+              {isDesktopWeb && videoControls}
             </View>
           </View>
-        </VideoContentContainer>
+
+          {/* Related content scrolls independently of the player. */}
+          <FlatList
+            ref={relatedScrollRef}
+            data={features.showRelatedVideos ? related : []}
+            keyExtractor={(naat) => naat.$id}
+            renderItem={({ item }) => (
+              <RelatedVideoRow naat={item} onPress={() => openRelated(item)} />
+            )}
+            style={
+              isDesktopWeb
+                ? styles.desktopRelatedScroll
+                : styles.mobileRelatedScroll
+            }
+            contentContainerStyle={
+              isDesktopWeb ? styles.desktopRelated : styles.mobileRelated
+            }
+            showsVerticalScrollIndicator={false}
+            onEndReached={loadMoreRelated}
+            onEndReachedThreshold={0.7}
+            ListHeaderComponent={
+              <>
+                {/* Mobile: player chrome scrolls with the list; only the video is fixed. */}
+                {!isDesktopWeb && videoControls}
+                {features.showRelatedVideos && (
+                  <View style={styles.relatedHeader}>
+                    <Text
+                      style={[
+                        styles.relatedTitle,
+                        { color: colors.text.primary },
+                      ]}
+                    >
+                      Related
+                    </Text>
+                    <Pressable
+                      onPress={() => void toggleAutoplay()}
+                      accessibilityRole="switch"
+                      accessibilityState={{ checked: isAutoplayEnabled }}
+                      accessibilityLabel={
+                        isAutoplayEnabled
+                          ? "Disable autoplay"
+                          : "Enable autoplay"
+                      }
+                      style={[
+                        styles.autoplayToggle,
+                        {
+                          backgroundColor: isAutoplayEnabled
+                            ? colors.accent.primary + "22"
+                            : colors.background.tertiary,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={
+                          isAutoplayEnabled
+                            ? "play-circle"
+                            : "play-circle-outline"
+                        }
+                        size={16}
+                        color={
+                          isAutoplayEnabled
+                            ? colors.accent.primary
+                            : colors.text.secondary
+                        }
+                      />
+                      <Text
+                        style={[
+                          styles.autoplayText,
+                          {
+                            color: isAutoplayEnabled
+                              ? colors.accent.primary
+                              : colors.text.secondary,
+                          },
+                        ]}
+                      >
+                        Autoplay
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
+                {relatedLoading && (
+                  <ActivityIndicator
+                    style={{ marginTop: 16 }}
+                    color={colors.accent.primary}
+                  />
+                )}
+                {!relatedLoading && related.length === 0 && (
+                  <>
+                    <Text
+                      style={[
+                        styles.relatedEmpty,
+                        { color: colors.text.tertiary },
+                      ]}
+                    >
+                      {relatedError || "No related naats found."}
+                    </Text>
+                    {relatedError && (
+                      <Pressable
+                        onPress={() => setRelatedRequestKey((key) => key + 1)}
+                        style={styles.relatedRetry}
+                      >
+                        <Text style={{ color: colors.accent.primary }}>
+                          Retry loading
+                        </Text>
+                      </Pressable>
+                    )}
+                  </>
+                )}
+              </>
+            }
+            ListFooterComponent={
+              relatedLoadingMore ? (
+                <ActivityIndicator
+                  style={{ marginVertical: 16 }}
+                  color={colors.accent.primary}
+                />
+              ) : relatedError && related.length > 0 ? (
+                <Pressable
+                  onPress={loadMoreRelated}
+                  style={styles.relatedRetry}
+                >
+                  <Text style={{ color: colors.accent.primary }}>
+                    Retry loading
+                  </Text>
+                </Pressable>
+              ) : !relatedLoading && !relatedHasMore && related.length > 0 ? (
+                <Text
+                  style={[styles.relatedEnd, { color: colors.text.tertiary }]}
+                >
+                  You&apos;ve reached the end of related naats.
+                </Text>
+              ) : null
+            }
+          />
+        </View>
       </SafeAreaView>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  // Desktop web: fixed player column + independently scrolling related rail.
+  desktopLayout: {
+    flex: 1,
+    flexDirection: "row",
+    width: "100%",
+    maxWidth: WEB_MAX_CONTENT_WIDTH,
+    alignSelf: "center",
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
+    gap: 24,
+  },
+  desktopPlayerColumn: {
+    flex: 1,
+    minWidth: 0,
+    alignSelf: "flex-start",
+  },
+  desktopRelatedScroll: {
+    // FlatList's base style sets flexGrow: 1, so pin the width explicitly.
+    flexGrow: 0,
+    flexShrink: 0,
+    width: 380,
+  },
+  desktopRelated: {
+    paddingTop: 4,
+    paddingBottom: 24,
+  },
+  // Mobile: fixed player at the top, related list scrolls underneath it.
+  mobileLayout: {
+    flex: 1,
+  },
+  mobilePlayerColumn: {
+    flexShrink: 0,
+  },
+  mobileRelatedScroll: {
+    flex: 1,
+  },
+  mobileRelated: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  relatedHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  relatedTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  autoplayToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  autoplayText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  relatedEmpty: {
+    fontSize: 13,
+    paddingVertical: 8,
+  },
+  relatedRetry: {
+    alignItems: "center",
+    paddingVertical: 14,
+  },
+  relatedEnd: {
+    fontSize: 12,
+    textAlign: "center",
+    paddingVertical: 16,
+  },
+});
