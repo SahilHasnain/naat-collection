@@ -29,6 +29,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Modal,
   StatusBar,
   StyleSheet,
   Text,
@@ -54,6 +55,8 @@ export default function VideoScreen() {
 
   const [isLoading, setIsLoading] = React.useState(true);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const [isZoomed, setIsZoomed] = React.useState(false);
+  const [fullscreenStartTime, setFullscreenStartTime] = React.useState(0);
   const [audioLoading, setAudioLoading] = React.useState(false);
 
   // Get contexts
@@ -90,10 +93,14 @@ export default function VideoScreen() {
   const [videoDuration, setVideoDuration] = React.useState(0);
   const [videoPosition, setVideoPosition] = React.useState(0);
   const playerRef = React.useRef<any>(null);
+  const fullscreenPlayerRef = React.useRef<any>(null);
 
   // Desktop-web layout: constrain content width and keep the player at 16:9.
   const { isWeb, isDesktopWeb } = useResponsiveLayout();
   const windowWidth = useWindowDimensions().width;
+  const windowHeight = useWindowDimensions().height;
+  const fullscreenPlayerWidth = Math.max(windowWidth, windowHeight);
+  const fullscreenPlayerHeight = Math.round((fullscreenPlayerWidth * 9) / 16);
   // Measured on layout; the fallback avoids a zero-height player on first paint.
   const [playerWidth, setPlayerWidth] = React.useState(0);
   const fallbackPlayerWidth = isDesktopWeb
@@ -254,9 +261,8 @@ export default function VideoScreen() {
     }
   };
 
-  // Handle fullscreen changes
+  // Handle fullscreen changes from the embedded player.
   const handleFullscreenChange = async (isFullscreen: boolean) => {
-    setIsFullscreen(isFullscreen);
     if (isWeb) {
       return;
     }
@@ -267,6 +273,33 @@ export default function VideoScreen() {
       );
     } else {
       await ScreenOrientation.unlockAsync();
+    }
+  };
+
+  const openFullscreen = async () => {
+    setFullscreenStartTime(Math.floor(videoPosition));
+    setIsZoomed(false);
+    setIsFullscreen(true);
+    if (!isWeb) {
+      await ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.LANDSCAPE,
+      );
+    }
+  };
+
+  const closeFullscreen = async () => {
+    try {
+      const currentTime = await fullscreenPlayerRef.current?.getCurrentTime();
+      if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
+        setVideoPosition(currentTime);
+        await playerRef.current?.seekTo(currentTime, true);
+      }
+    } finally {
+      setIsFullscreen(false);
+      setIsZoomed(false);
+      if (!isWeb) {
+        await ScreenOrientation.unlockAsync();
+      }
     }
   };
 
@@ -282,9 +315,12 @@ export default function VideoScreen() {
   // Update video position periodically and check duration
   React.useEffect(() => {
     const interval = setInterval(async () => {
-      if (playerRef.current) {
+      const activePlayerRef = isFullscreen
+        ? fullscreenPlayerRef.current
+        : playerRef.current;
+      if (activePlayerRef) {
         try {
-          const currentTime = await playerRef.current.getCurrentTime();
+          const currentTime = await activePlayerRef.getCurrentTime();
           setVideoPosition(currentTime);
           // Update context position
           setContextPosition(currentTime);
@@ -592,21 +628,16 @@ export default function VideoScreen() {
         </View>
       )}
 
-      {/* Play as Audio Button */}
+      {/* Switch to audio mode button */}
       <Pressable
         onPress={switchToAudio}
         disabled={audioLoading}
-        className={
-          isDesktopWeb
-            ? "flex-row items-center justify-center self-center rounded-full px-8 py-3 active:opacity-80"
-            : "flex-row items-center justify-center rounded-2xl px-6 py-4 active:opacity-80"
-        }
+        className="flex-row items-center justify-center self-center rounded-full px-5 py-2.5 active:opacity-80"
         style={[
           {
-            backgroundColor: colors.accent.primary,
+            backgroundColor: colors.accent.tabActive,
             ...shadows.accent,
           },
-          isDesktopWeb ? { maxWidth: 360 } : undefined,
         ]}
         accessibilityLabel="Switch to audio mode"
         accessibilityRole="button"
@@ -615,7 +646,7 @@ export default function VideoScreen() {
           <>
             <ActivityIndicator size="small" color={colors.text.primary} />
             <Text
-              className="ml-3 text-base font-bold"
+              className="ml-2 text-sm font-bold"
               style={{ color: colors.text.primary }}
             >
               Loading Audio...
@@ -625,14 +656,14 @@ export default function VideoScreen() {
           <>
             <Ionicons
               name="musical-notes"
-              size={24}
+              size={18}
               color={colors.text.primary}
             />
             <Text
-              className="ml-3 text-base font-bold"
+              className="ml-2 text-sm font-bold"
               style={{ color: colors.text.primary }}
             >
-              Play as Audio Only
+              Switch to Audio Mode
             </Text>
           </>
         )}
@@ -683,7 +714,7 @@ export default function VideoScreen() {
                   ref={playerRef}
                   height={playerHeight}
                   videoId={videoId}
-                  play={videoPlaying}
+                  play={videoPlaying && !isFullscreen}
                   onReady={() => {
                     console.log("[VideoScreen] Video ready");
                     setIsLoading(false);
@@ -742,8 +773,20 @@ export default function VideoScreen() {
                     controls: true,
                     modestbranding: true,
                     rel: false,
+                    preventFullScreen: true,
                   }}
                 />
+
+                {!isLoading && (
+                  <Pressable
+                    onPress={() => void openFullscreen()}
+                    style={styles.inlineFullscreenButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Open fullscreen video"
+                  >
+                    <Ionicons name="scan-outline" size={18} color="#fff" />
+                  </Pressable>
+                )}
 
                 {isLoading && (
                   <View className="absolute inset-0 items-center justify-center bg-black">
@@ -897,6 +940,78 @@ export default function VideoScreen() {
           />
         </View>
       </SafeAreaView>
+
+      <Modal
+        visible={isFullscreen}
+        animationType="fade"
+        supportedOrientations={["landscape", "portrait"]}
+        onRequestClose={() => void closeFullscreen()}
+      >
+        <View style={styles.fullscreenOverlay}>
+          <View
+            style={[
+              styles.fullscreenVideoViewport,
+              { height: windowHeight, width: windowWidth },
+            ]}
+          >
+            <YoutubePlayer
+              ref={fullscreenPlayerRef}
+              width={fullscreenPlayerWidth}
+              height={fullscreenPlayerHeight}
+              videoId={videoId}
+              play={videoPlaying && isFullscreen}
+              onChangeState={onStateChange}
+              onError={() => {
+                Alert.alert(
+                  "Video Error",
+                  "Unable to load video in fullscreen.",
+                  [{ text: "OK" }],
+                );
+              }}
+              initialPlayerParams={{
+                controls: true,
+                modestbranding: true,
+                rel: false,
+                preventFullScreen: true,
+                ...(fullscreenStartTime > 0
+                  ? { start: fullscreenStartTime }
+                  : {}),
+              }}
+              viewContainerStyle={{
+                transform: [{ scale: isZoomed ? 1.35 : 1 }],
+              }}
+            />
+          </View>
+
+          <View style={styles.fullscreenActions}>
+            <Pressable
+              onPress={() => setIsZoomed((zoomed) => !zoomed)}
+              style={styles.fullscreenAction}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isZoomed ? "Show original size" : "Fill screen"
+              }
+            >
+              <Ionicons
+                name={isZoomed ? "contract-outline" : "expand-outline"}
+                size={20}
+                color="#fff"
+              />
+              <Text style={styles.fullscreenActionText}>
+                {isZoomed ? "Original" : "Fill"}
+              </Text>
+            </Pressable>
+          </View>
+          <Pressable
+            onPress={() => void closeFullscreen()}
+            style={styles.fullscreenCloseButton}
+            accessibilityRole="button"
+            accessibilityLabel="Close fullscreen"
+          >
+            <Ionicons name="contract-outline" size={24} color="#fff" />
+          </Pressable>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -978,5 +1093,59 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
     paddingVertical: 16,
+  },
+  inlineFullscreenButton: {
+    position: "absolute",
+    right: 12,
+    bottom: 12,
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.72)",
+  },
+  fullscreenOverlay: {
+    flex: 1,
+    backgroundColor: "#000",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fullscreenVideoViewport: {
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fullscreenActions: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    flexDirection: "row",
+    gap: 8,
+  },
+  fullscreenAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "rgba(0,0,0,0.7)",
+  },
+  fullscreenActionText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  fullscreenCloseButton: {
+    position: "absolute",
+    right: 16,
+    bottom: 16,
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.72)",
   },
 });

@@ -33,7 +33,7 @@ interface RelatedVideoRowProps {
 export function RelatedVideoRow({ naat, onPress }: RelatedVideoRowProps) {
   const [imageError, setImageError] = React.useState(false);
   const [imageLoading, setImageLoading] = React.useState(true);
-  const duration = naat.cutDuration || naat.duration;
+  const duration = naat.duration;
 
   return (
     <Pressable
@@ -53,7 +53,11 @@ export function RelatedVideoRow({ naat, onPress }: RelatedVideoRowProps) {
       >
         {imageError || !naat.thumbnailUrl ? (
           <View className="h-full w-full items-center justify-center">
-            <Ionicons name="musical-notes" size={28} color={colors.text.tertiary} />
+            <Ionicons
+              name="musical-notes"
+              size={28}
+              color={colors.text.tertiary}
+            />
           </View>
         ) : (
           <>
@@ -71,7 +75,11 @@ export function RelatedVideoRow({ naat, onPress }: RelatedVideoRowProps) {
             />
             {imageLoading && (
               <View className="absolute inset-0 items-center justify-center">
-                <Ionicons name="hourglass" size={20} color={colors.text.tertiary} />
+                <Ionicons
+                  name="hourglass"
+                  size={20}
+                  color={colors.text.tertiary}
+                />
               </View>
             )}
           </>
@@ -104,15 +112,10 @@ export function RelatedVideoRow({ naat, onPress }: RelatedVideoRowProps) {
         </Text>
         <Text
           numberOfLines={1}
-          style={{ marginTop: 4, color: colors.text.secondary, fontSize: 11 }}
+          style={{ marginTop: 4, color: colors.text.tertiary, fontSize: 11 }}
         >
-          {naat.channelName}
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={{ marginTop: 2, color: colors.text.tertiary, fontSize: 11 }}
-        >
-          {formatViews(naat.views)} views · {formatRelativeTime(naat.uploadDate)}
+          {formatViews(naat.views)} views ·{" "}
+          {formatRelativeTime(naat.uploadDate)}
         </Text>
       </View>
     </Pressable>
