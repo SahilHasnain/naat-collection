@@ -18,7 +18,7 @@ import {
   rankRelatedNaats,
   tokenizeTitle,
 } from "@/utils/relatedScoring";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -30,7 +30,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Modal,
   Platform,
   StatusBar,
   StyleSheet,
@@ -57,8 +56,6 @@ export default function VideoScreen() {
 
   const [isLoading, setIsLoading] = React.useState(true);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
-  const [isZoomed, setIsZoomed] = React.useState(false);
-  const [fullscreenStartTime, setFullscreenStartTime] = React.useState(0);
   const [audioLoading, setAudioLoading] = React.useState(false);
   const systemBarsTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -98,14 +95,10 @@ export default function VideoScreen() {
   const [videoDuration, setVideoDuration] = React.useState(0);
   const [videoPosition, setVideoPosition] = React.useState(0);
   const playerRef = React.useRef<any>(null);
-  const fullscreenPlayerRef = React.useRef<any>(null);
 
   // Desktop-web layout: constrain content width and keep the player at 16:9.
   const { isWeb, isDesktopWeb } = useResponsiveLayout();
   const windowWidth = useWindowDimensions().width;
-  const windowHeight = useWindowDimensions().height;
-  const fullscreenPlayerWidth = Math.max(windowWidth, windowHeight);
-  const fullscreenPlayerHeight = Math.round((fullscreenPlayerWidth * 9) / 16);
   // Measured on layout; the fallback avoids a zero-height player on first paint.
   const [playerWidth, setPlayerWidth] = React.useState(0);
   const fallbackPlayerWidth = isDesktopWeb
@@ -268,6 +261,9 @@ export default function VideoScreen() {
 
   // Handle fullscreen changes from the embedded player.
   const handleFullscreenChange = async (isFullscreen: boolean) => {
+    setIsFullscreen(isFullscreen);
+    await setSystemBarsVisible(!isFullscreen);
+
     if (isWeb) {
       return;
     }
@@ -295,35 +291,6 @@ export default function VideoScreen() {
         "[VideoScreen] Failed to update system navigation bar:",
         error,
       );
-    }
-  };
-
-  const openFullscreen = async () => {
-    setFullscreenStartTime(Math.floor(videoPosition));
-    setIsZoomed(false);
-    setIsFullscreen(true);
-    await setSystemBarsVisible(false);
-    if (!isWeb) {
-      await ScreenOrientation.lockAsync(
-        ScreenOrientation.OrientationLock.LANDSCAPE,
-      );
-    }
-  };
-
-  const closeFullscreen = async () => {
-    try {
-      const currentTime = await fullscreenPlayerRef.current?.getCurrentTime();
-      if (typeof currentTime === "number" && Number.isFinite(currentTime)) {
-        setVideoPosition(currentTime);
-        await playerRef.current?.seekTo(currentTime, true);
-      }
-    } finally {
-      setIsFullscreen(false);
-      setIsZoomed(false);
-      await setSystemBarsVisible(true);
-      if (!isWeb) {
-        await ScreenOrientation.unlockAsync();
-      }
     }
   };
 
@@ -380,9 +347,7 @@ export default function VideoScreen() {
   // Update video position periodically and check duration
   React.useEffect(() => {
     const interval = setInterval(async () => {
-      const activePlayerRef = isFullscreen
-        ? fullscreenPlayerRef.current
-        : playerRef.current;
+      const activePlayerRef = playerRef.current;
       if (activePlayerRef) {
         try {
           const currentTime = await activePlayerRef.getCurrentTime();
@@ -780,7 +745,7 @@ export default function VideoScreen() {
                   ref={playerRef}
                   height={playerHeight}
                   videoId={videoId}
-                  play={videoPlaying && !isFullscreen}
+                  play={videoPlaying}
                   onReady={() => {
                     console.log("[VideoScreen] Video ready");
                     setIsLoading(false);
@@ -839,24 +804,9 @@ export default function VideoScreen() {
                     controls: true,
                     modestbranding: true,
                     rel: false,
-                    preventFullScreen: true,
+                    preventFullScreen: false,
                   }}
                 />
-
-                {!isLoading && (
-                  <Pressable
-                    onPress={() => void openFullscreen()}
-                    style={styles.inlineFullscreenButton}
-                    accessibilityRole="button"
-                    accessibilityLabel="Open fullscreen video"
-                  >
-                    <MaterialCommunityIcons
-                      name="fullscreen"
-                      size={18}
-                      color="#fff"
-                    />
-                  </Pressable>
-                )}
 
                 {isLoading && (
                   <View className="absolute inset-0 items-center justify-center bg-black">
@@ -1010,90 +960,6 @@ export default function VideoScreen() {
           />
         </View>
       </SafeAreaView>
-
-      <Modal
-        visible={isFullscreen}
-        animationType="fade"
-        supportedOrientations={["landscape", "portrait"]}
-        onShow={() => {
-          // Android can restore the navigation bar when the Modal window is
-          // attached, so apply immersive mode after the fullscreen window exists.
-          void setSystemBarsVisible(false);
-        }}
-        onDismiss={() => {
-          void setSystemBarsVisible(true);
-        }}
-        onRequestClose={() => void closeFullscreen()}
-      >
-        <View style={styles.fullscreenOverlay}>
-          <View
-            style={[
-              styles.fullscreenVideoViewport,
-              { height: windowHeight, width: windowWidth },
-            ]}
-          >
-            <YoutubePlayer
-              ref={fullscreenPlayerRef}
-              width={fullscreenPlayerWidth}
-              height={fullscreenPlayerHeight}
-              videoId={videoId}
-              play={videoPlaying && isFullscreen}
-              onChangeState={onStateChange}
-              onError={() => {
-                Alert.alert(
-                  "Video Error",
-                  "Unable to load video in fullscreen.",
-                  [{ text: "OK" }],
-                );
-              }}
-              initialPlayerParams={{
-                controls: true,
-                modestbranding: true,
-                rel: false,
-                preventFullScreen: true,
-                ...(fullscreenStartTime > 0
-                  ? { start: fullscreenStartTime }
-                  : {}),
-              }}
-              viewContainerStyle={{
-                transform: [{ scale: isZoomed ? 1.35 : 1 }],
-              }}
-            />
-          </View>
-
-          <View style={styles.fullscreenActions}>
-            <Pressable
-              onPress={() => setIsZoomed((zoomed) => !zoomed)}
-              style={styles.fullscreenAction}
-              accessibilityRole="button"
-              accessibilityLabel={
-                isZoomed ? "Show original size" : "Fill screen"
-              }
-            >
-              <Ionicons
-                name={isZoomed ? "contract-outline" : "expand-outline"}
-                size={20}
-                color="#fff"
-              />
-              <Text style={styles.fullscreenActionText}>
-                {isZoomed ? "Original" : "Fill"}
-              </Text>
-            </Pressable>
-          </View>
-          <Pressable
-            onPress={() => void closeFullscreen()}
-            style={styles.fullscreenCloseButton}
-            accessibilityRole="button"
-            accessibilityLabel="Close fullscreen"
-          >
-            <MaterialCommunityIcons
-              name="fullscreen-exit"
-              size={18}
-              color="#fff"
-            />
-          </Pressable>
-        </View>
-      </Modal>
     </>
   );
 }
@@ -1175,59 +1041,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
     paddingVertical: 16,
-  },
-  inlineFullscreenButton: {
-    position: "absolute",
-    right: 12,
-    bottom: 12,
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.72)",
-  },
-  fullscreenOverlay: {
-    flex: 1,
-    backgroundColor: "#000",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  fullscreenVideoViewport: {
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  fullscreenActions: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    flexDirection: "row",
-    gap: 8,
-  },
-  fullscreenAction: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: "rgba(0,0,0,0.7)",
-  },
-  fullscreenActionText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  fullscreenCloseButton: {
-    position: "absolute",
-    right: 12,
-    bottom: 12,
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.72)",
   },
 });
