@@ -1067,7 +1067,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
 
                 {features.showVoiceTransform && (
                   <TouchableOpacity
-                    onPress={() => void handleVoiceTransform("high")}
+                    onPress={() => handleVoicePresetPress("high")}
                     style={[...menuItemStyle, { borderBottomWidth: 0 }]}
                   >
                     <View
@@ -1082,59 +1082,19 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                         color={colors.accent.tabActive}
                       />
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[
-                          styles.menuItemText,
-                          { color: colors.text.primary },
-                        ]}
-                      >
-                        Voice tone
-                      </Text>
-                      <Text
-                        style={[
-                          styles.menuItemSubtext,
-                          { color: colors.text.secondary },
-                        ]}
-                      >
-                        {isTransformingVoice
-                          ? "Processing..."
-                          : voicePreset
-                            ? `${getVoicePresetLabel(voicePreset)} selected`
-                            : "Choose a voice tone"}
-                      </Text>
-                    </View>
+                    <Text
+                      style={[
+                        styles.menuItemText,
+                        { color: colors.text.primary },
+                      ]}
+                    >
+                      {isTransformingVoice
+                        ? "Teenage · Processing"
+                        : voicePreset
+                          ? "Teenage · Active"
+                          : "Teenage voice"}
+                    </Text>
                   </TouchableOpacity>
-                )}
-
-                {features.showVoiceTransform && (
-                  <View style={styles.voicePresetRow}>
-                    {VOICE_PRESETS.map((preset) => (
-                      <TouchableOpacity
-                        key={preset}
-                        onPress={() => handleVoicePresetPress(preset)}
-                        style={[
-                          styles.voicePresetButton,
-                          { backgroundColor: colors.background.tertiary },
-                          voicePreset === preset && {
-                            backgroundColor: colors.accent.tabActive,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.voicePresetText,
-                            { color: colors.text.primary },
-                            voicePreset === preset && {
-                              color: colors.text.inverse,
-                            },
-                          ]}
-                        >
-                          {getVoicePresetLabel(preset)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
                 )}
 
                 <TouchableOpacity
@@ -1826,24 +1786,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 14,
-  },
-  voicePresetRow: {
-    flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  voicePresetButton: {
-    flex: 1,
-    alignItems: "center",
-    borderRadius: 8,
-    paddingVertical: 8,
-    backgroundColor: colors.background.tertiary,
-  },
-  voicePresetText: {
-    color: colors.text.secondary,
-    fontSize: 11,
-    fontWeight: "600",
   },
   voiceProgressTrack: {
     height: 4,
