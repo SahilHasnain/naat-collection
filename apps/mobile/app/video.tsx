@@ -68,6 +68,7 @@ export default function VideoScreen() {
     typeof setTimeout
   > | null>(null);
   const hasStartedPlaybackRef = React.useRef(false);
+  const playerStateRef = React.useRef("unstarted");
 
   // Get contexts
   const { loadAndPlay } = useAudioPlayer();
@@ -153,6 +154,7 @@ export default function VideoScreen() {
   // Load video on mount, save video preference, and autoplay
   React.useEffect(() => {
     hasStartedPlaybackRef.current = false;
+    playerStateRef.current = "unstarted";
     setIsLoading(true);
     setVideoLoadTimedOut(false);
     setPlayerInstanceKey(0);
@@ -209,6 +211,13 @@ export default function VideoScreen() {
 
     videoLoadingTimeoutRef.current = setTimeout(() => {
       videoLoadingTimeoutRef.current = null;
+      if (
+        hasStartedPlaybackRef.current ||
+        playerStateRef.current === "paused" ||
+        playerStateRef.current === "ended"
+      ) {
+        return;
+      }
       console.log("[VideoScreen] Video loading timed out");
       setIsLoading(false);
       setVideoLoadTimedOut(true);
@@ -224,6 +233,7 @@ export default function VideoScreen() {
 
   const retryVideoLoading = React.useCallback(() => {
     hasStartedPlaybackRef.current = false;
+    playerStateRef.current = "unstarted";
     setVideoLoadTimedOut(false);
     setIsLoading(true);
     setVideoPlaying(true);
@@ -419,6 +429,7 @@ export default function VideoScreen() {
   // Handle video state changes
   const onStateChange = React.useCallback(
     (state: string) => {
+      playerStateRef.current = state;
       // Clear loading state when video starts playing
       if (state === "playing") {
         hasStartedPlaybackRef.current = true;
@@ -457,6 +468,8 @@ export default function VideoScreen() {
           clearTimeout(videoLoadingTimeoutRef.current);
           videoLoadingTimeoutRef.current = null;
         }
+        setIsLoading(false);
+        setVideoLoadTimedOut(false);
         setVideoPlaying(false);
         setPlaying(false);
       } else if (state === "ended") {
@@ -828,6 +841,12 @@ export default function VideoScreen() {
                   play={videoPlaying}
                   onReady={() => {
                     console.log("[VideoScreen] Video ready");
+                    if (videoLoadingTimeoutRef.current) {
+                      clearTimeout(videoLoadingTimeoutRef.current);
+                      videoLoadingTimeoutRef.current = null;
+                    }
+                    setIsLoading(false);
+                    setVideoLoadTimedOut(false);
                     if (dbDuration === 0 && playerRef.current) {
                       // Add a small delay to ensure video is fully loaded
                       setTimeout(async () => {
@@ -871,7 +890,10 @@ export default function VideoScreen() {
                   onChangeState={onStateChange}
                   onFullScreenChange={handleFullscreenChange}
                   onError={() => {
-                    if (!hasStartedPlaybackRef.current) {
+                    if (
+                      !hasStartedPlaybackRef.current &&
+                      playerStateRef.current !== "paused"
+                    ) {
                       setIsLoading(false);
                       setVideoLoadTimedOut(true);
                     }
