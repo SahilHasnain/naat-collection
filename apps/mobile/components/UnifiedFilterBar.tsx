@@ -1,18 +1,13 @@
 import { colors } from "@/constants/theme";
 import { features } from "@/config/features";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetScrollView,
-} from "@gorhom/bottom-sheet";
 import type {
   Channel,
   DurationOption,
   SortOption,
 } from "@naat-collection/shared";
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import React, { useCallback, useState } from "react";
+import { Animated, Easing, Modal, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Pressable from "./ResponsivePressable";
 
@@ -55,51 +50,77 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
   onExternalClose,
   hideChips = false,
 }) => {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
-  const [activeTab, setActiveTab] = useState<"sort" | "channel" | "duration">("sort");
-  const snapPoints = useMemo(() => ["55%"], []);
+  const [activeTab, setActiveTab] = useState<"sort" | "channel" | "duration">(
+    "sort",
+  );
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const sheetProgress = React.useRef(new Animated.Value(1)).current;
+
+  const animateSheet = useCallback(
+    (toValue: 0 | 1, onComplete?: () => void) => {
+      Animated.timing(sheetProgress, {
+        toValue,
+        duration: toValue === 0 ? 260 : 200,
+        easing:
+          toValue === 0 ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) onComplete?.();
+      });
+    },
+    [sheetProgress],
+  );
+
+  const openFilterSheet = useCallback(() => {
+    sheetProgress.setValue(1);
+    setShowFilterSheet(true);
+    requestAnimationFrame(() => animateSheet(0));
+  }, [animateSheet, sheetProgress]);
 
   // Open sheet when external trigger fires
   React.useEffect(() => {
     if (externalOpen) {
-      bottomSheetRef.current?.present();
+      openFilterSheet();
     }
-  }, [externalOpen]);
+  }, [externalOpen, openFilterSheet]);
 
   const handleClose = useCallback(() => {
-    bottomSheetRef.current?.dismiss();
-    onExternalClose?.();
-  }, [onExternalClose]);
+    animateSheet(1, () => {
+      setShowFilterSheet(false);
+      onExternalClose?.();
+    });
+  }, [animateSheet, onExternalClose]);
 
   const handleDismiss = useCallback(() => {
-    onExternalClose?.();
-  }, [onExternalClose]);
+    handleClose();
+  }, [handleClose]);
 
   const openSheet = useCallback(
     (tab: "sort" | "channel" | "duration") => {
       setActiveTab(tab);
-      bottomSheetRef.current?.present();
+      openFilterSheet();
     },
-    [],
-  );
-
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.5} />
-    ),
-    [],
+    [openFilterSheet],
   );
 
   // --- Filter data ---
 
-  const sortFilters: { value: SortOption; label: string; iconName: keyof typeof Ionicons.glyphMap }[] = [
+  const sortFilters: {
+    value: SortOption;
+    label: string;
+    iconName: keyof typeof Ionicons.glyphMap;
+  }[] = [
     { value: "forYou", label: "For You", iconName: "sparkles" },
     { value: "latest", label: "Latest", iconName: "time" },
     { value: "popular", label: "Popular", iconName: "flame" },
     { value: "oldest", label: "Oldest", iconName: "calendar" },
   ];
 
-  const durationFilters: { value: DurationOption; label: string; iconName: keyof typeof Ionicons.glyphMap }[] = [
+  const durationFilters: {
+    value: DurationOption;
+    label: string;
+    iconName: keyof typeof Ionicons.glyphMap;
+  }[] = [
     { value: "all", label: "All", iconName: "infinite" },
     { value: "short", label: "< 5 min", iconName: "flash" },
     { value: "medium", label: "5-15 min", iconName: "hourglass" },
@@ -108,26 +129,59 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
 
   const mainChannels = channels.filter((ch) => !ch.isOther);
   const otherChannels = channels.filter((ch) => ch.isOther);
-  const sortedMainChannels = [...mainChannels].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedMainChannels = [...mainChannels].sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
 
-  const channelOptions: { id: string | null; name: string; iconName: keyof typeof Ionicons.glyphMap; type: "all" | "channel" | "other" }[] = [
+  const channelOptions: {
+    id: string | null;
+    name: string;
+    iconName: keyof typeof Ionicons.glyphMap;
+    type: "all" | "channel" | "other";
+  }[] = [
     { id: null, name: "All", iconName: "globe", type: "all" },
-    ...sortedMainChannels.map((ch) => ({ id: ch.id, name: ch.name, iconName: "tv" as keyof typeof Ionicons.glyphMap, type: "channel" as const })),
+    ...sortedMainChannels.map((ch) => ({
+      id: ch.id,
+      name: ch.name,
+      iconName: "tv" as keyof typeof Ionicons.glyphMap,
+      type: "channel" as const,
+    })),
   ];
   if (otherChannels.length > 0) {
-    channelOptions.push({ id: "other", name: "Other", iconName: "folder", type: "other" });
+    channelOptions.push({
+      id: "other",
+      name: "Other",
+      iconName: "folder",
+      type: "other",
+    });
   }
 
-  const isOtherSelected = selectedChannelId !== null && otherChannels.some((ch) => ch.id === selectedChannelId);
+  const isOtherSelected =
+    selectedChannelId !== null &&
+    otherChannels.some((ch) => ch.id === selectedChannelId);
   const currentSort = sortFilters.find((f) => f.value === selectedSort);
-  let currentChannel: { id: string | null; name: string; iconName: keyof typeof Ionicons.glyphMap };
+  let currentChannel: {
+    id: string | null;
+    name: string;
+    iconName: keyof typeof Ionicons.glyphMap;
+  };
   if (isOtherSelected) {
     currentChannel = { id: "other", name: "Other", iconName: "folder" };
   } else {
-    currentChannel = channelOptions.find((c) => c.id === selectedChannelId) || channelOptions[0];
+    currentChannel =
+      channelOptions.find((c) => c.id === selectedChannelId) ||
+      channelOptions[0];
   }
-  const currentDuration = durationFilters.find((f) => f.value === selectedDuration);
-  const hasActiveFilters = selectedSort !== "forYou" || selectedChannelId !== null || selectedDuration !== "all" || (features.showPureFilter && pureOnly) || (features.showTeenageFilter && teenageOnly) || (features.showAudioFilter && audioOnly);
+  const currentDuration = durationFilters.find(
+    (f) => f.value === selectedDuration,
+  );
+  const hasActiveFilters =
+    selectedSort !== "forYou" ||
+    selectedChannelId !== null ||
+    selectedDuration !== "all" ||
+    (features.showPureFilter && pureOnly) ||
+    (features.showTeenageFilter && teenageOnly) ||
+    (features.showAudioFilter && audioOnly);
 
   // `background.elevated` is pure white in light mode, so a white thumb on it
   // is invisible against the sheet. Use a mid-gray track that stays readable
@@ -142,36 +196,109 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12 }}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+            }}
           >
             {/* Sort Chip */}
             <Pressable
               onPress={() => openSheet("sort")}
               className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
-              style={{ backgroundColor: selectedSort !== "forYou" ? colors.accent.secondary : colors.background.tertiary, minHeight: 44 }}
+              style={{
+                backgroundColor:
+                  selectedSort !== "forYou"
+                    ? colors.accent.secondary
+                    : colors.background.tertiary,
+                minHeight: 44,
+              }}
             >
-              <Ionicons name={currentSort?.iconName || "sparkles"} size={16} color={selectedSort !== "forYou" ? colors.text.primary : colors.text.secondary} />
-              <Text className="font-semibold text-sm ml-2" style={{ color: selectedSort !== "forYou" ? colors.text.primary : colors.text.secondary }}>{currentSort?.label}</Text>
+              <Ionicons
+                name={currentSort?.iconName || "sparkles"}
+                size={16}
+                color={
+                  selectedSort !== "forYou"
+                    ? colors.text.primary
+                    : colors.text.secondary
+                }
+              />
+              <Text
+                className="font-semibold text-sm ml-2"
+                style={{
+                  color:
+                    selectedSort !== "forYou"
+                      ? colors.text.primary
+                      : colors.text.secondary,
+                }}
+              >
+                {currentSort?.label}
+              </Text>
             </Pressable>
 
             {/* Channel Chip */}
             <Pressable
               onPress={() => openSheet("channel")}
               className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
-              style={{ backgroundColor: selectedChannelId ? colors.accent.secondary : colors.background.tertiary, minHeight: 44 }}
+              style={{
+                backgroundColor: selectedChannelId
+                  ? colors.accent.secondary
+                  : colors.background.tertiary,
+                minHeight: 44,
+              }}
             >
-              <Ionicons name={currentChannel?.iconName || "globe"} size={16} color={selectedChannelId ? colors.text.primary : colors.text.secondary} />
-              <Text className="font-semibold text-sm ml-2" style={{ color: selectedChannelId ? colors.text.primary : colors.text.secondary }}>{currentChannel?.name}</Text>
+              <Ionicons
+                name={currentChannel?.iconName || "globe"}
+                size={16}
+                color={
+                  selectedChannelId
+                    ? colors.text.primary
+                    : colors.text.secondary
+                }
+              />
+              <Text
+                className="font-semibold text-sm ml-2"
+                style={{
+                  color: selectedChannelId
+                    ? colors.text.primary
+                    : colors.text.secondary,
+                }}
+              >
+                {currentChannel?.name}
+              </Text>
             </Pressable>
 
             {/* Duration Chip */}
             <Pressable
               onPress={() => openSheet("duration")}
               className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
-              style={{ backgroundColor: selectedDuration !== "all" ? colors.accent.secondary : colors.background.tertiary, minHeight: 44 }}
+              style={{
+                backgroundColor:
+                  selectedDuration !== "all"
+                    ? colors.accent.secondary
+                    : colors.background.tertiary,
+                minHeight: 44,
+              }}
             >
-              <Ionicons name={currentDuration?.iconName || "infinite"} size={16} color={selectedDuration !== "all" ? colors.text.primary : colors.text.secondary} />
-              <Text className="font-semibold text-sm ml-2" style={{ color: selectedDuration !== "all" ? colors.text.primary : colors.text.secondary }}>{currentDuration?.label}</Text>
+              <Ionicons
+                name={currentDuration?.iconName || "infinite"}
+                size={16}
+                color={
+                  selectedDuration !== "all"
+                    ? colors.text.primary
+                    : colors.text.secondary
+                }
+              />
+              <Text
+                className="font-semibold text-sm ml-2"
+                style={{
+                  color:
+                    selectedDuration !== "all"
+                      ? colors.text.primary
+                      : colors.text.secondary,
+                }}
+              >
+                {currentDuration?.label}
+              </Text>
             </Pressable>
 
             {/* Pure Chip */}
@@ -179,10 +306,28 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               <Pressable
                 onPress={() => onPureOnlyChange?.(!pureOnly)}
                 className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
-                style={{ backgroundColor: pureOnly ? colors.accent.primary : colors.background.tertiary, minHeight: 44 }}
+                style={{
+                  backgroundColor: pureOnly
+                    ? colors.accent.primary
+                    : colors.background.tertiary,
+                  minHeight: 44,
+                }}
               >
-                <Ionicons name="cut-outline" size={16} color={pureOnly ? colors.text.inverse : colors.text.secondary} />
-                <Text className="font-semibold text-sm ml-2" style={{ color: pureOnly ? colors.text.inverse : colors.text.secondary }}>Pure</Text>
+                <Ionicons
+                  name="cut-outline"
+                  size={16}
+                  color={pureOnly ? colors.text.inverse : colors.text.secondary}
+                />
+                <Text
+                  className="font-semibold text-sm ml-2"
+                  style={{
+                    color: pureOnly
+                      ? colors.text.inverse
+                      : colors.text.secondary,
+                  }}
+                >
+                  Pure
+                </Text>
               </Pressable>
             )}
 
@@ -191,10 +336,30 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               <Pressable
                 onPress={() => onAudioOnlyChange?.(!audioOnly)}
                 className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
-                style={{ backgroundColor: audioOnly ? colors.accent.primary : colors.background.tertiary, minHeight: 44 }}
+                style={{
+                  backgroundColor: audioOnly
+                    ? colors.accent.primary
+                    : colors.background.tertiary,
+                  minHeight: 44,
+                }}
               >
-                <Ionicons name="musical-notes-outline" size={16} color={audioOnly ? colors.text.inverse : colors.text.secondary} />
-                <Text className="font-semibold text-sm ml-2" style={{ color: audioOnly ? colors.text.inverse : colors.text.secondary }}>Audio</Text>
+                <Ionicons
+                  name="musical-notes-outline"
+                  size={16}
+                  color={
+                    audioOnly ? colors.text.inverse : colors.text.secondary
+                  }
+                />
+                <Text
+                  className="font-semibold text-sm ml-2"
+                  style={{
+                    color: audioOnly
+                      ? colors.text.inverse
+                      : colors.text.secondary,
+                  }}
+                >
+                  Audio
+                </Text>
               </Pressable>
             )}
 
@@ -203,244 +368,492 @@ const UnifiedFilterBar: React.FC<UnifiedFilterBarProps> = ({
               <Pressable
                 onPress={() => onTeenageOnlyChange?.(!teenageOnly)}
                 className="mr-3 px-4 py-2.5 rounded-full flex-row items-center"
-                style={{ backgroundColor: teenageOnly ? colors.accent.primary : colors.background.tertiary, minHeight: 44 }}
+                style={{
+                  backgroundColor: teenageOnly
+                    ? colors.accent.primary
+                    : colors.background.tertiary,
+                  minHeight: 44,
+                }}
               >
-                <Ionicons name="mic-outline" size={16} color={teenageOnly ? colors.text.inverse : colors.text.secondary} />
-                <Text className="font-semibold text-sm ml-2" style={{ color: teenageOnly ? colors.text.inverse : colors.text.secondary }}>Teenage</Text>
+                <Ionicons
+                  name="mic-outline"
+                  size={16}
+                  color={
+                    teenageOnly ? colors.text.inverse : colors.text.secondary
+                  }
+                />
+                <Text
+                  className="font-semibold text-sm ml-2"
+                  style={{
+                    color: teenageOnly
+                      ? colors.text.inverse
+                      : colors.text.secondary,
+                  }}
+                >
+                  Teenage
+                </Text>
               </Pressable>
             )}
 
             {/* Clear */}
             {hasActiveFilters && (
               <Pressable
-                onPress={() => { onSortChange("forYou"); onChannelChange(null); onDurationChange("all"); onPureOnlyChange?.(false); onTeenageOnlyChange?.(false); onAudioOnlyChange?.(false); }}
+                onPress={() => {
+                  onSortChange("forYou");
+                  onChannelChange(null);
+                  onDurationChange("all");
+                  onPureOnlyChange?.(false);
+                  onTeenageOnlyChange?.(false);
+                  onAudioOnlyChange?.(false);
+                }}
                 className="px-4 py-2.5 rounded-full flex-row items-center"
-                style={{ backgroundColor: colors.background.secondary, minHeight: 44 }}
+                style={{
+                  backgroundColor: colors.background.secondary,
+                  minHeight: 44,
+                }}
               >
-                <Ionicons name="close-circle" size={16} color={colors.text.secondary} />
-                <Text className="font-semibold text-sm ml-2" style={{ color: colors.text.secondary }}>Clear</Text>
+                <Ionicons
+                  name="close-circle"
+                  size={16}
+                  color={colors.text.secondary}
+                />
+                <Text
+                  className="font-semibold text-sm ml-2"
+                  style={{ color: colors.text.secondary }}
+                >
+                  Clear
+                </Text>
               </Pressable>
             )}
           </ScrollView>
         </View>
       )}
 
-      {/* Bottom Sheet Modal — renders via portal, works regardless of nesting */}
-      <BottomSheetModal
-        ref={bottomSheetRef}
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        onDismiss={handleDismiss}
-        backdropComponent={renderBackdrop}
-        handleIndicatorStyle={{ backgroundColor: colors.text.tertiary }}
-        backgroundStyle={{ backgroundColor: colors.background.secondary }}
+      <Modal
+        visible={showFilterSheet}
+        transparent
+        animationType="none"
+        onRequestClose={handleDismiss}
       >
-        <SafeAreaView edges={["bottom"]} className="flex-1">
-          {/* Sheet Header */}
-          <View
-            className="px-6 py-3 border-b"
-            style={{ borderBottomColor: colors.border.secondary }}
+        <Animated.View
+          style={{
+            flex: 1,
+            justifyContent: "flex-end",
+            backgroundColor: "rgba(0, 0, 0, 0.55)",
+            opacity: sheetProgress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 0],
+            }),
+          }}
+        >
+          <Animated.View
+            style={{
+              height: "55%",
+              maxHeight: "55%",
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              backgroundColor: colors.background.secondary,
+              transform: [
+                {
+                  translateY: sheetProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 700],
+                  }),
+                },
+              ],
+            }}
           >
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xl font-bold" style={{ color: colors.text.primary }}>Filters</Text>
-              <Pressable onPress={handleClose} style={{ minHeight: 44, minWidth: 44, justifyContent: "center", alignItems: "center" }}>
-                <Ionicons name="close" size={24} color={colors.text.secondary} />
-              </Pressable>
-            </View>
-            <View className="flex-row items-center flex-wrap">
-              {features.showPureFilter && (
-                <Pressable
-                  onPress={() => onPureOnlyChange?.(!pureOnly)}
-                  className="flex-row items-center mr-6"
-                  style={{ minHeight: 44 }}
-                  accessibilityRole="switch"
-                  accessibilityState={{ checked: pureOnly }}
-                  accessibilityLabel="Pure only filter"
-                >
-                  <Ionicons name="cut-outline" size={16} color={pureOnly ? colors.accent.primary : colors.text.tertiary} style={{ marginRight: 6 }} />
-                  <Text className="text-sm font-semibold" style={{ color: pureOnly ? colors.accent.primary : colors.text.tertiary, marginRight: 8 }}>Pure</Text>
-                  <View style={{ width: 40, height: 22, borderRadius: 11, backgroundColor: pureOnly ? colors.accent.primary : switchTrackOffColor, justifyContent: "center", paddingHorizontal: 2 }}>
-                    <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: colors.text.inverse, alignSelf: pureOnly ? "flex-end" : "flex-start" }} />
-                  </View>
-                </Pressable>
-              )}
-              {features.showAudioFilter && (
-                <Pressable
-                  onPress={() => onAudioOnlyChange?.(!audioOnly)}
-                  className="flex-row items-center mr-6"
-                  style={{ minHeight: 44 }}
-                  accessibilityRole="switch"
-                  accessibilityState={{ checked: audioOnly }}
-                  accessibilityLabel="Audio filter"
-                >
-                  <Ionicons name="musical-notes-outline" size={16} color={audioOnly ? colors.accent.primary : colors.text.tertiary} style={{ marginRight: 6 }} />
-                  <Text className="text-sm font-semibold" style={{ color: audioOnly ? colors.accent.primary : colors.text.tertiary, marginRight: 8 }}>Audio</Text>
-                  <View style={{ width: 40, height: 22, borderRadius: 11, backgroundColor: audioOnly ? colors.accent.primary : switchTrackOffColor, justifyContent: "center", paddingHorizontal: 2 }}>
-                    <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: colors.text.inverse, alignSelf: audioOnly ? "flex-end" : "flex-start" }} />
-                  </View>
-                </Pressable>
-              )}
-              {features.showTeenageFilter && (
-                <Pressable
-                  onPress={() => onTeenageOnlyChange?.(!teenageOnly)}
-                  className="flex-row items-center"
-                  style={{ minHeight: 44 }}
-                  accessibilityRole="switch"
-                  accessibilityState={{ checked: teenageOnly }}
-                  accessibilityLabel="Teenage voice ready filter"
-                >
-                  <Ionicons name="mic-outline" size={16} color={teenageOnly ? colors.accent.primary : colors.text.tertiary} style={{ marginRight: 6 }} />
-                  <Text className="text-sm font-semibold" style={{ color: teenageOnly ? colors.accent.primary : colors.text.tertiary, marginRight: 8 }}>Teenage</Text>
-                  <View style={{ width: 40, height: 22, borderRadius: 11, backgroundColor: teenageOnly ? colors.accent.primary : switchTrackOffColor, justifyContent: "center", paddingHorizontal: 2 }}>
-                    <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: colors.text.inverse, alignSelf: teenageOnly ? "flex-end" : "flex-start" }} />
-                  </View>
-                </Pressable>
-              )}
-            </View>
-          </View>
-
-          {/* Tabs */}
-          <View className="flex-row border-b" style={{ borderBottomColor: colors.border.secondary }}>
-            {(["sort", "channel", "duration"] as const).map((tab) => (
-              <Pressable
-                key={tab}
-                onPress={() => setActiveTab(tab)}
-                className={`flex-1 py-4 ${activeTab === tab ? "border-b-2 border-blue-500" : ""}`}
-                style={{ minHeight: 44 }}
+            <View
+              style={{
+                alignSelf: "center",
+                width: 40,
+                height: 4,
+                marginTop: 8,
+                marginBottom: 4,
+                borderRadius: 2,
+                backgroundColor: colors.text.tertiary,
+              }}
+            />
+            <SafeAreaView edges={["bottom"]} style={{ flex: 1 }}>
+              {/* Sheet Header */}
+              <View
+                className="px-6 py-3 border-b"
+                style={{ borderBottomColor: colors.border.secondary }}
               >
-                <Text className="text-center font-semibold text-base" style={{ color: activeTab === tab ? colors.accent.secondary : colors.text.secondary }}>
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          {/* Content */}
-          <BottomSheetScrollView showsVerticalScrollIndicator={false}>
-            {activeTab === "sort" && (
-              <View className="p-4">
-                {sortFilters.map((filter) => {
-                  const isSelected = selectedSort === filter.value;
-                  return (
+                <View className="flex-row items-center justify-between">
+                  <Text
+                    className="text-xl font-bold"
+                    style={{ color: colors.text.primary }}
+                  >
+                    Filters
+                  </Text>
+                  <Pressable
+                    onPress={handleClose}
+                    style={{
+                      minHeight: 44,
+                      minWidth: 44,
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Ionicons
+                      name="close"
+                      size={24}
+                      color={colors.text.secondary}
+                    />
+                  </Pressable>
+                </View>
+                <View className="flex-row items-center flex-wrap">
+                  {features.showPureFilter && (
                     <Pressable
-                      key={filter.value}
-                      onPress={() => { onSortChange(filter.value); handleClose(); }}
-                      className="flex-row items-center p-4 rounded-xl mb-2"
-                      style={{ backgroundColor: isSelected ? colors.accent.secondary : colors.background.tertiary, minHeight: 56 }}
+                      onPress={() => onPureOnlyChange?.(!pureOnly)}
+                      className="flex-row items-center mr-6"
+                      style={{ minHeight: 44 }}
+                      accessibilityRole="switch"
+                      accessibilityState={{ checked: pureOnly }}
+                      accessibilityLabel="Pure only filter"
                     >
-                      <Ionicons name={filter.iconName} size={22} color={colors.text.primary} />
-                      <Text className="flex-1 font-semibold text-base ml-3" style={{ color: isSelected ? colors.text.primary : colors.text.secondary }}>{filter.label}</Text>
-                      {isSelected && <Ionicons name="checkmark-circle" size={22} color={colors.text.primary} />}
-                    </Pressable>
-                  );
-                })}
-              </View>
-            )}
-
-            {activeTab === "channel" && (
-              <View className="p-4">
-                {channelOptions.map((option) => {
-                  const isSelected =
-                    option.type === "other"
-                      ? isOtherSelected
-                      : selectedChannelId === option.id;
-                  return (
-                    <Pressable
-                      key={option.id || "all"}
-                      onPress={() => {
-                        if (option.type === "other" && otherChannels.length > 0) {
-                          onChannelChange(otherChannels[0].id);
-                        } else {
-                          onChannelChange(option.id);
+                      <Ionicons
+                        name="cut-outline"
+                        size={16}
+                        color={
+                          pureOnly
+                            ? colors.accent.primary
+                            : colors.text.tertiary
                         }
-                        handleClose();
-                      }}
-                      disabled={channelsLoading}
-                      className="flex-row items-center p-4 rounded-xl mb-2"
-                      style={{
-                        backgroundColor: isSelected
-                          ? colors.accent.secondary
-                          : colors.background.tertiary,
-                        minHeight: 56,
-                      }}
-                    >
-                      <Ionicons
-                        name={option.iconName}
-                        size={22}
-                        color={colors.text.primary}
+                        style={{ marginRight: 6 }}
                       />
                       <Text
-                        className="flex-1 font-semibold text-base ml-3"
+                        className="text-sm font-semibold"
                         style={{
-                          color: isSelected
-                            ? colors.text.primary
-                            : colors.text.secondary,
+                          color: pureOnly
+                            ? colors.accent.primary
+                            : colors.text.tertiary,
+                          marginRight: 8,
                         }}
                       >
-                        {option.name}
+                        Pure
                       </Text>
-                      {isSelected && (
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={22}
-                          color={colors.text.primary}
+                      <View
+                        style={{
+                          width: 40,
+                          height: 22,
+                          borderRadius: 11,
+                          backgroundColor: pureOnly
+                            ? colors.accent.primary
+                            : switchTrackOffColor,
+                          justifyContent: "center",
+                          paddingHorizontal: 2,
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: 9,
+                            backgroundColor: colors.text.inverse,
+                            alignSelf: pureOnly ? "flex-end" : "flex-start",
+                          }}
                         />
-                      )}
+                      </View>
                     </Pressable>
-                  );
-                })}
-              </View>
-            )}
-
-            {activeTab === "duration" && (
-              <View className="p-4">
-                {durationFilters.map((filter) => {
-                  const isSelected = selectedDuration === filter.value;
-                  return (
+                  )}
+                  {features.showAudioFilter && (
                     <Pressable
-                      key={filter.value}
-                      onPress={() => {
-                        onDurationChange(filter.value);
-                        handleClose();
-                      }}
-                      className="flex-row items-center p-4 rounded-xl mb-2"
-                      style={{
-                        backgroundColor: isSelected
-                          ? colors.accent.secondary
-                          : colors.background.tertiary,
-                        minHeight: 56,
-                      }}
+                      onPress={() => onAudioOnlyChange?.(!audioOnly)}
+                      className="flex-row items-center mr-6"
+                      style={{ minHeight: 44 }}
+                      accessibilityRole="switch"
+                      accessibilityState={{ checked: audioOnly }}
+                      accessibilityLabel="Audio filter"
                     >
                       <Ionicons
-                        name={filter.iconName}
-                        size={22}
-                        color={colors.text.primary}
+                        name="musical-notes-outline"
+                        size={16}
+                        color={
+                          audioOnly
+                            ? colors.accent.primary
+                            : colors.text.tertiary
+                        }
+                        style={{ marginRight: 6 }}
                       />
                       <Text
-                        className="flex-1 font-semibold text-base ml-3"
+                        className="text-sm font-semibold"
                         style={{
-                          color: isSelected
-                            ? colors.text.primary
-                            : colors.text.secondary,
+                          color: audioOnly
+                            ? colors.accent.primary
+                            : colors.text.tertiary,
+                          marginRight: 8,
                         }}
                       >
-                        {filter.label}
+                        Audio
                       </Text>
-                      {isSelected && (
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={22}
-                          color={colors.text.primary}
+                      <View
+                        style={{
+                          width: 40,
+                          height: 22,
+                          borderRadius: 11,
+                          backgroundColor: audioOnly
+                            ? colors.accent.primary
+                            : switchTrackOffColor,
+                          justifyContent: "center",
+                          paddingHorizontal: 2,
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: 9,
+                            backgroundColor: colors.text.inverse,
+                            alignSelf: audioOnly ? "flex-end" : "flex-start",
+                          }}
                         />
-                      )}
+                      </View>
                     </Pressable>
-                  );
-                })}
+                  )}
+                  {features.showTeenageFilter && (
+                    <Pressable
+                      onPress={() => onTeenageOnlyChange?.(!teenageOnly)}
+                      className="flex-row items-center"
+                      style={{ minHeight: 44 }}
+                      accessibilityRole="switch"
+                      accessibilityState={{ checked: teenageOnly }}
+                      accessibilityLabel="Teenage voice ready filter"
+                    >
+                      <Ionicons
+                        name="mic-outline"
+                        size={16}
+                        color={
+                          teenageOnly
+                            ? colors.accent.primary
+                            : colors.text.tertiary
+                        }
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text
+                        className="text-sm font-semibold"
+                        style={{
+                          color: teenageOnly
+                            ? colors.accent.primary
+                            : colors.text.tertiary,
+                          marginRight: 8,
+                        }}
+                      >
+                        Teenage
+                      </Text>
+                      <View
+                        style={{
+                          width: 40,
+                          height: 22,
+                          borderRadius: 11,
+                          backgroundColor: teenageOnly
+                            ? colors.accent.primary
+                            : switchTrackOffColor,
+                          justifyContent: "center",
+                          paddingHorizontal: 2,
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: 9,
+                            backgroundColor: colors.text.inverse,
+                            alignSelf: teenageOnly ? "flex-end" : "flex-start",
+                          }}
+                        />
+                      </View>
+                    </Pressable>
+                  )}
+                </View>
               </View>
-            )}
-          </BottomSheetScrollView>
-        </SafeAreaView>
-      </BottomSheetModal>
+
+              {/* Tabs */}
+              <View
+                className="flex-row border-b"
+                style={{ borderBottomColor: colors.border.secondary }}
+              >
+                {(["sort", "channel", "duration"] as const).map((tab) => (
+                  <Pressable
+                    key={tab}
+                    onPress={() => setActiveTab(tab)}
+                    className={`flex-1 py-4 ${activeTab === tab ? "border-b-2 border-blue-500" : ""}`}
+                    style={{ minHeight: 44 }}
+                  >
+                    <Text
+                      className="text-center font-semibold text-base"
+                      style={{
+                        color:
+                          activeTab === tab
+                            ? colors.accent.secondary
+                            : colors.text.secondary,
+                      }}
+                    >
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              {/* Content */}
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {activeTab === "sort" && (
+                  <View className="p-4">
+                    {sortFilters.map((filter) => {
+                      const isSelected = selectedSort === filter.value;
+                      return (
+                        <Pressable
+                          key={filter.value}
+                          onPress={() => {
+                            onSortChange(filter.value);
+                            handleClose();
+                          }}
+                          className="flex-row items-center p-4 rounded-xl mb-2"
+                          style={{
+                            backgroundColor: isSelected
+                              ? colors.accent.secondary
+                              : colors.background.tertiary,
+                            minHeight: 56,
+                          }}
+                        >
+                          <Ionicons
+                            name={filter.iconName}
+                            size={22}
+                            color={colors.text.primary}
+                          />
+                          <Text
+                            className="flex-1 font-semibold text-base ml-3"
+                            style={{
+                              color: isSelected
+                                ? colors.text.primary
+                                : colors.text.secondary,
+                            }}
+                          >
+                            {filter.label}
+                          </Text>
+                          {isSelected && (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={22}
+                              color={colors.text.primary}
+                            />
+                          )}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+
+                {activeTab === "channel" && (
+                  <View className="p-4">
+                    {channelOptions.map((option) => {
+                      const isSelected =
+                        option.type === "other"
+                          ? isOtherSelected
+                          : selectedChannelId === option.id;
+                      return (
+                        <Pressable
+                          key={option.id || "all"}
+                          onPress={() => {
+                            if (
+                              option.type === "other" &&
+                              otherChannels.length > 0
+                            ) {
+                              onChannelChange(otherChannels[0].id);
+                            } else {
+                              onChannelChange(option.id);
+                            }
+                            handleClose();
+                          }}
+                          disabled={channelsLoading}
+                          className="flex-row items-center p-4 rounded-xl mb-2"
+                          style={{
+                            backgroundColor: isSelected
+                              ? colors.accent.secondary
+                              : colors.background.tertiary,
+                            minHeight: 56,
+                          }}
+                        >
+                          <Ionicons
+                            name={option.iconName}
+                            size={22}
+                            color={colors.text.primary}
+                          />
+                          <Text
+                            className="flex-1 font-semibold text-base ml-3"
+                            style={{
+                              color: isSelected
+                                ? colors.text.primary
+                                : colors.text.secondary,
+                            }}
+                          >
+                            {option.name}
+                          </Text>
+                          {isSelected && (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={22}
+                              color={colors.text.primary}
+                            />
+                          )}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+
+                {activeTab === "duration" && (
+                  <View className="p-4">
+                    {durationFilters.map((filter) => {
+                      const isSelected = selectedDuration === filter.value;
+                      return (
+                        <Pressable
+                          key={filter.value}
+                          onPress={() => {
+                            onDurationChange(filter.value);
+                            handleClose();
+                          }}
+                          className="flex-row items-center p-4 rounded-xl mb-2"
+                          style={{
+                            backgroundColor: isSelected
+                              ? colors.accent.secondary
+                              : colors.background.tertiary,
+                            minHeight: 56,
+                          }}
+                        >
+                          <Ionicons
+                            name={filter.iconName}
+                            size={22}
+                            color={colors.text.primary}
+                          />
+                          <Text
+                            className="flex-1 font-semibold text-base ml-3"
+                            style={{
+                              color: isSelected
+                                ? colors.text.primary
+                                : colors.text.secondary,
+                            }}
+                          >
+                            {filter.label}
+                          </Text>
+                          {isSelected && (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={22}
+                              color={colors.text.primary}
+                            />
+                          )}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+              </ScrollView>
+            </SafeAreaView>
+          </Animated.View>
+        </Animated.View>
+      </Modal>
     </>
   );
 };

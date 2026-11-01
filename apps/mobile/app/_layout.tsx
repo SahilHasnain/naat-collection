@@ -41,7 +41,6 @@ import { appwriteService } from "@/services/appwrite";
 import AppMessageBanner from "@/components/AppMessageBanner";
 import ReviewPromptModal from "@/components/ReviewPromptModal";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import * as Sentry from "@sentry/react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Tabs, useRouter, useSegments } from "expo-router";
@@ -110,7 +109,11 @@ function RootLayoutContent() {
   const isOnHomepage = segments[0] === "home" || segments[0] === undefined;
 
   // App update / announcement message
-  const { message: appMessage, dismiss, preview: previewMessage } = useAppMessage();
+  const {
+    message: appMessage,
+    dismiss,
+    preview: previewMessage,
+  } = useAppMessage();
 
   // Network status for offline handling
   const { isConnected } = useNetworkStatus();
@@ -392,7 +395,6 @@ function RootLayoutContent() {
           />
         )}
 
-
       {/* Connection status bar — sits below tab bar, above system nav */}
       {(!isConnected || showBackOnline) && (
         <View
@@ -558,7 +560,10 @@ function RootLayoutContent() {
             position: "absolute",
             top: insets.top + 8,
             left: 8,
-            backgroundColor: appwriteService.getDataSource() === 'static' ? '#1b5e20' : '#e65100',
+            backgroundColor:
+              appwriteService.getDataSource() === "static"
+                ? "#1b5e20"
+                : "#e65100",
             paddingVertical: 3,
             paddingHorizontal: 8,
             borderRadius: 4,
@@ -568,7 +573,9 @@ function RootLayoutContent() {
           accessibilityLabel="Force show review prompt"
         >
           <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600" }}>
-            {appwriteService.getDataSource() === 'static' ? '📄 Static' : '🗄️ DB'}
+            {appwriteService.getDataSource() === "static"
+              ? "📄 Static"
+              : "🗄️ DB"}
           </Text>
         </Pressable>
       )}
@@ -579,35 +586,33 @@ function RootLayoutContent() {
 function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <BottomSheetModalProvider>
-        <SafeAreaProvider>
-          <PlaybackModeProvider>
-            <AuthProvider>
-              <AudioProvider>
-                <LiveRadioProvider>
-                  <VideoProvider>
-                    <ErrorBoundary>
-                      <SearchProvider>
-                        <FilterModalProvider>
-                          <HeaderVisibilityProvider headerHeight={140}>
-                            <TabBarVisibilityProvider tabBarHeight={150}>
-                              <LayoutModeProvider>
-                                <ThemeProvider>
-                                  <RootLayoutContent />
-                                </ThemeProvider>
-                              </LayoutModeProvider>
-                            </TabBarVisibilityProvider>
-                          </HeaderVisibilityProvider>
-                        </FilterModalProvider>
-                      </SearchProvider>
-                    </ErrorBoundary>
-                  </VideoProvider>
-                </LiveRadioProvider>
-              </AudioProvider>
-            </AuthProvider>
-          </PlaybackModeProvider>
-        </SafeAreaProvider>
-      </BottomSheetModalProvider>
+      <SafeAreaProvider>
+        <PlaybackModeProvider>
+          <AuthProvider>
+            <AudioProvider>
+              <LiveRadioProvider>
+                <VideoProvider>
+                  <ErrorBoundary>
+                    <SearchProvider>
+                      <FilterModalProvider>
+                        <HeaderVisibilityProvider headerHeight={140}>
+                          <TabBarVisibilityProvider tabBarHeight={150}>
+                            <LayoutModeProvider>
+                              <ThemeProvider>
+                                <RootLayoutContent />
+                              </ThemeProvider>
+                            </LayoutModeProvider>
+                          </TabBarVisibilityProvider>
+                        </HeaderVisibilityProvider>
+                      </FilterModalProvider>
+                    </SearchProvider>
+                  </ErrorBoundary>
+                </VideoProvider>
+              </LiveRadioProvider>
+            </AudioProvider>
+          </AuthProvider>
+        </PlaybackModeProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
