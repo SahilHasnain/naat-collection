@@ -67,6 +67,7 @@ export default function VideoScreen() {
   const videoLoadingTimeoutRef = React.useRef<ReturnType<
     typeof setTimeout
   > | null>(null);
+  const hasStartedPlaybackRef = React.useRef(false);
 
   // Get contexts
   const { loadAndPlay } = useAudioPlayer();
@@ -151,6 +152,7 @@ export default function VideoScreen() {
 
   // Load video on mount, save video preference, and autoplay
   React.useEffect(() => {
+    hasStartedPlaybackRef.current = false;
     setIsLoading(true);
     setVideoLoadTimedOut(false);
     setPlayerInstanceKey(0);
@@ -210,7 +212,7 @@ export default function VideoScreen() {
       console.log("[VideoScreen] Video loading timed out");
       setIsLoading(false);
       setVideoLoadTimedOut(true);
-    }, 10000);
+    }, 20000);
 
     return () => {
       if (videoLoadingTimeoutRef.current) {
@@ -221,6 +223,7 @@ export default function VideoScreen() {
   }, [videoId, playerInstanceKey, videoPlaying]);
 
   const retryVideoLoading = React.useCallback(() => {
+    hasStartedPlaybackRef.current = false;
     setVideoLoadTimedOut(false);
     setIsLoading(true);
     setVideoPlaying(true);
@@ -418,6 +421,7 @@ export default function VideoScreen() {
     (state: string) => {
       // Clear loading state when video starts playing
       if (state === "playing") {
+        hasStartedPlaybackRef.current = true;
         if (videoLoadingTimeoutRef.current) {
           clearTimeout(videoLoadingTimeoutRef.current);
           videoLoadingTimeoutRef.current = null;
@@ -824,12 +828,6 @@ export default function VideoScreen() {
                   play={videoPlaying}
                   onReady={() => {
                     console.log("[VideoScreen] Video ready");
-                    if (videoLoadingTimeoutRef.current) {
-                      clearTimeout(videoLoadingTimeoutRef.current);
-                      videoLoadingTimeoutRef.current = null;
-                    }
-                    setIsLoading(false);
-                    setVideoLoadTimedOut(false);
                     if (dbDuration === 0 && playerRef.current) {
                       // Add a small delay to ensure video is fully loaded
                       setTimeout(async () => {
@@ -873,8 +871,8 @@ export default function VideoScreen() {
                   onChangeState={onStateChange}
                   onFullScreenChange={handleFullscreenChange}
                   onError={() => {
-                    setIsLoading(false);
-                    if (videoPlaying) {
+                    if (!hasStartedPlaybackRef.current) {
+                      setIsLoading(false);
                       setVideoLoadTimedOut(true);
                     }
                   }}
