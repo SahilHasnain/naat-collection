@@ -511,3 +511,52 @@ Uploads allowed today: 2
 
 Finished: 2 uploaded, 0 failed.
 [Sat 10/31/2026  9:41:20.55] Teenage-voice upload finished (exit 0) 
+================================================ 
+[Sun 11/01/2026  8:26:05.05] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+Naats with cutAudio in source collection: 971
+Completed +6 variants with matching source cutAudio: 17
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage.json
+Already uploaded: 8
+Eligible remaining: 9
+Uploads allowed today: 1
+
+[1/1] Ye Sab Tumhara Karam Hai Aaqa - Owais Raza Qadri - 2022
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/_S-2VyQae10
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 1 uploaded, 0 failed.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+Naats with cutAudio in source collection: 971
+Completed +6 variants with matching source cutAudio: 17
+Remaining start/end Shorts: 19
+Progress file: D:\Projects\naat-collection\scripts\youtube-upload\progress-teenage-shorts.json
+Already uploaded: 15
+Eligible remaining: 19
+Uploads allowed today: 2
+
+[1/2] Khuda Ke Fazl Se Ham Par Hai Saya - Owais Raza Qadri - 2023 — end clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/Zo1wq3Phdls
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+[2/2] Ye Sab Tumhara Karam Hai Aaqa - Owais Raza Qadri - 2022 — start clip
+  Downloading teenage-voice audio...
+  Downloading source naat thumbnail...
+  Creating video...
+  Uploading to teenage-voice channel...
+  Uploaded: https://youtu.be/7CtSR3GWH_k
+  Play Store comment added (pin it manually in YouTube Studio if desired)
+
+Finished: 2 uploaded, 0 failed.
+[Sun 11/01/2026  8:33:28.19] Teenage-voice upload finished (exit 0) 

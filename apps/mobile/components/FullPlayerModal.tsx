@@ -1063,17 +1063,19 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
               </View>
 
               <View style={styles.controlsArea}>
-                <TouchableOpacity
-                  onPress={() => setShowQueue(true)}
-                  style={styles.queueButton}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Show queue, ${queue.length} tracks`}
-                >
-                  <Ionicons name="list-outline" size={18} color={colors.text.secondary} />
-                  <Text style={[styles.queueButtonText, { color: colors.text.secondary }]}>
-                    {queue.length > 0 ? `Up next · ${queue.length}` : "Up next"}
-                  </Text>
-                </TouchableOpacity>
+                {queue.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setShowQueue(true)}
+                    style={styles.queueButton}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Show queue, ${queue.length} tracks`}
+                  >
+                    <Ionicons name="list-outline" size={18} color={colors.text.secondary} />
+                    <Text style={[styles.queueButtonText, { color: colors.text.secondary }]}>
+                      Up next · {queue.length}
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 <View
                   style={[
                     styles.progressSection,
