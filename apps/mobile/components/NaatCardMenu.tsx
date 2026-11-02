@@ -41,6 +41,7 @@ interface NaatCardMenuProps {
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
   compact?: boolean;
+  showAlternatePlay?: boolean;
   isDownloaded?: boolean;
   showDownload?: boolean;
   onExcluded?: (naatId: string, excluded: boolean) => void;
@@ -69,6 +70,7 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
   isFavorite = false,
   onToggleFavorite,
   compact = false,
+  showAlternatePlay = false,
   isDownloaded = false,
   showDownload = true,
   onExcluded,
@@ -173,6 +175,8 @@ const NaatCardMenu: React.FC<NaatCardMenuProps> = ({
         if (selectedNaat) onAddToQueue?.(selectedNaat);
       },
     });
+  }
+  if (!compact || showAlternatePlay) {
     items.push({
       key: "alternate-play",
       label: savedPlaybackMode === "audio" ? "Play as video" : "Play as audio",

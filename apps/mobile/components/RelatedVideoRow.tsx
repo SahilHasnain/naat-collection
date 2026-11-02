@@ -1,7 +1,6 @@
 import { colors } from "@/constants/theme";
 import type { MenuAnchor, Naat } from "@/types";
 import { formatViews } from "@/utils";
-import { formatRelativeTime } from "@/utils/dateGrouping";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
@@ -120,8 +119,7 @@ export function RelatedVideoRow({
           numberOfLines={1}
           style={{ marginTop: 4, color: colors.text.tertiary, fontSize: 11 }}
         >
-          {formatViews(naat.views)} views ·{" "}
-          {formatRelativeTime(naat.uploadDate)}
+          {formatViews(naat.views)} views
         </Text>
       </View>
       {onMenuPress && (

@@ -680,6 +680,45 @@ export default function VideoScreen() {
     setRelatedMenu(null);
   }, []);
 
+  const playRelatedAsAudio = React.useCallback(
+    async (naat: Naat) => {
+      const audioId = naat.cutAudio || naat.audioId;
+      if (!audioId) {
+        Alert.alert("Audio Not Available", "No audio is available for this naat.");
+        return;
+      }
+
+      try {
+        const downloaded = await audioDownloadService.isDownloaded(audioId);
+        const audioUrl = downloaded
+          ? audioDownloadService.getLocalPath(audioId)
+          : (await appwriteService.getAudioUrl(audioId)).audioUrl;
+        if (!audioUrl) {
+          Alert.alert("Audio Not Available", "Audio is not available for this naat.");
+          return;
+        }
+
+        await loadAndPlay({
+          audioUrl,
+          title: naat.title,
+          channelName: naat.channelName,
+          thumbnailUrl: naat.thumbnailUrl,
+          isLocalFile: downloaded,
+          audioId,
+          youtubeId: naat.youtubeId,
+          naatId: naat.$id,
+        });
+        await storageService.savePlaybackMode("audio");
+        closeRelatedMenu();
+        router.back();
+      } catch (error) {
+        console.error("[VideoScreen] Failed to play related audio:", error);
+        Alert.alert("Audio Error", "Unable to play this audio right now.");
+      }
+    },
+    [closeRelatedMenu, loadAndPlay, router],
+  );
+
   // Autoplay continues with the top related naat when the video ends.
   React.useEffect(() => {
     const handleAutoplay = async () => {
@@ -1088,6 +1127,7 @@ export default function VideoScreen() {
         selectedNaat={relatedMenu?.naat ?? null}
         savedPlaybackMode="video"
         compact
+        showAlternatePlay
         onClose={closeRelatedMenu}
         isFavorite={relatedMenu ? isFavorite(relatedMenu.naat.$id) : false}
         onToggleFavorite={() => {
@@ -1096,7 +1136,9 @@ export default function VideoScreen() {
           }
           closeRelatedMenu();
         }}
-        onAlternatePlay={() => undefined}
+        onAlternatePlay={() => {
+          if (relatedMenu) void playRelatedAsAudio(relatedMenu.naat);
+        }}
       />
     </>
   );

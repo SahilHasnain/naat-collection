@@ -1,6 +1,9 @@
 import { colors, shadows } from "@/constants/theme";
+import KebabMenuButton from "@/components/KebabMenuButton";
+import NaatCardMenu from "@/components/NaatCardMenu";
 import { features } from "@/config/features";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import { useFavorites } from "@/hooks/useFavorites";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -17,14 +20,19 @@ import { appwriteService } from "@/services/appwrite";
 import { shareService } from "@/services/shareService";
 import { storageService } from "@/services/storage";
 import { userProfileService } from "@/services/userProfile";
-import type { Naat } from "@/types";
+import type { MenuAnchor, Naat } from "@/types";
 import {
   dedupeRelatedNaats,
   rankRelatedNaats,
   tokenizeTitle,
 } from "@/utils/relatedScoring";
 import { resolveAudioMetadata } from "@/utils/audioMetadata";
-import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils";
+import {
+  showErrorToast,
+  showInfoToast,
+  showQueueFeedback,
+  showSuccessToast,
+} from "@/utils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { Image } from "expo-image";
@@ -130,6 +138,8 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     abRepeatPointB,
     isABRepeatActive,
     loadAndPlay,
+    playNext,
+    addToQueue,
     togglePlayPause,
     seek,
     setVolume,
@@ -143,6 +153,7 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
     clearQueue,
     playFromQueue,
   } = useAudioPlayer();
+  const { isFavorite: isNaatFavorite, toggleFavorite } = useFavorites();
 
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -161,6 +172,10 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
   const [relatedNaats, setRelatedNaats] = useState<Naat[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [relatedError, setRelatedError] = useState<string | null>(null);
+  const [relatedMenu, setRelatedMenu] = useState<{
+    naat: Naat;
+    anchor: MenuAnchor;
+  } | null>(null);
   const menuItemStyle = [
     styles.menuItem,
     { borderBottomColor: colors.border.menuDivider },
@@ -216,6 +231,25 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
 
   const closeRelated = () => {
     setShowRelated(false);
+    setRelatedMenu(null);
+  };
+
+  const queueRelatedNext = async (naat: Naat) => {
+    const metadata = await resolveAudioMetadata(naat);
+    if (!metadata) {
+      showErrorToast("Audio is unavailable for this naat.");
+      return;
+    }
+    showQueueFeedback(await playNext(metadata), "next");
+  };
+
+  const queueRelated = async (naat: Naat) => {
+    const metadata = await resolveAudioMetadata(naat);
+    if (!metadata) {
+      showErrorToast("Audio is unavailable for this naat.");
+      return;
+    }
+    showQueueFeedback(await addToQueue(metadata), "queue");
   };
 
   const playRelated = async (naat: Naat) => {
@@ -697,20 +731,14 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
                         >
                           {naat.title}
                         </Text>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.relatedAudioMeta,
-                            { color: colors.text.tertiary },
-                          ]}
-                        >
-                          {naat.channelName}
-                        </Text>
                       </View>
-                      <Ionicons
-                        name="play-circle-outline"
-                        size={24}
-                        color={colors.accent.primary}
+                      <KebabMenuButton
+                        onPress={(anchor) =>
+                          setRelatedMenu({ naat, anchor })
+                        }
+                        color={colors.text.secondary}
+                        backgroundColor={colors.background.tertiary}
+                        size={16}
                       />
                     </TouchableOpacity>
                   )}
@@ -730,6 +758,27 @@ const FullPlayerModal: React.FC<FullPlayerModalProps> = ({
           </View>
         </View>
       </Modal>
+
+      <NaatCardMenu
+        visible={relatedMenu !== null}
+        anchor={relatedMenu?.anchor ?? null}
+        selectedNaat={relatedMenu?.naat ?? null}
+        savedPlaybackMode="audio"
+        onClose={() => setRelatedMenu(null)}
+        showDownload={false}
+        isFavorite={
+          relatedMenu ? isNaatFavorite(relatedMenu.naat.$id) : false
+        }
+        onToggleFavorite={() => {
+          if (relatedMenu) {
+            void toggleFavorite(relatedMenu.naat.$id);
+          }
+          setRelatedMenu(null);
+        }}
+        onPlayNext={(naat) => void queueRelatedNext(naat)}
+        onAddToQueue={(naat) => void queueRelated(naat)}
+        onAlternatePlay={() => setRelatedMenu(null)}
+      />
 
       <Modal
         visible={showQueue}
