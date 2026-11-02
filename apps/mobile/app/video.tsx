@@ -57,16 +57,11 @@ export default function VideoScreen() {
   }>();
 
   const [isLoading, setIsLoading] = React.useState(true);
-  const [videoLoadTimedOut, setVideoLoadTimedOut] = React.useState(false);
-  const [playerInstanceKey, setPlayerInstanceKey] = React.useState(0);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const [audioLoading, setAudioLoading] = React.useState(false);
   const systemBarsTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const videoLoadingTimeoutRef = React.useRef<ReturnType<
-    typeof setTimeout
-  > | null>(null);
   const hasStartedPlaybackRef = React.useRef(false);
   const playerStateRef = React.useRef("unstarted");
 
@@ -156,8 +151,6 @@ export default function VideoScreen() {
     hasStartedPlaybackRef.current = false;
     playerStateRef.current = "unstarted";
     setIsLoading(true);
-    setVideoLoadTimedOut(false);
-    setPlayerInstanceKey(0);
     setVideoPosition(0);
     setVideoDuration(dbDuration);
     setContextPosition(0);
@@ -203,42 +196,6 @@ export default function VideoScreen() {
     dbDuration,
     videoUrl,
   ]);
-
-  React.useEffect(() => {
-    if (!videoId || !videoPlaying) {
-      return;
-    }
-
-    videoLoadingTimeoutRef.current = setTimeout(() => {
-      videoLoadingTimeoutRef.current = null;
-      if (
-        hasStartedPlaybackRef.current ||
-        playerStateRef.current === "paused" ||
-        playerStateRef.current === "ended"
-      ) {
-        return;
-      }
-      console.log("[VideoScreen] Video loading timed out");
-      setIsLoading(false);
-      setVideoLoadTimedOut(true);
-    }, 20000);
-
-    return () => {
-      if (videoLoadingTimeoutRef.current) {
-        clearTimeout(videoLoadingTimeoutRef.current);
-        videoLoadingTimeoutRef.current = null;
-      }
-    };
-  }, [videoId, playerInstanceKey, videoPlaying]);
-
-  const retryVideoLoading = React.useCallback(() => {
-    hasStartedPlaybackRef.current = false;
-    playerStateRef.current = "unstarted";
-    setVideoLoadTimedOut(false);
-    setIsLoading(true);
-    setVideoPlaying(true);
-    setPlayerInstanceKey((key) => key + 1);
-  }, []);
 
   // Switch to audio mode - loads audio via AudioContext and navigates back
   const switchToAudio = async () => {
@@ -433,12 +390,7 @@ export default function VideoScreen() {
       // Clear loading state when video starts playing
       if (state === "playing") {
         hasStartedPlaybackRef.current = true;
-        if (videoLoadingTimeoutRef.current) {
-          clearTimeout(videoLoadingTimeoutRef.current);
-          videoLoadingTimeoutRef.current = null;
-        }
         setIsLoading(false);
-        setVideoLoadTimedOut(false);
         setVideoPlaying(true);
         setPlaying(true);
 
@@ -464,19 +416,10 @@ export default function VideoScreen() {
           }, 1000);
         }
       } else if (state === "paused") {
-        if (videoLoadingTimeoutRef.current) {
-          clearTimeout(videoLoadingTimeoutRef.current);
-          videoLoadingTimeoutRef.current = null;
-        }
         setIsLoading(false);
-        setVideoLoadTimedOut(false);
         setVideoPlaying(false);
         setPlaying(false);
       } else if (state === "ended") {
-        if (videoLoadingTimeoutRef.current) {
-          clearTimeout(videoLoadingTimeoutRef.current);
-          videoLoadingTimeoutRef.current = null;
-        }
         setVideoPlaying(false);
         setPlaying(false);
 
@@ -873,19 +816,14 @@ export default function VideoScreen() {
             <View className="bg-black">
               <View className="relative" style={{ height: playerHeight }}>
                 <YoutubePlayer
-                  key={`${videoId}-${playerInstanceKey}`}
+                  key={videoId}
                   ref={playerRef}
                   height={playerHeight}
                   videoId={videoId}
                   play={videoPlaying}
                   onReady={() => {
                     console.log("[VideoScreen] Video ready");
-                    if (videoLoadingTimeoutRef.current) {
-                      clearTimeout(videoLoadingTimeoutRef.current);
-                      videoLoadingTimeoutRef.current = null;
-                    }
                     setIsLoading(false);
-                    setVideoLoadTimedOut(false);
                     if (dbDuration === 0 && playerRef.current) {
                       // Add a small delay to ensure video is fully loaded
                       setTimeout(async () => {
@@ -904,24 +842,6 @@ export default function VideoScreen() {
                             "[VideoScreen] Error getting duration:",
                             error,
                           );
-                          // Fallback: try again after another delay
-                          setTimeout(async () => {
-                            try {
-                              const duration =
-                                await playerRef.current.getDuration();
-                              console.log(
-                                "[VideoScreen] Video duration (retry):",
-                                duration,
-                              );
-                              setVideoDuration(duration);
-                              setContextDuration(duration);
-                            } catch (retryError) {
-                              console.error(
-                                "[VideoScreen] Error getting duration (retry):",
-                                retryError,
-                              );
-                            }
-                          }, 1000);
                         }
                       }, 500);
                     }
@@ -929,13 +849,7 @@ export default function VideoScreen() {
                   onChangeState={onStateChange}
                   onFullScreenChange={handleFullscreenChange}
                   onError={() => {
-                    if (
-                      !hasStartedPlaybackRef.current &&
-                      playerStateRef.current !== "paused"
-                    ) {
-                      setIsLoading(false);
-                      setVideoLoadTimedOut(true);
-                    }
+                    setIsLoading(false);
                   }}
                   webViewStyle={{ opacity: isLoading ? 0 : 1 }}
                   initialPlayerParams={{
@@ -958,23 +872,6 @@ export default function VideoScreen() {
                   </View>
                 )}
 
-                {videoLoadTimedOut && (
-                  <View style={styles.videoRetryOverlay}>
-                    <Text style={styles.videoRetryText}>
-                      Video is taking longer than expected.
-                    </Text>
-                    <Pressable
-                      onPress={retryVideoLoading}
-                      style={styles.videoRetryButton}
-                      accessibilityRole="button"
-                      accessibilityLabel="Retry loading video"
-                    >
-                      <Text style={styles.videoRetryButtonText}>
-                        Retry loading
-                      </Text>
-                    </Pressable>
-                  </View>
-                )}
               </View>
 
               {isDesktopWeb && videoControls}
@@ -1178,30 +1075,6 @@ const styles = StyleSheet.create({
   },
   mobilePlayerColumn: {
     flexShrink: 0,
-  },
-  videoRetryOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-    backgroundColor: "rgba(0, 0, 0, 0.86)",
-  },
-  videoRetryText: {
-    color: "#fff",
-    fontSize: 14,
-    textAlign: "center",
-  },
-  videoRetryButton: {
-    marginTop: 12,
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    backgroundColor: colors.accent.primary,
-  },
-  videoRetryButtonText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "600",
   },
   mobileRelatedScroll: {
     flex: 1,
