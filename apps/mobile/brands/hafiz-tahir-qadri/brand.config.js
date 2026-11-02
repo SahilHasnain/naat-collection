@@ -12,7 +12,7 @@ module.exports = {
     packageId: "com.tahirqadri",
     packageIdDev: "com.tahirqadri.dev",
     packageIdPreview: "com.tahirqadri.preview",
-    versionCode: 3,
+    versionCode: 4,
     applinksHost: "hafiztahirqadri.appwrite.network",
   },
 
