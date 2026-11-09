@@ -180,8 +180,13 @@
       "youtubeId": "Z0YqPBMB3j0",
       "error": "fetch failed",
       "time": "2026-10-20T06:30:06.897Z"
+    },
+    {
+      "youtubeId": "oOsQjmvoj3o",
+      "error": "This project is in readonly mode. Please contact the organization admin for details.",
+      "time": "2026-11-09T06:31:36.120Z"
     }
   ],
-  "today": 1,
-  "lastDate": "2026-11-01"
+  "today": 0,
+  "lastDate": "2026-11-09"
 }

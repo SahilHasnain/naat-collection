@@ -816,7 +816,6 @@ export default function VideoScreen() {
             <View className="bg-black">
               <View className="relative" style={{ height: playerHeight }}>
                 <YoutubePlayer
-                  key={videoId}
                   ref={playerRef}
                   height={playerHeight}
                   videoId={videoId}
