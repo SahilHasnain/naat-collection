@@ -19,7 +19,7 @@ module.exports = {
     packageId: "com.naatproduction", // production package
     packageIdDev: "com.naatproduction.dev",
     packageIdPreview: "com.naatproduction.preview",
-    versionCode: 27,
+    versionCode: 28,
     // Deep-link host for universal links (used in intent filters + associatedDomains)
     applinksHost: "naatproduction.appwrite.network",
   },
