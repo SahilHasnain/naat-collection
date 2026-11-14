@@ -362,17 +362,17 @@
       "youtubeId": "Q4Rt53oYpYo",
       "progressKey": "Q4Rt53oYpYo:end",
       "position": "end",
-      "error": "This project is in readonly mode. Please contact the organization admin for details.",
-      "time": "2026-11-09T06:31:40.472Z"
+      "error": "fetch failed",
+      "time": "2026-11-13T06:34:59.103Z"
     },
     {
       "youtubeId": "75vDNc80uCU",
       "progressKey": "75vDNc80uCU:end",
       "position": "end",
-      "error": "This project is in readonly mode. Please contact the organization admin for details.",
-      "time": "2026-11-09T06:31:45.821Z"
+      "error": "fetch failed",
+      "time": "2026-11-13T06:35:19.174Z"
     }
   ],
   "today": 0,
-  "lastDate": "2026-11-09"
+  "lastDate": "2026-11-13"
 }

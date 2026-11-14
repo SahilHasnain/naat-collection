@@ -648,3 +648,68 @@ Teenage Voice YouTube Shorts (+6 semitones)
 
 Teenage uploader failed: This project is in readonly mode. Please contact the organization admin for details.
 [Mon 11/09/2026 12:01:40.26] Teenage-voice upload finished (exit 1) 
+================================================ 
+[Tue 11/10/2026  0:38:37.20] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+  Network error during Appwrite naat list request (attempt 1/5); retrying in 1s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 1/5); retrying in 1s: fetch failed
+  Network error during Appwrite naat list request (attempt 2/5); retrying in 2s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 2/5); retrying in 2s: fetch failed
+  Network error during Appwrite naat list request (attempt 3/5); retrying in 4s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 3/5); retrying in 4s: fetch failed
+  Network error during Appwrite naat list request (attempt 4/5); retrying in 8s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 4/5); retrying in 8s: fetch failed
+Teenage uploader failed: fetch failed
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+  Network error during Appwrite naat list request (attempt 1/5); retrying in 1s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 1/5); retrying in 1s: fetch failed
+  Network error during Appwrite naat list request (attempt 2/5); retrying in 2s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 2/5); retrying in 2s: fetch failed
+  Network error during Appwrite naat list request (attempt 3/5); retrying in 4s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 3/5); retrying in 4s: fetch failed
+  Network error during Appwrite naat list request (attempt 4/5); retrying in 8s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 4/5); retrying in 8s: fetch failed
+Teenage uploader failed: fetch failed
+[Tue 11/10/2026  0:39:38.97] Teenage-voice upload finished (exit 1) 
+================================================ 
+[Thu 11/12/2026  8:30:40.71] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+Teenage uploader failed: This project is in readonly mode. Please contact the organization admin for details.
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+Teenage uploader failed: This project is in readonly mode. Please contact the organization admin for details.
+[Thu 11/12/2026  8:31:16.92] Teenage-voice upload finished (exit 1) 
+================================================ 
+[Sat 11/14/2026  7:39:17.84] Teenage-voice upload started 
+--- 1 regular teenage-voice video --- 
+Teenage Voice YouTube Uploader (+6 semitones)
+
+  Network error during Appwrite naat list request (attempt 1/5); retrying in 1s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 1/5); retrying in 1s: fetch failed
+  Network error during Appwrite naat list request (attempt 2/5); retrying in 2s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 2/5); retrying in 2s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 3/5); retrying in 4s: fetch failed
+  Network error during Appwrite naat list request (attempt 3/5); retrying in 4s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 4/5); retrying in 8s: fetch failed
+  Network error during Appwrite naat list request (attempt 4/5); retrying in 8s: fetch failed
+Teenage uploader failed: fetch failed
+--- 2 teenage-voice Shorts (start/end clips) --- 
+Teenage Voice YouTube Shorts (+6 semitones)
+
+  Network error during Appwrite naat list request (attempt 1/5); retrying in 1s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 1/5); retrying in 1s: fetch failed
+  Network error during Appwrite naat list request (attempt 2/5); retrying in 2s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 2/5); retrying in 2s: fetch failed
+  Network error during Appwrite naat list request (attempt 3/5); retrying in 4s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 3/5); retrying in 4s: fetch failed
+  Network error during Appwrite naat list request (attempt 4/5); retrying in 8s: fetch failed
+  Network error during Appwrite voice-variant list request (attempt 4/5); retrying in 8s: fetch failed
+Teenage uploader failed: fetch failed
+[Sat 11/14/2026  7:40:19.23] Teenage-voice upload finished (exit 1) 
