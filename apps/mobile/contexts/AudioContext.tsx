@@ -34,6 +34,22 @@ export interface AudioMetadata {
 }
 
 /**
+ * A playback failure that the UI should surface to the listener.
+ *
+ * Track Player reports these asynchronously (dead stream, 404 file, dropped
+ * connection), so the context owns the state and a global prompt decides how
+ * to offer the video fallback.
+ */
+export interface AudioPlaybackError {
+  /** Technical message from Track Player, useful for logs. */
+  detail: string;
+  /** Track that failed, when it can be resolved. */
+  audio: AudioMetadata | null;
+  /** Track Player error code, when available. */
+  code?: string;
+}
+
+/**
  * Result of a queue mutation. Callers turn this into user feedback so the
  * behaviour is identical from every entry point (card menu, history, sheet).
  */
@@ -74,6 +90,8 @@ interface AudioContextType {
   duration: number;
   volume: number;
   error: Error | null;
+  /** Set when playback fails so the app can offer the video fallback. */
+  playbackError: AudioPlaybackError | null;
   isRepeatEnabled: boolean;
   isAutoplayEnabled: boolean;
   abRepeatPointA: number | null;
@@ -99,6 +117,8 @@ interface AudioContextType {
   seek: (positionMillis: number) => Promise<void>;
   setVolume: (volume: number) => Promise<void>;
   stop: () => Promise<void>;
+  /** Dismiss the playback error prompt and remember it was handled. */
+  clearPlaybackError: () => void;
   togglePlayPause: () => Promise<void>;
   toggleRepeat: () => Promise<void>;
   toggleAutoplay: () => Promise<void>;
@@ -129,6 +149,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(1.0);
   const [error, setError] = useState<Error | null>(null);
+  const [playbackError, setPlaybackError] =
+    useState<AudioPlaybackError | null>(null);
   const [isRepeatEnabled, setIsRepeatEnabled] = useState(false);
   const [isAutoplayEnabled, setIsAutoplayEnabled] = useState(false);
   const [abRepeatPointA, setAbRepeatPointA] = useState<number | null>(null);
@@ -396,6 +418,52 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   // load instead of being silently dropped (replace-not-drop).
   const loadVersionRef = useRef(0);
 
+  // Last track we already warned the listener about. Prevents a native retry
+  // loop from stacking identical "couldn't play" prompts.
+  const playbackErrorKeyRef = useRef<string | null>(null);
+
+  const clearPlaybackError = useCallback(() => {
+    playbackErrorKeyRef.current = null;
+    setPlaybackError(null);
+  }, []);
+
+  /**
+   * Single funnel for playback failures, whether Track Player reported them
+   * natively or a load call rejected. Only the first failure per track is
+   * surfaced; the listener can retry from the prompt, which resets the guard.
+   */
+  const reportPlaybackError = useCallback(
+    (audio: AudioMetadata | null, detail: string, code?: string) => {
+      const key = audio ? getAudioKey(audio) : null;
+      if (key && playbackErrorKeyRef.current === key) return;
+      playbackErrorKeyRef.current = key;
+
+      console.error(
+        `[AudioContext] Playback failed for "${audio?.title ?? "unknown"}":`,
+        detail,
+      );
+
+      setError(new Error(detail));
+      setIsPlaying(false);
+      setIsLoading(false);
+      setPlaybackError({ detail, audio, code });
+    },
+    [],
+  );
+
+  // Track Player reports dead streams / unreachable files asynchronously. The
+  // audio is unusable at this point, so hand it to the prompt instead of
+  // leaving the listener with a frozen player.
+  useTrackPlayerEvents([Event.PlaybackError], (event) => {
+    if (!isNormalAudioActive) return;
+    if (event.type !== Event.PlaybackError) return;
+    reportPlaybackError(
+      currentAudioRef.current,
+      event.message || "The audio stopped unexpectedly.",
+      event.code,
+    );
+  });
+
   // Load and play audio
   const loadAndPlay = useCallback(
     async (audio: AudioMetadata) => {
@@ -403,6 +471,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
       const version = ++loadVersionRef.current;
 
       try {
+        clearPlaybackError();
         setIsLoading(true);
         setError(null);
 
@@ -456,16 +525,20 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
         // Ignore errors from superseded loads
         if (version !== loadVersionRef.current) return;
         console.error("[AudioContext] Error loading audio:", err);
-        setError(err as Error);
-        setIsLoading(false);
         currentAudioRef.current = null;
         setCurrentAudio(null);
         metadataRef.current.clear();
         setQueue([]);
         queueRef.current = [];
+        reportPlaybackError(
+          audio,
+          err instanceof Error && err.message
+            ? err.message
+            : "The audio could not be loaded.",
+        );
       }
     },
-    [volume, setMode, applyRepeatMode],
+    [volume, setMode, applyRepeatMode, clearPlaybackError, reportPlaybackError],
   );
 
   const hasActiveTrack = useCallback(async (): Promise<boolean> => {
@@ -705,8 +778,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     setDuration(0);
     setError(null);
     setIsLoading(false);
+    clearPlaybackError();
     setMode("none");
-  }, [setMode]);
+  }, [setMode, clearPlaybackError]);
 
   // Toggle repeat
   const toggleRepeat = useCallback(async () => {
@@ -804,6 +878,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     duration,
     volume,
     error,
+    playbackError,
     isRepeatEnabled,
     isAutoplayEnabled,
     abRepeatPointA,
@@ -823,6 +898,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     seek,
     setVolume,
     stop,
+    clearPlaybackError,
     togglePlayPause,
     toggleRepeat,
     toggleAutoplay,

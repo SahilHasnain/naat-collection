@@ -1,5 +1,6 @@
 import { AnimatedHeader } from "@/components/AnimatedHeader";
 import { AnimatedTabBar } from "@/components/AnimatedTabBar";
+import AudioErrorPrompt from "@/components/AudioErrorPrompt";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import LiveRadioMiniPlayer from "@/components/LiveRadioMiniPlayer";
 import MiniPlayer from "@/components/MiniPlayer";
@@ -430,6 +431,9 @@ function RootLayoutContent() {
       {appMessage && (
         <AppMessageBanner message={appMessage} onDismiss={dismiss} />
       )}
+
+      {/* Audio failure prompt — offers the video fallback when a stream dies */}
+      <AudioErrorPrompt />
 
       {/* In-app review prompt */}
       <ReviewPromptModal
