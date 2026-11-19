@@ -24,7 +24,7 @@
     "provision:github-brand": "node scripts/provision-github-brand.js",
     "channel:add": "node scripts/add-channel.js",
     "download:audio": "node scripts/download-audio-with-cookies.js",
-    "build:privacy": "node scripts/build-privacy-site.js",
+    "build:privacy": "node init && node scripts/build-privacy-site.js",
     "setup:appwrite": "npm run setup:appwrite --workspace=mobile",
     "ingest:videos": "npm run ingest:videos --workspace=mobile",
     "typecheck": "npx tsc --noEmit",
